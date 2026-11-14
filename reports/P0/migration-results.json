@@ -1,0 +1,789 @@
+{
+  "synthetic": true,
+  "status": "PASS",
+  "semantic_diff": {
+    "removed": [],
+    "modified": [],
+    "added": [],
+    "preserved_record_counts": {
+      "claims": 2,
+      "evidence": 2,
+      "relationships": 2
+    },
+    "preserved_candidate_count": 2
+  },
+  "before": {
+    "records": {
+      "claims": [
+        {
+          "id": "synthetic.confirmed",
+          "statement": "Synthetic basket preserves quantities.",
+          "type": "technical_fact",
+          "status": "CONFIRMED",
+          "evidence": [
+            "evidence.synthetic.confirmed"
+          ],
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture-source"
+          },
+          "last_verified": "2026-11-14",
+          "depends_on": [],
+          "conflicts_with": [
+            "synthetic.inferred"
+          ]
+        },
+        {
+          "id": "synthetic.inferred",
+          "statement": "Synthetic alternative interpretation.",
+          "type": "technical_fact",
+          "status": "INFERRED",
+          "evidence": [
+            "evidence.synthetic.inferred"
+          ],
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture-source"
+          },
+          "last_verified": null,
+          "depends_on": [
+            "synthetic.confirmed"
+          ],
+          "conflicts_with": [
+            "synthetic.confirmed"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "evidence.synthetic.confirmed",
+          "type": "direct-technical",
+          "status": "active",
+          "source": "Fixture.cs",
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture-source"
+          },
+          "captured_at": "2026-11-14T00:00:00Z",
+          "location": "Fixture.cs#L1",
+          "description": "Synthetic source fixture supports the statement.",
+          "substantiates": [
+            "synthetic.confirmed"
+          ]
+        },
+        {
+          "id": "evidence.synthetic.inferred",
+          "type": "direct-technical",
+          "status": "active",
+          "source": "Fixture.cs",
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture-source"
+          },
+          "captured_at": "2026-11-14T00:00:00Z",
+          "location": "Fixture.cs#L1",
+          "description": "Synthetic source fixture supports the statement.",
+          "substantiates": [
+            "synthetic.inferred"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "id": "synthetic.conflict",
+          "type": "conflicts_with",
+          "from": "synthetic.confirmed",
+          "to": "synthetic.inferred",
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture"
+          }
+        },
+        {
+          "id": "synthetic.dependency",
+          "type": "depends_on",
+          "from": "synthetic.inferred",
+          "to": "synthetic.confirmed",
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture"
+          }
+        }
+      ]
+    },
+    "queue": [
+      {
+        "id": "legacy-pending",
+        "payload": {
+          "version": 1,
+          "operation": "add",
+          "records": {
+            "claims": [
+              {
+                "id": "synthetic.pending",
+                "statement": "Synthetic pending item.",
+                "type": "technical_fact",
+                "status": "CONFIRMED",
+                "evidence": [
+                  "evidence.synthetic.pending"
+                ],
+                "provenance": {
+                  "actor": "synthetic-test",
+                  "method": "fixture-source"
+                },
+                "last_verified": "2026-11-14",
+                "depends_on": [],
+                "conflicts_with": []
+              }
+            ],
+            "evidence": [
+              {
+                "id": "evidence.synthetic.pending",
+                "type": "direct-technical",
+                "status": "active",
+                "source": "Fixture.cs",
+                "provenance": {
+                  "actor": "synthetic-test",
+                  "method": "fixture-source"
+                },
+                "captured_at": "2026-11-14T00:00:00Z",
+                "location": "Fixture.cs#L1",
+                "description": "Synthetic source fixture supports the statement.",
+                "substantiates": [
+                  "synthetic.pending"
+                ]
+              }
+            ],
+            "relationships": []
+          }
+        },
+        "status": "pending",
+        "history": [
+          {
+            "event": "captured",
+            "synthetic": true
+          }
+        ]
+      },
+      {
+        "id": "legacy-imported",
+        "payload": {
+          "version": 1,
+          "operation": "add",
+          "records": {
+            "claims": [
+              {
+                "id": "synthetic.confirmed",
+                "statement": "Synthetic basket preserves quantities.",
+                "type": "technical_fact",
+                "status": "CONFIRMED",
+                "evidence": [
+                  "evidence.synthetic.confirmed"
+                ],
+                "provenance": {
+                  "actor": "synthetic-test",
+                  "method": "fixture-source"
+                },
+                "last_verified": "2026-11-14",
+                "depends_on": [],
+                "conflicts_with": [
+                  "synthetic.inferred"
+                ]
+              }
+            ],
+            "evidence": [
+              {
+                "id": "evidence.synthetic.confirmed",
+                "type": "direct-technical",
+                "status": "active",
+                "source": "Fixture.cs",
+                "provenance": {
+                  "actor": "synthetic-test",
+                  "method": "fixture-source"
+                },
+                "captured_at": "2026-11-14T00:00:00Z",
+                "location": "Fixture.cs#L1",
+                "description": "Synthetic source fixture supports the statement.",
+                "substantiates": [
+                  "synthetic.confirmed"
+                ]
+              }
+            ],
+            "relationships": []
+          }
+        },
+        "status": "imported",
+        "history": [
+          {
+            "event": "imported",
+            "synthetic": true
+          }
+        ]
+      }
+    ]
+  },
+  "after": {
+    "ok": true,
+    "records": {
+      "claims": [
+        {
+          "conflicts_with": [
+            "synthetic.inferred"
+          ],
+          "depends_on": [],
+          "evidence": [
+            "evidence.synthetic.confirmed"
+          ],
+          "id": "synthetic.confirmed",
+          "last_verified": "2026-11-14",
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture-source"
+          },
+          "statement": "Synthetic basket preserves quantities.",
+          "status": "CONFIRMED",
+          "type": "technical_fact"
+        },
+        {
+          "conflicts_with": [
+            "synthetic.confirmed"
+          ],
+          "depends_on": [
+            "synthetic.confirmed"
+          ],
+          "evidence": [
+            "evidence.synthetic.inferred"
+          ],
+          "id": "synthetic.inferred",
+          "last_verified": null,
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture-source"
+          },
+          "statement": "Synthetic alternative interpretation.",
+          "status": "INFERRED",
+          "type": "technical_fact"
+        }
+      ],
+      "evidence": [
+        {
+          "captured_at": "2026-11-14T00:00:00Z",
+          "description": "Synthetic source fixture supports the statement.",
+          "id": "evidence.synthetic.confirmed",
+          "location": "Fixture.cs#L1",
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture-source"
+          },
+          "source": "Fixture.cs",
+          "status": "active",
+          "substantiates": [
+            "synthetic.confirmed"
+          ],
+          "type": "direct-technical"
+        },
+        {
+          "captured_at": "2026-11-14T00:00:00Z",
+          "description": "Synthetic source fixture supports the statement.",
+          "id": "evidence.synthetic.inferred",
+          "location": "Fixture.cs#L1",
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture-source"
+          },
+          "source": "Fixture.cs",
+          "status": "active",
+          "substantiates": [
+            "synthetic.inferred"
+          ],
+          "type": "direct-technical"
+        }
+      ],
+      "relationships": [
+        {
+          "from": "synthetic.confirmed",
+          "id": "synthetic.conflict",
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture"
+          },
+          "to": "synthetic.inferred",
+          "type": "conflicts_with"
+        },
+        {
+          "from": "synthetic.inferred",
+          "id": "synthetic.dependency",
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture"
+          },
+          "to": "synthetic.confirmed",
+          "type": "depends_on"
+        }
+      ]
+    },
+    "queue": [
+      {
+        "id": "legacy-imported",
+        "payload": {
+          "operation": "add",
+          "records": {
+            "claims": [
+              {
+                "conflicts_with": [
+                  "synthetic.inferred"
+                ],
+                "depends_on": [],
+                "evidence": [
+                  "evidence.synthetic.confirmed"
+                ],
+                "id": "synthetic.confirmed",
+                "last_verified": "2026-11-14",
+                "provenance": {
+                  "actor": "synthetic-test",
+                  "method": "fixture-source"
+                },
+                "statement": "Synthetic basket preserves quantities.",
+                "status": "CONFIRMED",
+                "type": "technical_fact"
+              }
+            ],
+            "evidence": [
+              {
+                "captured_at": "2026-11-14T00:00:00Z",
+                "description": "Synthetic source fixture supports the statement.",
+                "id": "evidence.synthetic.confirmed",
+                "location": "Fixture.cs#L1",
+                "provenance": {
+                  "actor": "synthetic-test",
+                  "method": "fixture-source"
+                },
+                "source": "Fixture.cs",
+                "status": "active",
+                "substantiates": [
+                  "synthetic.confirmed"
+                ],
+                "type": "direct-technical"
+              }
+            ],
+            "relationships": []
+          },
+          "version": 1
+        },
+        "status": "imported",
+        "binding": "sha256:53469b5e46d7f8a9a277660798ad17ed0ad1b526d71c3eb8d1bff446ee98858c"
+      },
+      {
+        "id": "legacy-pending",
+        "payload": {
+          "operation": "add",
+          "records": {
+            "claims": [
+              {
+                "conflicts_with": [],
+                "depends_on": [],
+                "evidence": [
+                  "evidence.synthetic.pending"
+                ],
+                "id": "synthetic.pending",
+                "last_verified": "2026-11-14",
+                "provenance": {
+                  "actor": "synthetic-test",
+                  "method": "fixture-source"
+                },
+                "statement": "Synthetic pending item.",
+                "status": "CONFIRMED",
+                "type": "technical_fact"
+              }
+            ],
+            "evidence": [
+              {
+                "captured_at": "2026-11-14T00:00:00Z",
+                "description": "Synthetic source fixture supports the statement.",
+                "id": "evidence.synthetic.pending",
+                "location": "Fixture.cs#L1",
+                "provenance": {
+                  "actor": "synthetic-test",
+                  "method": "fixture-source"
+                },
+                "source": "Fixture.cs",
+                "status": "active",
+                "substantiates": [
+                  "synthetic.pending"
+                ],
+                "type": "direct-technical"
+              }
+            ],
+            "relationships": []
+          },
+          "version": 1
+        },
+        "status": "pending",
+        "binding": null
+      }
+    ],
+    "history": [
+      {
+        "event": "migration",
+        "fingerprint": "sha256:d97b3fb13e34368f58011d6c36fd6a2ff09ff64cfdd03fafd339c5ef92362266",
+        "legacy_queue": [
+          {
+            "history": [
+              {
+                "event": "captured",
+                "synthetic": true
+              }
+            ],
+            "id": "legacy-pending",
+            "payload": {
+              "operation": "add",
+              "records": {
+                "claims": [
+                  {
+                    "conflicts_with": [],
+                    "depends_on": [],
+                    "evidence": [
+                      "evidence.synthetic.pending"
+                    ],
+                    "id": "synthetic.pending",
+                    "last_verified": "2026-11-14",
+                    "provenance": {
+                      "actor": "synthetic-test",
+                      "method": "fixture-source"
+                    },
+                    "statement": "Synthetic pending item.",
+                    "status": "CONFIRMED",
+                    "type": "technical_fact"
+                  }
+                ],
+                "evidence": [
+                  {
+                    "captured_at": "2026-11-14T00:00:00Z",
+                    "description": "Synthetic source fixture supports the statement.",
+                    "id": "evidence.synthetic.pending",
+                    "location": "Fixture.cs#L1",
+                    "provenance": {
+                      "actor": "synthetic-test",
+                      "method": "fixture-source"
+                    },
+                    "source": "Fixture.cs",
+                    "status": "active",
+                    "substantiates": [
+                      "synthetic.pending"
+                    ],
+                    "type": "direct-technical"
+                  }
+                ],
+                "relationships": []
+              },
+              "version": 1
+            },
+            "status": "pending"
+          },
+          {
+            "history": [
+              {
+                "event": "imported",
+                "synthetic": true
+              }
+            ],
+            "id": "legacy-imported",
+            "payload": {
+              "operation": "add",
+              "records": {
+                "claims": [
+                  {
+                    "conflicts_with": [
+                      "synthetic.inferred"
+                    ],
+                    "depends_on": [],
+                    "evidence": [
+                      "evidence.synthetic.confirmed"
+                    ],
+                    "id": "synthetic.confirmed",
+                    "last_verified": "2026-11-14",
+                    "provenance": {
+                      "actor": "synthetic-test",
+                      "method": "fixture-source"
+                    },
+                    "statement": "Synthetic basket preserves quantities.",
+                    "status": "CONFIRMED",
+                    "type": "technical_fact"
+                  }
+                ],
+                "evidence": [
+                  {
+                    "captured_at": "2026-11-14T00:00:00Z",
+                    "description": "Synthetic source fixture supports the statement.",
+                    "id": "evidence.synthetic.confirmed",
+                    "location": "Fixture.cs#L1",
+                    "provenance": {
+                      "actor": "synthetic-test",
+                      "method": "fixture-source"
+                    },
+                    "source": "Fixture.cs",
+                    "status": "active",
+                    "substantiates": [
+                      "synthetic.confirmed"
+                    ],
+                    "type": "direct-technical"
+                  }
+                ],
+                "relationships": []
+              },
+              "version": 1
+            },
+            "status": "imported"
+          }
+        ]
+      }
+    ]
+  },
+  "manifest": {
+    "version": 1,
+    "records": {
+      "claims": [
+        {
+          "id": "synthetic.confirmed",
+          "statement": "Synthetic basket preserves quantities.",
+          "type": "technical_fact",
+          "status": "CONFIRMED",
+          "evidence": [
+            "evidence.synthetic.confirmed"
+          ],
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture-source"
+          },
+          "last_verified": "2026-11-14",
+          "depends_on": [],
+          "conflicts_with": [
+            "synthetic.inferred"
+          ]
+        },
+        {
+          "id": "synthetic.inferred",
+          "statement": "Synthetic alternative interpretation.",
+          "type": "technical_fact",
+          "status": "INFERRED",
+          "evidence": [
+            "evidence.synthetic.inferred"
+          ],
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture-source"
+          },
+          "last_verified": null,
+          "depends_on": [
+            "synthetic.confirmed"
+          ],
+          "conflicts_with": [
+            "synthetic.confirmed"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "id": "evidence.synthetic.confirmed",
+          "type": "direct-technical",
+          "status": "active",
+          "source": "Fixture.cs",
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture-source"
+          },
+          "captured_at": "2026-11-14T00:00:00Z",
+          "location": "Fixture.cs#L1",
+          "description": "Synthetic source fixture supports the statement.",
+          "substantiates": [
+            "synthetic.confirmed"
+          ]
+        },
+        {
+          "id": "evidence.synthetic.inferred",
+          "type": "direct-technical",
+          "status": "active",
+          "source": "Fixture.cs",
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture-source"
+          },
+          "captured_at": "2026-11-14T00:00:00Z",
+          "location": "Fixture.cs#L1",
+          "description": "Synthetic source fixture supports the statement.",
+          "substantiates": [
+            "synthetic.inferred"
+          ]
+        }
+      ],
+      "relationships": [
+        {
+          "id": "synthetic.conflict",
+          "type": "conflicts_with",
+          "from": "synthetic.confirmed",
+          "to": "synthetic.inferred",
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture"
+          }
+        },
+        {
+          "id": "synthetic.dependency",
+          "type": "depends_on",
+          "from": "synthetic.inferred",
+          "to": "synthetic.confirmed",
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture"
+          }
+        }
+      ]
+    },
+    "legacy_queue": [
+      {
+        "id": "legacy-pending",
+        "payload": {
+          "version": 1,
+          "operation": "add",
+          "records": {
+            "claims": [
+              {
+                "id": "synthetic.pending",
+                "statement": "Synthetic pending item.",
+                "type": "technical_fact",
+                "status": "CONFIRMED",
+                "evidence": [
+                  "evidence.synthetic.pending"
+                ],
+                "provenance": {
+                  "actor": "synthetic-test",
+                  "method": "fixture-source"
+                },
+                "last_verified": "2026-11-14",
+                "depends_on": [],
+                "conflicts_with": []
+              }
+            ],
+            "evidence": [
+              {
+                "id": "evidence.synthetic.pending",
+                "type": "direct-technical",
+                "status": "active",
+                "source": "Fixture.cs",
+                "provenance": {
+                  "actor": "synthetic-test",
+                  "method": "fixture-source"
+                },
+                "captured_at": "2026-11-14T00:00:00Z",
+                "location": "Fixture.cs#L1",
+                "description": "Synthetic source fixture supports the statement.",
+                "substantiates": [
+                  "synthetic.pending"
+                ]
+              }
+            ],
+            "relationships": []
+          }
+        },
+        "status": "pending",
+        "history": [
+          {
+            "event": "captured",
+            "synthetic": true
+          }
+        ]
+      },
+      {
+        "id": "legacy-imported",
+        "payload": {
+          "version": 1,
+          "operation": "add",
+          "records": {
+            "claims": [
+              {
+                "id": "synthetic.confirmed",
+                "statement": "Synthetic basket preserves quantities.",
+                "type": "technical_fact",
+                "status": "CONFIRMED",
+                "evidence": [
+                  "evidence.synthetic.confirmed"
+                ],
+                "provenance": {
+                  "actor": "synthetic-test",
+                  "method": "fixture-source"
+                },
+                "last_verified": "2026-11-14",
+                "depends_on": [],
+                "conflicts_with": [
+                  "synthetic.inferred"
+                ]
+              }
+            ],
+            "evidence": [
+              {
+                "id": "evidence.synthetic.confirmed",
+                "type": "direct-technical",
+                "status": "active",
+                "source": "Fixture.cs",
+                "provenance": {
+                  "actor": "synthetic-test",
+                  "method": "fixture-source"
+                },
+                "captured_at": "2026-11-14T00:00:00Z",
+                "location": "Fixture.cs#L1",
+                "description": "Synthetic source fixture supports the statement.",
+                "substantiates": [
+                  "synthetic.confirmed"
+                ]
+              }
+            ],
+            "relationships": []
+          }
+        },
+        "status": "imported",
+        "history": [
+          {
+            "event": "imported",
+            "synthetic": true
+          }
+        ]
+      }
+    ],
+    "source_files": {
+      "evidence/0.json": "eyJpZCI6ICJldmlkZW5jZS5zeW50aGV0aWMuY29uZmlybWVkIiwgInR5cGUiOiAiZGlyZWN0LXRlY2huaWNhbCIsICJzdGF0dXMiOiAiYWN0aXZlIiwgInNvdXJjZSI6ICJGaXh0dXJlLmNzIiwgInByb3ZlbmFuY2UiOiB7ImFjdG9yIjogInN5bnRoZXRpYy10ZXN0IiwgIm1ldGhvZCI6ICJmaXh0dXJlLXNvdXJjZSJ9LCAiY2FwdHVyZWRfYXQiOiAiMjAyNi0xMS0xNFQwMDowMDowMFoiLCAibG9jYXRpb24iOiAiRml4dHVyZS5jcyNMMSIsICJkZXNjcmlwdGlvbiI6ICJTeW50aGV0aWMgc291cmNlIGZpeHR1cmUgc3VwcG9ydHMgdGhlIHN0YXRlbWVudC4iLCAic3Vic3RhbnRpYXRlcyI6IFsic3ludGhldGljLmNvbmZpcm1lZCJdfQ==",
+      "evidence/1.json": "eyJpZCI6ICJldmlkZW5jZS5zeW50aGV0aWMuaW5mZXJyZWQiLCAidHlwZSI6ICJkaXJlY3QtdGVjaG5pY2FsIiwgInN0YXR1cyI6ICJhY3RpdmUiLCAic291cmNlIjogIkZpeHR1cmUuY3MiLCAicHJvdmVuYW5jZSI6IHsiYWN0b3IiOiAic3ludGhldGljLXRlc3QiLCAibWV0aG9kIjogImZpeHR1cmUtc291cmNlIn0sICJjYXB0dXJlZF9hdCI6ICIyMDI2LTExLTE0VDAwOjAwOjAwWiIsICJsb2NhdGlvbiI6ICJGaXh0dXJlLmNzI0wxIiwgImRlc2NyaXB0aW9uIjogIlN5bnRoZXRpYyBzb3VyY2UgZml4dHVyZSBzdXBwb3J0cyB0aGUgc3RhdGVtZW50LiIsICJzdWJzdGFudGlhdGVzIjogWyJzeW50aGV0aWMuaW5mZXJyZWQiXX0=",
+      "knowledge/claims/0.json": "eyJpZCI6ICJzeW50aGV0aWMuY29uZmlybWVkIiwgInN0YXRlbWVudCI6ICJTeW50aGV0aWMgYmFza2V0IHByZXNlcnZlcyBxdWFudGl0aWVzLiIsICJ0eXBlIjogInRlY2huaWNhbF9mYWN0IiwgInN0YXR1cyI6ICJDT05GSVJNRUQiLCAiZXZpZGVuY2UiOiBbImV2aWRlbmNlLnN5bnRoZXRpYy5jb25maXJtZWQiXSwgInByb3ZlbmFuY2UiOiB7ImFjdG9yIjogInN5bnRoZXRpYy10ZXN0IiwgIm1ldGhvZCI6ICJmaXh0dXJlLXNvdXJjZSJ9LCAibGFzdF92ZXJpZmllZCI6ICIyMDI2LTExLTE0IiwgImRlcGVuZHNfb24iOiBbXSwgImNvbmZsaWN0c193aXRoIjogWyJzeW50aGV0aWMuaW5mZXJyZWQiXX0=",
+      "knowledge/claims/1.json": "eyJpZCI6ICJzeW50aGV0aWMuaW5mZXJyZWQiLCAic3RhdGVtZW50IjogIlN5bnRoZXRpYyBhbHRlcm5hdGl2ZSBpbnRlcnByZXRhdGlvbi4iLCAidHlwZSI6ICJ0ZWNobmljYWxfZmFjdCIsICJzdGF0dXMiOiAiSU5GRVJSRUQiLCAiZXZpZGVuY2UiOiBbImV2aWRlbmNlLnN5bnRoZXRpYy5pbmZlcnJlZCJdLCAicHJvdmVuYW5jZSI6IHsiYWN0b3IiOiAic3ludGhldGljLXRlc3QiLCAibWV0aG9kIjogImZpeHR1cmUtc291cmNlIn0sICJsYXN0X3ZlcmlmaWVkIjogbnVsbCwgImRlcGVuZHNfb24iOiBbInN5bnRoZXRpYy5jb25maXJtZWQiXSwgImNvbmZsaWN0c193aXRoIjogWyJzeW50aGV0aWMuY29uZmlybWVkIl19",
+      "knowledge/relationships/0.json": "eyJpZCI6ICJzeW50aGV0aWMuY29uZmxpY3QiLCAidHlwZSI6ICJjb25mbGljdHNfd2l0aCIsICJmcm9tIjogInN5bnRoZXRpYy5jb25maXJtZWQiLCAidG8iOiAic3ludGhldGljLmluZmVycmVkIiwgInByb3ZlbmFuY2UiOiB7ImFjdG9yIjogInN5bnRoZXRpYy10ZXN0IiwgIm1ldGhvZCI6ICJmaXh0dXJlIn19",
+      "knowledge/relationships/1.json": "eyJpZCI6ICJzeW50aGV0aWMuZGVwZW5kZW5jeSIsICJ0eXBlIjogImRlcGVuZHNfb24iLCAiZnJvbSI6ICJzeW50aGV0aWMuaW5mZXJyZWQiLCAidG8iOiAic3ludGhldGljLmNvbmZpcm1lZCIsICJwcm92ZW5hbmNlIjogeyJhY3RvciI6ICJzeW50aGV0aWMtdGVzdCIsICJtZXRob2QiOiAiZml4dHVyZSJ9fQ==",
+      "manifest.yaml": "eyJmb3JtYXQiOiAidW5pdmVyc2FsLWFyY2hpdGVjdHVyZS1rYiIsICJmb3JtYXRfdmVyc2lvbiI6ICIxLjAuMCIsICJzY2hlbWFfdmVyc2lvbnMiOiB7ImNsYWltIjogIjEuMC4wIiwgImV2aWRlbmNlIjogIjEuMC4wIiwgInJlbGF0aW9uc2hpcCI6ICIxLjAuMCJ9LCAiY2FwYWJpbGl0aWVzIjogWyJpbml0IiwgInZhbGlkYXRlIiwgImNoZWNrLXNjYWZmb2xkIiwgInZlcnNpb24iXSwgInN0b3JhZ2UiOiB7Im1hbmlmZXN0IjogIkpTT04tY29tcGF0aWJsZSBZQU1MIDEuMiIsICJyZWNvcmRzIjogIlVURi04IEpTT04sIG9uZSBvYmplY3QgcGVyIGZpbGUiLCAiZG9jdW1lbnRhdGlvbiI6ICJNYXJrZG93biJ9fQ==",
+      "schema/claim.schema.json": "ew0KICAiJHNjaGVtYSI6ICJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsDQogICJ0eXBlIjogIm9iamVjdCIsDQogICJyZXF1aXJlZCI6IFsNCiAgICAiaWQiLA0KICAgICJzdGF0ZW1lbnQiLA0KICAgICJ0eXBlIiwNCiAgICAic3RhdHVzIiwNCiAgICAiZXZpZGVuY2UiLA0KICAgICJwcm92ZW5hbmNlIiwNCiAgICAibGFzdF92ZXJpZmllZCIsDQogICAgImRlcGVuZHNfb24iLA0KICAgICJjb25mbGljdHNfd2l0aCINCiAgXSwNCiAgInByb3BlcnRpZXMiOiB7DQogICAgImlkIjogew0KICAgICAgInR5cGUiOiAic3RyaW5nIiwNCiAgICAgICJwYXR0ZXJuIjogIl5bQS1aYS16XVtBLVphLXowLTkuXzotXSokIg0KICAgIH0sDQogICAgInN0YXRlbWVudCI6IHsNCiAgICAgICJ0eXBlIjogInN0cmluZyIsDQogICAgICAibWluTGVuZ3RoIjogMSwNCiAgICAgICJwYXR0ZXJuIjogIlxcUyINCiAgICB9LA0KICAgICJ0eXBlIjogew0KICAgICAgImVudW0iOiBbDQogICAgICAgICJidXNpbmVzc19ydWxlIiwNCiAgICAgICAgImFyY2hpdGVjdHVyZSIsDQogICAgICAgICJ0ZWNobmljYWxfZmFjdCINCiAgICAgIF0NCiAgICB9LA0KICAgICJzdGF0dXMiOiB7DQogICAgICAiZW51bSI6IFsNCiAgICAgICAgIkNPTkZJUk1FRCIsDQogICAgICAgICJJTkZFUlJFRCIsDQogICAgICAgICJVTktOT1dOIiwNCiAgICAgICAgIk5FRURTX0hVTUFOX0NPTkZJUk1BVElPTiINCiAgICAgIF0NCiAgICB9LA0KICAgICJldmlkZW5jZSI6IHsNCiAgICAgICJ0eXBlIjogImFycmF5IiwNCiAgICAgICJpdGVtcyI6IHsNCiAgICAgICAgInR5cGUiOiAic3RyaW5nIiwNCiAgICAgICAgInBhdHRlcm4iOiAiXltBLVphLXpdW0EtWmEtejAtOS5fOi1dKiQiDQogICAgICB9LA0KICAgICAgInVuaXF1ZUl0ZW1zIjogdHJ1ZQ0KICAgIH0sDQogICAgInByb3ZlbmFuY2UiOiB7DQogICAgICAidHlwZSI6ICJvYmplY3QiLA0KICAgICAgInJlcXVpcmVkIjogWw0KICAgICAgICAiYWN0b3IiLA0KICAgICAgICAibWV0aG9kIg0KICAgICAgXSwNCiAgICAgICJwcm9wZXJ0aWVzIjogew0KICAgICAgICAiYWN0b3IiOiB7DQogICAgICAgICAgInR5cGUiOiAic3RyaW5nIiwNCiAgICAgICAgICAibWluTGVuZ3RoIjogMSwNCiAgICAgICAgICAicGF0dGVybiI6ICJcXFMiDQogICAgICAgIH0sDQogICAgICAgICJtZXRob2QiOiB7DQogICAgICAgICAgInR5cGUiOiAic3RyaW5nIiwNCiAgICAgICAgICAibWluTGVuZ3RoIjogMSwNCiAgICAgICAgICAicGF0dGVybiI6ICJcXFMiDQogICAgICAgIH0NCiAgICAgIH0sDQogICAgICAiYWRkaXRpb25hbFByb3BlcnRpZXMiOiBmYWxzZQ0KICAgIH0sDQogICAgImxhc3RfdmVyaWZpZWQiOiB7DQogICAgICAiYW55T2YiOiBbDQogICAgICAgIHsNCiAgICAgICAgICAidHlwZSI6ICJzdHJpbmciLA0KICAgICAgICAgICJmb3JtYXQiOiAiZGF0ZSINCiAgICAgICAgfSwNCiAgICAgICAgew0KICAgICAgICAgICJ0eXBlIjogIm51bGwiDQogICAgICAgIH0NCiAgICAgIF0NCiAgICB9LA0KICAgICJkZXBlbmRzX29uIjogew0KICAgICAgInR5cGUiOiAiYXJyYXkiLA0KICAgICAgIml0ZW1zIjogew0KICAgICAgICAidHlwZSI6ICJzdHJpbmciLA0KICAgICAgICAicGF0dGVybiI6ICJeW0EtWmEtel1bQS1aYS16MC05Ll86LV0qJCINCiAgICAgIH0sDQogICAgICAidW5pcXVlSXRlbXMiOiB0cnVlDQogICAgfSwNCiAgICAiY29uZmxpY3RzX3dpdGgiOiB7DQogICAgICAidHlwZSI6ICJhcnJheSIsDQogICAgICAiaXRlbXMiOiB7DQogICAgICAgICJ0eXBlIjogInN0cmluZyIsDQogICAgICAgICJwYXR0ZXJuIjogIl5bQS1aYS16XVtBLVphLXowLTkuXzotXSokIg0KICAgICAgfSwNCiAgICAgICJ1bmlxdWVJdGVtcyI6IHRydWUNCiAgICB9DQogIH0sDQogICJhZGRpdGlvbmFsUHJvcGVydGllcyI6IGZhbHNlDQp9DQo=",
+      "schema/evidence.schema.json": "ew0KICAiJHNjaGVtYSI6ICJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsDQogICJ0eXBlIjogIm9iamVjdCIsDQogICJyZXF1aXJlZCI6IFsNCiAgICAiaWQiLA0KICAgICJ0eXBlIiwNCiAgICAic3RhdHVzIiwNCiAgICAic291cmNlIiwNCiAgICAicHJvdmVuYW5jZSIsDQogICAgImNhcHR1cmVkX2F0IiwNCiAgICAiZGVzY3JpcHRpb24iLA0KICAgICJzdWJzdGFudGlhdGVzIg0KICBdLA0KICAicHJvcGVydGllcyI6IHsNCiAgICAiaWQiOiB7DQogICAgICAidHlwZSI6ICJzdHJpbmciLA0KICAgICAgInBhdHRlcm4iOiAiXltBLVphLXpdW0EtWmEtejAtOS5fOi1dKiQiDQogICAgfSwNCiAgICAidHlwZSI6IHsNCiAgICAgICJlbnVtIjogWw0KICAgICAgICAiZGlyZWN0LWF1dGhvcml0YXRpdmUiLA0KICAgICAgICAiZGlyZWN0LXRlY2huaWNhbCIsDQogICAgICAgICJzdXBwb3J0aW5nIiwNCiAgICAgICAgImRlcml2ZWQiDQogICAgICBdDQogICAgfSwNCiAgICAic3RhdHVzIjogew0KICAgICAgImVudW0iOiBbDQogICAgICAgICJhY3RpdmUiLA0KICAgICAgICAicmV0cmFjdGVkIiwNCiAgICAgICAgInN1cGVyc2VkZWQiDQogICAgICBdDQogICAgfSwNCiAgICAic291cmNlIjogew0KICAgICAgImFueU9mIjogWw0KICAgICAgICB7DQogICAgICAgICAgInR5cGUiOiAic3RyaW5nIiwNCiAgICAgICAgICAibWluTGVuZ3RoIjogMSwNCiAgICAgICAgICAicGF0dGVybiI6ICJcXFMiDQogICAgICAgIH0sDQogICAgICAgIHsNCiAgICAgICAgICAidHlwZSI6ICJvYmplY3QiLA0KICAgICAgICAgICJyZXF1aXJlZCI6IFsNCiAgICAgICAgICAgICJyZWZlcmVuY2UiDQogICAgICAgICAgXSwNCiAgICAgICAgICAicHJvcGVydGllcyI6IHsNCiAgICAgICAgICAgICJyZWZlcmVuY2UiOiB7DQogICAgICAgICAgICAgICJ0eXBlIjogInN0cmluZyIsDQogICAgICAgICAgICAgICJtaW5MZW5ndGgiOiAxLA0KICAgICAgICAgICAgICAicGF0dGVybiI6ICJcXFMiDQogICAgICAgICAgICB9DQogICAgICAgICAgfSwNCiAgICAgICAgICAiYWRkaXRpb25hbFByb3BlcnRpZXMiOiBmYWxzZQ0KICAgICAgICB9DQogICAgICBdDQogICAgfSwNCiAgICAicHJvdmVuYW5jZSI6IHsNCiAgICAgICJ0eXBlIjogIm9iamVjdCIsDQogICAgICAicmVxdWlyZWQiOiBbDQogICAgICAgICJhY3RvciIsDQogICAgICAgICJtZXRob2QiDQogICAgICBdLA0KICAgICAgInByb3BlcnRpZXMiOiB7DQogICAgICAgICJhY3RvciI6IHsNCiAgICAgICAgICAidHlwZSI6ICJzdHJpbmciLA0KICAgICAgICAgICJtaW5MZW5ndGgiOiAxLA0KICAgICAgICAgICJwYXR0ZXJuIjogIlxcUyINCiAgICAgICAgfSwNCiAgICAgICAgIm1ldGhvZCI6IHsNCiAgICAgICAgICAidHlwZSI6ICJzdHJpbmciLA0KICAgICAgICAgICJtaW5MZW5ndGgiOiAxLA0KICAgICAgICAgICJwYXR0ZXJuIjogIlxcUyINCiAgICAgICAgfQ0KICAgICAgfSwNCiAgICAgICJhZGRpdGlvbmFsUHJvcGVydGllcyI6IGZhbHNlDQogICAgfSwNCiAgICAiY2FwdHVyZWRfYXQiOiB7DQogICAgICAidHlwZSI6ICJzdHJpbmciLA0KICAgICAgImZvcm1hdCI6ICJkYXRlLXRpbWUiDQogICAgfSwNCiAgICAibG9jYXRpb24iOiB7DQogICAgICAiYW55T2YiOiBbDQogICAgICAgIHsNCiAgICAgICAgICAidHlwZSI6ICJzdHJpbmciLA0KICAgICAgICAgICJtaW5MZW5ndGgiOiAxLA0KICAgICAgICAgICJwYXR0ZXJuIjogIlxcUyINCiAgICAgICAgfSwNCiAgICAgICAgew0KICAgICAgICAgICJ0eXBlIjogIm9iamVjdCIsDQogICAgICAgICAgInJlcXVpcmVkIjogWw0KICAgICAgICAgICAgInJlZmVyZW5jZSINCiAgICAgICAgICBdLA0KICAgICAgICAgICJwcm9wZXJ0aWVzIjogew0KICAgICAgICAgICAgInJlZmVyZW5jZSI6IHsNCiAgICAgICAgICAgICAgInR5cGUiOiAic3RyaW5nIiwNCiAgICAgICAgICAgICAgIm1pbkxlbmd0aCI6IDEsDQogICAgICAgICAgICAgICJwYXR0ZXJuIjogIlxcUyINCiAgICAgICAgICAgIH0NCiAgICAgICAgICB9LA0KICAgICAgICAgICJhZGRpdGlvbmFsUHJvcGVydGllcyI6IGZhbHNlDQogICAgICAgIH0NCiAgICAgIF0NCiAgICB9LA0KICAgICJjb250ZW50X2hhc2giOiB7DQogICAgICAidHlwZSI6ICJzdHJpbmciLA0KICAgICAgInBhdHRlcm4iOiAiXnNoYTI1NjpbYS1mMC05XXs2NH0kIg0KICAgIH0sDQogICAgImRlc2NyaXB0aW9uIjogew0KICAgICAgInR5cGUiOiAic3RyaW5nIiwNCiAgICAgICJtaW5MZW5ndGgiOiAxLA0KICAgICAgInBhdHRlcm4iOiAiXFxTIg0KICAgIH0sDQogICAgInN1YnN0YW50aWF0ZXMiOiB7DQogICAgICAidHlwZSI6ICJhcnJheSIsDQogICAgICAiaXRlbXMiOiB7DQogICAgICAgICJ0eXBlIjogInN0cmluZyIsDQogICAgICAgICJwYXR0ZXJuIjogIl5bQS1aYS16XVtBLVphLXowLTkuXzotXSokIg0KICAgICAgfSwNCiAgICAgICJ1bmlxdWVJdGVtcyI6IHRydWUNCiAgICB9DQogIH0sDQogICJhZGRpdGlvbmFsUHJvcGVydGllcyI6IGZhbHNlDQp9DQo=",
+      "schema/relationship.schema.json": "ew0KICAiJHNjaGVtYSI6ICJodHRwczovL2pzb24tc2NoZW1hLm9yZy9kcmFmdC8yMDIwLTEyL3NjaGVtYSIsDQogICJ0eXBlIjogIm9iamVjdCIsDQogICJyZXF1aXJlZCI6IFsNCiAgICAiaWQiLA0KICAgICJ0eXBlIiwNCiAgICAiZnJvbSIsDQogICAgInRvIiwNCiAgICAicHJvdmVuYW5jZSINCiAgXSwNCiAgInByb3BlcnRpZXMiOiB7DQogICAgImlkIjogew0KICAgICAgInR5cGUiOiAic3RyaW5nIiwNCiAgICAgICJwYXR0ZXJuIjogIl5bQS1aYS16XVtBLVphLXowLTkuXzotXSokIg0KICAgIH0sDQogICAgInR5cGUiOiB7DQogICAgICAiZW51bSI6IFsNCiAgICAgICAgImRlcGVuZHNfb24iLA0KICAgICAgICAiY29uZmxpY3RzX3dpdGgiDQogICAgICBdDQogICAgfSwNCiAgICAiZnJvbSI6IHsNCiAgICAgICJ0eXBlIjogInN0cmluZyIsDQogICAgICAicGF0dGVybiI6ICJeW0EtWmEtel1bQS1aYS16MC05Ll86LV0qJCINCiAgICB9LA0KICAgICJ0byI6IHsNCiAgICAgICJ0eXBlIjogInN0cmluZyIsDQogICAgICAicGF0dGVybiI6ICJeW0EtWmEtel1bQS1aYS16MC05Ll86LV0qJCINCiAgICB9LA0KICAgICJwcm92ZW5hbmNlIjogew0KICAgICAgInR5cGUiOiAib2JqZWN0IiwNCiAgICAgICJyZXF1aXJlZCI6IFsNCiAgICAgICAgImFjdG9yIiwNCiAgICAgICAgIm1ldGhvZCINCiAgICAgIF0sDQogICAgICAicHJvcGVydGllcyI6IHsNCiAgICAgICAgImFjdG9yIjogew0KICAgICAgICAgICJ0eXBlIjogInN0cmluZyIsDQogICAgICAgICAgIm1pbkxlbmd0aCI6IDEsDQogICAgICAgICAgInBhdHRlcm4iOiAiXFxTIg0KICAgICAgICB9LA0KICAgICAgICAibWV0aG9kIjogew0KICAgICAgICAgICJ0eXBlIjogInN0cmluZyIsDQogICAgICAgICAgIm1pbkxlbmd0aCI6IDEsDQogICAgICAgICAgInBhdHRlcm4iOiAiXFxTIg0KICAgICAgICB9DQogICAgICB9LA0KICAgICAgImFkZGl0aW9uYWxQcm9wZXJ0aWVzIjogZmFsc2UNCiAgICB9DQogIH0sDQogICJhZGRpdGlvbmFsUHJvcGVydGllcyI6IGZhbHNlDQp9DQo=",
+      "state/candidates.json": "W3siaWQiOiAibGVnYWN5LXBlbmRpbmciLCAicGF5bG9hZCI6IHsidmVyc2lvbiI6IDEsICJvcGVyYXRpb24iOiAiYWRkIiwgInJlY29yZHMiOiB7ImNsYWltcyI6IFt7ImlkIjogInN5bnRoZXRpYy5wZW5kaW5nIiwgInN0YXRlbWVudCI6ICJTeW50aGV0aWMgcGVuZGluZyBpdGVtLiIsICJ0eXBlIjogInRlY2huaWNhbF9mYWN0IiwgInN0YXR1cyI6ICJDT05GSVJNRUQiLCAiZXZpZGVuY2UiOiBbImV2aWRlbmNlLnN5bnRoZXRpYy5wZW5kaW5nIl0sICJwcm92ZW5hbmNlIjogeyJhY3RvciI6ICJzeW50aGV0aWMtdGVzdCIsICJtZXRob2QiOiAiZml4dHVyZS1zb3VyY2UifSwgImxhc3RfdmVyaWZpZWQiOiAiMjAyNi0xMS0xNCIsICJkZXBlbmRzX29uIjogW10sICJjb25mbGljdHNfd2l0aCI6IFtdfV0sICJldmlkZW5jZSI6IFt7ImlkIjogImV2aWRlbmNlLnN5bnRoZXRpYy5wZW5kaW5nIiwgInR5cGUiOiAiZGlyZWN0LXRlY2huaWNhbCIsICJzdGF0dXMiOiAiYWN0aXZlIiwgInNvdXJjZSI6ICJGaXh0dXJlLmNzIiwgInByb3ZlbmFuY2UiOiB7ImFjdG9yIjogInN5bnRoZXRpYy10ZXN0IiwgIm1ldGhvZCI6ICJmaXh0dXJlLXNvdXJjZSJ9LCAiY2FwdHVyZWRfYXQiOiAiMjAyNi0xMS0xNFQwMDowMDowMFoiLCAibG9jYXRpb24iOiAiRml4dHVyZS5jcyNMMSIsICJkZXNjcmlwdGlvbiI6ICJTeW50aGV0aWMgc291cmNlIGZpeHR1cmUgc3VwcG9ydHMgdGhlIHN0YXRlbWVudC4iLCAic3Vic3RhbnRpYXRlcyI6IFsic3ludGhldGljLnBlbmRpbmciXX1dLCAicmVsYXRpb25zaGlwcyI6IFtdfX0sICJzdGF0dXMiOiAicGVuZGluZyIsICJoaXN0b3J5IjogW3siZXZlbnQiOiAiY2FwdHVyZWQiLCAic3ludGhldGljIjogdHJ1ZX1dfSwgeyJpZCI6ICJsZWdhY3ktaW1wb3J0ZWQiLCAicGF5bG9hZCI6IHsidmVyc2lvbiI6IDEsICJvcGVyYXRpb24iOiAiYWRkIiwgInJlY29yZHMiOiB7ImNsYWltcyI6IFt7ImlkIjogInN5bnRoZXRpYy5jb25maXJtZWQiLCAic3RhdGVtZW50IjogIlN5bnRoZXRpYyBiYXNrZXQgcHJlc2VydmVzIHF1YW50aXRpZXMuIiwgInR5cGUiOiAidGVjaG5pY2FsX2ZhY3QiLCAic3RhdHVzIjogIkNPTkZJUk1FRCIsICJldmlkZW5jZSI6IFsiZXZpZGVuY2Uuc3ludGhldGljLmNvbmZpcm1lZCJdLCAicHJvdmVuYW5jZSI6IHsiYWN0b3IiOiAic3ludGhldGljLXRlc3QiLCAibWV0aG9kIjogImZpeHR1cmUtc291cmNlIn0sICJsYXN0X3ZlcmlmaWVkIjogIjIwMjYtMTEtMTQiLCAiZGVwZW5kc19vbiI6IFtdLCAiY29uZmxpY3RzX3dpdGgiOiBbInN5bnRoZXRpYy5pbmZlcnJlZCJdfV0sICJldmlkZW5jZSI6IFt7ImlkIjogImV2aWRlbmNlLnN5bnRoZXRpYy5jb25maXJtZWQiLCAidHlwZSI6ICJkaXJlY3QtdGVjaG5pY2FsIiwgInN0YXR1cyI6ICJhY3RpdmUiLCAic291cmNlIjogIkZpeHR1cmUuY3MiLCAicHJvdmVuYW5jZSI6IHsiYWN0b3IiOiAic3ludGhldGljLXRlc3QiLCAibWV0aG9kIjogImZpeHR1cmUtc291cmNlIn0sICJjYXB0dXJlZF9hdCI6ICIyMDI2LTExLTE0VDAwOjAwOjAwWiIsICJsb2NhdGlvbiI6ICJGaXh0dXJlLmNzI0wxIiwgImRlc2NyaXB0aW9uIjogIlN5bnRoZXRpYyBzb3VyY2UgZml4dHVyZSBzdXBwb3J0cyB0aGUgc3RhdGVtZW50LiIsICJzdWJzdGFudGlhdGVzIjogWyJzeW50aGV0aWMuY29uZmlybWVkIl19XSwgInJlbGF0aW9uc2hpcHMiOiBbXX19LCAic3RhdHVzIjogImltcG9ydGVkIiwgImhpc3RvcnkiOiBbeyJldmVudCI6ICJpbXBvcnRlZCIsICJzeW50aGV0aWMiOiB0cnVlfV19XQ==",
+      "state/population/plans/dd1afe39ff494362156854432de18ffd6f670dce1523d5cfc7703d4a97ebbaf1.json": "eyJmb3JtYXQiOiAicG9wdWxhdGlvbi1wbGFuLXYxIiwgInN5bnRoZXRpYyI6IHRydWUsICJyZWNvcmRzIjogeyJjbGFpbXMiOiBbeyJpZCI6ICJzeW50aGV0aWMuY29uZmlybWVkIiwgInN0YXRlbWVudCI6ICJTeW50aGV0aWMgYmFza2V0IHByZXNlcnZlcyBxdWFudGl0aWVzLiIsICJ0eXBlIjogInRlY2huaWNhbF9mYWN0IiwgInN0YXR1cyI6ICJDT05GSVJNRUQiLCAiZXZpZGVuY2UiOiBbImV2aWRlbmNlLnN5bnRoZXRpYy5jb25maXJtZWQiXSwgInByb3ZlbmFuY2UiOiB7ImFjdG9yIjogInN5bnRoZXRpYy10ZXN0IiwgIm1ldGhvZCI6ICJmaXh0dXJlLXNvdXJjZSJ9LCAibGFzdF92ZXJpZmllZCI6ICIyMDI2LTExLTE0IiwgImRlcGVuZHNfb24iOiBbXSwgImNvbmZsaWN0c193aXRoIjogWyJzeW50aGV0aWMuaW5mZXJyZWQiXX0sIHsiaWQiOiAic3ludGhldGljLmluZmVycmVkIiwgInN0YXRlbWVudCI6ICJTeW50aGV0aWMgYWx0ZXJuYXRpdmUgaW50ZXJwcmV0YXRpb24uIiwgInR5cGUiOiAidGVjaG5pY2FsX2ZhY3QiLCAic3RhdHVzIjogIklORkVSUkVEIiwgImV2aWRlbmNlIjogWyJldmlkZW5jZS5zeW50aGV0aWMuaW5mZXJyZWQiXSwgInByb3ZlbmFuY2UiOiB7ImFjdG9yIjogInN5bnRoZXRpYy10ZXN0IiwgIm1ldGhvZCI6ICJmaXh0dXJlLXNvdXJjZSJ9LCAibGFzdF92ZXJpZmllZCI6IG51bGwsICJkZXBlbmRzX29uIjogWyJzeW50aGV0aWMuY29uZmlybWVkIl0sICJjb25mbGljdHNfd2l0aCI6IFsic3ludGhldGljLmNvbmZpcm1lZCJdfV0sICJldmlkZW5jZSI6IFt7ImlkIjogImV2aWRlbmNlLnN5bnRoZXRpYy5jb25maXJtZWQiLCAidHlwZSI6ICJkaXJlY3QtdGVjaG5pY2FsIiwgInN0YXR1cyI6ICJhY3RpdmUiLCAic291cmNlIjogIkZpeHR1cmUuY3MiLCAicHJvdmVuYW5jZSI6IHsiYWN0b3IiOiAic3ludGhldGljLXRlc3QiLCAibWV0aG9kIjogImZpeHR1cmUtc291cmNlIn0sICJjYXB0dXJlZF9hdCI6ICIyMDI2LTExLTE0VDAwOjAwOjAwWiIsICJsb2NhdGlvbiI6ICJGaXh0dXJlLmNzI0wxIiwgImRlc2NyaXB0aW9uIjogIlN5bnRoZXRpYyBzb3VyY2UgZml4dHVyZSBzdXBwb3J0cyB0aGUgc3RhdGVtZW50LiIsICJzdWJzdGFudGlhdGVzIjogWyJzeW50aGV0aWMuY29uZmlybWVkIl19LCB7ImlkIjogImV2aWRlbmNlLnN5bnRoZXRpYy5pbmZlcnJlZCIsICJ0eXBlIjogImRpcmVjdC10ZWNobmljYWwiLCAic3RhdHVzIjogImFjdGl2ZSIsICJzb3VyY2UiOiAiRml4dHVyZS5jcyIsICJwcm92ZW5hbmNlIjogeyJhY3RvciI6ICJzeW50aGV0aWMtdGVzdCIsICJtZXRob2QiOiAiZml4dHVyZS1zb3VyY2UifSwgImNhcHR1cmVkX2F0IjogIjIwMjYtMTEtMTRUMDA6MDA6MDBaIiwgImxvY2F0aW9uIjogIkZpeHR1cmUuY3MjTDEiLCAiZGVzY3JpcHRpb24iOiAiU3ludGhldGljIHNvdXJjZSBmaXh0dXJlIHN1cHBvcnRzIHRoZSBzdGF0ZW1lbnQuIiwgInN1YnN0YW50aWF0ZXMiOiBbInN5bnRoZXRpYy5pbmZlcnJlZCJdfV0sICJyZWxhdGlvbnNoaXBzIjogW3siaWQiOiAic3ludGhldGljLmNvbmZsaWN0IiwgInR5cGUiOiAiY29uZmxpY3RzX3dpdGgiLCAiZnJvbSI6ICJzeW50aGV0aWMuY29uZmlybWVkIiwgInRvIjogInN5bnRoZXRpYy5pbmZlcnJlZCIsICJwcm92ZW5hbmNlIjogeyJhY3RvciI6ICJzeW50aGV0aWMtdGVzdCIsICJtZXRob2QiOiAiZml4dHVyZSJ9fSwgeyJpZCI6ICJzeW50aGV0aWMuZGVwZW5kZW5jeSIsICJ0eXBlIjogImRlcGVuZHNfb24iLCAiZnJvbSI6ICJzeW50aGV0aWMuaW5mZXJyZWQiLCAidG8iOiAic3ludGhldGljLmNvbmZpcm1lZCIsICJwcm92ZW5hbmNlIjogeyJhY3RvciI6ICJzeW50aGV0aWMtdGVzdCIsICJtZXRob2QiOiAiZml4dHVyZSJ9fV19LCAiZmluZ2VycHJpbnQiOiAic2hhMjU2OmRkMWFmZTM5ZmY0OTQzNjIxNTY4NTQ0MzJkZTE4ZmZkNmY2NzBkY2UxNTIzZDVjZmM3NzAzZDRhOTdlYmJhZjEifQ==",
+      "state/population/transactions/dd1afe39ff494362156854432de18ffd6f670dce1523d5cfc7703d4a97ebbaf1/journal.json": "eyJwbGFuIjogInNoYTI1NjpkZDFhZmUzOWZmNDk0MzYyMTU2ODU0NDMyZGUxOGZmZDZmNjcwZGNlMTUyM2Q1Y2ZjNzcwM2Q0YTk3ZWJiYWYxIiwgInN0YXRlIjogIkNPTU1JVFRFRCIsICJpbnN0YWxsZWQiOiA2LCAiYXR0ZW1wdCI6IDEsICJoaXN0b3J5IjogW3sic3RhdGUiOiAiQ09NTUlUVEVEIiwgImF0IjogIjIwMjYtMTEtMTRUMDA6MDA6MDBaIn1dLCAiZmluZ2VycHJpbnQiOiAic2hhMjU2OjdhYTBiMWQ1OWQ2ZmNjM2EwODY4YThmOGRkN2YwNGI3OWQ2ZjgwNDEyYzczOGRhOGI4Mzk3ZjZmYThiZmVjNTQifQ=="
+    },
+    "source_fingerprint": "sha256:ffaf9d2052de495a6488488a98445bc6342edf5cdebb6591f98c263af569cd24",
+    "project": "66dfca4e69f072faf8f59e2b14ba4b8531692c04c515f042fe5dafbc9cdf66d9",
+    "semantic_diff": {
+      "removed": [],
+      "modified": [],
+      "added": [],
+      "preserved_record_counts": {
+        "claims": 2,
+        "evidence": 2,
+        "relationships": 2
+      },
+      "preserved_candidate_count": 2
+    }
+  },
+  "source_unchanged": true,
+  "restoration_byte_equal": true,
+  "repeat": {
+    "ok": true,
+    "result": "already-migrated",
+    "fingerprint": "sha256:d97b3fb13e34368f58011d6c36fd6a2ff09ff64cfdd03fafd339c5ef92362266"
+  },
+  "note": "Journal/plan fixtures use supplied sealed-document shape. They are invented fixtures, not historical approvals."
+}

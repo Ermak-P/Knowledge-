@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "knowledge-p0"
+version = "0.1.0"
+requires-python = ">=3.12"
+description = "Project-local evidence-backed Knowledge"
+dependencies = []
+
+[project.optional-dependencies]
+mcp = ["mcp==1.30.0"]
+
+[project.scripts]
+knowledge = "knowledge.cli:main"
+knowledge-mcp = "knowledge.mcp:main"
+
+[tool.setuptools.package-data]
+knowledge = ["schemas/*.json"]
