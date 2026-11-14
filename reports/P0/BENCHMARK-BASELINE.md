@@ -25,7 +25,7 @@ The verifier runs these commands in `benchmarks/eShopOnWeb` (the workspace used
 `/workspace/dotnet/dotnet`; a fresh setup defaults to `.local/dotnet/dotnet`):
 
 ```sh
-dotnet restore tests/UnitTests/UnitTests.csproj --disable-parallel
+dotnet restore tests/UnitTests/UnitTests.csproj --disable-parallel -m:1
 dotnet build tests/UnitTests/UnitTests.csproj --no-restore -m:1 -p:UseSharedCompilation=false -p:LibraryRestore=false
 dotnet test tests/UnitTests/UnitTests.csproj --no-build --no-restore -m:1 -p:LibraryRestore=false --logger 'trx;LogFileName=without-knowledge.trx' --results-directory ABSOLUTE_PRODUCT_ROOT/reports/P0/dotnet-results
 dotnet test tests/UnitTests/UnitTests.csproj --no-build --no-restore -m:1 -p:LibraryRestore=false --logger 'trx;LogFileName=after-knowledge.trx' --results-directory ABSOLUTE_PRODUCT_ROOT/reports/P0/dotnet-results

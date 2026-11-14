@@ -47,3 +47,17 @@ def loads(text):
                           parse_constant=lambda _: require(False, 'nonfinite-json'))
     except (json.JSONDecodeError, UnicodeError) as e:
         raise KnowledgeError('invalid-json') from e
+
+
+def read_text(path):
+    """Persisted JSON is UTF-8, independent of the process locale."""
+    try:
+        return path.read_text(encoding='utf-8')
+    except UnicodeError as e:
+        raise KnowledgeError('invalid-utf8') from e
+
+
+def read_document(path, expected, code):
+    value=loads(read_text(path))
+    require(isinstance(value,expected),code)
+    return value

@@ -111,3 +111,25 @@ open through `knowledge recover`. Never delete a journal or reset Git to recover
 Review results, limitations, source audit and the reproducible review ZIP are
 under [reports/P0](reports/P0/P0-REPORT.md). Browser assets, SQL Server/Aspire,
 native Windows and live-provider checks are separate from the portable P0 suite.
+
+## P0 consolidated correction (R1–R4)
+
+Migration preview explicitly discovers both `.ai/state/candidates.json` and
+`.harness/knowledge/candidates/queue.jsonl`. The JSONL format is not adapted in P0:
+any present external queue (even empty) refuses migration with discovery details
+and conversion requirements. Coexistence refuses as ambiguous; neither is silently
+preferred. Supported interchange bytes and discovery absence are approval-bound.
+Persisted JSON is UTF-8. Invalid decoding/container types produce operational JSON
+errors; argparse usage errors remain stderr/exit 2.
+
+The MCP context limit includes the actual compact UTF-8 application TextContent.
+Context has no duplicate structuredContent; only the fixed JSON-RPC envelope is
+outside that limit. CLI and MCP JSON objects retain identical semantics.
+
+Verification creates `reports/P0/runs/RUN_ID/run.json` and invalidates the current
+success pointer and packet before checks. Logs, subprocess exit codes and generated
+outputs are hashed and snapshotted within that run. In-progress, interrupted,
+failed, missing-output, changed-source and mixed-artifact runs cannot generate a
+success packet. Dependency caches may be reused; success evidence cannot.
+`make_review.py` validates the completed current run against the exact source and
+all current/snapshotted artifacts before generating acceptance or ZIP output.

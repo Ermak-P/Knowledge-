@@ -1,7 +1,8 @@
 """Optional read-only stdio MCP adapter using the same Store and resolver."""
 import argparse
 from .store import Store
-from .util import KnowledgeError
+from .util import KnowledgeError, canonical_json
+from mcp.types import CallToolResult, TextContent
 
 
 def create_server(root):
@@ -16,9 +17,12 @@ def create_server(root):
             return {'ok':False,'error':e.code,'details':e.details}
 
     @server.tool()
-    def knowledge_context(task:str,max_bytes:int=16000,max_items:int=10,include_unconfirmed:bool=False)->dict:
+    def knowledge_context(task:str,max_bytes:int=16000,max_items:int=10,include_unconfirmed:bool=False)->CallToolResult:
         """Retrieve bounded context, preserving confidence, provenance and conflicts."""
-        return call(store.context,task,max_bytes,max_items,include_unconfirmed)
+        value=call(store.context,task,max_bytes,max_items,include_unconfirmed)
+        # Text only: no duplicate structuredContent payload. JSON-RPC envelope is
+        # outside the application budget; this exact UTF-8 text is inside it.
+        return CallToolResult(content=[TextContent(type='text',text=canonical_json(value))])
 
     @server.tool()
     def knowledge_get_claim(identifier:str)->dict:

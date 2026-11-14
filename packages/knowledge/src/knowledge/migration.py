@@ -13,7 +13,7 @@ import sqlite3
 import tempfile
 from .project import Project, safe_tree
 from .store import Store, GROUPS, SCHEMAS, legacy, validate_records, candidate, create_tables, checkpoint, publish_directory
-from .util import canonical_json, loads, fingerprint, digest, require
+from .util import canonical_json, loads, fingerprint, digest, require, read_text, read_document
 
 
 def snapshot(root):
@@ -21,11 +21,22 @@ def snapshot(root):
     source = project.root/'.ai'
     require(source.is_dir(), 'legacy-source-absent')
     safe_tree(source)
+    external=project.root/'.harness/knowledge/candidates/queue.jsonl'
+    interchange=source/'state/candidates.json'
+    discovery=[]
+    for path,role in ((interchange,'interchange'),(external,'external-jsonl')):
+        safe_tree(path)
+        discovery.append({'path':path.relative_to(project.root).as_posix(),'role':role,
+                          'state':('unsupported' if role=='external-jsonl' else 'selected') if path.exists() else 'absent',
+                          'bytes':path.stat().st_size if path.is_file() else None,
+                          'sha256':hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None})
+    require(not external.exists(), 'ambiguous-legacy-queues' if interchange.exists() else 'unsupported-external-legacy-queue',
+            {'discovery':discovery,'action':'Stop legacy writers. Convert the external queue losslessly to state/candidates.json (id/payload/status/history), preserve a backup outside discovery locations, then remove the external queue from this offline migration input. Empty external files must also be explicitly resolved.'})
     require((source/'manifest.yaml').is_file() and
-            loads((source/'manifest.yaml').read_text())==legacy.MANIFEST, 'unsupported-legacy-manifest')
+            read_document(source/'manifest.yaml',dict,'invalid-legacy-manifest')==legacy.MANIFEST, 'unsupported-legacy-manifest')
     for schema in SCHEMAS.glob('*.json'):
         actual=source/'schema'/schema.name
-        require(actual.is_file() and loads(actual.read_text())==loads(schema.read_text()), 'unsupported-legacy-schema')
+        require(actual.is_file() and read_document(actual,dict,'invalid-legacy-schema')==read_document(schema,dict,'invalid-legacy-schema'), 'unsupported-legacy-schema')
     files = {}
     for p in sorted(source.rglob('*')):
         if p.is_file():
@@ -37,7 +48,7 @@ def snapshot(root):
         for path in sorted((source/directory).rglob('*')):
             if path.is_file() and path.name!='.gitkeep':
                 require(path.suffix=='.json', 'unsupported-legacy-record')
-                records[group].append(loads(path.read_text(encoding='utf-8')))
+                records[group].append(read_document(path,dict,'invalid-legacy-record'))
     validate_records(records)
     # Actual supplied transaction layout: transactions/<plan-sha>/journal.json.
     transactions = source/'state/population/transactions'
@@ -46,12 +57,12 @@ def snapshot(root):
             require(directory.is_dir(), 'unsupported-legacy-transaction-layout')
             journal_path = directory/'journal.json'
             require(journal_path.is_file(), 'incomplete-legacy-journal')
-            journal = loads(journal_path.read_text())
+            journal = read_document(journal_path,dict,'invalid-legacy-journal')
             pid = journal.get('plan')
             require(isinstance(pid,str) and pid == 'sha256:'+directory.name, 'incomplete-legacy-journal')
             plan_path = source/'state/population/plans'/(directory.name+'.json')
             require(plan_path.is_file(), 'incomplete-legacy-journal-missing-plan')
-            plan = loads(plan_path.read_text())
+            plan = read_document(plan_path,dict,'invalid-legacy-plan')
             for document in (plan,journal):
                 sealed = dict(document)
                 seal = sealed.pop('fingerprint',None)
@@ -61,7 +72,7 @@ def snapshot(root):
             require(plan.get('fingerprint')==pid and plan.get('format')=='population-plan-v1', 'unsupported-legacy-plan')
             require(journal.get('state') in ('COMMITTED','ROLLED_BACK'), 'legacy-recovery-required')
     queue_path = source/'state/candidates.json'
-    queue = loads(queue_path.read_text()) if queue_path.exists() else []
+    queue = read_document(queue_path,list,'unsupported-legacy-queue') if queue_path.exists() else []
     require(isinstance(queue,list), 'unsupported-legacy-queue')
     for q in queue:
         require(isinstance(q,dict) and set(q)=={'id','payload','status','history'}, 'unsupported-legacy-queue-item')
@@ -72,7 +83,7 @@ def snapshot(root):
                 require(all(item in records[g] for item in items), 'legacy-imported-candidate-not-canonical')
     require(len({q['id'] for q in queue})==len(queue), 'duplicate-legacy-candidate-id')
     require(len({digest(q['payload']) for q in queue})==len(queue), 'ambiguous-duplicate-legacy-payload')
-    return {'version':1,'records':records,'legacy_queue':queue,'source_files':files,
+    return {'discovery':discovery,'version':1,'records':records,'legacy_queue':queue,'source_files':files,
             'source_fingerprint':fingerprint(files)}
 
 

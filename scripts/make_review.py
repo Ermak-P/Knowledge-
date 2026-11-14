@@ -1,4 +1,5 @@
 """Build an allowlisted reproducible review packet and verify its inventory."""
+from evidence import validate_current
 import hashlib
 import json
 from pathlib import Path
@@ -26,18 +27,21 @@ def source_files():
 
 
 def main():
-    summary=json.loads((OUT/'verification-summary.json').read_text());assert summary['status']=='PASS'
+    args=__import__('sys').argv
+    gate_root=Path(args[args.index('--evidence-root')+1]) if '--evidence-root' in args and '--validate-only' in args else ROOT
+    summary=validate_current(gate_root)
+    if '--validate-only' in __import__('sys').argv: return
     benchmark=json.loads((OUT/'BENCHMARK-RESULTS.json').read_text());assert benchmark['retrieval_status']=='PASS'
     assert benchmark['source_unchanged'] and benchmark['isolation']=='PASS'
     migration=json.loads((OUT/'migration-results.json').read_text());assert migration['status']=='PASS'
     product=(OUT/'product-tests.log').read_text();match=re.search(r'Ran (\d+) tests',product)
-    assert match and product.rstrip().endswith('OK') and 'FAILED (' not in product
-    count=int(match[1]);assert count>=31
+    assert match and 'skipped=' not in product and product.rstrip().endswith('OK') and 'FAILED (' not in product
+    count=int(match[1]);assert count==summary['checks']['product-tests']['test_count']
     assert 'standalone Knowledge CLI works without MCP/Harness' in (OUT/'packaging.log').read_text()
     base=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     inventory={str(p.relative_to(ROOT)):sha(p.read_bytes()) for p in source_files()}
     tree=sha(json.dumps(inventory,sort_keys=True).encode())
-    write('SOURCE-REVISION.json',{'base_git_revision':base,'delivery':'uncommitted working tree; no automatic commit/push',
+    write('SOURCE-REVISION.json',{'run_id':summary['run_id'],'verified_source_identity':summary['source_identity'],'base_git_revision':base,'delivery':'uncommitted working tree; no automatic commit/push',
                                 'source_tree_sha256':tree,'files':inventory})
     mappings=[
       ('Fresh wheels and dependency-free CLI','scripts/check_packaging.py','packaging.log'),
@@ -59,13 +63,14 @@ def main():
     ]
     rows=[]
     for i,(explanation,command,evidence) in enumerate(mappings,1):
-        rows.append({'id':f'P0-A{i:02}','status':'PASS','command':command,'evidence':f'reports/P0/{evidence}','explanation':explanation})
+        rows.append({'id':f'P0-A{i:02}','status':summary['checks'][('packaging' if i==1 else 'migration-evidence' if i==8 else 'benchmark-pipeline' if i==16 else 'product-tests')]['status'],'run_id':summary['run_id'],'source_identity':summary['source_identity'],'command':command,'evidence':f'reports/P0/{evidence}','explanation':explanation})
     rows[13]['platform_subchecks']=[{'name':name,'status':'NOT_RUN','command':'powershell -File scripts/verify-windows.ps1' if name=='native Windows/NTFS' else 'No supported live executor is delivered in P0; external integration acceptance belongs to a separate task.'} for name in ['native Windows/NTFS','live OpenCode/model']]
     rows[15]['optional_subchecks']=[{'name':'browser assets/UI, SQL Server, Aspire/containers, Azure','status':'NOT_RUN','explanation':'Not required by P0; CDN browser downloads blocked. No real identity/database deployment attempted.'}]
     write('ACCEPTANCE.json',rows)
     (OUT/'P0-REPORT.md').write_text(f'''# P0 implementation report
 
-P0 is ready for external review for the tested portable Linux workflow.
+Corrected P0 is submitted for second review, not marked externally accepted.
+Run: {summary['run_id']}; source identity: {summary['source_identity']}.
 All 16 portable acceptance conditions have executable passing evidence.
 This is not certification of the complete product or a production Windows release.
 
@@ -183,7 +188,11 @@ subchecks explicitly NOT RUN. P1 was not started. See P0-REPORT.md and ACCEPTANC
 ''')
     # Include only explicit source roots and this public evidence directory.
     files=source_files()
+    current_artifacts={rel for check in summary['checks'].values() for rel in check['artifacts']}
     for p in OUT.rglob('*'):
+        if p.suffix in ('.log','.trx','.diff') and 'runs' not in p.relative_to(OUT).parts and str(p.relative_to(OUT)) not in current_artifacts: continue
+        if 'runs' in p.relative_to(OUT).parts and summary['run_id'] not in p.parts: continue
+        if p.name.startswith('previous-'): continue
         if p.is_file() and p.name not in ('P0-review.zip','REVIEW-INVENTORY.json','packet-check.json','P0-review.zip.sha256'):
             files.append(p)
     files=sorted(set(files))

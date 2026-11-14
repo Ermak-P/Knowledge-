@@ -81,3 +81,16 @@ crashes and run `knowledge recover`; never delete journals or reset Git.
 Native Windows/NTFS, Windows junctions and cross-platform backup restoration
 remain NOT RUN. The Linux protocol is tested; it does not certify a production
 Windows upgrade/uninstall/rollback release, which belongs to P3.
+
+## R1 discovery correction
+
+Discovery includes the known external `.harness/knowledge/candidates/queue.jsonl`.
+Its adapter is intentionally unsupported: present empty, nonempty, malformed and
+coexisting files all refuse before publication with actionable discovery details.
+No source is deleted or chosen silently. Convert on an offline copy to the supported
+interchange envelope, retaining IDs, payloads, states/history and an external backup,
+and explicitly resolve/remove the external file from selected input before retrying.
+Supported queue bytes, selected/absent discovery states and source hashes bind
+approval. Appearance of an external queue or any interchange byte change invalidates
+the old preview. Restoration covers every selected source; unsupported external
+sources are never claimed migrated or backed up.

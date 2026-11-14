@@ -4,6 +4,7 @@ Run with the environment interpreter after scripts/setup.sh. A missing benchmark
 or SDK is a required failure, not an implicit skip. Native Windows and real
 provider/UI checks are separately documented NOT RUN subchecks.
 """
+from evidence import Attempt
 import argparse
 import json
 import os
@@ -17,19 +18,29 @@ ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'reports/P0'
 
 
+ATTEMPT=None
+
 def run(name,args,cwd=ROOT,env=None):
-    path=OUT/(name+'.log')
-    with path.open('w') as f:
-        p=subprocess.run(args,cwd=cwd,env=env,stdout=f,stderr=subprocess.STDOUT)
-    print(f'{name}: {"PASS" if p.returncode==0 else "FAIL"} ({path.relative_to(ROOT)})',flush=True)
-    if p.returncode:
-        print(path.read_text()[-5000:]);raise SystemExit(p.returncode)
+    artifacts={
+        'migration-evidence':['migration-results.json'],
+        'benchmark-pipeline':['BENCHMARK-RESULTS.json','benchmark-candidates.json','benchmark-provenance.json','benchmark-store-export.json','benchmark-application.diff'],
+        'benchmark-without-knowledge':['dotnet-results/without-knowledge.trx'],
+        'benchmark-after-knowledge':['dotnet-results/after-knowledge.trx'],
+    }.get(name,[])
+    result=ATTEMPT.command(name,args,cwd,env,[OUT/p for p in artifacts])
+    print(name+': PASS',flush=True)
+    return result
 
 
-def main():
+def workflow():
     OUT.mkdir(parents=True,exist_ok=True)
     run('packaging',[sys.executable,'-B','scripts/check_packaging.py'])
     run('product-tests',[sys.executable,'-B','-m','unittest','discover','-s','tests','-v'])
+    import re
+    log=(OUT/'product-tests.log').read_text(encoding='utf-8')
+    match=re.search(r'Ran (\d+) tests',log)
+    assert match and int(match[1])>0 and log.rstrip().endswith('OK') and 'skipped=' not in log
+    ATTEMPT.value['checks']['product-tests']['test_count']=int(match[1]);ATTEMPT.persist()
     run('migration-evidence',[sys.executable,'-B','scripts/migration_evidence.py'])
     host=ROOT/'benchmarks/eShopOnWeb'
     assert host.is_dir(),'Run scripts/setup_benchmark.py'
@@ -45,7 +56,7 @@ def main():
     version=subprocess.check_output([binary,'--version'],cwd=host,env=env,text=True).strip()
     assert version.startswith('10.'),version
     project='tests/UnitTests/UnitTests.csproj'
-    run('benchmark-restore',[binary,'restore',project,'--disable-parallel'],host,env)
+    run('benchmark-restore',[binary,'restore',project,'--disable-parallel','-m:1'],host,env)
     run('benchmark-build',[binary,'build',project,'--no-restore','-m:1','-p:UseSharedCompilation=false','-p:LibraryRestore=false'],host,env)
     # Baseline is measured with integration absent. Move only our verified data,
     # restore it in finally; no application source or test is changed.
@@ -56,14 +67,21 @@ def main():
         without=test(binary,project,'without-knowledge',host,env)
     finally:
         if parked.exists():parked.rename(store)
+    # Preserve prior integration, then exercise a genuinely new import this run.
+    # Never silently replace an unknown user's dataset.
+    if store.exists():
+        from knowledge.store import Store
+        previous=Store(host).export()
+        assert len(previous['records']['claims'])==15 and all(c['id'].startswith('eshop.') for c in previous['records']['claims']), 'Unknown benchmark store: preserve and inspect'
+        store.rename(ROOT/'.local'/('prior-benchmark-'+ATTEMPT.id))
     run('benchmark-pipeline',[sys.executable,'-B','scripts/benchmark.py'])
     after=test(binary,project,'after-knowledge',host,env)
     diff=subprocess.check_output(['git','-C',str(host),'diff','--binary','HEAD'],text=True)
     assert diff=='','Benchmark tracked source changed'
     (OUT/'benchmark-application.diff').write_text(diff)
-    (OUT/'verification-summary.json').write_text(json.dumps({'status':'PASS','sdk':version,'product_command':'python -B -m unittest discover -s tests -v',
-        'benchmark_tests':{'without-knowledge':without,'after-knowledge':after},
-        'native_windows':'NOT_RUN','live_model_opencode':'NOT_RUN','browser_sqlserver_aspire':'NOT_RUN'},indent=2)+'\n')
+    ATTEMPT.finish('PASS',sdk=version,benchmark_tests={'without-knowledge':without,'after-knowledge':after},
+        native_windows='NOT_RUN',live_model_opencode='NOT_RUN',browser_sqlserver_aspire='NOT_RUN')
+
 
 
 def test(binary,project,label,host,env):
@@ -74,8 +92,18 @@ def test(binary,project,label,host,env):
         '--logger',f'trx;LogFileName={label}.trx','--results-directory',str(results)],host,env)
     counters=ET.parse(path).getroot().find('.//{*}Counters')
     assert counters is not None and int(counters.attrib['executed'])>0 and int(counters.attrib['failed'])==0,counters
-    assert int(counters.attrib['passed'])==49,counters.attrib
+    assert all(int(counters.attrib[k])==49 for k in ('passed','executed','total')) and int(counters.attrib.get('notExecuted',0))==0,counters.attrib
     return dict(counters.attrib)
+
+
+def main():
+    global ATTEMPT
+    ATTEMPT=Attempt(ROOT)
+    try:
+        workflow()
+    except BaseException as e:
+        ATTEMPT.finish('INTERRUPTED' if isinstance(e,KeyboardInterrupt) else 'FAILED',error=str(e))
+        raise
 
 
 if __name__=='__main__':main()

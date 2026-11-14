@@ -137,3 +137,19 @@ writer API. There is no dual-write facade. Original missing Harness/writer code
 was not repaired or tested in place. The legacy snapshot after migration is an
 archived source only. See MIGRATION-REPORT.md for exact supported queue/journal
 shapes and preservation guarantees.
+
+## Consolidated correction contracts
+
+MCP knowledge_context returns compact TextContent with structuredContent absent.
+The max_bytes bound applies to the exact delivered UTF-8 application text, including
+budget/truncation diagnostics and provenance; JSON-RPC framing alone is excluded.
+Operational JSON files use explicit UTF-8 decoding and object/list type checks.
+Invalid encoding is `invalid-utf8`; invalid legacy journal/plan container types
+are `invalid-legacy-journal`/`invalid-legacy-plan` before field access.
+
+Verification attempts have a UUID, source identity, per-check status/exit code,
+logs, and hashed current-run artifact snapshots. Initial state invalidates old
+success assertions/packets. Failed or interrupted runs cannot reuse previous
+results. Packet creation verifies the completed current ledger, source identity,
+and both the live and archived evidence bytes. Required skips/missing artifacts
+are failures. Historical evidence is excluded from the current review packet.

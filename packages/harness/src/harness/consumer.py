@@ -1,14 +1,14 @@
 """Read-only executor boundary. No shell/write/agent execution capability."""
 from knowledge.project import Project, safe_path
 from knowledge.store import Store
-from knowledge.util import KnowledgeError, loads, require, canonical_json
+from knowledge.util import KnowledgeError, loads, require, canonical_json, read_text
 
 
 def context(root,task,max_bytes=None,include_unconfirmed=False):
     project=Project(root)
     config=project.root/'.harness/config.json'
     safe_path(config)
-    settings=loads(config.read_text()) if config.exists() else {}
+    settings=loads(read_text(config)) if config.exists() else {}
     require(isinstance(settings,dict) and set(settings)<= {'response_max_bytes'},'invalid-harness-config')
     budget=max_bytes if max_bytes is not None else settings.get('response_max_bytes',16000)
     require(type(budget) is int and 512<=budget<=1000000,'invalid-harness-budget')

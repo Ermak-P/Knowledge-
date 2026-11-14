@@ -1,13 +1,14 @@
 # P0 implementation report
 
-P0 is ready for external review for the tested portable Linux workflow.
+Corrected P0 is submitted for second review, not marked externally accepted.
+Run: ca4cda1b57b54a7fb29d0745ded39e0a; source identity: e058e6a9e504a624599a8bade58f34347cd03a4236ae0546edbf49e5d95c4110.
 All 16 portable acceptance conditions have executable passing evidence.
 This is not certification of the complete product or a production Windows release.
 
 ## Delivered source and checks
 
-Source: product checkout `/workspace/Knowledge-`, working tree over `d55f161f3d06388544f67564704fcc620c58bc40`.
-Source content identity: `7092b60d39fbca2cf40d2401351579c6d7ba09ccb07affee2351436446abba19`; per-file hashes in SOURCE-REVISION.json.
+Source: product checkout `/workspace/Knowledge-`, working tree over `878ca2eb711405919f82fe57be0d798b42fa5066`.
+Source content identity: `cd330a47fb8bcf9eaccdaaa5483bbeb9261c7e96b63dc14cd2a0a9dd70852891`; per-file hashes in SOURCE-REVISION.json.
 No automatic Git commit, push, publication or production mutation was performed.
 
 ```sh
@@ -22,7 +23,7 @@ This instance reused the verified SDK with
 The complete verification entry point ran successfully after final product fixes.
 Python 3.12.14, SQLite from Python's standard library, MCP 1.30.0, .NET 10.0.404.
 
-- 31 product tests passed, no skips in this Linux run; real MCP stdio sessions
+- 43 product tests passed, no skips in this Linux run; real MCP stdio sessions
   and controlled subprocess crashes/concurrent writers included.
 - Both packages built as wheels; Knowledge installed and initialized/validated
   in a fresh venv without MCP or Harness.

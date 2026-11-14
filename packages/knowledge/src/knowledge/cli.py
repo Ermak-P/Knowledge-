@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from . import __version__
 from .store import Store
-from .util import loads, canonical_json, KnowledgeError
+from .util import loads, canonical_json, KnowledgeError, read_text
 
 
 def parser():
@@ -30,7 +30,7 @@ def execute(a):
     if a.command=='submit':
         if not a.input:
             raise KnowledgeError('input-required')
-        return store.submit(loads(a.input.read_text(encoding='utf-8')))
+        return store.submit(loads(read_text(a.input)))
     if a.command=='apply':
         return store.apply(a.plan,a.approve)
     if a.command=='acknowledge':
