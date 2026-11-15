@@ -27,3 +27,23 @@ class ExecutionLock:
                 k.CloseHandle(self.fd)
             else:os.close(self.fd)
             self.fd=None
+
+class ProjectExecutionLock:
+    """Stable root ownership plus the prior executor's metadata-file lease."""
+    def __init__(self,root):
+        root=Path(root);self.stable=ExecutionLock(root/'.harness-writer.lock')
+        self.legacy=ExecutionLock(root/'.harness/writer.lock') if (root/'.harness').is_dir() else None
+    @property
+    def fd(self):return self.legacy.fd if self.legacy else self.stable.fd
+    @property
+    def fds(self):return tuple(lock.fd for lock in (self.stable,self.legacy) if lock and lock.fd is not None)
+    def acquire(self):
+        self.stable.acquire()
+        try:
+            if self.legacy:self.legacy.acquire()
+        except BaseException:self.stable.close();raise
+        return self
+    def release_metadata_handle(self):
+        if self.legacy:self.legacy.close()
+    def close(self):
+        self.release_metadata_handle();self.stable.close()

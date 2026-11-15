@@ -22,13 +22,16 @@ def process_info(pid):
     return result
 
 def launch_worker(argv,env,lease):
-    if os.name!='nt':return subprocess.Popen(argv,env=env,pass_fds=(lease.fd,),start_new_session=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    descriptors=lease.lock.fds
+    if os.name!='nt':return subprocess.Popen(argv,env=env,pass_fds=descriptors,start_new_session=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     import ctypes
     from .windows import k,INHERIT
-    require(bool(k.SetHandleInformation(lease.fd,INHERIT,INHERIT)),'lease-handle-inherit-failed')
-    startup=subprocess.STARTUPINFO();startup.lpAttributeList={'handle_list':[lease.fd]}
-    try:return subprocess.Popen(argv,env=env,startupinfo=startup,close_fds=True,creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-    finally:k.SetHandleInformation(lease.fd,INHERIT,0)
+    try:
+        for fd in descriptors:require(bool(k.SetHandleInformation(fd,INHERIT,INHERIT)),'lease-handle-inherit-failed')
+        startup=subprocess.STARTUPINFO();startup.lpAttributeList={'handle_list':list(descriptors)}
+        return subprocess.Popen(argv,env=env,startupinfo=startup,close_fds=True,creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    finally:
+        for fd in descriptors:k.SetHandleInformation(fd,INHERIT,0)
 
 def stop_owned(journal,run):
     for action_id,action in journal.actions(run).items():

@@ -160,8 +160,8 @@ class Journal:
 class Lease:
     def __init__(self,journal):self.journal=journal;self.fd=None;self.lock=None
     def __enter__(self):
-        from knowledge.execution_lock import ExecutionLock
-        self.lock=ExecutionLock(self.journal.base/'writer.lock').acquire();self.fd=self.lock.fd
+        from knowledge.execution_lock import ProjectExecutionLock
+        self.lock=ProjectExecutionLock(self.journal.project.root).acquire();self.fd=self.lock.fd
         try:
             from .platform import fence_pending
             fence_pending(self.journal)
@@ -213,6 +213,7 @@ def validate_config(value):
         require(result['format'] in (('exit',) if recipe['kind']=='build' else ('unittest','trx','json')),'test-result-parser-required')
         require(isinstance(result['path'],str) and (not result['path'] or result['path'].startswith('{artifacts}/')),'result-path-must-be-owned-artifact')
         if result['path']:
+            require(not any(x in result['path'] for x in ('//','\\',':')),'result-path-must-be-owned-artifact')
             tail=Path(result['path'][len('{artifacts}/'):]);require(bool(tail.parts) and not tail.is_absolute() and '..' not in tail.parts and '{' not in str(tail) and '}' not in str(tail),'result-path-must-be-owned-artifact')
         if result['format'] in ('trx','json'):require(bool(result['path']),'test-artifact-path-required')
     return value

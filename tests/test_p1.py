@@ -221,6 +221,10 @@ class P1StdioTests(unittest.IsolatedAsyncioTestCase):
             update=dict(c,statement='Independent синтетический Unicode факт '+('Я'*400))
             s.submit(life.batch([life.op('update','claims',c['id'],1,update)],'synthetic Unicode'));approve(s)
             params=StdioServerParameters(command=sys.executable,args=['-m','knowledge.mcp','--root',str(root)])
+            if os.name=='nt':
+                probe='import threading,traceback,sys; f=lambda:[traceback.print_stack(frame,file=sys.stderr) for frame in sys._current_frames().values()]; t=threading.Timer(20,f);t.daemon=True;t.start();from knowledge.mcp import main;main()'
+                params.args=['-c',probe,'--root',str(root)]
+
             async with stdio_client(params) as (reader,writer):
                 async with ClientSession(reader,writer,read_timeout_seconds=timedelta(seconds=120)) as session:
                     await session.initialize()

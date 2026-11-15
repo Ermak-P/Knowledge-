@@ -11,7 +11,7 @@ from pathlib import Path
 from . import __version__
 from .project import Project,safe_path,safe_tree
 from .coordination import gate
-from .execution_lock import ExecutionLock
+from .execution_lock import ProjectExecutionLock
 from .store import Store
 from .util import loads,read_text,canonical_json,digest,fingerprint,require,KnowledgeError
 MAX_BYTES=128*1024*1024
@@ -30,8 +30,8 @@ def profile():return 'windows' if os.name=='nt' else platform.system().lower()
 @contextmanager
 def frozen(root,recovery=False):
     project=Project(root);lock=None;project._maintenance_reservations=[]
-    if (project.root/'.harness').exists():
-        safe_tree(project.root/'.harness');lock=ExecutionLock(project.root/'.harness/writer.lock').acquire()
+    safe_tree(project.root/'.harness');lock=ProjectExecutionLock(project.root).acquire()
+    project._maintenance_execution=lock
     try:
         with gate(project.root,exclusive=True,recovery=recovery):
             harness_db=project.root/'.harness/runs.sqlite3'
@@ -256,6 +256,8 @@ def _finish(project,journal,base):
         # initial SQLite reservations reject active legacy transactions. Close our
         # own DB handles before native directory replacement (Windows sharing).
         release_reservations(project)
+        # Stable root ownership and the exclusive gate remain held throughout.
+        project._maintenance_execution.release_metadata_handle()
         for folder in ('.knowledge','.harness'):
             target=project.root/folder;staged=base/'staged'/folder;saved=Path(journal['saved'])/folder
             expected={p:h for p,h in journal['desired_files'].items() if p.startswith(folder+'/')}
