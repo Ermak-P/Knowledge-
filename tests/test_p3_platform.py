@@ -18,6 +18,22 @@ class PlatformSafety(unittest.TestCase):
         env={**os.environ,'PYTHONUTF8':'0','PYTHONCOERCECLOCALE':'0','LC_ALL':'C'}
         result=subprocess.run([sys.executable,'-X','utf8=0','-c',code],cwd=Path(__file__).parent,env=env,capture_output=True,text=True,timeout=15)
         self.assertEqual(result.returncode,0,result.stderr);self.assertIn('UTF8_OK',result.stdout)
+        code=r'''
+import sys,tempfile
+from pathlib import Path
+from fixtures import addition
+from knowledge.store import Store
+from knowledge.cli import main
+with tempfile.TemporaryDirectory(prefix='protocol-') as tmp:
+ root=Path(tmp);(root/'Fixture.cs').write_bytes(b'fixture')
+ store=Store(root);store.init();store.submit(addition(statement='\u0424\u0430\u043a\u0442 \U0001f642'))
+ approval=store.prepare()['fingerprint'];store.apply(approval,approval);store.acknowledge(approval)
+ sys.argv=['knowledge','context','--root',str(root),'--task','synthetic.rule']
+ raise SystemExit(main())
+'''
+        result=subprocess.run([sys.executable,'-X','utf8=0','-c',code],cwd=Path(__file__).parent,env={**env,'PYTHONIOENCODING':'ascii:strict'},capture_output=True,timeout=15)
+        self.assertEqual(result.returncode,0,result.stderr.decode('utf-8',errors='replace'))
+        self.assertEqual(json.loads(result.stdout)['claims'][0]['statement'],'Факт 🙂')
     def test_supervisor_death_cleans_real_grandchild_before_releasing_ownership(self):
         with tempfile.TemporaryDirectory() as tmp,http_provider(FixtureProvider()) as endpoint:
             root=project(tmp);c=configuration(endpoint,recipe_seconds=20)

@@ -2,7 +2,7 @@
 import argparse
 import sys
 from pathlib import Path
-from knowledge.util import canonical_json,loads,read_text,KnowledgeError
+from knowledge.util import emit_json, canonical_json,loads,read_text,KnowledgeError
 from .runtime import configure,config,Journal
 from .engine import start,resume,status
 
@@ -35,7 +35,7 @@ def main():
             value=report if args.command=='status' else {'ok':True,'metrics':report['metrics']} if args.command=='metrics' else {'ok':True,'capture':report['run']['capture'],'outbox':report['outbox']}
     except (KnowledgeError,OSError,TypeError,AttributeError,ValueError) as e:
         value={'ok':False,'error':getattr(e,'code','input-or-filesystem-error'),'details':getattr(e,'details',None)}
-    print(canonical_json(value));return 0 if value['ok'] else 1
+    emit_json(value);return 0 if value['ok'] else 1
 
 
 if __name__=='__main__':raise SystemExit(main())

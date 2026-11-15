@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from . import __version__
 from .store import Store
-from .util import loads, canonical_json, KnowledgeError, read_text
+from .util import loads, emit_json, canonical_json, KnowledgeError, read_text
 
 
 def parser():
@@ -81,7 +81,7 @@ def main():
         result=execute(args)
     except (KnowledgeError,OSError,TypeError) as e:
         result={'ok':False,'error':getattr(e,'code','input-or-filesystem-error'),'details':getattr(e,'details',None)}
-    print(canonical_json(result))
+    emit_json(result)
     return 0 if result['ok'] else 1
 
 

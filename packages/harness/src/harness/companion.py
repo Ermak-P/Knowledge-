@@ -2,7 +2,7 @@
 import argparse,copy,importlib.util,os,sys,uuid
 from pathlib import Path
 from knowledge.project import Project,safe_path
-from knowledge.util import require,digest,fingerprint,canonical_json,loads,read_text,KnowledgeError
+from knowledge.util import require,digest,fingerprint,emit_json,canonical_json,loads,read_text,KnowledgeError
 from knowledge.maintenance import write
 from .runtime import Journal,Lease,config
 
@@ -77,5 +77,5 @@ def main():
         elif a.command=='doctor':value=doctor(a.root)
         else:value=run_task(a.root,a.task)
     except (KnowledgeError,OSError,ValueError,TypeError,KeyError) as e:value={'ok':False,'error':getattr(e,'code','host-input-or-filesystem-error')}
-    print(canonical_json(value));return 0 if value['ok'] else 1
+    emit_json(value);return 0 if value['ok'] else 1
 if __name__=='__main__':raise SystemExit(main())

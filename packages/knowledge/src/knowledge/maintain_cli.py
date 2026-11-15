@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 from . import maintenance as m
-from .util import KnowledgeError,loads,read_text,canonical_json
+from .util import KnowledgeError,loads,read_text,canonical_json,emit_json
 
 def main():
     p=argparse.ArgumentParser(description='Approved Knowledge/Harness maintenance')
@@ -19,5 +19,5 @@ def main():
             project=Project(a.root);store=Store(a.root)
             value=dict(ok=True,version=__version__,root=project.describe(),knowledge=store.validate() if store.path.exists() else {'available':False,'reason':'knowledge-absent'},maintenance=m.status(a.root),platform=m.profile())
     except (KnowledgeError,OSError,TypeError,ValueError,KeyError) as e:value=dict(ok=False,error=getattr(e,'code','maintenance-input-or-filesystem-error'),details=getattr(e,'details',None))
-    print(canonical_json(value));return 0 if value['ok'] else 1
+    emit_json(value);return 0 if value['ok'] else 1
 if __name__=='__main__':raise SystemExit(main())
