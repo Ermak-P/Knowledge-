@@ -1,0 +1,2157 @@
+{
+  "ok": true,
+  "run": {
+    "agents": [
+      {
+        "finished": 1794758419.6782365,
+        "id": "703efd7835504cb5b1c685f3e5b8d65e",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": null,
+        "provider_requests": 2,
+        "role": "Main",
+        "started": 1794758416.8103342,
+        "status": "done"
+      },
+      {
+        "finished": 1794758416.8698375,
+        "id": "368e767bfae2484981cf1702261fb892",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "703efd7835504cb5b1c685f3e5b8d65e",
+        "provider_requests": 1,
+        "role": "Planning",
+        "started": 1794758416.8453755,
+        "status": "done"
+      },
+      {
+        "finished": 1794758416.9373207,
+        "id": "f407ebc89d38414c8b9dcd4b8853bd9f",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "703efd7835504cb5b1c685f3e5b8d65e",
+        "provider_requests": 2,
+        "role": "Coding",
+        "started": 1794758416.8728745,
+        "status": "done"
+      },
+      {
+        "finished": 1794758418.862372,
+        "id": "331209e9631d4e8493f18c5480fdaed1",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "703efd7835504cb5b1c685f3e5b8d65e",
+        "provider_requests": 2,
+        "role": "Building",
+        "started": 1794758416.9406133,
+        "status": "done"
+      },
+      {
+        "finished": 1794758419.530022,
+        "id": "70906fa4d3bc45808565fe51246dd951",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "703efd7835504cb5b1c685f3e5b8d65e",
+        "provider_requests": 2,
+        "role": "Testing",
+        "started": 1794758418.8657205,
+        "status": "done"
+      },
+      {
+        "finished": 1794758419.6502874,
+        "id": "489fbf90b3fc4b449ec80128bee8f2c6",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "703efd7835504cb5b1c685f3e5b8d65e",
+        "provider_requests": 3,
+        "role": "Reviewing",
+        "started": 1794758419.5336974,
+        "status": "done"
+      }
+    ],
+    "capture": {
+      "reason": "execution did not pass mandatory gates",
+      "state": "not-eligible"
+    },
+    "capture_prepared": false,
+    "config_hash": "4604b6ac7218e979b224b1572dd1abbdfb9218357ccdb5567da2237e67b2c602",
+    "delegations": 5,
+    "error": "required-check-missing-failed-or-stale",
+    "execution": "failed",
+    "finished": 1794758419.6819499,
+    "frames": [
+      {
+        "assignment": "Feature.Value returns 2, verified by independent Checks project.",
+        "cursor": 0,
+        "history": [
+          [
+            {
+              "content": "MAIN_PRIVATE_MARKER",
+              "role": "assistant",
+              "tool_calls": [
+                {
+                  "function": {
+                    "arguments": "{\"role\": \"Planning\", \"assignment\": \"Perform Planning for Core/Feature.cs\"}",
+                    "name": "delegate"
+                  },
+                  "id": "call0",
+                  "type": "function"
+                },
+                {
+                  "function": {
+                    "arguments": "{\"role\": \"Coding\", \"assignment\": \"Perform Coding for Core/Feature.cs\"}",
+                    "name": "delegate"
+                  },
+                  "id": "call1",
+                  "type": "function"
+                },
+                {
+                  "function": {
+                    "arguments": "{\"role\": \"Building\", \"assignment\": \"Perform Building for Core/Feature.cs\"}",
+                    "name": "delegate"
+                  },
+                  "id": "call2",
+                  "type": "function"
+                },
+                {
+                  "function": {
+                    "arguments": "{\"role\": \"Testing\", \"assignment\": \"Perform Testing for Core/Feature.cs\"}",
+                    "name": "delegate"
+                  },
+                  "id": "call3",
+                  "type": "function"
+                },
+                {
+                  "function": {
+                    "arguments": "{\"role\": \"Reviewing\", \"assignment\": \"Perform Reviewing for Core/Feature.cs\"}",
+                    "name": "delegate"
+                  },
+                  "id": "call4",
+                  "type": "function"
+                }
+              ]
+            },
+            {
+              "content": "{\"agent\":\"368e767bfae2484981cf1702261fb892\",\"last_result\":null,\"ok\":true,\"role\":\"Planning\",\"summary\":\"Bounded plan: inspect, edit the declared file, run configured checks, review diff.\"}",
+              "role": "tool",
+              "tool_call_id": "call0"
+            },
+            {
+              "content": "{\"agent\":\"f407ebc89d38414c8b9dcd4b8853bd9f\",\"last_result\":{\"error\":\"role-tool-denied\",\"ok\":false},\"ok\":true,\"role\":\"Coding\",\"summary\":\"Denied attempts observed\"}",
+              "role": "tool",
+              "tool_call_id": "call1"
+            },
+            {
+              "content": "{\"agent\":\"331209e9631d4e8493f18c5480fdaed1\",\"last_result\":{\"artifact\":null,\"config\":\"4604b6ac7218e979b224b1572dd1abbdfb9218357ccdb5567da2237e67b2c602\",\"counts\":null,\"descendants_stopped\":true,\"duration\":1.7878827279999996,\"kind\":\"build\",\"log\":\".harness/artifacts/2f23f8c3c7b54cc18c62220ade9f2b4b/95aad5e5a6cbfa52a085c1a87d4ccab44b128d8504f6abf62a21e8e83cbbfd5e/0/process.log\",\"log_bytes\":366,\"observed_log_bytes\":366,\"ok\":true,\"output\":\"  Determining projects to restore...\\n  All projects are up-to-date for restore.\\n  Core -> /tmp/p2-application-46r7238u/multi project проверка/Core/bin/Debug/net10.0/Core.dll\\n  Checks -> /tmp/p2-application-46r7238u/multi project проверка/Checks/bin/Debug/net10.0/Checks.dll\\n\\nBuild succeeded.\\n    0 Warning(s)\\n    0 Error(s)\\n\\nTime Elapsed 00:00:01.58\\n\",\"reason\":null,\"recipe\":\"build\",\"returncode\":0,\"source\":\"fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6\",\"truncated\":false},\"ok\":true,\"role\":\"Building\",\"summary\":\"synthetic role completed\"}",
+              "role": "tool",
+              "tool_call_id": "call2"
+            },
+            {
+              "content": "{\"agent\":\"70906fa4d3bc45808565fe51246dd951\",\"last_result\":{\"artifact\":null,\"config\":\"4604b6ac7218e979b224b1572dd1abbdfb9218357ccdb5567da2237e67b2c602\",\"counts\":null,\"descendants_stopped\":true,\"duration\":0.5547396520000234,\"kind\":\"test\",\"log\":\".harness/artifacts/2f23f8c3c7b54cc18c62220ade9f2b4b/04f9d709fdff4534fe64adbbd997795ccc8aaaad99fe2f239b0edd1f07c4ab70/0/process.log\",\"log_bytes\":0,\"observed_log_bytes\":0,\"ok\":false,\"output\":\"\",\"reason\":null,\"recipe\":\"test\",\"returncode\":1,\"source\":\"fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6\",\"truncated\":false},\"ok\":true,\"role\":\"Testing\",\"summary\":\"synthetic role completed\"}",
+              "role": "tool",
+              "tool_call_id": "call3"
+            },
+            {
+              "content": "{\"agent\":\"489fbf90b3fc4b449ec80128bee8f2c6\",\"last_result\":{\"config\":\"4604b6ac7218e979b224b1572dd1abbdfb9218357ccdb5567da2237e67b2c602\",\"findings\":[\"Source/receipt does not meet independent fixture expectation.\"],\"ok\":true,\"source\":\"fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6\",\"verdict\":\"reject\"},\"ok\":true,\"role\":\"Reviewing\",\"summary\":\"synthetic role completed\"}",
+              "role": "tool",
+              "tool_call_id": "call4"
+            }
+          ]
+        ],
+        "id": "703efd7835504cb5b1c685f3e5b8d65e",
+        "inflight": null,
+        "last_result": {
+          "agent": "489fbf90b3fc4b449ec80128bee8f2c6",
+          "last_result": {
+            "config": "4604b6ac7218e979b224b1572dd1abbdfb9218357ccdb5567da2237e67b2c602",
+            "findings": [
+              "Source/receipt does not meet independent fixture expectation."
+            ],
+            "ok": true,
+            "source": "fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6",
+            "verdict": "reject"
+          },
+          "ok": true,
+          "role": "Reviewing",
+          "summary": "synthetic role completed"
+        },
+        "parent": null,
+        "pending": null,
+        "request_id": "495cff3c36bb4cdd9020a07b850b0b0f",
+        "results": [],
+        "role": "Main",
+        "started": 1794758416.8103333,
+        "status": "running",
+        "turns": 2,
+        "waiting": "81a3605c04027d947776cf47a72ce97d837bd5224cf560668d22c103a6ec8a7b"
+      }
+    ],
+    "gates": {
+      "build": {
+        "action": "95aad5e5a6cbfa52a085c1a87d4ccab44b128d8504f6abf62a21e8e83cbbfd5e",
+        "artifact": null,
+        "config": "4604b6ac7218e979b224b1572dd1abbdfb9218357ccdb5567da2237e67b2c602",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 1.7878827279999996,
+        "kind": "build",
+        "log": ".harness/artifacts/2f23f8c3c7b54cc18c62220ade9f2b4b/95aad5e5a6cbfa52a085c1a87d4ccab44b128d8504f6abf62a21e8e83cbbfd5e/0/process.log",
+        "log_bytes": 366,
+        "observed_log_bytes": 366,
+        "ok": true,
+        "output": "  Determining projects to restore...\n  All projects are up-to-date for restore.\n  Core -> /tmp/p2-application-46r7238u/multi project проверка/Core/bin/Debug/net10.0/Core.dll\n  Checks -> /tmp/p2-application-46r7238u/multi project проверка/Checks/bin/Debug/net10.0/Checks.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:01.58\n",
+        "reason": null,
+        "recipe": "build",
+        "returncode": 0,
+        "source": "fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6",
+        "truncated": false
+      },
+      "review": {
+        "action": "aa100e86fed83e6a0565c2ba652fee7a12cc6ffeee77d0cb2b04bcc3ae529a15",
+        "config": "4604b6ac7218e979b224b1572dd1abbdfb9218357ccdb5567da2237e67b2c602",
+        "findings": [
+          "Source/receipt does not meet independent fixture expectation."
+        ],
+        "ok": true,
+        "source": "fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6",
+        "verdict": "reject"
+      },
+      "test": {
+        "action": "04f9d709fdff4534fe64adbbd997795ccc8aaaad99fe2f239b0edd1f07c4ab70",
+        "artifact": null,
+        "config": "4604b6ac7218e979b224b1572dd1abbdfb9218357ccdb5567da2237e67b2c602",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.5547396520000234,
+        "kind": "test",
+        "log": ".harness/artifacts/2f23f8c3c7b54cc18c62220ade9f2b4b/04f9d709fdff4534fe64adbbd997795ccc8aaaad99fe2f239b0edd1f07c4ab70/0/process.log",
+        "log_bytes": 0,
+        "observed_log_bytes": 0,
+        "ok": false,
+        "output": "",
+        "reason": null,
+        "recipe": "test",
+        "returncode": 1,
+        "source": "fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6",
+        "truncated": false
+      }
+    },
+    "id": "2f23f8c3c7b54cc18c62220ade9f2b4b",
+    "lease_wait_seconds": 0.002180084999963583,
+    "mode": "multi",
+    "project": "1d131dfaa80d40bccf3f0390e0ad64b9c529a0992875e062f3e2a9d4b2c8d2b2",
+    "protected_executables": [],
+    "protected_paths": [
+      "Checks/Checks.csproj"
+    ],
+    "requests": [
+      {
+        "agent": "703efd7835504cb5b1c685f3e5b8d65e",
+        "at": 1794758416.8253398,
+        "duration": 0.013087546999997812,
+        "id": "34abad1800b94729b2e75bb7d83349d2",
+        "input_bytes": 3351,
+        "input_hash": "4571dbdca01814188de46f42fb1d7af107c69017e4410c276735f2c50ac71787",
+        "response_bytes": 1181,
+        "role": "Main",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "368e767bfae2484981cf1702261fb892",
+        "at": 1794758416.8538458,
+        "duration": 0.012153265999984342,
+        "id": "2caff804e9c5488f8ae6f217569dfc27",
+        "input_bytes": 2763,
+        "input_hash": "9feea5d4ade50b99578148633d113c8439d9e1ff6d6fe26c4fc41a62b2234084",
+        "response_bytes": 433,
+        "role": "Planning",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "f407ebc89d38414c8b9dcd4b8853bd9f",
+        "at": 1794758416.8811965,
+        "duration": 0.012075488999983008,
+        "id": "d976f814035744ab936c3d6555859f32",
+        "input_bytes": 3209,
+        "input_hash": "13d084ad526a5c773ae69ac0288ac96205d8bf1eeee59ce2772050bcf4480b48",
+        "response_bytes": 744,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "f407ebc89d38414c8b9dcd4b8853bd9f",
+        "at": 1794758416.920565,
+        "duration": 0.012569645000041874,
+        "id": "d5c383b7ba0548fb820757310e6de909",
+        "input_bytes": 3962,
+        "input_hash": "e73660ba090ef126c1de6cd58a593385a8dd6bf527ff447a57ca39f6bb681fc8",
+        "response_bytes": 375,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "331209e9631d4e8493f18c5480fdaed1",
+        "at": 1794758416.9536774,
+        "duration": 0.012330272000042442,
+        "id": "ceae6d051a6f4a3888f7fc5f95a78e6b",
+        "input_bytes": 2763,
+        "input_hash": "456c3db3923a3c319344a04ead09bb9cffff4b380cf56fcc74cd98a244b79f54",
+        "response_bytes": 425,
+        "role": "Building",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "331209e9631d4e8493f18c5480fdaed1",
+        "at": 1794758418.845125,
+        "duration": 0.012864265000018804,
+        "id": "5791f9256b6a4e89aaf3435d13a58fc1",
+        "input_bytes": 4115,
+        "input_hash": "0f6eadb81f66d9f63c4f42781ce9d7b7034335d68bf236f7d6dc67125da0582c",
+        "response_bytes": 375,
+        "role": "Building",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "70906fa4d3bc45808565fe51246dd951",
+        "at": 1794758418.8740969,
+        "duration": 0.012118874000009328,
+        "id": "954f4f7677414462bad8d893aae64972",
+        "input_bytes": 2960,
+        "input_hash": "5e9b975c0431d077c42faf881ef2792fa15d6e5026944f39e7ec647bb4b5b4b0",
+        "response_bytes": 424,
+        "role": "Testing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "70906fa4d3bc45808565fe51246dd951",
+        "at": 1794758419.5133731,
+        "duration": 0.012578867999991417,
+        "id": "1f1f0d6132a1430abd11bae87d46ab05",
+        "input_bytes": 3921,
+        "input_hash": "e8c367c79f585ae9ff5ddcd6c5b45506efa8bdfbb1104054a001dca4b13eb800",
+        "response_bytes": 375,
+        "role": "Testing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "489fbf90b3fc4b449ec80128bee8f2c6",
+        "at": 1794758419.5426576,
+        "duration": 0.012509614000009606,
+        "id": "ef3f1e28abf843e699b83b97f85692b6",
+        "input_bytes": 3776,
+        "input_hash": "84d7e69ce9305de12770b3bce06de9d8d401894034b7b0f90742738d5d407045",
+        "response_bytes": 773,
+        "role": "Reviewing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "489fbf90b3fc4b449ec80128bee8f2c6",
+        "at": 1794758419.5898314,
+        "duration": 0.012294660000009117,
+        "id": "5621fda21b224e5fa348a5c7d7b80da3",
+        "input_bytes": 6518,
+        "input_hash": "5f8c90806d23ac9006aaf1c30d28af78860a7edc7873fd104f69aa1f0ec2beab",
+        "response_bytes": 512,
+        "role": "Reviewing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "489fbf90b3fc4b449ec80128bee8f2c6",
+        "at": 1794758419.6294293,
+        "duration": 0.012395421999997325,
+        "id": "6135583540674c75af4435aa13e789d9",
+        "input_bytes": 7291,
+        "input_hash": "9a8a2bfc11639bb2f1ca8e9bec7c4e61456c340d9f80cb250b51797c9950ef11",
+        "response_bytes": 375,
+        "role": "Reviewing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "703efd7835504cb5b1c685f3e5b8d65e",
+        "at": 1794758419.6618137,
+        "duration": 0.012296452999976282,
+        "id": "495cff3c36bb4cdd9020a07b850b0b0f",
+        "input_bytes": 7682,
+        "input_hash": "5439268bac3816a538fae9ac57f8d7036f2f695dde6296dce0d4e809d8428104",
+        "response_bytes": 375,
+        "role": "Main",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      }
+    ],
+    "shared_history": [],
+    "source": {
+      "Checks/Checks.csproj": "0b7785b8ec8ca74e38179f5bd6b7ba973fdcc59470baf6a032c5d6f245500b7b",
+      "Checks/Program.cs": "a9b3e215762a15ea294be24fe14f3563b5f2c64cbb06770fd7362e381eda3cda",
+      "Core/Core.csproj": "70c34fafea2e093c458e3d2014ec7d305658813bd4e5ec4d80b6b87fddb1bdb2",
+      "Core/Feature.cs": "602975e693930bdfd079093780156c9e7c884af437a4e0c7b5d6e709384a83fd",
+      "global.json": "0c5038c8f214cbc41ea605d1c6edc9e7fd5a17b7386053124ec9115eddedd1e7"
+    },
+    "started": 1794758416.8098645,
+    "status": "failed",
+    "task": {
+      "existing_test_edits": [],
+      "goal": "Feature.Value returns 2, verified by independent Checks project.",
+      "initial_source": {
+        "Checks/Checks.csproj": "0b7785b8ec8ca74e38179f5bd6b7ba973fdcc59470baf6a032c5d6f245500b7b",
+        "Checks/Program.cs": "a9b3e215762a15ea294be24fe14f3563b5f2c64cbb06770fd7362e381eda3cda",
+        "Core/Core.csproj": "70c34fafea2e093c458e3d2014ec7d305658813bd4e5ec4d80b6b87fddb1bdb2",
+        "Core/Feature.cs": "602975e693930bdfd079093780156c9e7c884af437a4e0c7b5d6e709384a83fd",
+        "global.json": "0c5038c8f214cbc41ea605d1c6edc9e7fd5a17b7386053124ec9115eddedd1e7"
+      },
+      "kind": "coding",
+      "recipes": [
+        "build",
+        "test"
+      ],
+      "version": 1,
+      "writable": [
+        "Core/Feature.cs"
+      ]
+    },
+    "tool_calls": 14,
+    "usage_evidence": "test-double",
+    "version": 1
+  },
+  "events": [
+    {
+      "at": 1794758416.8119783,
+      "config": "4604b6ac7218e979b224b1572dd1abbdfb9218357ccdb5567da2237e67b2c602",
+      "kind": "run-started",
+      "mode": "multi",
+      "sequence": 1,
+      "task_hash": "ab22048d86b5dfccdb418c2cffe0a6a7853dfbd1178fe7d95079b8a776c88ad7",
+      "version": 1
+    },
+    {
+      "agent": "703efd7835504cb5b1c685f3e5b8d65e",
+      "at": 1794758416.8270175,
+      "id": "34abad1800b94729b2e75bb7d83349d2",
+      "input_bytes": 3351,
+      "input_hash": "4571dbdca01814188de46f42fb1d7af107c69017e4410c276735f2c50ac71787",
+      "kind": "provider-request",
+      "role": "Main",
+      "sequence": 2,
+      "version": 1
+    },
+    {
+      "at": 1794758416.8414776,
+      "kind": "provider-response",
+      "request": "34abad1800b94729b2e75bb7d83349d2",
+      "response_bytes": 1181,
+      "sequence": 3,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "action": "8ce06825192b384faaf209a56c427c147ab3e38cadedf356c99c04118a9b4677",
+      "at": 1794758416.8445807,
+      "kind": "delegated",
+      "parent": "703efd7835504cb5b1c685f3e5b8d65e",
+      "role": "Planning",
+      "sequence": 4,
+      "version": 1
+    },
+    {
+      "agent": "368e767bfae2484981cf1702261fb892",
+      "at": 1794758416.8554392,
+      "id": "2caff804e9c5488f8ae6f217569dfc27",
+      "input_bytes": 2763,
+      "input_hash": "9feea5d4ade50b99578148633d113c8439d9e1ff6d6fe26c4fc41a62b2234084",
+      "kind": "provider-request",
+      "role": "Planning",
+      "sequence": 5,
+      "version": 1
+    },
+    {
+      "at": 1794758416.8689198,
+      "kind": "provider-response",
+      "request": "2caff804e9c5488f8ae6f217569dfc27",
+      "response_bytes": 433,
+      "sequence": 6,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "action": "19f0233165ea03f9632bd99acbc33d846a94a2ed27c84215c7a03a22379cc82c",
+      "at": 1794758416.8721108,
+      "kind": "delegated",
+      "parent": "703efd7835504cb5b1c685f3e5b8d65e",
+      "role": "Coding",
+      "sequence": 7,
+      "version": 1
+    },
+    {
+      "agent": "f407ebc89d38414c8b9dcd4b8853bd9f",
+      "at": 1794758416.8829298,
+      "id": "d976f814035744ab936c3d6555859f32",
+      "input_bytes": 3209,
+      "input_hash": "13d084ad526a5c773ae69ac0288ac96205d8bf1eeee59ce2772050bcf4480b48",
+      "kind": "provider-request",
+      "role": "Coding",
+      "sequence": 8,
+      "version": 1
+    },
+    {
+      "at": 1794758416.8964071,
+      "kind": "provider-response",
+      "request": "d976f814035744ab936c3d6555859f32",
+      "response_bytes": 744,
+      "sequence": 9,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "action": "91fc1318ad88a996ded48a74edeb2db0cb3b088e9caaa1839f0d10d4180be2ac",
+      "agent": "f407ebc89d38414c8b9dcd4b8853bd9f",
+      "at": 1794758416.8995373,
+      "error": "role-tool-denied",
+      "kind": "tool-denied",
+      "role": "Coding",
+      "sequence": 10,
+      "tool": "recipe",
+      "version": 1
+    },
+    {
+      "action": "be72c9c37877bcdac9ded1afc9cf9811a38e60209dc8b2343b58d0a3bd289428",
+      "at": 1794758416.906149,
+      "kind": "tool-finished",
+      "ok": false,
+      "role": "Coding",
+      "sequence": 11,
+      "tool": "patch",
+      "version": 1
+    },
+    {
+      "action": "adcd1deaaf8b93042c3da195033c692b9279b6352c7b17bbe234c662132684ef",
+      "agent": "f407ebc89d38414c8b9dcd4b8853bd9f",
+      "at": 1794758416.9092243,
+      "error": "role-tool-denied",
+      "kind": "tool-denied",
+      "role": "Coding",
+      "sequence": 12,
+      "tool": "delegate",
+      "version": 1
+    },
+    {
+      "agent": "f407ebc89d38414c8b9dcd4b8853bd9f",
+      "at": 1794758416.922387,
+      "id": "d5c383b7ba0548fb820757310e6de909",
+      "input_bytes": 3962,
+      "input_hash": "e73660ba090ef126c1de6cd58a593385a8dd6bf527ff447a57ca39f6bb681fc8",
+      "kind": "provider-request",
+      "role": "Coding",
+      "sequence": 13,
+      "version": 1
+    },
+    {
+      "at": 1794758416.936427,
+      "kind": "provider-response",
+      "request": "d5c383b7ba0548fb820757310e6de909",
+      "response_bytes": 375,
+      "sequence": 14,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "action": "70b060c293bb93887dee3629ccc6dc1d704175bf391355f79037351a1c874ba9",
+      "at": 1794758416.9398022,
+      "kind": "delegated",
+      "parent": "703efd7835504cb5b1c685f3e5b8d65e",
+      "role": "Building",
+      "sequence": 15,
+      "version": 1
+    },
+    {
+      "agent": "331209e9631d4e8493f18c5480fdaed1",
+      "at": 1794758416.9554632,
+      "id": "ceae6d051a6f4a3888f7fc5f95a78e6b",
+      "input_bytes": 2763,
+      "input_hash": "456c3db3923a3c319344a04ead09bb9cffff4b380cf56fcc74cd98a244b79f54",
+      "kind": "provider-request",
+      "role": "Building",
+      "sequence": 16,
+      "version": 1
+    },
+    {
+      "at": 1794758416.9692342,
+      "kind": "provider-response",
+      "request": "ceae6d051a6f4a3888f7fc5f95a78e6b",
+      "response_bytes": 425,
+      "sequence": 17,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "action": "95aad5e5a6cbfa52a085c1a87d4ccab44b128d8504f6abf62a21e8e83cbbfd5e",
+      "at": 1794758418.8327641,
+      "kind": "tool-finished",
+      "ok": true,
+      "role": "Building",
+      "sequence": 18,
+      "tool": "recipe",
+      "version": 1
+    },
+    {
+      "agent": "331209e9631d4e8493f18c5480fdaed1",
+      "at": 1794758418.846903,
+      "id": "5791f9256b6a4e89aaf3435d13a58fc1",
+      "input_bytes": 4115,
+      "input_hash": "0f6eadb81f66d9f63c4f42781ce9d7b7034335d68bf236f7d6dc67125da0582c",
+      "kind": "provider-request",
+      "role": "Building",
+      "sequence": 19,
+      "version": 1
+    },
+    {
+      "at": 1794758418.8612804,
+      "kind": "provider-response",
+      "request": "5791f9256b6a4e89aaf3435d13a58fc1",
+      "response_bytes": 375,
+      "sequence": 20,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "action": "16cf5ac76d5daa58da29bb1b4e5430cc805abfce075ac888ad9a409d259cf576",
+      "at": 1794758418.8648748,
+      "kind": "delegated",
+      "parent": "703efd7835504cb5b1c685f3e5b8d65e",
+      "role": "Testing",
+      "sequence": 21,
+      "version": 1
+    },
+    {
+      "agent": "70906fa4d3bc45808565fe51246dd951",
+      "at": 1794758418.875915,
+      "id": "954f4f7677414462bad8d893aae64972",
+      "input_bytes": 2960,
+      "input_hash": "5e9b975c0431d077c42faf881ef2792fa15d6e5026944f39e7ec647bb4b5b4b0",
+      "kind": "provider-request",
+      "role": "Testing",
+      "sequence": 22,
+      "version": 1
+    },
+    {
+      "at": 1794758418.8894567,
+      "kind": "provider-response",
+      "request": "954f4f7677414462bad8d893aae64972",
+      "response_bytes": 424,
+      "sequence": 23,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "action": "04f9d709fdff4534fe64adbbd997795ccc8aaaad99fe2f239b0edd1f07c4ab70",
+      "at": 1794758419.5011601,
+      "kind": "tool-finished",
+      "ok": false,
+      "role": "Testing",
+      "sequence": 24,
+      "tool": "recipe",
+      "version": 1
+    },
+    {
+      "agent": "70906fa4d3bc45808565fe51246dd951",
+      "at": 1794758419.515108,
+      "id": "1f1f0d6132a1430abd11bae87d46ab05",
+      "input_bytes": 3921,
+      "input_hash": "e8c367c79f585ae9ff5ddcd6c5b45506efa8bdfbb1104054a001dca4b13eb800",
+      "kind": "provider-request",
+      "role": "Testing",
+      "sequence": 25,
+      "version": 1
+    },
+    {
+      "at": 1794758419.5291462,
+      "kind": "provider-response",
+      "request": "1f1f0d6132a1430abd11bae87d46ab05",
+      "response_bytes": 375,
+      "sequence": 26,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "action": "81a3605c04027d947776cf47a72ce97d837bd5224cf560668d22c103a6ec8a7b",
+      "at": 1794758419.5328383,
+      "kind": "delegated",
+      "parent": "703efd7835504cb5b1c685f3e5b8d65e",
+      "role": "Reviewing",
+      "sequence": 27,
+      "version": 1
+    },
+    {
+      "agent": "489fbf90b3fc4b449ec80128bee8f2c6",
+      "at": 1794758419.5444481,
+      "id": "ef3f1e28abf843e699b83b97f85692b6",
+      "input_bytes": 3776,
+      "input_hash": "84d7e69ce9305de12770b3bce06de9d8d401894034b7b0f90742738d5d407045",
+      "kind": "provider-request",
+      "role": "Reviewing",
+      "sequence": 28,
+      "version": 1
+    },
+    {
+      "at": 1794758419.558478,
+      "kind": "provider-response",
+      "request": "ef3f1e28abf843e699b83b97f85692b6",
+      "response_bytes": 773,
+      "sequence": 29,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "action": "a1f16ad73936b74239c9b4f96fd79db584c748ddbd1114a3ef6b340535de490c",
+      "at": 1794758419.5649672,
+      "kind": "tool-finished",
+      "ok": true,
+      "role": "Reviewing",
+      "sequence": 30,
+      "tool": "read",
+      "version": 1
+    },
+    {
+      "action": "795cbde82680ddbcc547a4816f89b988aa70baf3961b85a0e1e0943989b5058d",
+      "at": 1794758419.571638,
+      "kind": "tool-finished",
+      "ok": true,
+      "role": "Reviewing",
+      "sequence": 31,
+      "tool": "artifact",
+      "version": 1
+    },
+    {
+      "action": "d3803b4689b0731460b81db7cb4f0d00234ef542179eb6aed9cef680ef9bdb93",
+      "at": 1794758419.578077,
+      "kind": "tool-finished",
+      "ok": true,
+      "role": "Reviewing",
+      "sequence": 32,
+      "tool": "artifact",
+      "version": 1
+    },
+    {
+      "agent": "489fbf90b3fc4b449ec80128bee8f2c6",
+      "at": 1794758419.5916574,
+      "id": "5621fda21b224e5fa348a5c7d7b80da3",
+      "input_bytes": 6518,
+      "input_hash": "5f8c90806d23ac9006aaf1c30d28af78860a7edc7873fd104f69aa1f0ec2beab",
+      "kind": "provider-request",
+      "role": "Reviewing",
+      "sequence": 33,
+      "version": 1
+    },
+    {
+      "at": 1794758419.6054158,
+      "kind": "provider-response",
+      "request": "5621fda21b224e5fa348a5c7d7b80da3",
+      "response_bytes": 512,
+      "sequence": 34,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "action": "aa100e86fed83e6a0565c2ba652fee7a12cc6ffeee77d0cb2b04bcc3ae529a15",
+      "at": 1794758419.6121998,
+      "kind": "tool-finished",
+      "ok": true,
+      "role": "Reviewing",
+      "sequence": 35,
+      "tool": "review",
+      "version": 1
+    },
+    {
+      "agent": "489fbf90b3fc4b449ec80128bee8f2c6",
+      "at": 1794758419.6314635,
+      "id": "6135583540674c75af4435aa13e789d9",
+      "input_bytes": 7291,
+      "input_hash": "9a8a2bfc11639bb2f1ca8e9bec7c4e61456c340d9f80cb250b51797c9950ef11",
+      "kind": "provider-request",
+      "role": "Reviewing",
+      "sequence": 36,
+      "version": 1
+    },
+    {
+      "at": 1794758419.6465862,
+      "kind": "provider-response",
+      "request": "6135583540674c75af4435aa13e789d9",
+      "response_bytes": 375,
+      "sequence": 37,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "agent": "703efd7835504cb5b1c685f3e5b8d65e",
+      "at": 1794758419.6636841,
+      "id": "495cff3c36bb4cdd9020a07b850b0b0f",
+      "input_bytes": 7682,
+      "input_hash": "5439268bac3816a538fae9ac57f8d7036f2f695dde6296dce0d4e809d8428104",
+      "kind": "provider-request",
+      "role": "Main",
+      "sequence": 38,
+      "version": 1
+    },
+    {
+      "at": 1794758419.6773427,
+      "kind": "provider-response",
+      "request": "495cff3c36bb4cdd9020a07b850b0b0f",
+      "response_bytes": 375,
+      "sequence": 39,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "at": 1794758419.6811447,
+      "error": "required-check-missing-failed-or-stale",
+      "kind": "run-stopped",
+      "sequence": 40,
+      "status": "failed",
+      "version": 1
+    }
+  ],
+  "actions": {
+    "04f9d709fdff4534fe64adbbd997795ccc8aaaad99fe2f239b0edd1f07c4ab70": {
+      "agent": "70906fa4d3bc45808565fe51246dd951",
+      "args": {
+        "name": "test"
+      },
+      "at": 1794758418.8928304,
+      "finished": 1794758419.4994156,
+      "process": {
+        "group": 24217,
+        "host": "047c5faeabcf1bd63d453542d38cd2c61ba511bcea971e1898f143c691aecd99",
+        "pid": 24217,
+        "platform": "linux-pgroup-v1",
+        "start": "32728",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1794758419.4819193,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.5547396520000234,
+        "log_bytes": 0,
+        "observed_log_bytes": 0,
+        "reason": null,
+        "returncode": 1,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/usr/share/dotnet/dotnet",
+          "run",
+          "--project",
+          "Checks/Checks.csproj",
+          "--no-build",
+          "--",
+          "/tmp/p2-application-46r7238u/multi project проверка/.harness/artifacts/2f23f8c3c7b54cc18c62220ade9f2b4b/04f9d709fdff4534fe64adbbd997795ccc8aaaad99fe2f239b0edd1f07c4ab70/0/checks.json"
+        ],
+        "cwd": "/tmp/p2-application-46r7238u/multi project проверка",
+        "log": "/tmp/p2-application-46r7238u/multi project проверка/.harness/artifacts/2f23f8c3c7b54cc18c62220ade9f2b4b/04f9d709fdff4534fe64adbbd997795ccc8aaaad99fe2f239b0edd1f07c4ab70/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 120
+      },
+      "process_started": 1794758418.9257996,
+      "request": "954f4f7677414462bad8d893aae64972",
+      "result": {
+        "artifact": null,
+        "config": "4604b6ac7218e979b224b1572dd1abbdfb9218357ccdb5567da2237e67b2c602",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.5547396520000234,
+        "kind": "test",
+        "log": ".harness/artifacts/2f23f8c3c7b54cc18c62220ade9f2b4b/04f9d709fdff4534fe64adbbd997795ccc8aaaad99fe2f239b0edd1f07c4ab70/0/process.log",
+        "log_bytes": 0,
+        "observed_log_bytes": 0,
+        "ok": false,
+        "output": "",
+        "reason": null,
+        "recipe": "test",
+        "returncode": 1,
+        "source": "fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6",
+        "truncated": false
+      },
+      "role": "Testing",
+      "signature": "a470e8febdfe6a992d12e490d43cd27e1017517982360bb607ad4b50e83245d1",
+      "source_before": {
+        "Checks/Checks.csproj": "0b7785b8ec8ca74e38179f5bd6b7ba973fdcc59470baf6a032c5d6f245500b7b",
+        "Checks/Program.cs": "a9b3e215762a15ea294be24fe14f3563b5f2c64cbb06770fd7362e381eda3cda",
+        "Core/Core.csproj": "70c34fafea2e093c458e3d2014ec7d305658813bd4e5ec4d80b6b87fddb1bdb2",
+        "Core/Feature.cs": "602975e693930bdfd079093780156c9e7c884af437a4e0c7b5d6e709384a83fd",
+        "global.json": "0c5038c8f214cbc41ea605d1c6edc9e7fd5a17b7386053124ec9115eddedd1e7"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "795cbde82680ddbcc547a4816f89b988aa70baf3961b85a0e1e0943989b5058d": {
+      "agent": "489fbf90b3fc4b449ec80128bee8f2c6",
+      "args": {
+        "action": "95aad5e5a6cbfa52a085c1a87d4ccab44b128d8504f6abf62a21e8e83cbbfd5e"
+      },
+      "at": 1794758419.5683482,
+      "finished": 1794758419.5701084,
+      "request": "ef3f1e28abf843e699b83b97f85692b6",
+      "result": {
+        "action": "95aad5e5a6cbfa52a085c1a87d4ccab44b128d8504f6abf62a21e8e83cbbfd5e",
+        "ok": true,
+        "receipt": {
+          "artifact": null,
+          "config": "4604b6ac7218e979b224b1572dd1abbdfb9218357ccdb5567da2237e67b2c602",
+          "counts": null,
+          "descendants_stopped": true,
+          "duration": 1.7878827279999996,
+          "kind": "build",
+          "log": ".harness/artifacts/2f23f8c3c7b54cc18c62220ade9f2b4b/95aad5e5a6cbfa52a085c1a87d4ccab44b128d8504f6abf62a21e8e83cbbfd5e/0/process.log",
+          "log_bytes": 366,
+          "observed_log_bytes": 366,
+          "ok": true,
+          "output": "  Determining projects to restore...\n  All projects are up-to-date for restore.\n  Core -> /tmp/p2-application-46r7238u/multi project проверка/Core/bin/Debug/net10.0/Core.dll\n  Checks -> /tmp/p2-application-46r7238u/multi project проверка/Checks/bin/Debug/net10.0/Checks.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:01.58\n",
+          "reason": null,
+          "recipe": "build",
+          "returncode": 0,
+          "source": "fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6",
+          "truncated": false
+        },
+        "signature": "2a74761d17623be81ab144caca479e8a9e39e255955c8911d62f751bc8c03716"
+      },
+      "role": "Reviewing",
+      "signature": "e6ea8f10a8dc6dfbee88dcd1e82fb2868cdbf29a8a8aec017bd52988ee14b29a",
+      "status": "FINISHED",
+      "tool": "artifact",
+      "version": 1
+    },
+    "95aad5e5a6cbfa52a085c1a87d4ccab44b128d8504f6abf62a21e8e83cbbfd5e": {
+      "agent": "331209e9631d4e8493f18c5480fdaed1",
+      "args": {
+        "name": "build"
+      },
+      "at": 1794758416.9724872,
+      "finished": 1794758418.8310118,
+      "process": {
+        "group": 24162,
+        "host": "047c5faeabcf1bd63d453542d38cd2c61ba511bcea971e1898f143c691aecd99",
+        "pid": 24162,
+        "platform": "linux-pgroup-v1",
+        "start": "32535",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1794758418.797848,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 1.7878827279999996,
+        "log_bytes": 366,
+        "observed_log_bytes": 366,
+        "reason": null,
+        "returncode": 0,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/usr/share/dotnet/dotnet",
+          "build",
+          "Checks/Checks.csproj",
+          "-m:1",
+          "-p:UseSharedCompilation=false"
+        ],
+        "cwd": "/tmp/p2-application-46r7238u/multi project проверка",
+        "log": "/tmp/p2-application-46r7238u/multi project проверка/.harness/artifacts/2f23f8c3c7b54cc18c62220ade9f2b4b/95aad5e5a6cbfa52a085c1a87d4ccab44b128d8504f6abf62a21e8e83cbbfd5e/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 120
+      },
+      "process_started": 1794758417.0056448,
+      "request": "ceae6d051a6f4a3888f7fc5f95a78e6b",
+      "result": {
+        "artifact": null,
+        "config": "4604b6ac7218e979b224b1572dd1abbdfb9218357ccdb5567da2237e67b2c602",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 1.7878827279999996,
+        "kind": "build",
+        "log": ".harness/artifacts/2f23f8c3c7b54cc18c62220ade9f2b4b/95aad5e5a6cbfa52a085c1a87d4ccab44b128d8504f6abf62a21e8e83cbbfd5e/0/process.log",
+        "log_bytes": 366,
+        "observed_log_bytes": 366,
+        "ok": true,
+        "output": "  Determining projects to restore...\n  All projects are up-to-date for restore.\n  Core -> /tmp/p2-application-46r7238u/multi project проверка/Core/bin/Debug/net10.0/Core.dll\n  Checks -> /tmp/p2-application-46r7238u/multi project проверка/Checks/bin/Debug/net10.0/Checks.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:01.58\n",
+        "reason": null,
+        "recipe": "build",
+        "returncode": 0,
+        "source": "fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "2a74761d17623be81ab144caca479e8a9e39e255955c8911d62f751bc8c03716",
+      "source_before": {
+        "Checks/Checks.csproj": "0b7785b8ec8ca74e38179f5bd6b7ba973fdcc59470baf6a032c5d6f245500b7b",
+        "Checks/Program.cs": "a9b3e215762a15ea294be24fe14f3563b5f2c64cbb06770fd7362e381eda3cda",
+        "Core/Core.csproj": "70c34fafea2e093c458e3d2014ec7d305658813bd4e5ec4d80b6b87fddb1bdb2",
+        "Core/Feature.cs": "602975e693930bdfd079093780156c9e7c884af437a4e0c7b5d6e709384a83fd",
+        "global.json": "0c5038c8f214cbc41ea605d1c6edc9e7fd5a17b7386053124ec9115eddedd1e7"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "a1f16ad73936b74239c9b4f96fd79db584c748ddbd1114a3ef6b340535de490c": {
+      "agent": "489fbf90b3fc4b449ec80128bee8f2c6",
+      "args": {
+        "path": "Core/Feature.cs"
+      },
+      "at": 1794758419.5620277,
+      "finished": 1794758419.563564,
+      "request": "ef3f1e28abf843e699b83b97f85692b6",
+      "result": {
+        "ok": true,
+        "partial": false,
+        "path": "Core/Feature.cs",
+        "sha256": "602975e693930bdfd079093780156c9e7c884af437a4e0c7b5d6e709384a83fd",
+        "text": "public static class Feature { public static int Value => 1; }\n"
+      },
+      "role": "Reviewing",
+      "signature": "ce00512d15e38570b7c31c9f95197e62a53a747d59d4aa5151dc4ad98d2c77b7",
+      "status": "FINISHED",
+      "tool": "read",
+      "version": 1
+    },
+    "aa100e86fed83e6a0565c2ba652fee7a12cc6ffeee77d0cb2b04bcc3ae529a15": {
+      "agent": "489fbf90b3fc4b449ec80128bee8f2c6",
+      "args": {
+        "findings": [
+          "Source/receipt does not meet independent fixture expectation."
+        ],
+        "verdict": "reject"
+      },
+      "at": 1794758419.6087852,
+      "finished": 1794758419.6108055,
+      "request": "5621fda21b224e5fa348a5c7d7b80da3",
+      "result": {
+        "config": "4604b6ac7218e979b224b1572dd1abbdfb9218357ccdb5567da2237e67b2c602",
+        "findings": [
+          "Source/receipt does not meet independent fixture expectation."
+        ],
+        "ok": true,
+        "source": "fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6",
+        "verdict": "reject"
+      },
+      "role": "Reviewing",
+      "signature": "c415626bddd8d27397b5418b7c60fc5a4321e221e5d9171c612345d567fe9725",
+      "status": "FINISHED",
+      "tool": "review",
+      "version": 1
+    },
+    "be72c9c37877bcdac9ded1afc9cf9811a38e60209dc8b2343b58d0a3bd289428": {
+      "agent": "f407ebc89d38414c8b9dcd4b8853bd9f",
+      "args": {
+        "files": [
+          {
+            "after": "forbidden",
+            "before": null,
+            "path": "../outside.cs"
+          }
+        ]
+      },
+      "at": 1794758416.9027476,
+      "finished": 1794758416.904746,
+      "request": "d976f814035744ab936c3d6555859f32",
+      "result": {
+        "details": null,
+        "error": "path-denied",
+        "ok": false
+      },
+      "role": "Coding",
+      "signature": "599c67f41cb5dd88549f9ac7e5f41071f882d88a21955382b521dc140a0a1e53",
+      "status": "FINISHED",
+      "tool": "patch",
+      "version": 1
+    },
+    "d3803b4689b0731460b81db7cb4f0d00234ef542179eb6aed9cef680ef9bdb93": {
+      "agent": "489fbf90b3fc4b449ec80128bee8f2c6",
+      "args": {
+        "action": "04f9d709fdff4534fe64adbbd997795ccc8aaaad99fe2f239b0edd1f07c4ab70"
+      },
+      "at": 1794758419.5749714,
+      "finished": 1794758419.5766962,
+      "request": "ef3f1e28abf843e699b83b97f85692b6",
+      "result": {
+        "action": "04f9d709fdff4534fe64adbbd997795ccc8aaaad99fe2f239b0edd1f07c4ab70",
+        "ok": true,
+        "receipt": {
+          "artifact": null,
+          "config": "4604b6ac7218e979b224b1572dd1abbdfb9218357ccdb5567da2237e67b2c602",
+          "counts": null,
+          "descendants_stopped": true,
+          "duration": 0.5547396520000234,
+          "kind": "test",
+          "log": ".harness/artifacts/2f23f8c3c7b54cc18c62220ade9f2b4b/04f9d709fdff4534fe64adbbd997795ccc8aaaad99fe2f239b0edd1f07c4ab70/0/process.log",
+          "log_bytes": 0,
+          "observed_log_bytes": 0,
+          "ok": false,
+          "output": "",
+          "reason": null,
+          "recipe": "test",
+          "returncode": 1,
+          "source": "fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6",
+          "truncated": false
+        },
+        "signature": "a470e8febdfe6a992d12e490d43cd27e1017517982360bb607ad4b50e83245d1"
+      },
+      "role": "Reviewing",
+      "signature": "7792522215dfb100410b615ff3cb359572532217413626b9d9bfb2cdf3fac207",
+      "status": "FINISHED",
+      "tool": "artifact",
+      "version": 1
+    }
+  },
+  "outbox": {},
+  "metrics": {
+    "version": 1,
+    "mode": "multi",
+    "process_attempt_details": [
+      {
+        "action": "04f9d709fdff4534fe64adbbd997795ccc8aaaad99fe2f239b0edd1f07c4ab70",
+        "role": "Testing",
+        "prior_unknown": [],
+        "current": {
+          "descendants_stopped": true,
+          "duration": 0.5547396520000234,
+          "log_bytes": 0,
+          "observed_log_bytes": 0,
+          "reason": null,
+          "returncode": 1,
+          "truncated": false
+        },
+        "spec": {
+          "argv": [
+            "/usr/share/dotnet/dotnet",
+            "run",
+            "--project",
+            "Checks/Checks.csproj",
+            "--no-build",
+            "--",
+            "/tmp/p2-application-46r7238u/multi project проверка/.harness/artifacts/2f23f8c3c7b54cc18c62220ade9f2b4b/04f9d709fdff4534fe64adbbd997795ccc8aaaad99fe2f239b0edd1f07c4ab70/0/checks.json"
+          ],
+          "cwd": "/tmp/p2-application-46r7238u/multi project проверка",
+          "log": "/tmp/p2-application-46r7238u/multi project проверка/.harness/artifacts/2f23f8c3c7b54cc18c62220ade9f2b4b/04f9d709fdff4534fe64adbbd997795ccc8aaaad99fe2f239b0edd1f07c4ab70/0/process.log",
+          "log_bytes": 20000,
+          "timeout": 120
+        }
+      },
+      {
+        "action": "95aad5e5a6cbfa52a085c1a87d4ccab44b128d8504f6abf62a21e8e83cbbfd5e",
+        "role": "Building",
+        "prior_unknown": [],
+        "current": {
+          "descendants_stopped": true,
+          "duration": 1.7878827279999996,
+          "log_bytes": 366,
+          "observed_log_bytes": 366,
+          "reason": null,
+          "returncode": 0,
+          "truncated": false
+        },
+        "spec": {
+          "argv": [
+            "/usr/share/dotnet/dotnet",
+            "build",
+            "Checks/Checks.csproj",
+            "-m:1",
+            "-p:UseSharedCompilation=false"
+          ],
+          "cwd": "/tmp/p2-application-46r7238u/multi project проверка",
+          "log": "/tmp/p2-application-46r7238u/multi project проверка/.harness/artifacts/2f23f8c3c7b54cc18c62220ade9f2b4b/95aad5e5a6cbfa52a085c1a87d4ccab44b128d8504f6abf62a21e8e83cbbfd5e/0/process.log",
+          "log_bytes": 20000,
+          "timeout": 120
+        }
+      }
+    ],
+    "unknown_process_attempts": 0,
+    "attempts": [
+      {
+        "agent": "703efd7835504cb5b1c685f3e5b8d65e",
+        "at": 1794758416.8253398,
+        "duration": 0.013087546999997812,
+        "id": "34abad1800b94729b2e75bb7d83349d2",
+        "input_bytes": 3351,
+        "input_hash": "4571dbdca01814188de46f42fb1d7af107c69017e4410c276735f2c50ac71787",
+        "response_bytes": 1181,
+        "role": "Main",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "368e767bfae2484981cf1702261fb892",
+        "at": 1794758416.8538458,
+        "duration": 0.012153265999984342,
+        "id": "2caff804e9c5488f8ae6f217569dfc27",
+        "input_bytes": 2763,
+        "input_hash": "9feea5d4ade50b99578148633d113c8439d9e1ff6d6fe26c4fc41a62b2234084",
+        "response_bytes": 433,
+        "role": "Planning",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "f407ebc89d38414c8b9dcd4b8853bd9f",
+        "at": 1794758416.8811965,
+        "duration": 0.012075488999983008,
+        "id": "d976f814035744ab936c3d6555859f32",
+        "input_bytes": 3209,
+        "input_hash": "13d084ad526a5c773ae69ac0288ac96205d8bf1eeee59ce2772050bcf4480b48",
+        "response_bytes": 744,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "f407ebc89d38414c8b9dcd4b8853bd9f",
+        "at": 1794758416.920565,
+        "duration": 0.012569645000041874,
+        "id": "d5c383b7ba0548fb820757310e6de909",
+        "input_bytes": 3962,
+        "input_hash": "e73660ba090ef126c1de6cd58a593385a8dd6bf527ff447a57ca39f6bb681fc8",
+        "response_bytes": 375,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "331209e9631d4e8493f18c5480fdaed1",
+        "at": 1794758416.9536774,
+        "duration": 0.012330272000042442,
+        "id": "ceae6d051a6f4a3888f7fc5f95a78e6b",
+        "input_bytes": 2763,
+        "input_hash": "456c3db3923a3c319344a04ead09bb9cffff4b380cf56fcc74cd98a244b79f54",
+        "response_bytes": 425,
+        "role": "Building",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "331209e9631d4e8493f18c5480fdaed1",
+        "at": 1794758418.845125,
+        "duration": 0.012864265000018804,
+        "id": "5791f9256b6a4e89aaf3435d13a58fc1",
+        "input_bytes": 4115,
+        "input_hash": "0f6eadb81f66d9f63c4f42781ce9d7b7034335d68bf236f7d6dc67125da0582c",
+        "response_bytes": 375,
+        "role": "Building",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "70906fa4d3bc45808565fe51246dd951",
+        "at": 1794758418.8740969,
+        "duration": 0.012118874000009328,
+        "id": "954f4f7677414462bad8d893aae64972",
+        "input_bytes": 2960,
+        "input_hash": "5e9b975c0431d077c42faf881ef2792fa15d6e5026944f39e7ec647bb4b5b4b0",
+        "response_bytes": 424,
+        "role": "Testing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "70906fa4d3bc45808565fe51246dd951",
+        "at": 1794758419.5133731,
+        "duration": 0.012578867999991417,
+        "id": "1f1f0d6132a1430abd11bae87d46ab05",
+        "input_bytes": 3921,
+        "input_hash": "e8c367c79f585ae9ff5ddcd6c5b45506efa8bdfbb1104054a001dca4b13eb800",
+        "response_bytes": 375,
+        "role": "Testing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "489fbf90b3fc4b449ec80128bee8f2c6",
+        "at": 1794758419.5426576,
+        "duration": 0.012509614000009606,
+        "id": "ef3f1e28abf843e699b83b97f85692b6",
+        "input_bytes": 3776,
+        "input_hash": "84d7e69ce9305de12770b3bce06de9d8d401894034b7b0f90742738d5d407045",
+        "response_bytes": 773,
+        "role": "Reviewing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "489fbf90b3fc4b449ec80128bee8f2c6",
+        "at": 1794758419.5898314,
+        "duration": 0.012294660000009117,
+        "id": "5621fda21b224e5fa348a5c7d7b80da3",
+        "input_bytes": 6518,
+        "input_hash": "5f8c90806d23ac9006aaf1c30d28af78860a7edc7873fd104f69aa1f0ec2beab",
+        "response_bytes": 512,
+        "role": "Reviewing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "489fbf90b3fc4b449ec80128bee8f2c6",
+        "at": 1794758419.6294293,
+        "duration": 0.012395421999997325,
+        "id": "6135583540674c75af4435aa13e789d9",
+        "input_bytes": 7291,
+        "input_hash": "9a8a2bfc11639bb2f1ca8e9bec7c4e61456c340d9f80cb250b51797c9950ef11",
+        "response_bytes": 375,
+        "role": "Reviewing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "703efd7835504cb5b1c685f3e5b8d65e",
+        "at": 1794758419.6618137,
+        "duration": 0.012296452999976282,
+        "id": "495cff3c36bb4cdd9020a07b850b0b0f",
+        "input_bytes": 7682,
+        "input_hash": "5439268bac3816a538fae9ac57f8d7036f2f695dde6296dce0d4e809d8428104",
+        "response_bytes": 375,
+        "role": "Main",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      }
+    ],
+    "tool_durations": [
+      {
+        "action": "04f9d709fdff4534fe64adbbd997795ccc8aaaad99fe2f239b0edd1f07c4ab70",
+        "role": "Testing",
+        "seconds": 0.6065852642059326,
+        "state": "FINISHED"
+      },
+      {
+        "action": "795cbde82680ddbcc547a4816f89b988aa70baf3961b85a0e1e0943989b5058d",
+        "role": "Reviewing",
+        "seconds": 0.001760244369506836,
+        "state": "FINISHED"
+      },
+      {
+        "action": "95aad5e5a6cbfa52a085c1a87d4ccab44b128d8504f6abf62a21e8e83cbbfd5e",
+        "role": "Building",
+        "seconds": 1.8585245609283447,
+        "state": "FINISHED"
+      },
+      {
+        "action": "a1f16ad73936b74239c9b4f96fd79db584c748ddbd1114a3ef6b340535de490c",
+        "role": "Reviewing",
+        "seconds": 0.0015363693237304688,
+        "state": "FINISHED"
+      },
+      {
+        "action": "aa100e86fed83e6a0565c2ba652fee7a12cc6ffeee77d0cb2b04bcc3ae529a15",
+        "role": "Reviewing",
+        "seconds": 0.0020203590393066406,
+        "state": "FINISHED"
+      },
+      {
+        "action": "be72c9c37877bcdac9ded1afc9cf9811a38e60209dc8b2343b58d0a3bd289428",
+        "role": "Coding",
+        "seconds": 0.001998424530029297,
+        "state": "FINISHED"
+      },
+      {
+        "action": "d3803b4689b0731460b81db7cb4f0d00234ef542179eb6aed9cef680ef9bdb93",
+        "role": "Reviewing",
+        "seconds": 0.0017247200012207031,
+        "state": "FINISHED"
+      }
+    ],
+    "lease_wait_seconds": 0.002180084999963583,
+    "roles": [
+      {
+        "finished": 1794758419.6782365,
+        "id": "703efd7835504cb5b1c685f3e5b8d65e",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": null,
+        "provider_requests": 2,
+        "role": "Main",
+        "started": 1794758416.8103342,
+        "status": "done",
+        "requests": 2,
+        "reported_tokens": 36,
+        "unknown_usage_requests": 0,
+        "input_tokens": 22,
+        "output_tokens": 14,
+        "provider_seconds": 0.025383999999974094,
+        "tool_actions": 0,
+        "process_seconds": 0,
+        "input_bytes": 11033
+      },
+      {
+        "finished": 1794758416.8698375,
+        "id": "368e767bfae2484981cf1702261fb892",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "703efd7835504cb5b1c685f3e5b8d65e",
+        "provider_requests": 1,
+        "role": "Planning",
+        "started": 1794758416.8453755,
+        "status": "done",
+        "requests": 1,
+        "reported_tokens": 18,
+        "unknown_usage_requests": 0,
+        "input_tokens": 11,
+        "output_tokens": 7,
+        "provider_seconds": 0.012153265999984342,
+        "tool_actions": 0,
+        "process_seconds": 0,
+        "input_bytes": 2763
+      },
+      {
+        "finished": 1794758416.9373207,
+        "id": "f407ebc89d38414c8b9dcd4b8853bd9f",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "703efd7835504cb5b1c685f3e5b8d65e",
+        "provider_requests": 2,
+        "role": "Coding",
+        "started": 1794758416.8728745,
+        "status": "done",
+        "requests": 2,
+        "reported_tokens": 36,
+        "unknown_usage_requests": 0,
+        "input_tokens": 22,
+        "output_tokens": 14,
+        "provider_seconds": 0.024645134000024882,
+        "tool_actions": 1,
+        "process_seconds": 0,
+        "input_bytes": 7171
+      },
+      {
+        "finished": 1794758418.862372,
+        "id": "331209e9631d4e8493f18c5480fdaed1",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "703efd7835504cb5b1c685f3e5b8d65e",
+        "provider_requests": 2,
+        "role": "Building",
+        "started": 1794758416.9406133,
+        "status": "done",
+        "requests": 2,
+        "reported_tokens": 36,
+        "unknown_usage_requests": 0,
+        "input_tokens": 22,
+        "output_tokens": 14,
+        "provider_seconds": 0.025194537000061246,
+        "tool_actions": 1,
+        "process_seconds": 1.7878827279999996,
+        "input_bytes": 6878
+      },
+      {
+        "finished": 1794758419.530022,
+        "id": "70906fa4d3bc45808565fe51246dd951",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "703efd7835504cb5b1c685f3e5b8d65e",
+        "provider_requests": 2,
+        "role": "Testing",
+        "started": 1794758418.8657205,
+        "status": "done",
+        "requests": 2,
+        "reported_tokens": 36,
+        "unknown_usage_requests": 0,
+        "input_tokens": 22,
+        "output_tokens": 14,
+        "provider_seconds": 0.024697742000000744,
+        "tool_actions": 1,
+        "process_seconds": 0.5547396520000234,
+        "input_bytes": 6881
+      },
+      {
+        "finished": 1794758419.6502874,
+        "id": "489fbf90b3fc4b449ec80128bee8f2c6",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "703efd7835504cb5b1c685f3e5b8d65e",
+        "provider_requests": 3,
+        "role": "Reviewing",
+        "started": 1794758419.5336974,
+        "status": "done",
+        "requests": 3,
+        "reported_tokens": 54,
+        "unknown_usage_requests": 0,
+        "input_tokens": 33,
+        "output_tokens": 21,
+        "provider_seconds": 0.03719969600001605,
+        "tool_actions": 4,
+        "process_seconds": 0,
+        "input_bytes": 17585
+      }
+    ],
+    "requests": 12,
+    "reported_tokens": 216,
+    "unknown_usage_requests": 0,
+    "usage_evidence": "test-double",
+    "wall_seconds": 2.8720853328704834,
+    "provider_seconds": 0.14927437500006135,
+    "process_seconds": 2.342622380000023,
+    "tool_attempts": 14,
+    "process_attempts": 2,
+    "cost": null,
+    "cost_reason": "no configured monetary rate; no invented zero cost",
+    "performance_benefit": "NOT_ESTABLISHED",
+    "timing_policy": "sequential execution; summed components are not wall elapsed time"
+  }
+}
