@@ -190,6 +190,8 @@ def drive(journal,configuration,run,lease):
             if frame['role']=='Main':
                 require(final['status']=='done','main-reported-failure')
                 require(source_snapshot(journal.project,limits['file_bytes'])==run['source'],'source-conflict')
+                from .platform import fence_pending
+                fence_pending(journal)
                 completion_gates(run)
                 run['frames'].pop();run['execution']='passed';run['final_source']=digest(run['source']);run['capture_time']=datetime.now(timezone.utc).isoformat();run['capture_event']=journal.event(run['id'],'execution-passed')['sequence']
                 journal.save(run);rt.fault('execution-passed')
