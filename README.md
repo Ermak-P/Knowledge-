@@ -133,3 +133,38 @@ failed, missing-output, changed-source and mixed-artifact runs cannot generate a
 success packet. Dependency caches may be reused; success evidence cannot.
 `make_review.py` validates the completed current run against the exact source and
 all current/snapshotted artifacts before generating acceptance or ZIP output.
+
+## P1 discovery and lifecycle
+
+P1 extends the accepted P0 payloads with durable source discovery, immutable
+revisions and reviewed lifecycle changes. See
+[the P1 contract](reports/P1/P1-CONTRACTS.md) for exact envelopes, policies and limits.
+
+```sh
+bash scripts/setup.sh
+.venv/bin/python scripts/setup_benchmark.py
+# Existing P0 project: inspect upgrade-preview, then use its exact fingerprint.
+.venv/bin/knowledge upgrade-preview --root /absolute/project
+.venv/bin/knowledge upgrade-apply --root /absolute/project --approve sha256:EXACT
+# New project: functional whole-project discovery adapter; canonical facts remain unapplied.
+.venv/bin/knowledge knowledge-init --root /absolute/new-project --max-files 100
+.venv/bin/knowledge scan --root /absolute/project --scan-id SCAN_ID --max-files 100
+.venv/bin/knowledge scan-status --root /absolute/project --scan-id SCAN_ID
+.venv/bin/knowledge reconcile --root /absolute/project --scan-id SCAN_ID
+.venv/bin/knowledge knowledge-candidates-update --root /absolute/project --base BASE --head HEAD
+.venv/bin/knowledge review --root /absolute/project --id CANDIDATE --disposition deferred --reason 'Needs review'
+.venv/bin/knowledge knowledge-candidates-push --root /absolute/project
+.venv/bin/knowledge knowledge-candidates-push --root /absolute/project --plan sha256:EXACT --approve sha256:EXACT
+.venv/bin/knowledge acknowledge --root /absolute/project --plan sha256:EXACT
+.venv/bin/knowledge history --root /absolute/project --id CLAIM_ID
+.venv/bin/python scripts/verify_p1.py
+.venv/bin/python scripts/make_review_p1.py
+```
+
+The `/knowledge-*` interface maps to the same CLI commands without the slash;
+live OpenCode installation remains outside P1. Complete bounded scans report
+lexical coverage separately from semantic completeness. Retirement proposals
+remain reviewable JSON, requiring submit/prepare/exact approval. A filename
+inventory, missing evidence or failed semantic tooling never proves retirement.
+The old P0 sections above describe the accepted historical scope; P1 capability
+and verification claims are defined in the separate P1 contract and run packet.

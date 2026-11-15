@@ -14,6 +14,7 @@ import sqlite3
 import tempfile
 import unicodedata
 from . import legacy_validator as legacy
+from . import lifecycle as life
 from .project import Project, safe_tree
 from .retrieval import ContextEngine
 from .util import canonical_json, digest, fingerprint, loads, require, KnowledgeError
@@ -66,6 +67,8 @@ def validate_records(records):
 
 
 def candidate(value):
+    if isinstance(value,dict) and value.get('version')==2:
+        return life.envelope(value)
     require(isinstance(value, dict) and set(value) == {'version', 'operation', 'records'}, 'invalid-candidate-envelope')
     require(type(value['version']) is int and value['version'] == 1, 'unsupported-candidate-version')
     require(value['operation'] == 'add', 'unsupported-operation')
@@ -133,6 +136,8 @@ class Store:
             legacy_base = self.project.root/'.ai'
             if legacy_base.exists() and any(legacy_base.iterdir()):
                 require('migration' in metadata, 'ambiguous-dual-stores')
+            extension=metadata.get('p1')
+            require(extension in (None,'1'),'unsupported-extension-version')
             self._check_control(db)
             yield db
             if write:
@@ -176,8 +181,8 @@ class Store:
             plans[pid]=(plan,state)
         for cid, payload, status, binding in db.execute('SELECT id,payload,status,binding FROM queue'):
             item = candidate(loads(payload))
-            require(valid_identity(cid,item) and status in ('pending','imported'), 'corrupt-queue')
-            require((status == 'pending' and binding is None) or
+            require(valid_identity(cid,item) and status in ('pending','imported','rejected','deferred'), 'corrupt-queue')
+            require((status in ('pending','rejected','deferred') and binding is None) or
                     (status == 'imported' and binding is not None), 'corrupt-queue-binding')
             if binding:
                 bound=plans.get(binding)
@@ -185,6 +190,16 @@ class Store:
                         cid in bound[0]['included'] and bound[0]['candidates'][cid]==item, 'corrupt-queue-binding')
         for payload, in db.execute('SELECT payload FROM history'):
             require(isinstance(loads(payload),dict),'corrupt-history')
+
+        if life.enabled(db):
+            states=life.latest(db)
+            rows=list(db.execute('SELECT id,kind,payload FROM records'))
+            require(set(states)=={r[0] for r in rows},'revision-identity-mismatch')
+            for identifier,kind,payload in rows:
+                require(states[identifier]['record']==loads(payload) and states[identifier]['kind']==kind,'canonical-revision-mismatch')
+            for pid,payload in db.execute('SELECT plan,payload FROM receipts'):
+                require(pid in plans and plans[pid][1]!='PREPARED' and loads(payload)==plans[pid][0],'receipt-plan-mismatch')
+                self._verify_committed(db,pid,plans[pid][0])
 
     def init(self):
         require(not (self.project.root/'.ai').exists(), 'legacy-store-present-use-migration')
@@ -212,7 +227,8 @@ class Store:
             item = loads(payload)
             require(isinstance(item, dict) and item.get('id') == identifier, 'corrupt-record-identity')
             records[kind].append(item)
-        validate_records(records)
+        if life.enabled(db):life.validate_model(records,life.latest(db))
+        else:validate_records(records)
         return records
 
     def validate(self):
@@ -226,14 +242,20 @@ class Store:
         cid = digest(item)
         with self.connection(True) as db:
             current = self._records(db)
+            if item['version']==2:require(life.enabled(db),'upgrade-required')
             row = db.execute('SELECT id,status,payload FROM queue WHERE id=? OR payload=?',(cid,canonical_json(item))).fetchone()
             if row:
                 require(loads(row[2])==item,'candidate-identity-conflict')
                 return {'ok':True,'candidate':row[0],'result':'duplicate','status':row[1]}
+            if item['version']==2:
+                db.execute('INSERT INTO queue VALUES (?,?,?,NULL)', (cid,canonical_json(item),'pending'))
+                return {'ok':True,'candidate':cid,'result':'submitted','status':'pending'}
             known_ids = {r['id'] for v in current.values() for r in v}
             statements = {normalized(c['statement']) for c in current['claims']}
             for payload, in db.execute('SELECT payload FROM queue'):
-                queued = loads(payload)['records']
+                queued_item=loads(payload)
+                if queued_item['version']!=1:continue
+                queued = queued_item['records']
                 known_ids.update(r['id'] for v in queued.values() for r in v)
                 statements.update(normalized(c['statement']) for c in queued['claims'])
             proposed_ids = {r['id'] for v in item['records'].values() for r in v}
@@ -251,6 +273,15 @@ class Store:
     def _preview(self, db):
         current = self._records(db)
         pending = {cid:loads(p) for cid,p in db.execute("SELECT id,payload FROM queue WHERE status='pending' ORDER BY id")}
+        if life.enabled(db):
+            blocked=[]
+            if db.execute("SELECT 1 FROM plans WHERE status='COMMITTED' LIMIT 1").fetchone():
+                blocked=[{'code':'pending-acknowledgment-recover-first','details':None}]
+            try:
+                if not blocked:life.simulate(self,db,pending)
+            except KnowledgeError as e:blocked=[{'code':e.code,'details':e.details}]
+            return {'version':1,'project':self.project.identity,'base':life.state_fingerprint(self,db),
+                    'candidates':pending,'included':list(pending) if not blocked else [],'skipped':[], 'blocked':blocked}
         combined = deepcopy(current)
         for item in pending.values():
             for g in GROUPS:
@@ -289,24 +320,54 @@ class Store:
                 self._verify_committed(db,pid,plan)
                 return {'ok':True,'state':state,'fingerprint':pid,'result':'already-committed'}
             require(not plan['blocked'], 'blocked-plan')
-            require(self._preview(db) == plan, 'stale-plan-prepare-again')
+            preview=self._preview(db)
+            if life.enabled(db) and all(v['version']==1 for v in plan['candidates'].values()) and plan['base']==fingerprint(self._records(db)):
+                # A P0 prepared approval survives a metadata-only upgrade, never a source/canonical edit.
+                preview=dict(preview,base=plan['base'])
+            require(preview == plan, 'stale-plan-prepare-again')
             for cid in plan['included']:
+                value=plan['candidates'][cid]
+                if value['version']==2:
+                    life.apply_item(self,db,value,pid)
+                    continue
                 for group,items in plan['candidates'][cid]['records'].items():
                     for record in items:
                         db.execute('INSERT INTO records VALUES (?,?,?)',(record['id'],group,canonical_json(record)))
+                        if life.enabled(db):life.append(db,record['id'],group,record,'active',pid,'P0 compatible add',None)
                         checkpoint('canonical-record-written')
             self._records(db)
+            if life.enabled(db):
+                life.verify_source_bindings(self,plan['candidates'].values())
+                db.execute('INSERT INTO receipts VALUES (?,?)',(pid,canonical_json(plan)))
             db.execute("UPDATE plans SET status='COMMITTED' WHERE id=?",(pid,))
             db.execute('INSERT INTO history(payload) VALUES (?)',(canonical_json({'event':'import','fingerprint':pid,'candidates':plan['included']}),))
         checkpoint('after-canonical-commit')
         return {'ok':True,'state':'COMMITTED','fingerprint':pid,'acknowledgment_required':True}
 
     def _verify_committed(self, db, pid, plan):
+        if life.enabled(db):
+            receipt=db.execute('SELECT payload FROM receipts WHERE plan=?',(pid,)).fetchone()
+            require(receipt is not None and loads(receipt[0])==plan,'committed-receipt-mismatch')
         for cid in plan['included']:
             expected = plan['candidates'][cid]
             row = db.execute('SELECT payload,status,binding FROM queue WHERE id=?',(cid,)).fetchone()
             require(row is not None and loads(row[0]) == expected and
                     (row[1:] == ('pending',None) or row[1:] == ('imported',pid)), 'acknowledgment-ownership-mismatch')
+            if life.enabled(db):
+                if expected['version']==1:
+                    targets=[(g,r) for g,rs in expected['records'].items() for r in rs]
+                else:
+                    targets=[(o['kind'],o['payload']) for o in expected['operations'] if o['payload'] is not None]
+                if expected['version']==2:
+                    for op in expected['operations']:
+                        owned=db.execute('SELECT payload FROM revisions WHERE id=? AND revision=?',(op['id'],op['expected']+1)).fetchone()
+                        require(owned is not None,'missing-committed-revision')
+                        owned=loads(owned[0])
+                        require(owned['plan']==pid and owned['lifecycle']=={'retire':'retired','supersede':'superseded'}.get(op['action'],'active') and owned['successor']==op['successor'],'historical-revision-ownership-mismatch')
+                for kind,record in targets:
+                    versions=[loads(p) for p, in db.execute('SELECT payload FROM revisions WHERE id=?',(record['id'],))]
+                    require(any(v['record']==record and v['kind']==kind for v in versions),'historical-receipt-payload-mismatch')
+                continue
             for g, items in expected['records'].items():
                 for record in items:
                     stored = db.execute('SELECT kind,payload FROM records WHERE id=?',(record['id'],)).fetchone()
@@ -338,19 +399,34 @@ class Store:
             return {'ok':True,'project':self.project.describe(),
                     'queue':[{'id':i,'status':s,'binding':b} for i,s,b in db.execute('SELECT id,status,binding FROM queue ORDER BY id')],
                     'plans':[{'fingerprint':i,'state':s} for i,s in db.execute('SELECT id,status FROM plans ORDER BY id')],
-                    'history':[loads(p) for p, in db.execute('SELECT payload FROM history ORDER BY sequence')]}
+                    'history':[loads(p) for p, in db.execute('SELECT payload FROM history ORDER BY sequence')],
+                    'p1':life.enabled(db),
+                    'revisions':life.latest(db) if life.enabled(db) else {},
+                    'reviews':[loads(p) for p, in db.execute('SELECT payload FROM reviews ORDER BY sequence')] if life.enabled(db) else []}
+
+    def _export_extension(self,db):
+        if not life.enabled(db):return {}
+        return {'view':'all-latest-with-lifecycle; use context for trusted current',
+                'revisions':[loads(p) for p, in db.execute('SELECT payload FROM revisions ORDER BY id,revision')],
+                'reviews':[loads(p) for p, in db.execute('SELECT payload FROM reviews ORDER BY sequence')],
+                'receipts':[{'fingerprint':i,'plan':loads(p)} for i,p in db.execute('SELECT plan,payload FROM receipts ORDER BY plan')]}
 
     def export(self):
         with self.connection() as db:
             return {'ok':True,'records':self._records(db),
                     'queue':[{'id':i,'payload':loads(p),'status':s,'binding':b} for i,p,s,b in db.execute('SELECT * FROM queue ORDER BY id')],
-                    'history':[loads(p) for p, in db.execute('SELECT payload FROM history ORDER BY sequence')]}
+                    'history':[loads(p) for p, in db.execute('SELECT payload FROM history ORDER BY sequence')],**self._export_extension(db)}
 
     def lookup(self, kind, identifier):
         require(kind in GROUPS, 'unsupported-record-kind')
         with self.connection() as db:
             records = self._records(db)
             item = next((r for r in records[kind] if r['id']==identifier),None)
+            if life.enabled(db):
+                from .discovery import freshness
+                state=life.latest(db).get(identifier)
+                return {'ok':True,'result':'found' if item else 'no-match','record':item,'revision':state,
+                        'freshness':freshness(self.project.root,item,records) if item and kind=='claims' else None}
         return {'ok':True,'result':'found' if item else 'no-match','record':item}
 
     def context(self, task, max_bytes=16000, max_items=10, include_unconfirmed=False):
@@ -359,7 +435,7 @@ class Store:
         require(type(max_items) is int and 1<=max_items<=100, 'invalid-item-limit')
         require(type(include_unconfirmed) is bool, 'invalid-status-policy')
         with self.connection() as db:
-            records = self._records(db)
+            records = life.active(self,db,self._records(db))
         result = ContextEngine().assemble(records,task,max_tokens=max_bytes//4,
                                            max_items=max_items,include_unconfirmed=include_unconfirmed,compact=True)
         # Enforce actual serialized UTF-8 bytes, including the final diagnostics.
