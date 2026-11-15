@@ -71,13 +71,13 @@ def state_fingerprint(store,db):
 
 
 def simulate(store,db,items,check_source=True):
-    from .store import validate_records, normalized
     records=store._records(db); current={r['id']:(g,r) for g,rs in records.items() for r in rs}
-    states=latest(db); touched=set(); affected=set(); checked_sources=set()
+    states=latest(db); touched=set(); checked_sources=set()
     for value in items.values():
         if value['version']==1:
             for kind,rs in value['records'].items():
                 for r in rs:
+                    require(r['id'] not in touched,'conflicting-batch-target');touched.add(r['id'])
                     require(r['id'] not in current,'record-id-conflict');current[r['id']]=(kind,r)
                     states[r['id']]={'lifecycle':'active'}
             continue
@@ -93,23 +93,12 @@ def simulate(store,db,items,check_source=True):
             else:
                 require(prior is not None and prior[0]==change['kind'],'unknown-operation-target')
                 require(states[i]['lifecycle']==('retired' if action=='reactivate' else 'active'),'invalid-reactivation-target' if action=='reactivate' else 'inactive-target')
-            if action in ('update','add'):
-                current[i]=(change['kind'],change['payload']); states[i]={'lifecycle':'active'}
-            else:
-                states[i]={'lifecycle':'superseded' if action=='supersede' else 'retired','successor':change['successor']}
-                affected.add(i)
+            payload,lifecycle,successor=resulting_record(change,prior[1] if prior else None)
+            current[i]=(change['kind'],payload)
+            states[i]={'lifecycle':lifecycle,'successor':successor}
     combined={g:[] for g in records}
     for kind,r in current.values():combined[kind].append(r)
     validate_model(combined,states)
-    active={i for i,s in states.items() if s['lifecycle']=='active'}
-    validate_successors(states,{r['id'] for r in combined['claims']})
-    claims={r['id']:r for r in combined['claims']}
-    for i,c in claims.items():
-        if i in active:require(all(d in active for d in c['depends_on']),'active-dependent-needs-reviewed-change',i)
-    for r in combined['relationships']:
-        if r['id'] in active:require(r['from'] in active and r['to'] in active,'active-relationship-needs-reviewed-change',r['id'])
-    statements=[normalized(c['statement']) for c in combined['claims'] if c['id'] in active]
-    require(len(statements)==len(set(statements)),'duplicate-statement')
     return combined
 
 
@@ -117,11 +106,10 @@ def apply_item(store,db,value,pid):
     from .store import checkpoint
     for change in value['operations']:
         i=change['id']; prior=db.execute('SELECT payload FROM records WHERE id=?',(i,)).fetchone()
-        payload=change['payload'] if change['action'] in ('add','update','reactivate') else loads(prior[0])
+        payload,state,successor=resulting_record(change,loads(prior[0]) if prior else None)
         if change['action']=='add':db.execute('INSERT INTO records VALUES (?,?,?)',(i,change['kind'],canonical_json(payload)))
         elif change['action'] in ('update','reactivate'):db.execute('UPDATE records SET payload=? WHERE id=?',(canonical_json(payload),i))
-        state={'retire':'retired','supersede':'superseded'}.get(change['action'],'active')
-        append(db,i,change['kind'],payload,state,pid,value['reason'],value['source'],change['successor'])
+        append(db,i,change['kind'],payload,state,pid,value['reason'],value['source'],successor)
         checkpoint('canonical-record-written')
 
 
@@ -198,11 +186,13 @@ def active(store,db,records):
 
 def validate_model(records,states):
     """Validate full references and the current graph separately from historical edges."""
-    from .store import shape
+    from .store import shape,normalized
     shape(records)
     claims={r['id']:r for r in records['claims']};evidence={r['id']:r for r in records['evidence']}
     require(set(states)=={r['id'] for rs in records.values() for r in rs},'revision-identity-mismatch')
     active={i for i,s in states.items() if s['lifecycle']=='active'}
+    statements=[normalized(c['statement']) for i,c in claims.items() if i in active]
+    require(len(statements)==len(set(statements)),'duplicate-statement')
     validate_successors(states,set(claims))
     for e in evidence.values():require(all(i in claims for i in e['substantiates']),'orphan-evidence')
     for i,c in claims.items():
@@ -254,3 +244,13 @@ def validate_successors(states,claims):
             if successor['lifecycle']=='active':break
             require(successor['lifecycle']=='superseded','inactive-successor-terminal')
             target=successor['successor']
+
+
+def resulting_record(change,previous):
+    """One transition definition for preview and commit; target checks stay upstream."""
+    action=change['action']
+    states={'add':'active','update':'active','reactivate':'active','retire':'retired','supersede':'superseded'}
+    require(action in states,'unsupported-operation')
+    payload=change['payload'] if action in ('add','update','reactivate') else previous
+    require(payload is not None,'unknown-operation-target')
+    return deepcopy(payload),states[action],change['successor']

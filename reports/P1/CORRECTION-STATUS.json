@@ -1,8 +1,8 @@
 {
   "phase": "submitted-for-review",
-  "reviewed_commit": "2a8664821d0f6512ecbce92280e25d6f19b3f32c",
-  "run_id": "776dcec359fe4b60abe9556eeb06722e",
-  "source_identity": "7d604fc63ec0e5b28f9b55a6ed2d475bc9514d614d84a9af24760c9bf5c17e4b",
+  "reviewed_commit": "a767c744cc771541e4b3727ff15b8cd526657ba6",
+  "run_id": "fe11fd6fd62e4372b5d6e830889775be",
+  "source_identity": "f6fbbd3dc18cfe085c3694bd6ab529f23e5eb7ac7b0c54bb450083bb33069954",
   "corrections": [
     {
       "id": "R1",
@@ -14,7 +14,7 @@
         "test_r1_unsupported_source_and_links_are_not_negative_evidence (test_p1_r1.ReviewCorrectionTests.test_r1_unsupported_source_and_links_are_not_negative_evidence) ... ok"
       ],
       "command": ".venv/bin/python -B -m unittest discover -s tests -p test_p1_r1.py -v",
-      "evidence": "reports/P1/runs/776dcec359fe4b60abe9556eeb06722e/product-tests.log",
+      "evidence": "reports/P1/runs/fe11fd6fd62e4372b5d6e830889775be/product-tests.log",
       "explanation": "Excluded live/unsupported source blocks negative proof; real SDK Compile confirms it remains live."
     },
     {
@@ -26,7 +26,7 @@
         "test_r2_same_id_historical_revision_is_not_retired (test_p1_r1.ReviewCorrectionTests.test_r2_same_id_historical_revision_is_not_retired) ... ok"
       ],
       "command": ".venv/bin/python -B -m unittest discover -s tests -p test_p1_r1.py -v",
-      "evidence": "reports/P1/runs/776dcec359fe4b60abe9556eeb06722e/product-tests.log",
+      "evidence": "reports/P1/runs/fe11fd6fd62e4372b5d6e830889775be/product-tests.log",
       "explanation": "Current reviewed/historical meaning is not owned by an earlier discovery ID."
     },
     {
@@ -44,7 +44,7 @@
         "test_r3_unsupported_namespace_and_record_forms_abstain (test_p1_r1.ReviewCorrectionTests.test_r3_unsupported_namespace_and_record_forms_abstain) ... ok"
       ],
       "command": ".venv/bin/python -B -m unittest discover -s tests -p test_p1_r1.py -v",
-      "evidence": "reports/P1/runs/776dcec359fe4b60abe9556eeb06722e/product-tests.log",
+      "evidence": "reports/P1/runs/fe11fd6fd62e4372b5d6e830889775be/product-tests.log",
       "explanation": "Qualified project/type identities, all-member abstention, legacy review and no history reassignment."
     },
     {
@@ -58,7 +58,7 @@
         "test_r4_returned_entity_requires_new_approval_and_preserves_history (test_p1_r1.ReviewCorrectionTests.test_r4_returned_entity_requires_new_approval_and_preserves_history) ... ok"
       ],
       "command": ".venv/bin/python -B -m unittest discover -s tests -p test_p1_r1.py -v",
-      "evidence": "reports/P1/runs/776dcec359fe4b60abe9556eeb06722e/product-tests.log",
+      "evidence": "reports/P1/runs/fe11fd6fd62e4372b5d6e830889775be/product-tests.log",
       "explanation": "Expected-revision audited reactivation, new exact approval, safe retries and deferred-return deduplication."
     },
     {
@@ -69,8 +69,43 @@
         "test_r5_ignored_source_is_not_labeled_committed (test_p1_r1.ReviewCorrectionTests.test_r5_ignored_source_is_not_labeled_committed) ... ok"
       ],
       "command": ".venv/bin/python -B -m unittest discover -s tests -p test_p1_r1.py -v",
-      "evidence": "reports/P1/runs/776dcec359fe4b60abe9556eeb06722e/product-tests.log",
+      "evidence": "reports/P1/runs/fe11fd6fd62e4372b5d6e830889775be/product-tests.log",
       "explanation": "Included ignored bytes retain ignored/uncommitted provenance against actual HEAD/index."
+    },
+    {
+      "id": "A",
+      "status": "PASS",
+      "implementation": "knowledge.lifecycle.resulting_record / validate_model",
+      "regressions": [
+        "test_a_duplicate_reactivation_is_rejected_before_writes (test_p1_r2.ReactivationModelTests.test_a_duplicate_reactivation_is_rejected_before_writes) ... ok",
+        "test_a_inactive_successor_is_rejected_by_resulting_model (test_p1_r2.ReactivationModelTests.test_a_inactive_successor_is_rejected_by_resulting_model) ... ok",
+        "test_a_mixed_v1_v2_same_target_is_not_order_dependent (test_p1_r2.ReactivationModelTests.test_a_mixed_v1_v2_same_target_is_not_order_dependent) ... ok",
+        "test_a_reactivation_payload_orphans_cycles_and_inactive_dependencies_fail_preview (test_p1_r2.ReactivationModelTests.test_a_reactivation_payload_orphans_cycles_and_inactive_dependencies_fail_preview) ... ok",
+        "test_a_real_reactivation_crashes_approval_recovery_and_old_retries (test_p1_r2.ReactivationModelTests.test_a_real_reactivation_crashes_approval_recovery_and_old_retries) ... ok",
+        "test_a_retired_relationship_reactivation_checks_final_endpoints (test_p1_r2.ReactivationModelTests.test_a_retired_relationship_reactivation_checks_final_endpoints) ... ok",
+        "test_a_valid_mixed_reactivation_uses_new_payload_and_final_graph (test_p1_r2.ReactivationModelTests.test_a_valid_mixed_reactivation_uses_new_payload_and_final_graph) ... ok",
+        "test_a_validate_rejects_corrupt_active_duplicate_without_deleting_history (test_p1_r2.ReactivationModelTests.test_a_validate_rejects_corrupt_active_duplicate_without_deleting_history) ... ok"
+      ],
+      "command": ".venv/bin/python -B -m unittest discover -s tests -p test_p1_r2.py -v",
+      "evidence": [
+        "reports/P1/runs/fe11fd6fd62e4372b5d6e830889775be/product-tests.log",
+        "reports/P1/runs/fe11fd6fd62e4372b5d6e830889775be/round2.json"
+      ]
+    },
+    {
+      "id": "B",
+      "status": "PASS",
+      "implementation": "knowledge.discovery.scan durable checkpoint scope",
+      "regressions": [
+        "test_b_imported_evidence_does_not_trigger_hidden_full_extraction (test_p1_r2.BoundedExtractionTests.test_b_imported_evidence_does_not_trigger_hidden_full_extraction) ... ok",
+        "test_b_initial_resume_and_completion_reuse_real_bounded_extraction (test_p1_r2.BoundedExtractionTests.test_b_initial_resume_and_completion_reuse_real_bounded_extraction) ... ok",
+        "test_b_late_collision_withholds_first_and_drift_invalidates_resume (test_p1_r2.BoundedExtractionTests.test_b_late_collision_withholds_first_and_drift_invalidates_resume) ... ok"
+      ],
+      "command": ".venv/bin/python -B -m unittest discover -s tests -p test_p1_r2.py -v",
+      "evidence": [
+        "reports/P1/runs/fe11fd6fd62e4372b5d6e830889775be/product-tests.log",
+        "reports/P1/runs/fe11fd6fd62e4372b5d6e830889775be/round2.json"
+      ]
     }
   ],
   "P2": "not started"

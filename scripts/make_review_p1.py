@@ -48,13 +48,67 @@ def main():
         tests=[line for line in product_log.splitlines() if line.startswith(f'test_r{i}_')]
         assert tests and all(line.rstrip().endswith('ok') for line in tests),tests
         correction_rows.append(dict(id=f'R{i}',status='PASS',implementation='knowledge.discovery'+(' + knowledge.lifecycle' if i==4 else ''),regressions=tests,command='.venv/bin/python -B -m unittest discover -s tests -p test_p1_r1.py -v',evidence=str((directory/'product-tests.log').relative_to(ROOT)),explanation=description))
-    save(OUT/'CORRECTION-STATUS.json',dict(phase='submitted-for-review',reviewed_commit='2a8664821d0f6512ecbce92280e25d6f19b3f32c',run_id=v['run_id'],source_identity=v['source_identity'],corrections=correction_rows,P2='not started'))
+    round2=json.loads((directory/'round2.json').read_text())
+    round2_rows=[]
+    for identifier,prefix,implementation in (('A','test_a_','knowledge.lifecycle.resulting_record / validate_model'),('B','test_b_','knowledge.discovery.scan durable checkpoint scope')):
+        tests=[line for line in product_log.splitlines() if line.startswith(prefix)]
+        assert tests and all(line.rstrip().endswith('ok') for line in tests),tests
+        round2_rows.append(dict(id=identifier,status='PASS',implementation=implementation,regressions=tests,
+            command='.venv/bin/python -B -m unittest discover -s tests -p test_p1_r2.py -v',evidence=[str((directory/'product-tests.log').relative_to(ROOT)),str((directory/'round2.json').relative_to(ROOT))]))
+    save(OUT/'CORRECTION-STATUS.json',dict(phase='submitted-for-review',reviewed_commit='a767c744cc771541e4b3727ff15b8cd526657ba6',run_id=v['run_id'],source_identity=v['source_identity'],corrections=correction_rows+round2_rows,P2='not started'))
     rows=[dict(id=f'P1-A{i:02}',status=v['checks'][check]['status'],run_id=v['run_id'],source_identity=v['source_identity'],command='.venv/bin/python scripts/verify_p1.py',checks=commands,evidence=str((directory/(check+'.log')).relative_to(ROOT)),explanation=description) for i,(description,check,commands) in enumerate(MAPPINGS,1)]
-    save(OUT/'ACCEPTANCE.json',dict(run_id=v['run_id'],source_identity=v['source_identity'],conditions=rows,corrections=correction_rows,optional=[dict(name=n,status='NOT_RUN') for n in ('native Windows/NTFS','live OpenCode/model/tool-provider host','browser/SQL Server/Aspire deployment')]))
+    save(OUT/'ACCEPTANCE.json',dict(run_id=v['run_id'],source_identity=v['source_identity'],conditions=rows,corrections=correction_rows+round2_rows,optional=[dict(name=n,status='NOT_RUN') for n in ('native Windows/NTFS','live OpenCode/model/tool-provider host','browser/SQL Server/Aspire deployment')]))
     save(OUT/'SOURCE-REVISION.json',dict(baseline='a3c7ac7afd7cff6137b916832cf40019ca8b8c87',head=rev,branch=branch,delivery='uncommitted working tree; no automatic commit/push',run_id=v['run_id'],source_identity=v['source_identity'],files=v['source_files']))
     scan=discovery['scan'];categories={k:sum(o['category']==k for o in scan['observations']) for k in sorted({o['category'] for o in scan['observations']})}
     def report(name,text):(OUT/name).write_text(text,encoding='utf-8')
     common=f'Run `{v["run_id"]}`; source `{v["source_identity"]}`. Raw evidence: `runs/{v["run_id"]}/`.\n'
+    report('P1-R2-RESPONSE.md',f'''# P1 independent review round 2 — A/B correction
+
+{common}
+Reviewed commit: a767c744cc771541e4b3727ff15b8cd526657ba6. Branch: {branch}.
+Submitted for external review; not accepted. P2 untouched.
+
+| Finding | Implementation | Fresh executable evidence | Result |
+| --- | --- | --- | --- |
+| A | One resulting_record transition for simulation/commit; common active-statement uniqueness in validate_model | {len(round2_rows[0]['regressions'])} tests in test_p1_r2.py; current product-tests.log and round2.json | PASS |
+| B | Reuse durable snapshot-bound observations/ambiguities; no hidden analysis_scope extraction in scan | {len(round2_rows[1]['regressions'])} tests in test_p1_r2.py; actual extractor call measurements in round2.json | PASS |
+
+All 93 existing tests are retained; {test_count} total tests passed without skips.
+Before repair the new focused suite reproduced the duplicate acceptance, valid
+closure rejection, common-validation omission and whole-tree extraction defects.
+The final tests run real extraction/tools/persistence, not success substitutes.
+
+A: preview and apply use the same payload/state/successor transition, including
+claim and relationship reactivation. Retired-only target, expected revisions,
+source bindings and exact new approval remain. Duplicate normalized active
+statements now fail ordinary canonical validation too; inactive/historical
+duplicates remain valid. Tests reject new-payload orphans/cycles, inactive
+successors/endpoints and mixed v1/v2 aliases; accept reviewed mixed closure; and
+exercise actual process death during write, after commit and during acknowledgment.
+Old approved receipts remain retryable without reverting later revisions.
+A deliberately corrupt duplicate fixture is diagnosed and preserved. No real
+store reset or silent repair is performed; invalid existing data requires a
+separately reviewed/audited repair or consistent backup restoration.
+
+B: on a {round2['work']['inventory_files']}-file fixture, each initial/resumed
+max_files=1 call performs exactly one real extract call. Total completed extraction
+calls: {round2['work']['total_actual_extractions']}; each path once; unchanged
+completed rerun: {round2['work']['unchanged_rerun_extractions']} calls. The observer
+delegates unchanged to the real extractor. Snapshot enumeration, hashing and scope
+metadata policy checks remain whole-snapshot and are explicitly outside this
+extraction budget. No canonical candidate is emitted until the complete bounded
+scope is known; a late collision removes all ambiguous observations, including
+those from earlier chunks. Partial evidence is not labeled freshly verified.
+Read-side context/reconciliation still performs honest whole-scope validation;
+it does not grant writes or claim to be a bounded discovery chunk. Existing v3
+observation checkpoints remain reusable; work accounting is additive version 1.
+
+Fresh packaging, real stdio/budgets/isolation, process/race, P0 upgrade and R1–R5
+regressions passed. Pinned application build and 49 tests before/49 after passed;
+five source questions passed with ordinary defaults (10 claims / 16,000 bytes).
+The ZIP, inventory and source/run gate are regenerated from final source.
+Native Windows, live OpenCode/model, browser/SQL Server/Aspire remain NOT_RUN.
+''')
     report('P1-R1-RESPONSE.md',f'''# P1 independent review R1–R5: consolidated correction
 
 {common}
@@ -139,8 +193,8 @@ Self-review repaired a real history/current graph interaction: retired edges mus
 not force a newly independent current payload to retain an obsolete dependency.
 It also tightened historical receipt ownership, upgrade backup binding, P0
 prepared-approval compatibility and scan identity exclusion of store journals.
-The final run was executed after these changes. The independent R1–R5 corrections,
-compatibility/negative-coverage policy and regression table are in P1-R1-RESPONSE.md.
+The final run was executed after these changes. The independent R1–R5 corrections are in P1-R1-RESPONSE.md; the shared
+reactivation model, canonical uniqueness and bounded-work repairs are in P1-R2-RESPONSE.md.
 
 Discovery is deliberately lexical. It proves source syntax, not business rationale,
 runtime dispatch, deployment availability or complete semantic analysis. Unsupported
@@ -258,7 +312,7 @@ results describe their earlier source identities. No external acceptance is clai
     # Snapshot only allowlisted source and this completed run; never old/diagnostic runs/caches.
     files=[ROOT/p for p in v['source_files']]
     files.extend(p for p in directory.rglob('*') if p.is_file() and not p.name.startswith('previous-'))
-    files.extend(OUT/n for n in ('P1-REPORT.md','P1-CONTRACTS.md','ACCEPTANCE.json','SOURCE-REVISION.json','DISCOVERY-REPORT.md','LIFECYCLE-REPORT.md','UPGRADE-RECOVERY-REPORT.md','CHANGE-SUMMARY.md','FUNCTIONAL-REVIEW.md','CORRECTION-STATUS.json','P1-R1-RESPONSE.md','verification-summary.json','STATUS.json'))
+    files.extend(OUT/n for n in ('P1-REPORT.md','P1-CONTRACTS.md','ACCEPTANCE.json','SOURCE-REVISION.json','DISCOVERY-REPORT.md','LIFECYCLE-REPORT.md','UPGRADE-RECOVERY-REPORT.md','CHANGE-SUMMARY.md','FUNCTIONAL-REVIEW.md','CORRECTION-STATUS.json','P1-R1-RESPONSE.md','P1-R2-RESPONSE.md','verification-summary.json','STATUS.json'))
     files=sorted(set(files));inventory={str(p.relative_to(ROOT)):dict(sha256=sha(p),bytes=p.stat().st_size) for p in files}
     save(OUT/'REVIEW-INVENTORY.json',inventory)
     packet=OUT/'P1-review.zip'

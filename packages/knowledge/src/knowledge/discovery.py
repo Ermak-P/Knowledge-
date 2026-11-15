@@ -177,6 +177,7 @@ def fresh_evidence(root,e,scope=None):
             # an old v1 false positive or a newly commented anchor is not current.
             if method in LEGACY_METHODS:return 'legacy-identity-review-required'
             scope=scope if scope is not None else analysis_scope(root)
+            if not scope.get('complete',True):return 'not-analyzed'
             observations=scope['observations']
             if any(i in scope['ambiguous'] for i in e['substantiates']):return 'ambiguous-identity'
             if not any(o['id'] in e['substantiates'] and o['path']==p.relative_to(root).as_posix() and o['anchor']==e['description'] for o in observations):return 'changed'
@@ -234,8 +235,10 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False):
             row=db.execute('SELECT payload FROM scans WHERE id=?',(scan_id,)).fetchone()
             state=loads(row[0]) if row else dict(id=scan_id,extractor=VERSION,snapshot=snap,coverage=deep_files(snap['files']),observations=[],candidates=[],captured_at=life.now(),complete=False)
         pending=sorted((p for p,e in state['coverage'].items() if e['status']=='not-analyzed'),key=lambda p:(not p.endswith(('.csproj','.cs')),p))
+        extracted_this_call=[]
         for path in pending[:max_files]:
             observations,status,reason=extract(store.project.root,path,state['coverage'][path])
+            extracted_this_call.append(path)
             # Ambiguous identities from overloads/duplicate declarations are gaps, never guessed.
             existing={o['id'] for o in state['observations']}
             ambiguous=set(state.get('ambiguous',[]))
@@ -252,7 +255,14 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False):
             state['ambiguous']=sorted(ambiguous)
             state['coverage'][path].update(status=status,reason=reason)
         state['complete']=not any(e['status'] in ('not-analyzed','blocked') for e in state['coverage'].values())
-        scope=analysis_scope(store.project.root,snapshot=snap)
+        # The durable snapshot-bound chunks already contain global ambiguity state.
+        # Do not re-extract completed or not-yet-budgeted files for this scan.
+        scope={'snapshot':state['snapshot'],'observations':state['observations'],
+               'ambiguous':dict.fromkeys(state.get('ambiguous',[])), 'complete':state['complete']}
+        state['work']={'version':1,'extracted_this_call':len(extracted_this_call),'paths_this_call':extracted_this_call,
+                       'durable_extracted_files':sum(e['status'] not in ('not-analyzed','blocked') for e in state['coverage'].values()),
+                       'remaining_files':sum(e['status']=='not-analyzed' for e in state['coverage'].values()),
+                       'enumeration_and_hashing':'whole-snapshot; distinct from bounded extraction'}
         records=store._records(db)
         changed={e['id'] for e in records['evidence'] if fresh_evidence(store.project.root,e,scope) not in ('unchanged','anchor-valid-file-changed')}
         owners={c['id'] for c in records['claims'] if changed.intersection(c['evidence'])}
@@ -264,7 +274,7 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False):
         state['impact']={'changed_or_unverifiable_evidence':sorted(changed),'direct_claims':sorted(owners),
                          'dependent_claims':sorted(closure-owners),
                          'relationships':[r['id'] for r in records['relationships'] if r['from'] in closure or r['to'] in closure],
-                         'policy':'full included scope reexamined; impact is a review request, not retirement'}
+                         'policy':('completed included scope reused' if state['complete'] else 'partial durable scope; unexamined discovery evidence is not freshly verified')+'; impact is a review request, not retirement'}
         state['semantic_coverage_complete']=False
         state['limits']=['No runtime/deployment proof or business rationale','C# lexical matches are partial, not compiler analysis','Non-code files are content inventory only','Untracked permitted source is included with dirty hashes; Git dirty state is separate from committed HEAD']
         # Enqueue only at completion: partial scan observations remain durable, no claim of absence.

@@ -1,8 +1,8 @@
 # P1 implementation submitted for independent review
 
-Run `776dcec359fe4b60abe9556eeb06722e`; source `7d604fc63ec0e5b28f9b55a6ed2d475bc9514d614d84a9af24760c9bf5c17e4b`. Raw evidence: `runs/776dcec359fe4b60abe9556eeb06722e/`.
+Run `fe11fd6fd62e4372b5d6e830889775be`; source `f6fbbd3dc18cfe085c3694bd6ab529f23e5eb7ac7b0c54bb450083bb33069954`. Raw evidence: `runs/fe11fd6fd62e4372b5d6e830889775be/`.
 
-Branch `p1`; baseline/HEAD `2a8664821d0f6512ecbce92280e25d6f19b3f32c`, with uncommitted P1 changes identified
+Branch `p1`; baseline/HEAD `a767c744cc771541e4b3727ff15b8cd526657ba6`, with uncommitted P1 changes identified
 by SOURCE-REVISION.json. Not externally accepted. P2 was not started.
 
 ## Actual verification
@@ -10,7 +10,7 @@ by SOURCE-REVISION.json. Not externally accepted. P2 was not started.
 `bash scripts/setup.sh`, then `.venv/bin/python scripts/setup_benchmark.py`,
 `.venv/bin/python scripts/verify_p1.py`, `.venv/bin/python scripts/make_review_p1.py`.
 Python 3.12.14, pinned SDK 10.0.404, SQLite, MCP 1.30.0 on Linux x64.
-93 product tests passed, including all 43 accepted P0 regressions;
+104 product tests passed, including all 43 accepted P0 regressions;
 no skips. Both wheels built and Knowledge ran in a dependency-free environment.
 Pinned application build and 49 unit tests passed before and 49 after P1
 integration, with zero failed or skipped tests. Real stdio sessions, killed
@@ -39,8 +39,8 @@ Self-review repaired a real history/current graph interaction: retired edges mus
 not force a newly independent current payload to retain an obsolete dependency.
 It also tightened historical receipt ownership, upgrade backup binding, P0
 prepared-approval compatibility and scan identity exclusion of store journals.
-The final run was executed after these changes. The independent R1–R5 corrections,
-compatibility/negative-coverage policy and regression table are in P1-R1-RESPONSE.md.
+The final run was executed after these changes. The independent R1–R5 corrections are in P1-R1-RESPONSE.md; the shared
+reactivation model, canonical uniqueness and bounded-work repairs are in P1-R2-RESPONSE.md.
 
 Discovery is deliberately lexical. It proves source syntax, not business rationale,
 runtime dispatch, deployment availability or complete semantic analysis. Unsupported

@@ -270,3 +270,41 @@ ordinary defaults (10 claims / 16,000 bytes) plus a larger diagnostic context.
 It also runs the real SDK getItem:Compile probe confirming the excluded build/
 source remains compiled while reconciliation abstains. Current run artifacts,
 correction table, source identity and the ZIP are regenerated from corrected code.
+
+## Independent review round 2 — resulting model and bounded work
+
+Reviewed source: a767c744cc771541e4b3727ff15b8cd526657ba6. Scope is A/B only;
+R1–R5 remain supported and P2 is not started.
+
+`lifecycle.resulting_record` is the shared operation transition used by simulation
+and commit for add/update/reactivate/retire/supersede. It selects the proposed
+payload and active state for reactivation, never the old retired model. Target
+kind/state and expected revisions are validated first. The full combined graph
+is then checked by one canonical validator, also used by ordinary `validate()`
+and post-write validation. Normalized active statement uniqueness is a common
+invariant; inactive and historical duplicates are permitted. Mixed v1/v2 batches
+cannot target one identity twice. Invalid new reactivation payloads, graph cycles,
+orphans, successor chains and active endpoints fail preparation, before writes.
+Commit still atomically records canonical values, history, receipts and plan state;
+acknowledgment is separate and ownership-bound. Old receipt retries do not authorize
+new transitions. Existing invalid data is reported, not silently deleted or repaired;
+preserve it for an explicit audited repair/consistent backup restoration.
+
+`scan(max_files=N)` calls the source extractor for at most N pending files, including
+initial/resumed calls and the completion boundary. Completed observations, equivalent
+occurrences, ambiguity IDs and coverage are durable reusable work. No separate full
+extraction pass is hidden in scan validation, even when canonical evidence exists.
+A completed unchanged scan reuses its scope without extraction. `work.version=1`
+reports actual last-call paths/count, durable completed units and remaining files.
+This additive accounting preserves existing v3 checkpoint observations; old calls'
+unrecorded extra extraction is not claimed as measured historical work.
+
+Snapshot enumeration, content hashing, Git provenance and scope metadata inspection
+remain whole-snapshot work, distinct from bounded observation extraction. Partial
+scope cannot establish fresh discovery evidence or absence and cannot enqueue
+canonical proposals. Once all units complete, scan uses its own accumulated scope
+for freshness/proposals; a late collision withholds every member including the first
+one seen in an earlier chunk. Drift/extractor checks still refuse stale resume.
+Read-only context/reconciliation can analyze the full current included scope to
+check ambiguity/freshness; these reads do not claim a scan extraction budget or
+silently advance a scan/apply changes.

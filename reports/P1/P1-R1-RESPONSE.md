@@ -1,6 +1,6 @@
 # P1 independent review R1–R5: consolidated correction
 
-Run `776dcec359fe4b60abe9556eeb06722e`; source `7d604fc63ec0e5b28f9b55a6ed2d475bc9514d614d84a9af24760c9bf5c17e4b`. Raw evidence: `runs/776dcec359fe4b60abe9556eeb06722e/`.
+Run `fe11fd6fd62e4372b5d6e830889775be`; source `f6fbbd3dc18cfe085c3694bd6ab529f23e5eb7ac7b0c54bb450083bb33069954`. Raw evidence: `runs/fe11fd6fd62e4372b5d6e830889775be/`.
 
 Reviewed implementation: 2a8664821d0f6512ecbce92280e25d6f19b3f32c.
 Working branch: p1. Submitted for review; not externally accepted. P2 untouched.
@@ -17,9 +17,9 @@ is reported separately after committing the verified source and packet.
 
 
 All 75 earlier product tests remain, plus the new correction regressions:
-93 total tests, no skips. Fresh packaging, real stdio, P0 upgrades,
+104 total tests, no skips. Fresh packaging, real stdio, P0 upgrades,
 crash/race, graph/history and genuine EM removal pass. The real SDK compile-item
-probe is in runs/776dcec359fe4b60abe9556eeb06722e/corrections.json and compile-items.log. Excluded
+probe is in runs/fe11fd6fd62e4372b5d6e830889775be/corrections.json and compile-items.log. Excluded
 build/Independent.cs remains in Compile while reconciliation refuses retirement.
 
 Identity-v3 keys use relative project paths and qualified lexical type names.
