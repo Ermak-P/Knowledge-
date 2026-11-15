@@ -1,5 +1,5 @@
 """Reproducible core wheel bundle; no SDKs, caches, fixtures or project databases."""
-import argparse,hashlib,json,os,shutil,subprocess,sys,zipfile,base64,csv,io
+import argparse,hashlib,json,os,shutil,subprocess,sys,zipfile,base64,csv,io,tempfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 VERSION='0.3.0rc1'
@@ -18,9 +18,15 @@ def main():
     p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('--source-id',default='development-unsealed');a=p.parse_args();out=a.output.absolute();out.mkdir(parents=True,exist_ok=True)
     kit=out/'knowledge-harness-0.3.0rc1';kit.mkdir(exist_ok=True);wheels=kit/'wheels';wheels.mkdir(exist_ok=True)
     env={**os.environ,'SOURCE_DATE_EPOCH':'1735689600','PYTHONHASHSEED':'0'}
-    subprocess.run([sys.executable,'-m','pip','wheel','--no-deps','--no-build-isolation','-w',str(wheels),str(ROOT/'packages/knowledge'),str(ROOT/'packages/harness')],check=True,env=env)
+    with tempfile.TemporaryDirectory(prefix='p3-clean-build-') as tmp:
+        staged=[]
+        for name in ('knowledge','harness'):
+            target=Path(tmp)/name;shutil.copytree(ROOT/'packages'/name,target,ignore=shutil.ignore_patterns('build','dist','*.egg-info','__pycache__','*.pyc'));staged.append(str(target))
+        subprocess.run([sys.executable,'-m','pip','wheel','--no-deps','--no-build-isolation','-w',str(wheels),*staged],check=True,env=env)
     assert len(list(wheels.glob('*.whl')))==2
-    for wheel in wheels.glob('*.whl'):normalize_wheel(wheel)
+    for wheel in wheels.glob('*.whl'):
+        with zipfile.ZipFile(wheel) as z:assert not any('__pycache__' in n.split('/') or n.endswith('.pyc') for n in z.namelist()),'build cache leaked into distribution'
+        normalize_wheel(wheel)
     for path in (ROOT/'release/kit').iterdir():
         if path.is_file():shutil.copyfile(path,kit/path.name)
     docs=kit/'docs';docs.mkdir(exist_ok=True)

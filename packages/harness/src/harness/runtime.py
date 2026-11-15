@@ -138,9 +138,19 @@ class Journal:
         with self.db() as db:return [loads(p) for p, in db.execute('SELECT payload FROM events WHERE run=? ORDER BY sequence',(run,))]
     def action(self,run,identifier,value=None):
         with self.db() as db:
-            if value is not None:db.execute('INSERT OR REPLACE INTO actions VALUES (?,?,?)',(run,identifier,canonical_json(value)))
+            if value is not None:
+                previous=db.execute('SELECT payload FROM actions WHERE run=? AND id=?',(run,identifier)).fetchone()
+                previous=loads(previous[0]) if previous else {}
+                if previous.get('recovery_stop') and previous.get('process_attempt',0)==value.get('process_attempt',0):value={**value,'recovery_stop':True}
+                db.execute('INSERT OR REPLACE INTO actions VALUES (?,?,?)',(run,identifier,canonical_json(value)))
             row=db.execute('SELECT payload FROM actions WHERE run=? AND id=?',(run,identifier)).fetchone()
         return loads(row[0]) if row else None
+    def request_recipe_stop(self,run,identifier):
+        with self.db() as db:
+            row=db.execute('SELECT payload FROM actions WHERE run=? AND id=?',(run,identifier)).fetchone();require(row is not None,'unknown-action')
+            value=loads(row[0]);value['recovery_stop']=True
+            db.execute('UPDATE actions SET payload=? WHERE run=? AND id=?',(canonical_json(value),run,identifier))
+        return value
     def actions(self,run):
         with self.db() as db:return {i:loads(p) for i,p in db.execute('SELECT id,payload FROM actions WHERE run=?',(run,))}
     def cancelled(self,run):

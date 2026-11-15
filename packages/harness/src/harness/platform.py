@@ -40,7 +40,7 @@ def stop_owned(journal,run):
             require(compatible(info),'unverifiable-process-ownership')
             if os.name=='nt':
                 from .windows import stop_job
-                action['recovery_stop']=True;journal.action(run,action_id,action)
+                action=journal.request_recipe_stop(run,action_id)
                 stop_job(action,info)
             else:
                 import signal

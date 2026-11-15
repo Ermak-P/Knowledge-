@@ -86,7 +86,11 @@ def stop_job(action,supervisor):
     if not job:return
     try:
         child=action.get('child_process')
-        require(child and compatible(child),'unverifiable-child-ownership')
+        # A live supervisor can be between publishing its own identity and the
+        # suspended child's receipt. recovery_stop is durable; it must finish
+        # that bounded startup/cleanup itself without guessing child authority.
+        if not child:return
+        require(compatible(child),'unverifiable-child-ownership')
         handle=k.OpenProcess(0x1000|0x100000,False,child['pid'])
         if handle:
             try:
@@ -119,12 +123,19 @@ def worker_main():
     null=k.CreateFileW('NUL',0x80000000,3,c.byref(security),3,0x80,None);startup.hStdInput=null
     child=PROCESS();argv=c.create_unicode_buffer(subprocess.list2cmdline(spec['argv']));started=time.monotonic();reader=None
     try:
+        action=journal.action(a.run,a.action)
+        if action.get('recovery_stop') or journal.cancelled(a.run):
+            log.write_bytes(b'');action['process_result']=dict(returncode=1,reason='cancelled',duration=time.monotonic()-started,log_bytes=0,observed_log_bytes=0,truncated=False,descendants_stopped=True,platform='windows-job-v1');action['process_finished']=stamp();journal.action(a.run,a.action,action);return 0
         checked(k.CreateProcessW(spec['argv'][0],argv,None,None,True,0x4|0x400,None,spec['cwd'],c.byref(startup),c.byref(child)),'recipe-create-failed')
         try:checked(k.AssignProcessToJobObject(job,child.hProcess),'job-assignment-failed')
         except BaseException:
             api('TerminateProcess',[HANDLE,w.UINT],w.BOOL)(child.hProcess,1);raise
-        action['child_process']=owned_info(child.dwProcessId);journal.action(a.run,a.action,action)
-        checked(k.ResumeThread(child.hThread)!=0xFFFFFFFF,'recipe-resume-failed')
+        action=journal.action(a.run,a.action);action['child_process']=owned_info(child.dwProcessId);action=journal.action(a.run,a.action,action)
+        reason='cancelled' if action.get('recovery_stop') or journal.cancelled(a.run) else None
+        if reason:checked(k.TerminateJobObject(job,1),'job-terminate-failed')
+        elif k.ResumeThread(child.hThread)==0xFFFFFFFF:
+            require(journal.action(a.run,a.action).get('recovery_stop') or journal.cancelled(a.run),'recipe-resume-failed')
+            reason='cancelled';checked(k.TerminateJobObject(job,1),'job-terminate-failed')
         k.CloseHandle(child.hThread);child.hThread=None;k.CloseHandle(write);write=None
         stats={'seen':0,'stored':0,'error':None};done=threading.Event()
         def drain():
@@ -136,7 +147,7 @@ def worker_main():
                     if c.get_last_error() not in (0,109):stats['error']='pipe-read-failed'
             except OSError:stats['error']='recipe-log-failure'
             finally:done.set()
-        reader=threading.Thread(target=drain,daemon=True);reader.start();reason=None
+        reader=threading.Thread(target=drain,daemon=True);reader.start()
         while k.WaitForSingleObject(child.hProcess,50)!=0:
             if stats['error']:reason=stats['error']
             if journal.cancelled(a.run) or journal.action(a.run,a.action).get('recovery_stop'):reason='cancelled'
@@ -148,6 +159,7 @@ def worker_main():
         while active(job):time.sleep(.025) # Hold exclusive handle until verified empty.
         require(done.wait(5),'pipe-cleanup-unconfirmed');require(not stats['error'],stats['error'] or 'pipe-error')
         action=journal.action(a.run,a.action)
+        if action.get('recovery_stop') or journal.cancelled(a.run):reason=reason or 'cancelled'
         action['process_result']=dict(returncode=returncode.value,reason=reason,duration=time.monotonic()-started,log_bytes=stats['stored'],observed_log_bytes=stats['seen'],truncated=stats['seen']>stats['stored'],descendants_stopped=True,platform='windows-job-v1')
         action['process_finished']=stamp();journal.action(a.run,a.action,action)
     finally:

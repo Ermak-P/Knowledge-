@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import tempfile
 import xml.etree.ElementTree as ET
 from .util import canonical_json, digest, fingerprint, loads, require, KnowledgeError
 from .project import safe_path
@@ -24,9 +25,21 @@ def has_git(root):
     return any((p/'.git').is_file() or (p/'.git/HEAD').is_file() for p in (root,*root.parents))
 
 def git_process(root,*args,input=None):
-    try:return subprocess.run(['git','-c','core.fsmonitor=false','-C',str(root),*args],input=input,capture_output=True,timeout=15,env={**os.environ,'GIT_OPTIONAL_LOCKS':'0','GIT_TERMINAL_PROMPT':'0'})
-    except subprocess.TimeoutExpired as e:raise KnowledgeError('git-operation-timeout') from e
-    except FileNotFoundError as e:raise KnowledgeError('git-unavailable-for-existing-checkout') from e
+    command=['git','-c','core.fsmonitor=false','-C',str(root),*args]
+    # A Git subprocess must never inherit an MCP named-pipe input. Regular
+    # output files also avoid communicate() waiting forever on inherited pipes
+    # after a Windows wrapper has timed out and been terminated.
+    with tempfile.TemporaryFile() as incoming,tempfile.TemporaryFile() as output,tempfile.TemporaryFile() as errors:
+        if input is not None:incoming.write(input);incoming.seek(0)
+        try:
+            process=subprocess.Popen(command,stdin=incoming if input is not None else subprocess.DEVNULL,stdout=output,stderr=errors,env={**os.environ,'GIT_OPTIONAL_LOCKS':'0','GIT_TERMINAL_PROMPT':'0'})
+        except FileNotFoundError as e:raise KnowledgeError('git-unavailable-for-existing-checkout') from e
+        try:process.wait(timeout=15)
+        except subprocess.TimeoutExpired as e:
+            process.kill();process.wait(timeout=3);raise KnowledgeError('git-operation-timeout') from e
+        output.seek(0);errors.seek(0);stdout=output.read(16*1024*1024+1);stderr=errors.read(1024*1024+1)
+        require(len(stdout)<=16*1024*1024 and len(stderr)<=1024*1024,'git-output-too-large')
+        return subprocess.CompletedProcess(command,process.returncode,stdout,stderr)
 
 def git(root,*args,required=False):
     if not has_git(root):

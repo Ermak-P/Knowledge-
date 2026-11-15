@@ -159,9 +159,10 @@ class Broker:
             if info:require(compatible(info),'unverifiable-process-ownership')
             require(current is None or current['start']!=info['start'],'recipe-still-running')
             require(recipe['rerun_safe'],'recipe-outcome-unknown')
-            action.setdefault('process_history',[]).append({'state':'unknown','process_spec':action['process_spec'],'process':action.get('process'),'started':action.get('process_started')})
+            action.setdefault('process_history',[]).append({'state':'unknown','process_spec':action['process_spec'],'process':action.get('process'),'child_process':action.get('child_process'),'job_name':action.get('job_name'),'process_platform':action.get('process_platform'),'started':action.get('process_started')})
             attempt+=1
         if 'process_result' not in action:
+            for field in ('process','child_process','process_started','process_finished','recovery_stop'):action.pop(field,None)
             artifacts=self.j.base/'artifacts'/self.r['id']/action_id/str(attempt);safe_path(artifacts);artifacts.mkdir(parents=True,exist_ok=True)
             argv=[a.replace('{artifacts}',str(artifacts)) for a in recipe['argv']]
             require(not any('{' in a or '}' in a for a in argv),'unknown-recipe-placeholder')
