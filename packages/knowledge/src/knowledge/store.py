@@ -192,6 +192,8 @@ class Store:
             require(isinstance(loads(payload),dict),'corrupt-history')
 
         if life.enabled(db):
+            from .discovery import validate_capture_receipts
+            validate_capture_receipts(db)
             states=life.latest(db)
             rows=list(db.execute('SELECT id,kind,payload FROM records'))
             require(set(states)=={r[0] for r in rows},'revision-identity-mismatch')

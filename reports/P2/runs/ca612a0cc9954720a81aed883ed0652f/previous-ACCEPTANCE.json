@@ -1,0 +1,304 @@
+{
+  "version": 1,
+  "phase": "P2",
+  "submission": "submitted for external review",
+  "run_id": "5052e81943c54a25929e0eef5df03cb5",
+  "source_identity": "2c71effe12fe34826bcc317a48e5959a63ade8c5047169d9797b48b5a2b0306f",
+  "branch": "p2",
+  "head_at_packet_creation": "5e6f33da5758c30418df490840c76c1946c84545",
+  "revision_binding": "Containing Git commit identifies delivery; source inventory is authoritative. A commit cannot include its own hash.",
+  "conditions": [
+    {
+      "id": "P2-A01",
+      "requirement": "Verified accepted P1 baseline, reproducible package installation and all 104 accepted product regressions preserved; Knowledge remains independently usable.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/baseline/baseline.json",
+        "runs/5052e81943c54a25929e0eef5df03cb5/packaging/command.log",
+        "runs/5052e81943c54a25929e0eef5df03cb5/product-tests/product-tests.json"
+      ]
+    },
+    {
+      "id": "P2-A02",
+      "requirement": "Real versioned runner/provider protocol and configurable live adapter implemented; actual transport/parsing/error behavior tested, live versus deterministic evidence distinguished.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [
+        "test_p2.RunnerTests.test_provider_malformed_oversized_missing_usage_and_limits",
+        "test_p2.BoundaryTests.test_provider_surrogates_usage_subsets_and_final_version_refuse"
+      ],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/product-tests/product-tests.json"
+      ]
+    },
+    {
+      "id": "P2-A03",
+      "requirement": "Main and five core role executions have separate bounded contexts; required state survives context/session replacement without full-history duplication.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [
+        "test_p2.RunnerTests.test_context_isolation_actual_bytes_and_shared_history_comparison",
+        "test_p2.RunnerTests.test_long_history_unicode_tool_budget_and_role_spoofing"
+      ],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/evaluation/comparison.json"
+      ]
+    },
+    {
+      "id": "P2-A04",
+      "requirement": "Runtime role/tool/recipe permissions deny unauthorized actions before effects; provider role spoofing and path/argument/policy escapes fail.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [
+        "test_p2.BoundaryTests.test_protected_tests_recipes_paths_and_typed_spoof_denied",
+        "test_p2.BoundaryTests.test_supervisor_imports_cannot_be_replaced_by_application_package"
+      ],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/evaluation/denied.json"
+      ]
+    },
+    {
+      "id": "P2-A05",
+      "requirement": "Actual in-place scoped source edits and recipe processes run through production tools; project identity and competing-run ownership are enforced.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [
+        "test_p2.RunnerTests.test_real_http_execution_roles_gates_capture",
+        "test_p2.RecoveryTests.test_real_worker_death_recipe_keeps_lease_and_recovery_cleans_it"
+      ],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/evaluation/application-run.json"
+      ]
+    },
+    {
+      "id": "P2-A06",
+      "requirement": "Durable state transitions/status/cancel/recover are implemented; malformed versions and ambiguous outcomes refuse safely.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [
+        "test_p2.BoundaryTests.test_durable_versions_project_identity_and_corruption_refuse_without_reset",
+        "test_p2.BoundaryTests.test_cli_backend_and_legacy_configuration_compatibility"
+      ],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/product-tests/product-tests.json"
+      ]
+    },
+    {
+      "id": "P2-A07",
+      "requirement": "Mandatory build/test/review gates bind actual final source/config state; stale/missing/failed checks and fake provider receipts cannot produce success.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [
+        "test_p2.BoundaryTests.test_missing_stale_fake_gates_and_configuration_drift",
+        "test_p2.BoundaryTests.test_concurrent_source_edit_during_recipe_invalidates_gate",
+        "test_p2.RunnerTests.test_permissions_and_review_failure_prevent_false_success"
+      ],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/evaluation/application-run.json"
+      ]
+    },
+    {
+      "id": "P2-A08",
+      "requirement": "Real fail → repair → fresh gates → success flow passes; retries, repeated failures and delegation/budget exhaustion terminate honestly.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [
+        "test_p2.RunnerTests.test_actual_failure_repair",
+        "test_p2.RunnerTests.test_provider_malformed_oversized_missing_usage_and_limits"
+      ],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/evaluation/repair-run.json"
+      ]
+    },
+    {
+      "id": "P2-A09",
+      "requirement": "Source-edit crash reconciliation avoids double edits and preserves conflicting user bytes; completed work is not reset to obtain recovery.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [
+        "test_p2.RecoveryTests.test_real_edit_intent_write_and_receipt_crashes_resume_without_double_edit",
+        "test_p2.RecoveryTests.test_recovery_preserves_intervening_user_bytes_and_unknown_provider"
+      ],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/product-tests/command.log"
+      ]
+    },
+    {
+      "id": "P2-A10",
+      "requirement": "Actual recipe timeout/cancellation/process death and child cleanup cannot leave a false success or unsafe released writer ownership.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [
+        "test_p2.RecoveryTests.test_timeout_cleans_real_descendants_and_cancellation_stops_provider",
+        "test_p2.RecoveryTests.test_real_worker_death_recipe_keeps_lease_and_recovery_cleans_it"
+      ],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/product-tests/command.log"
+      ]
+    },
+    {
+      "id": "P2-A11",
+      "requirement": "Automatic capture derives supported candidates during real runner sessions, uses the existing Knowledge writer, preserves confidence/provenance and never auto-applies canonical changes.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [
+        "test_p2.RunnerTests.test_real_http_execution_roles_gates_capture"
+      ],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/sessions/capture-sessions.json"
+      ]
+    },
+    {
+      "id": "P2-A12",
+      "requirement": "Five eligible capture sessions succeed exactly once; no-new-fact sessions abstain; rejected/deferred unchanged candidates are not revived endlessly.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [
+        "test_p2.RunnerTests.test_capture_five_sessions_no_facts_reject_dedup_and_no_auto_apply",
+        "test_p2.BoundaryTests.test_terminal_window_and_unchanged_deferred_candidate_are_idempotent"
+      ],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/sessions/capture-sessions.json"
+      ]
+    },
+    {
+      "id": "P2-A13",
+      "requirement": "Capture outbox/event identity handles busy/corrupt stores, concurrent producers and the accepted-but-unacknowledged crash window without candidate loss/duplication.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [
+        "test_p2.RecoveryTests.test_capture_commit_ack_crash_and_concurrent_delivery_retry",
+        "test_p2.RecoveryTests.test_busy_and_corrupt_capture_are_explicit_and_recover_without_code_replay"
+      ],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/product-tests/command.log"
+      ]
+    },
+    {
+      "id": "P2-A14",
+      "requirement": "Execution outcome, capture delivery and canonical approval are distinct; recovery can deliver pending capture without rerunning source edits.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [
+        "test_p2.RecoveryTests.test_busy_and_corrupt_capture_are_explicit_and_recover_without_code_replay",
+        "test_p2.BoundaryTests.test_terminal_window_and_unchanged_deferred_candidate_are_idempotent"
+      ],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/product-tests/product-tests.json"
+      ]
+    },
+    {
+      "id": "P2-A15",
+      "requirement": "Complete per-role/per-attempt usage and timing includes Main/subagents/retries; unknown/estimated/synthetic usage is explicit and totals do not double-count.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [
+        "test_p2.RunnerTests.test_real_http_execution_roles_gates_capture",
+        "test_p2.BoundaryTests.test_provider_surrogates_usage_subsets_and_final_version_refuse"
+      ],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/evaluation/comparison.json",
+        "runs/5052e81943c54a25929e0eef5df03cb5/evaluation/application-run.json"
+      ]
+    },
+    {
+      "id": "P2-A16",
+      "requirement": "Actual context/output/time/attempt/log limits are enforced with documented uncertainty, Unicode/oversize tests and no unbounded retry loops.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [
+        "test_p2.RunnerTests.test_long_history_unicode_tool_budget_and_role_spoofing",
+        "test_p2.RunnerTests.test_provider_malformed_oversized_missing_usage_and_limits",
+        "test_p2.RecoveryTests.test_timeout_cleans_real_descendants_and_cancellation_stops_provider"
+      ],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/product-tests/product-tests.json"
+      ]
+    },
+    {
+      "id": "P2-A17",
+      "requirement": "Single-agent/multi-agent comparison is executable on equivalent tasks; correctness and total cost are reported, with no unsupported speed/quality claim.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [
+        "test_p2.RunnerTests.test_context_isolation_actual_bytes_and_shared_history_comparison"
+      ],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/evaluation/comparison.json"
+      ]
+    },
+    {
+      "id": "P2-A18",
+      "requirement": "Functional CLI/API/configuration and compatible old read facade execute the backend; missing optional tools and Knowledge degradation are explicit and project-isolated.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [
+        "test_p2.BoundaryTests.test_cli_backend_and_legacy_configuration_compatibility",
+        "test_p2.RunnerTests.test_readonly_absence_and_legacy_consumer_are_explicit"
+      ],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/packaging/command.log"
+      ]
+    },
+    {
+      "id": "P2-A19",
+      "requirement": "Pinned real-application source change passes independently specified behavior/build/tests/review; existing tests are not weakened; original checkout stays intact.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/evaluation/application.json",
+        "runs/5052e81943c54a25929e0eef5df03cb5/evaluation/baseline.trx",
+        "runs/5052e81943c54a25929e0eef5df03cb5/evaluation/original-immutability.json"
+      ]
+    },
+    {
+      "id": "P2-A20",
+      "requirement": "Additional fixture, isolation/denial, five capture and crash/race scenarios exercise real tools/stores/processes and document exactly which provider decisions were synthetic.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [
+        "test_p2.RecoveryTests.test_capture_commit_ack_crash_and_concurrent_delivery_retry",
+        "test_p2.RunnerTests.test_actual_failure_repair",
+        "test_p2.RunnerTests.test_capture_five_sessions_no_facts_reject_dedup_and_no_auto_apply"
+      ],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/evaluation/repair.json",
+        "runs/5052e81943c54a25929e0eef5df03cb5/evaluation/denied.json",
+        "runs/5052e81943c54a25929e0eef5df03cb5/sessions/capture-sessions.json"
+      ]
+    },
+    {
+      "id": "P2-A21",
+      "requirement": "Fresh current-run verification binds source/config/tasks, provider fixtures and artifacts; failed/mixed/stale/incomplete runs cannot generate an all-PASS packet.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [
+        "test_p2_evidence.EvidenceGate.test_failed_interrupted_stale_mixed_missing_and_modified_artifacts_refuse"
+      ],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/run.json",
+        "runs/5052e81943c54a25929e0eef5df03cb5/product-tests/product-tests.json"
+      ]
+    },
+    {
+      "id": "P2-A22",
+      "requirement": "Complete source/test/setup/contracts/recovery/metrics/evaluation packet is reproducible, checksum-verified and contains no credentials, caches, SDKs or private machine data.",
+      "status": "PASS",
+      "interpretation": "implementation evidence submitted, external acceptance pending",
+      "tests": [],
+      "evidence": [
+        "runs/5052e81943c54a25929e0eef5df03cb5/run.json"
+      ]
+    }
+  ],
+  "optional": {
+    "live_model": "NOT_RUN: no configured authorized provider endpoint/model",
+    "OpenCode": "NOT_RUN",
+    "Windows_NTFS": "NOT_RUN",
+    "private_MCP": "NOT_RUN",
+    "live_quality_speed_token_benefit": "NOT_ESTABLISHED"
+  }
+}

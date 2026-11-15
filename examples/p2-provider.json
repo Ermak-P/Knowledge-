@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "provider": {
+    "endpoint": "http://127.0.0.1:8080/v1/chat/completions",
+    "model": "local-model",
+    "evidence": "live"
+  },
+  "capture": "optional",
+  "limits": {
+    "context_bytes": 24000,
+    "requests": 64,
+    "elapsed_seconds": 600
+  },
+  "recipes": {
+    "build": {
+      "kind": "build",
+      "argv": [
+        "/usr/bin/python3",
+        "-c",
+        "import py_compile; py_compile.compile(\"Feature.py\", doraise=True)"
+      ],
+      "result": {
+        "format": "exit",
+        "path": ""
+      },
+      "rerun_safe": true,
+      "env": {}
+    },
+    "test": {
+      "kind": "test",
+      "argv": [
+        "/usr/bin/python3",
+        "-m",
+        "unittest",
+        "-v",
+        "test_feature"
+      ],
+      "result": {
+        "format": "unittest",
+        "path": ""
+      },
+      "rerun_safe": true,
+      "env": {}
+    }
+  }
+}

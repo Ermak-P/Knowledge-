@@ -1,3 +1,9 @@
+# Knowledge + Harness — P2
+
+Harness 0.2 executes controlled tasks through a configurable HTTP model provider, separate Main/role contexts, scoped edits, real build/test/review gates and recoverable Knowledge capture. Knowledge remains independently installable. See [START-HERE](START-HERE.md) and [P2 contracts](reports/P2/P2-CONTRACTS.md) for commands and precise boundaries. P2 is submitted for external review; live model/OpenCode/Windows integration remains unexecuted.
+
+## Historical P0/P1 documentation
+
 # Knowledge + Harness — P0
 
 Knowledge is an independently installable Python 3.12+ evidence store. Harness

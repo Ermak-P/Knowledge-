@@ -500,7 +500,7 @@ def discovery_owned(db,claim,records):
         for observation in prior['observations']:
             if observation['id']==claim['id'] and observation['statement']==claim['statement']:
                 if any(evidence[i].get('content_hash')==observation['content_hash'] and evidence[i]['source']==observation['path'] for i in claim['evidence']):return True
-    return False
+    return capture_owned(db,claim,records)
 
 
 def occurrence(observation):
@@ -511,3 +511,96 @@ def equivalent_occurrence(first,second):
     # These claims only assert that one file contains literal syntax; multiple
     # identical occurrences support the same assertion, not distinct type owners.
     return first['category']!='declaration' and not first.get('unsupported') and not second.get('unsupported') and all(first[k]==second[k] for k in ('id','project','category','statement','path','subject'))
+
+
+CAPTURE_RECEIPT='capture-observation-v1:'
+
+
+def validate_capture_receipt(key,receipt):
+    require(isinstance(receipt,dict) and set(receipt)=={'version','extractor','observation','candidate','source'} and type(receipt['version']) is int and receipt['version']==1,'corrupt-capture-observation-receipt')
+    observation=receipt['observation']
+    require(isinstance(observation,dict) and all(isinstance(observation.get(k),str) for k in ('id','statement','path','content_hash','anchor')) and isinstance(receipt['extractor'],str),'corrupt-capture-observation-receipt')
+    require(all(isinstance(receipt[k],str) and re.fullmatch('[a-f0-9]{64}',receipt[k]) for k in ('candidate','source')) and key==CAPTURE_RECEIPT+digest(receipt),'corrupt-capture-observation-receipt')
+
+
+def validate_capture_receipts(db):
+    for key,payload in db.execute("SELECT key,value FROM metadata WHERE key LIKE 'capture-observation-v1:%'"):
+        validate_capture_receipt(key,loads(payload))
+
+
+def capture_owned(db,claim,records):
+    """Ownership requires verified observation AND the exact approved candidate.
+
+    Unlike a completed scan this receipt proves only one positive observation;
+    it never authorizes negative coverage/automatic retirement. Historical receipts
+    remain useful after explicit retirement, but cannot own a different meaning.
+    """
+    evidence={e['id']:e for e in records['evidence']}
+    for key,payload in db.execute("SELECT key,value FROM metadata WHERE key LIKE 'capture-observation-v1:%'"):
+        receipt=loads(payload)
+        validate_capture_receipt(key,receipt)
+        observation=receipt['observation']
+        if receipt['extractor']!=VERSION or observation['id']!=claim['id'] or observation['statement']!=claim['statement']:continue
+        if not any(evidence[i]['provenance']=={'actor':'deterministic-discovery','method':VERSION} and evidence[i]['content_hash']==observation['content_hash'] and evidence[i]['source']==observation['path'] and evidence[i]['description']==observation['anchor'] and claim['id'] in evidence[i]['substantiates'] for i in claim['evidence']):continue
+        for pid,plan_json in db.execute('SELECT plan,payload FROM receipts'):
+            plan=loads(plan_json);candidate=plan['candidates'].get(receipt['candidate'])
+            if candidate is None or digest(candidate)!=receipt['candidate']:continue
+            for change in candidate.get('operations',[]):
+                if change['kind']!='claims' or change['id']!=claim['id'] or change['payload'] is None:continue
+                if change['payload']['statement']!=observation['statement']:continue
+                version=db.execute('SELECT payload FROM revisions WHERE id=? AND revision=?',(claim['id'],change['expected']+1)).fetchone()
+                if version and loads(version[0])['plan']==pid and loads(version[0])['record']==change['payload']:return True
+    return False
+
+
+def capture_observation_receipts(store):
+    """Read-only audit of positive receipts; never asserts full scan coverage."""
+    with store.connection() as db:
+        require(life.enabled(db),'upgrade-required')
+        return {'version':1,'positive_observations_only':True,'receipts':[loads(p) for p, in db.execute("SELECT value FROM metadata WHERE key LIKE 'capture-observation-v1:%' ORDER BY key")]}
+
+
+def candidate_preview(store,paths,captured_at=None):
+    """Read-only positive proposal preview; unresolved ownership is manual review."""
+    return _candidate_preview(store,paths,captured_at,False)
+
+
+def candidate_observe(store,paths,captured_at=None):
+    """Coordinated Knowledge writer records exact positive observation ownership.
+
+    Does not submit, prepare, approve/apply, or create a completed scan. The caller
+    retains its exact delivery payload in an outbox and submits via Store.submit.
+    Receipts are additive metadata compatible with existing P1 stores. Old capture
+    records without proof require explicit manual review, never fabricated scans.
+    """
+    return _candidate_preview(store,paths,captured_at,True)
+
+
+def _candidate_preview(store,paths,captured_at,record_ownership):
+    require(isinstance(paths,list) and all(isinstance(p,str) for p in paths),'invalid-preview-paths')
+    scope=analysis_scope(store.project.root);snapshot=scope['snapshot'];decisions=[]
+    with store.connection(record_ownership) as db:
+        require(life.enabled(db),'upgrade-required')
+        records=store._records(db);states=life.latest(db)
+        known_candidates=[(cid,loads(payload),status) for cid,payload,status in db.execute('SELECT id,payload,status FROM queue')]
+        current={c['id']:c for c in records['claims']}
+        for obs in scope['observations']:
+            if obs['path'] not in paths:continue
+            legacy=[c['id'] for c in records['claims'] if c['provenance']['method'] in LEGACY_METHODS and c['id']==obs['legacy_id']]
+            if legacy:
+                decisions.append({'observation':obs['id'],'decision':'manual-review','legacy_ids':legacy});continue
+            known=current.get(obs['id'])
+            if known and (states[obs['id']]['lifecycle']=='superseded' or not discovery_owned(db,known,records)):
+                decisions.append({'observation':obs['id'],'decision':'manual-review','reason':'positive observation ownership or successor requires explicit review; no automatic overwrite/reactivation','current_revision':states[obs['id']]['revision']});continue
+            value=proposal(store,db,obs,snapshot,captured_at or life.now(),records,states,scope)
+            if value is None:continue
+            equivalent=next(((cid,status) for cid,item,status in known_candidates if item['version']==2 and proposal_identity(item)==proposal_identity(value)),None)
+            if equivalent:decisions.append({'observation':obs['id'],'decision':'existing','candidate':equivalent[0],'status':equivalent[1]})
+            else:
+                decisions.append({'observation':obs['id'],'decision':'submit','payload':value})
+                if record_ownership:
+                    receipt=dict(version=1,extractor=VERSION,observation=obs,candidate=digest(value),source=snapshot['identity'])
+                    db.execute('INSERT OR IGNORE INTO metadata VALUES (?,?)',(CAPTURE_RECEIPT+digest(receipt),canonical_json(receipt)))
+        require(inventory(store.project.root)['identity']==snapshot['identity'],'source-changed-during-preview')
+    return {'ok':True,'source':snapshot['identity'],'decisions':decisions,'gaps':list(scope['ambiguous']),
+            'reason':'eligible changed-source syntax or explicit review' if decisions else 'no new eligible supported source fact'}
