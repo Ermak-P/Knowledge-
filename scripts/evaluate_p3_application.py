@@ -12,6 +12,8 @@ def main():
     text=(ROOT/'scripts/evaluate_p2.py').read_text(encoding='utf-8')
     text=text.replace("sdk=ROOT/'.local/dotnet/dotnet'", "sdk=Path(shutil.which('dotnet') or str(ROOT/'.local/dotnet/dotnet'))")
     text=text.replace(",dir=ROOT/'.local'",'')
+    text=text.replace("sdkversion=subprocess.check_output([str(sdk),'--version'],env=env,text=True).strip()","sdkversion=subprocess.check_output([str(sdk),'--version'],cwd=root,env=env,text=True).strip()")
+    text=text.replace("(synthetic/'Checks').mkdir()","(synthetic/'Checks').mkdir();(synthetic/'global.json').write_text('{\"sdk\":{\"version\":\"10.0.404\",\"rollForward\":\"disable\"}}',encoding='utf-8')")
     text=text.replace("ROOT=Path(__file__).resolve().parents[1]", 'ROOT=Path('+repr(str(ROOT))+')')
     namespace={'__name__':'__p3_scenarios__','__file__':str(ROOT/'scripts/evaluate_p3_application.py')}
     exec(compile(text,str(ROOT/'scripts/evaluate_p3_application.py'),'exec'),namespace)

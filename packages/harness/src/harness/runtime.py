@@ -60,7 +60,7 @@ def local_path(project,relative,write=False):
     require(not p.is_absolute() and '..' not in p.parts and not any(x.startswith('.') or x.casefold() in {i.casefold() for i in IGNORED} for x in p.parts),'path-denied')
     require(not any(x in relative.casefold() for x in ('secret','credential','.env','privatekey','appsettings')) and p.suffix.casefold() not in ('.pem','.key','.pfx','.p12'),'private-path-denied')
     path=project.root/p;safe_path(path)
-    if write:require(path.suffix.lower() not in ('.csproj','.props','.targets','.sln','.lock') and path.name.casefold() not in ('pyproject.toml','package.json','package-lock.json','requirements.txt'),'protected-build-policy')
+    if write:require(path.suffix.lower() not in ('.csproj','.props','.targets','.sln','.lock') and path.name.casefold() not in ('pyproject.toml','package.json','package-lock.json','requirements.txt','global.json','nuget.config','opencode.json','opencode.jsonc'),'protected-build-policy')
     return path
 
 

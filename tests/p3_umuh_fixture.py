@@ -15,7 +15,7 @@ THIRD='namespace Umuh.Rehearsal.Domain;\npublic class RuleEvidence : System.Exce
 
 def create(root):
     root=Path(root);root.mkdir(parents=True,exist_ok=True)
-    files={DOMAIN:ORIGINAL,
+    files={'global.json':'{"sdk":{"version":"10.0.404","rollForward":"disable","allowPrerelease":false}}',DOMAIN:ORIGINAL,
       'components/Casebook.Domain/Casebook.Domain.csproj':'<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>',
       'workflows/Intake.Application/Intake.Application.csproj':'<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup><ItemGroup><ProjectReference Include="../../components/Casebook.Domain/Casebook.Domain.csproj" /></ItemGroup></Project>',
       'workflows/Intake.Application/IntakePolicy.cs':'namespace Umuh.Rehearsal.Application;\npublic class IntakePolicy { public static int Accepted(int count) => Umuh.Rehearsal.Domain.AdmissionRule.Clamp(count); }\n',

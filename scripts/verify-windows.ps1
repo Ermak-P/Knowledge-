@@ -13,6 +13,7 @@ $FixtureTemp = Join-Path $FixtureParent 'knowledge-p3-native-fixtures'
 New-Item -ItemType Directory -Force -Path $FixtureTemp | Out-Null
 $env:TEMP = $FixtureTemp
 $env:TMP = $FixtureTemp
+$env:TMPDIR = $FixtureTemp
 Set-Location (Split-Path $PSScriptRoot -Parent)
 $Py = Get-Command py -ErrorAction SilentlyContinue
 if ($Py) {
