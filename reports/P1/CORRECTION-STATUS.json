@@ -1,0 +1,77 @@
+{
+  "phase": "submitted-for-review",
+  "reviewed_commit": "2a8664821d0f6512ecbce92280e25d6f19b3f32c",
+  "run_id": "776dcec359fe4b60abe9556eeb06722e",
+  "source_identity": "7d604fc63ec0e5b28f9b55a6ed2d475bc9514d614d84a9af24760c9bf5c17e4b",
+  "corrections": [
+    {
+      "id": "R1",
+      "status": "PASS",
+      "implementation": "knowledge.discovery",
+      "regressions": [
+        "test_r1_custom_compile_include_cannot_hide_live_source_in_another_project (test_p1_r1.ReviewCorrectionTests.test_r1_custom_compile_include_cannot_hide_live_source_in_another_project) ... ok",
+        "test_r1_excluded_live_build_source_cannot_prove_removal (test_p1_r1.ReviewCorrectionTests.test_r1_excluded_live_build_source_cannot_prove_removal) ... ok",
+        "test_r1_unsupported_source_and_links_are_not_negative_evidence (test_p1_r1.ReviewCorrectionTests.test_r1_unsupported_source_and_links_are_not_negative_evidence) ... ok"
+      ],
+      "command": ".venv/bin/python -B -m unittest discover -s tests -p test_p1_r1.py -v",
+      "evidence": "reports/P1/runs/776dcec359fe4b60abe9556eeb06722e/product-tests.log",
+      "explanation": "Excluded live/unsupported source blocks negative proof; real SDK Compile confirms it remains live."
+    },
+    {
+      "id": "R2",
+      "status": "PASS",
+      "implementation": "knowledge.discovery",
+      "regressions": [
+        "test_r2_changed_statement_with_retained_extractor_method_also_abstains (test_p1_r1.ReviewCorrectionTests.test_r2_changed_statement_with_retained_extractor_method_also_abstains) ... ok",
+        "test_r2_same_id_historical_revision_is_not_retired (test_p1_r1.ReviewCorrectionTests.test_r2_same_id_historical_revision_is_not_retired) ... ok"
+      ],
+      "command": ".venv/bin/python -B -m unittest discover -s tests -p test_p1_r1.py -v",
+      "evidence": "reports/P1/runs/776dcec359fe4b60abe9556eeb06722e/product-tests.log",
+      "explanation": "Current reviewed/historical meaning is not owned by an earlier discovery ID."
+    },
+    {
+      "id": "R3",
+      "status": "PASS",
+      "implementation": "knowledge.discovery",
+      "regressions": [
+        "test_r3_identical_non_entity_occurrences_merge_only_the_same_assertion (test_p1_r1.ReviewCorrectionTests.test_r3_identical_non_entity_occurrences_merge_only_the_same_assertion) ... ok",
+        "test_r3_namespaces_do_not_collapse_and_removal_does_not_transfer_history (test_p1_r1.ReviewCorrectionTests.test_r3_namespaces_do_not_collapse_and_removal_does_not_transfer_history) ... ok",
+        "test_r3_nested_identity_and_legacy_store_compatibility (test_p1_r1.ReviewCorrectionTests.test_r3_nested_identity_and_legacy_store_compatibility) ... ok",
+        "test_r3_partial_and_same_scope_collision_abstain_after_import (test_p1_r1.ReviewCorrectionTests.test_r3_partial_and_same_scope_collision_abstain_after_import) ... ok",
+        "test_r3_same_directory_project_ownership_is_explicitly_unsupported (test_p1_r1.ReviewCorrectionTests.test_r3_same_directory_project_ownership_is_explicitly_unsupported) ... ok",
+        "test_r3_same_named_projects_have_distinct_ids_and_statements (test_p1_r1.ReviewCorrectionTests.test_r3_same_named_projects_have_distinct_ids_and_statements) ... ok",
+        "test_r3_unicode_namespaces_do_not_fall_back_to_short_identity (test_p1_r1.ReviewCorrectionTests.test_r3_unicode_namespaces_do_not_fall_back_to_short_identity) ... ok",
+        "test_r3_unsupported_namespace_and_record_forms_abstain (test_p1_r1.ReviewCorrectionTests.test_r3_unsupported_namespace_and_record_forms_abstain) ... ok"
+      ],
+      "command": ".venv/bin/python -B -m unittest discover -s tests -p test_p1_r1.py -v",
+      "evidence": "reports/P1/runs/776dcec359fe4b60abe9556eeb06722e/product-tests.log",
+      "explanation": "Qualified project/type identities, all-member abstention, legacy review and no history reassignment."
+    },
+    {
+      "id": "R4",
+      "status": "PASS",
+      "implementation": "knowledge.discovery + knowledge.lifecycle",
+      "regressions": [
+        "test_r4_reactivation_approval_is_bound_to_current_source (test_p1_r1.ReviewCorrectionTests.test_r4_reactivation_approval_is_bound_to_current_source) ... ok",
+        "test_r4_rejected_return_and_source_drift_are_not_silently_replayed (test_p1_r1.ReviewCorrectionTests.test_r4_rejected_return_and_source_drift_are_not_silently_replayed) ... ok",
+        "test_r4_return_reports_retired_edges_without_silently_restoring_them (test_p1_r1.ReviewCorrectionTests.test_r4_return_reports_retired_edges_without_silently_restoring_them) ... ok",
+        "test_r4_returned_entity_requires_new_approval_and_preserves_history (test_p1_r1.ReviewCorrectionTests.test_r4_returned_entity_requires_new_approval_and_preserves_history) ... ok"
+      ],
+      "command": ".venv/bin/python -B -m unittest discover -s tests -p test_p1_r1.py -v",
+      "evidence": "reports/P1/runs/776dcec359fe4b60abe9556eeb06722e/product-tests.log",
+      "explanation": "Expected-revision audited reactivation, new exact approval, safe retries and deferred-return deduplication."
+    },
+    {
+      "id": "R5",
+      "status": "PASS",
+      "implementation": "knowledge.discovery",
+      "regressions": [
+        "test_r5_ignored_source_is_not_labeled_committed (test_p1_r1.ReviewCorrectionTests.test_r5_ignored_source_is_not_labeled_committed) ... ok"
+      ],
+      "command": ".venv/bin/python -B -m unittest discover -s tests -p test_p1_r1.py -v",
+      "evidence": "reports/P1/runs/776dcec359fe4b60abe9556eeb06722e/product-tests.log",
+      "explanation": "Included ignored bytes retain ignored/uncommitted provenance against actual HEAD/index."
+    }
+  ],
+  "P2": "not started"
+}

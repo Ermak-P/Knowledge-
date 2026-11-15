@@ -52,7 +52,7 @@ def execute(a):
     if a.command in ('scan','knowledge-candidates-update'):return discovery.scan(store,a.scan_id,a.max_files,a.base,a.head,a.restart)
     if a.command=='knowledge-candidates-push':return store.apply(a.plan,a.approve) if a.approve else store.prepare()
     if a.command=='version':
-        return {'ok':True,'version':__version__,'candidate_version':1,'store_format':'knowledge-sqlite-v1','operations':['add'],'v2_operations':['add','update','retire','supersede','relationship-change'],'candidate_versions':[1,2],'discovery':True,'runner':False}
+        return {'ok':True,'version':__version__,'candidate_version':1,'store_format':'knowledge-sqlite-v1','operations':['add'],'v2_operations':['add','update','retire','supersede','reactivate','relationship-change'],'candidate_versions':[1,2],'discovery':True,'runner':False}
     if a.command=='submit':
         if not a.input:
             raise KnowledgeError('input-required')

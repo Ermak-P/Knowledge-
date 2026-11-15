@@ -1,6 +1,6 @@
 # Lifecycle and reconciliation
 
-Run `7c567e88b6b54922bcc21a8ae3a6ae3f`; source `e20dbd2635d808ce19366d90a0bb96b56ffbd730e5ed14b14e2fa1cfe8d3e96e`. Raw evidence: `runs/7c567e88b6b54922bcc21a8ae3a6ae3f/`.
+Run `776dcec359fe4b60abe9556eeb06722e`; source `7d604fc63ec0e5b28f9b55a6ed2d475bc9514d614d84a9af24760c9bf5c17e4b`. Raw evidence: `runs/776dcec359fe4b60abe9556eeb06722e/`.
 
 controlled.json contains the generated synthetic ExternalManagement fixture,
 complete before/after discovery, corroborated removal preview, exact approved

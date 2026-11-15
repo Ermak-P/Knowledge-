@@ -34,7 +34,7 @@ advertises `v2_operations` separately. P1 batch envelope is exactly:
 ```
 
 Each operation has exactly those six keys. Payload must be the unchanged v1
-record of the selected kind for add/update; it is null for retire/supersede.
+record of the selected kind for add/update/reactivate; it is null for retire/supersede.
 `expected` is the current immutable revision (zero for add). IDs cannot repeat
 within a batch or conflict across pending candidates. Retire supports claims
 and relationships; supersede supports claims and requires an active successor
@@ -119,17 +119,18 @@ included scope, including consumers, rather than labeling untouched partitions
 fresh without examining them. Without Git, hashes/resume work; no history-based
 retirement proof or revision-range guarantee is available.
 
-No hooks, source instructions or models execute. The version-2 lexical reader masks C# comments and normal/verbatim/raw strings
+No hooks, source instructions or models execute. The version-3 lexical reader masks C# comments and normal/verbatim/raw strings
 without treating slashes inside a route literal as comments. Interpolated string
 expressions remain conservatively opaque. XML comments cannot create dependency
-facts. Old extractor checkpoints require restart; old evidence is revalidated.
+facts. Old extractor checkpoints require restart; legacy identity evidence requires
+explicit reviewed identity migration as described below.
 Re-observation preserves reviewed confidence, provenance, dependencies, conflicts
 and independent supporting evidence instead of silently resetting those fields.
 
 XML project/package references,
 C# declarations/inheritance, simple generic DI, literal route attributes/minimal
-routes and persistence calls are lexical observations. Stable IDs bind logical
-project/category/key; evidence binds exact relative path, line/excerpt and hash.
+routes and persistence calls are lexical observations. Stable identity-v3 IDs bind project-relative .csproj path, category and key;
+declaration keys include namespace, nesting and generic arity; evidence binds exact relative path, line/excerpt and hash.
 Duplicate lexical identities are reported as gaps rather than guessed symbols.
 Partition/file coverage distinguishes inventory, analyzed XML, partial lexical
 analysis, unsupported semantic analysis, exclusions and blocked content.
@@ -189,3 +190,83 @@ source/evidence. Archive inventory hashes every included member and an external
 SHA-256 binds the ZIP. Generated evaluations are not broad accuracy claims;
 raw returned extras, gaps and limits remain visible. Native Windows and live
 OpenCode/model integration remain NOT_RUN. P2 is not started.
+
+
+## Independent review R1–R5 correction contract
+
+Reviewed source: 2a8664821d0f6512ecbce92280e25d6f19b3f32c. This correction is
+submitted for review, not externally accepted. Original P0/P1 data, queues,
+receipts, history and legitimate later revisions are not deleted or reset.
+
+**R1 — negative coverage:** `complete` only means chosen inventory units were
+processed. It is not permission to prove absence. Reconciliation reports
+`negative_evidence_gaps` per project. Excluded potentially live source/configuration
+or directories, unsupported source extensions and blocked reads prevent retirement
+of that project's source assertion. No excluded file contents or credentials are
+loaded to manufacture coverage. Administrative Git/store/tool metadata is exempt;
+other output directories, including build/bin/obj, are conservatively not negative
+proof because a project can include them. Safe included relocation is observed;
+excluded relocation remains not-verifiable/manual review. The EM removal proof
+still works in an adequately covered fixture. Custom external build/source inclusion
+semantics are not certified by this lexical capability pack.
+
+**R2 — current meaning:** automatic retirement requires the current statement,
+actor/method and supported observation ownership to match the recorded base
+source-existence assertion. An old ID is not authority over subsequent human or
+historical revisions. Source re-observation also refrains from overwriting a
+reviewed meaning it does not own. This is structural equality/ownership, not a
+language-specific historical-keyword classifier. History and reviewed provenance
+remain available even when current-checkout evidence cannot verify them.
+
+**R3 — identity-v3:** IDs use the project-relative project path, not its filename
+alone. C# declaration keys use lexical namespaces (file/block scoped), containing
+types and generic arity. Same-named namespace types/projects remain distinct across
+source file renames. All members of an unresolved identity collision are withheld,
+including a first occurrence processed in a previous scan chunk. Partial type
+analysis and source ownership under multiple project files in one directory are
+explicitly unsupported and withheld. Reads reanalyze the complete included scope,
+so an imported record ceases being trusted if ambiguity is introduced later.
+Repeated identical non-declaration syntax in the same source file may be coalesced
+into one literal-presence assertion with all occurrence anchors recorded; this
+never coalesces distinct declaration identities or different statements.
+
+Legacy extractor v1/v2 IDs are **not rewritten or automatically mapped**. Their
+records, immutable revisions, reviews, queue and approvals are retained. Old
+checkpoints require restart; old source-bound approvals become stale because the
+extractor/scope identity changed. Legacy identity evidence is flagged
+`legacy-identity-review-required`, not trusted merely because bytes match.
+`scan.compatibility` lists matching legacy IDs and the new observations without
+automatically queueing a replacement. A reviewer must establish ownership and
+construct an explicit v2 batch adding the new identity/evidence and, only when
+justified, superseding the old identity with expected revisions and dependent
+closure. Use submit → prepare → exact approval → apply → acknowledge. If ownership
+is ambiguous, retain the historical record and abstain; there is no automatic
+migration command claiming to resolve ambiguity. Manually reviewed facts are not
+silently adopted or deleted. P0 payload schemas and v1 add remain unchanged.
+
+**R4 — audited reintroduction:** `reactivate` is an additive supported v2 operation
+for a retired claim or relationship. It requires the full v1 payload, expected
+revision, reason, successor:null and a new exact approval. Source-backed discovery
+proposes it only for a retired assertion whose meaning is still discovery-owned.
+Scanning does not reactivate canonical rows. Superseded targets are refused and
+reported for manual review, not reversed by a reappearing anchor. All active-graph,
+source, ownership, receipt and stale-plan checks still apply. The old retired
+revision/receipt remains immutable; retries of old approvals cannot replay a new
+transition. `scan.reintroductions` lists related relationships for separate review;
+retired edges are never blindly restored. Rejected/deferred unchanged returns are
+deduplicated; changed evidence can justify a new proposal. If dependency closure
+is invalid, preparation blocks until explicitly reviewed.
+
+**R5 — Git provenance:** each included file is compared to the actual HEAD blob
+and index, alongside relevant porcelain state and working-tree content hashes.
+Permitted ignored source is included with `git_state:ignored` and dirty status !!;
+untracked source is separate, and original staged/unstaged status/index blobs are
+retained. Any included bytes absent from/different from HEAD make the snapshot
+working-tree-with-hashes. A matching hash is not evidence that a file was committed.
+These fields and the extractor are part of resume/prepare/apply source identity.
+
+The correction evaluation retains the original five source expectations and checks
+ordinary defaults (10 claims / 16,000 bytes) plus a larger diagnostic context.
+It also runs the real SDK getItem:Compile probe confirming the excluded build/
+source remains compiled while reconciliation abstains. Current run artifacts,
+correction table, source identity and the ZIP are regenerated from corrected code.

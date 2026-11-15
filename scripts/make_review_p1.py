@@ -41,12 +41,64 @@ def main():
     rev=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     branch=subprocess.check_output(['git','branch','--show-current'],cwd=ROOT,text=True).strip()
     subprocess.run(['git','merge-base','--is-ancestor','a3c7ac7afd7cff6137b916832cf40019ca8b8c87','HEAD'],cwd=ROOT,check=True)
+    correction_rows=[]
+    product_log=(directory/'product-tests.log').read_text()
+    correction_descriptions=['Excluded live/unsupported source blocks negative proof; real SDK Compile confirms it remains live.','Current reviewed/historical meaning is not owned by an earlier discovery ID.','Qualified project/type identities, all-member abstention, legacy review and no history reassignment.','Expected-revision audited reactivation, new exact approval, safe retries and deferred-return deduplication.','Included ignored bytes retain ignored/uncommitted provenance against actual HEAD/index.']
+    for i,description in enumerate(correction_descriptions,1):
+        tests=[line for line in product_log.splitlines() if line.startswith(f'test_r{i}_')]
+        assert tests and all(line.rstrip().endswith('ok') for line in tests),tests
+        correction_rows.append(dict(id=f'R{i}',status='PASS',implementation='knowledge.discovery'+(' + knowledge.lifecycle' if i==4 else ''),regressions=tests,command='.venv/bin/python -B -m unittest discover -s tests -p test_p1_r1.py -v',evidence=str((directory/'product-tests.log').relative_to(ROOT)),explanation=description))
+    save(OUT/'CORRECTION-STATUS.json',dict(phase='submitted-for-review',reviewed_commit='2a8664821d0f6512ecbce92280e25d6f19b3f32c',run_id=v['run_id'],source_identity=v['source_identity'],corrections=correction_rows,P2='not started'))
     rows=[dict(id=f'P1-A{i:02}',status=v['checks'][check]['status'],run_id=v['run_id'],source_identity=v['source_identity'],command='.venv/bin/python scripts/verify_p1.py',checks=commands,evidence=str((directory/(check+'.log')).relative_to(ROOT)),explanation=description) for i,(description,check,commands) in enumerate(MAPPINGS,1)]
-    save(OUT/'ACCEPTANCE.json',dict(run_id=v['run_id'],source_identity=v['source_identity'],conditions=rows,optional=[dict(name=n,status='NOT_RUN') for n in ('native Windows/NTFS','live OpenCode/model/tool-provider host','browser/SQL Server/Aspire deployment')]))
+    save(OUT/'ACCEPTANCE.json',dict(run_id=v['run_id'],source_identity=v['source_identity'],conditions=rows,corrections=correction_rows,optional=[dict(name=n,status='NOT_RUN') for n in ('native Windows/NTFS','live OpenCode/model/tool-provider host','browser/SQL Server/Aspire deployment')]))
     save(OUT/'SOURCE-REVISION.json',dict(baseline='a3c7ac7afd7cff6137b916832cf40019ca8b8c87',head=rev,branch=branch,delivery='uncommitted working tree; no automatic commit/push',run_id=v['run_id'],source_identity=v['source_identity'],files=v['source_files']))
     scan=discovery['scan'];categories={k:sum(o['category']==k for o in scan['observations']) for k in sorted({o['category'] for o in scan['observations']})}
     def report(name,text):(OUT/name).write_text(text,encoding='utf-8')
     common=f'Run `{v["run_id"]}`; source `{v["source_identity"]}`. Raw evidence: `runs/{v["run_id"]}/`.\n'
+    report('P1-R1-RESPONSE.md',f'''# P1 independent review R1–R5: consolidated correction
+
+{common}
+Reviewed implementation: 2a8664821d0f6512ecbce92280e25d6f19b3f32c.
+Working branch: {branch}. Submitted for review; not externally accepted. P2 untouched.
+The source inventory identifies this exact working tree; the final handoff commit
+is reported separately after committing the verified source and packet.
+
+| Review | Implementation | Executed regression evidence | Result |
+| --- | --- | --- | --- |
+'''+''.join(f"| {r['id']} | {r['explanation']} | {len(r['regressions'])} tests in test_p1_r1.py; current product-tests.log | {r['status']} |\n" for r in correction_rows)+f'''
+
+All 75 earlier product tests remain, plus the new correction regressions:
+{test_count} total tests, no skips. Fresh packaging, real stdio, P0 upgrades,
+crash/race, graph/history and genuine EM removal pass. The real SDK compile-item
+probe is in runs/{v['run_id']}/corrections.json and compile-items.log. Excluded
+build/Independent.cs remains in Compile while reconciliation refuses retirement.
+
+Identity-v3 keys use relative project paths and qualified lexical type names.
+Unresolved/partial groups are withheld in their entirety; identical literal
+presence occurrences in one file may be coalesced with anchors. Current eShop
+observations: {len(scan['observations'])}; withheld groups:
+{discovery.get('withheld_groups',0)}. The previous review had 536 observations and
+11 logged duplicate gaps. Counts changed because namespaces now distinguish
+entities and unsupported partial/colliding owners are actually withheld, rather
+than importing the first occurrence. Inspect discovery.json for exact groups.
+
+Legacy v1/v2 generated identities/records/queues/history are retained and never
+silently mapped. Legacy identity evidence needs explicit reviewed migration;
+compatibility reports expose the proposed new identity and old IDs. See the
+contract's manual add/supersede/closure procedure; ambiguous ownership remains
+historical/manual review. Old extractor checkpoints restart and source-bound
+approvals become stale. P0 payloads and v1 manual adds remain supported.
+
+Both ordinary retrieval defaults (10 claims, 16,000 bytes) and the larger diagnostic
+view retain the same five independent source expectations. All five ordinary
+queries passed. Fresh pinned application build and 49 tests before/49 after pass;
+no task-host success is inferred from the reviewer's unavailable environment.
+The identity/negative-coverage mechanism remains lexical and conservative;
+excluded source is not read to manufacture coverage. Partial types, ambiguous
+multi-project ownership, custom external inclusion and legacy identity resolution
+can require manual review. Superseded records/retired edges are not blindly revived.
+Native Windows/live provider/OpenCode/UI/database checks remain NOT_RUN.
+''')
     report('P1-REPORT.md',f'''# P1 implementation submitted for independent review
 
 {common}
@@ -87,7 +139,8 @@ Self-review repaired a real history/current graph interaction: retired edges mus
 not force a newly independent current payload to retain an obsolete dependency.
 It also tightened historical receipt ownership, upgrade backup binding, P0
 prepared-approval compatibility and scan identity exclusion of store journals.
-The final run was executed after these changes.
+The final run was executed after these changes. The independent R1–R5 corrections,
+compatibility/negative-coverage policy and regression table are in P1-R1-RESPONSE.md.
 
 Discovery is deliberately lexical. It proves source syntax, not business rationale,
 runtime dispatch, deployment availability or complete semantic analysis. Unsupported
@@ -205,7 +258,7 @@ results describe their earlier source identities. No external acceptance is clai
     # Snapshot only allowlisted source and this completed run; never old/diagnostic runs/caches.
     files=[ROOT/p for p in v['source_files']]
     files.extend(p for p in directory.rglob('*') if p.is_file() and not p.name.startswith('previous-'))
-    files.extend(OUT/n for n in ('P1-REPORT.md','P1-CONTRACTS.md','ACCEPTANCE.json','SOURCE-REVISION.json','DISCOVERY-REPORT.md','LIFECYCLE-REPORT.md','UPGRADE-RECOVERY-REPORT.md','CHANGE-SUMMARY.md','FUNCTIONAL-REVIEW.md','verification-summary.json','STATUS.json'))
+    files.extend(OUT/n for n in ('P1-REPORT.md','P1-CONTRACTS.md','ACCEPTANCE.json','SOURCE-REVISION.json','DISCOVERY-REPORT.md','LIFECYCLE-REPORT.md','UPGRADE-RECOVERY-REPORT.md','CHANGE-SUMMARY.md','FUNCTIONAL-REVIEW.md','CORRECTION-STATUS.json','P1-R1-RESPONSE.md','verification-summary.json','STATUS.json'))
     files=sorted(set(files));inventory={str(p.relative_to(ROOT)):dict(sha256=sha(p),bytes=p.stat().st_size) for p in files}
     save(OUT/'REVIEW-INVENTORY.json',inventory)
     packet=OUT/'P1-review.zip'

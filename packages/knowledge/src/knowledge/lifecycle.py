@@ -27,10 +27,11 @@ def envelope(value):
     seen=set()
     for op in value['operations']:
         require(isinstance(op,dict) and set(op)=={'action','kind','id','expected','payload','successor'},'invalid-operation-fields')
-        require(op['action'] in ('add','update','retire','supersede') and op['kind'] in ('claims','evidence','relationships'),'unsupported-operation')
+        require(op['action'] in ('add','update','retire','supersede','reactivate') and op['kind'] in ('claims','evidence','relationships'),'unsupported-operation')
         require(isinstance(op['id'],str) and op['id'] not in seen,'ambiguous-operation-target');seen.add(op['id'])
         require(type(op['expected']) is int and op['expected']>=0,'invalid-expected-revision')
-        if op['action'] in ('add','update'):
+        if op['action']=='reactivate':require(op['kind'] in ('claims','relationships'),'unsupported-reactivation-kind')
+        if op['action'] in ('add','update','reactivate'):
             require(op['successor'] is None and isinstance(op['payload'],dict) and op['payload'].get('id')==op['id'],'invalid-operation-payload')
             records=empty();records[op['kind']]=[op['payload']];shape(records)
             if op['kind']=='claims':require(bool(op['payload']['evidence']),'candidate-requires-evidence')
@@ -91,7 +92,7 @@ def simulate(store,db,items,check_source=True):
             if action=='add': require(prior is None and change['expected']==0,'record-id-conflict')
             else:
                 require(prior is not None and prior[0]==change['kind'],'unknown-operation-target')
-                require(states[i]['lifecycle']=='active','inactive-target')
+                require(states[i]['lifecycle']==('retired' if action=='reactivate' else 'active'),'invalid-reactivation-target' if action=='reactivate' else 'inactive-target')
             if action in ('update','add'):
                 current[i]=(change['kind'],change['payload']); states[i]={'lifecycle':'active'}
             else:
@@ -116,9 +117,9 @@ def apply_item(store,db,value,pid):
     from .store import checkpoint
     for change in value['operations']:
         i=change['id']; prior=db.execute('SELECT payload FROM records WHERE id=?',(i,)).fetchone()
-        payload=change['payload'] if change['action'] in ('add','update') else loads(prior[0])
+        payload=change['payload'] if change['action'] in ('add','update','reactivate') else loads(prior[0])
         if change['action']=='add':db.execute('INSERT INTO records VALUES (?,?,?)',(i,change['kind'],canonical_json(payload)))
-        elif change['action']=='update':db.execute('UPDATE records SET payload=? WHERE id=?',(canonical_json(payload),i))
+        elif change['action'] in ('update','reactivate'):db.execute('UPDATE records SET payload=? WHERE id=?',(canonical_json(payload),i))
         state={'retire':'retired','supersede':'superseded'}.get(change['action'],'active')
         append(db,i,change['kind'],payload,state,pid,value['reason'],value['source'],change['successor'])
         checkpoint('canonical-record-written')
@@ -184,13 +185,14 @@ def history(store,identifier):
 def active(store,db,records):
     if not enabled(db):return records
     states=latest(db)
-    from .discovery import freshness
-    allowed={c['id'] for c in records['claims'] if states[c['id']]['lifecycle']=='active' and freshness(store.project.root,c,records)['trusted']}
+    from .discovery import freshness,analysis_scope
+    scope=analysis_scope(store.project.root)
+    allowed={c['id'] for c in records['claims'] if states[c['id']]['lifecycle']=='active' and freshness(store.project.root,c,records,scope)['trusted']}
     while True:
         filtered={c['id'] for c in records['claims'] if c['id'] in allowed and all(d in allowed for d in c['depends_on'])}
         if filtered==allowed:break
         allowed=filtered
-    return dict(claims=[dict(c,conflicts_with=[i for i in c['conflicts_with'] if i in allowed],_p1={'lifecycle':'active','revision':states[c['id']]['revision'],'freshness':freshness(store.project.root,c,records)}) for c in records['claims'] if c['id'] in allowed],evidence=records['evidence'],
+    return dict(claims=[dict(c,conflicts_with=[i for i in c['conflicts_with'] if i in allowed],_p1={'lifecycle':'active','revision':states[c['id']]['revision'],'freshness':freshness(store.project.root,c,records,scope)}) for c in records['claims'] if c['id'] in allowed],evidence=records['evidence'],
                 relationships=[r for r in records['relationships'] if states[r['id']]['lifecycle']=='active' and r['from'] in allowed and r['to'] in allowed])
 
 

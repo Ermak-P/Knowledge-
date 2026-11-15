@@ -1,8 +1,8 @@
 # P1 implementation submitted for independent review
 
-Run `7c567e88b6b54922bcc21a8ae3a6ae3f`; source `e20dbd2635d808ce19366d90a0bb96b56ffbd730e5ed14b14e2fa1cfe8d3e96e`. Raw evidence: `runs/7c567e88b6b54922bcc21a8ae3a6ae3f/`.
+Run `776dcec359fe4b60abe9556eeb06722e`; source `7d604fc63ec0e5b28f9b55a6ed2d475bc9514d614d84a9af24760c9bf5c17e4b`. Raw evidence: `runs/776dcec359fe4b60abe9556eeb06722e/`.
 
-Branch `codex/knowledge-harness-p1`; baseline/HEAD `fb2cf7909f44518e967c84069a8a0c10b430947e`, with uncommitted P1 changes identified
+Branch `p1`; baseline/HEAD `2a8664821d0f6512ecbce92280e25d6f19b3f32c`, with uncommitted P1 changes identified
 by SOURCE-REVISION.json. Not externally accepted. P2 was not started.
 
 ## Actual verification
@@ -10,7 +10,7 @@ by SOURCE-REVISION.json. Not externally accepted. P2 was not started.
 `bash scripts/setup.sh`, then `.venv/bin/python scripts/setup_benchmark.py`,
 `.venv/bin/python scripts/verify_p1.py`, `.venv/bin/python scripts/make_review_p1.py`.
 Python 3.12.14, pinned SDK 10.0.404, SQLite, MCP 1.30.0 on Linux x64.
-75 product tests passed, including all 43 accepted P0 regressions;
+93 product tests passed, including all 43 accepted P0 regressions;
 no skips. Both wheels built and Knowledge ran in a dependency-free environment.
 Pinned application build and 49 unit tests passed before and 49 after P1
 integration, with zero failed or skipped tests. Real stdio sessions, killed
@@ -39,7 +39,8 @@ Self-review repaired a real history/current graph interaction: retired edges mus
 not force a newly independent current payload to retain an obsolete dependency.
 It also tightened historical receipt ownership, upgrade backup binding, P0
 prepared-approval compatibility and scan identity exclusion of store journals.
-The final run was executed after these changes.
+The final run was executed after these changes. The independent R1–R5 corrections,
+compatibility/negative-coverage policy and regression table are in P1-R1-RESPONSE.md.
 
 Discovery is deliberately lexical. It proves source syntax, not business rationale,
 runtime dispatch, deployment availability or complete semantic analysis. Unsupported

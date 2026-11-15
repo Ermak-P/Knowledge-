@@ -80,22 +80,26 @@ def main():
     assert len({o['project'] for o in r['observations'] if o['project'].startswith('src/')})>=3
     plan=approve(s);questions=[]
     for question,path,anchor,answer in EXPECTATIONS:
-        result=s.context(question,max_items=100,max_bytes=200000)
+        result=s.context(question)
+        diagnostic=s.context(question,max_items=100,max_bytes=200000)
         supported=any(answer in c['statement'] for c in result['claims'])
-        questions.append(dict(question=question,expected=answer,independent_anchor=anchor,path=path,status='PASS' if supported else 'FAIL',result=result))
+        questions.append(dict(question=question,expected=answer,independent_anchor=anchor,path=path,status='PASS' if supported else 'FAIL',result=result,diagnostic=diagnostic,ordinary_defaults={'max_items':10,'max_bytes':16000}))
     no=s.context('zxqvnonexistenthyperdrive');assert not no['claims']
     # Unconfirmed synthetic record is explicitly distinct from discovered real-source data.
     sys.path.insert(0,str(ROOT/'tests'));from fixtures import addition
     s.submit(addition('synthetic.uncertain','Synthetic hypothetical hyperdrive.','INFERRED'));approve(s)
     assert not s.context('hyperdrive')['claims'];assert s.context('hyperdrive',include_unconfirmed=True)['claims']==[] # no current source evidence
     count=len(s.status()['queue']);repeat=scan_all(s);assert len(s.status()['queue'])==count
-    save(out/'discovery.json',dict(scan=r,representative_inspection=inspected,candidates=s.export()['queue'],repeat_added_candidates=0,limitations=r['limits'],curated_input_used=False))
+    scope=disc.analysis_scope(project)
+    assert not set(scope['ambiguous']) & {c['id'] for c in s.export()['records']['claims']}
+    save(out/'discovery.json',dict(ambiguous_groups=scope['ambiguous'],withheld_groups=len(scope['ambiguous']),previous_review={'observations':536,'duplicate_gaps':11},scan=r,representative_inspection=inspected,candidates=s.export()['queue'],repeat_added_candidates=0,limitations=r['limits'],curated_input_used=False))
     save(out/'questions.json',dict(questions=questions,no_answer=no,unconfirmed='synthetic claim retained but excluded from trusted current: no verifiable checkout evidence',broad_accuracy_claim=False))
     after=tests('after-discovery')
     save(out/'benchmark.json',dict(pin=PIN,sdk=subprocess.check_output([str(sdk),'--version'],cwd=project,env=env,text=True).strip(),before=before,after=after))
     assert disc.git(project,'diff','HEAD')=='';assert disc.git(host,'diff','HEAD')==''
     save(out/'source-immutability.json',dict(pin=PIN,benchmark_tracked_diff='',original_tracked_diff='',source_manifest=r['snapshot'],copy=str(project)))
     controlled(out,scratch)
+    correction_evidence(out,scratch,sdk,env)
     # A lexical miss is a real failed evaluation, never rewritten as PASS.
     assert all(q['status']=='PASS' for q in questions),'Retrieval expectation failed; see questions.json'
 
@@ -125,6 +129,26 @@ def controlled(out,scratch):
     old=s.export();u=life.upgrade(s,life.upgrade_preview(s)['fingerprint']);new=s.export();assert {k:new[k] for k in old}==old
     s.recover();assert s.lookup('claims','synthetic.rule')['record']==old['records']['claims'][0]
     save(out/'upgrade.json',dict(synthetic=True,before=old,after=new,upgrade=u,recovery=s.status(),preserved_p0_fields=True))
+
+
+def correction_evidence(out,scratch,sdk,env):
+    """Real SDK compile-item check for the reviewer's excluded-live-source probe."""
+    from test_p1 import fixture,git,upgraded
+    root=scratch/'excluded-source';root.mkdir();fixture(root)
+    (root/'Tests/Independent.cs').write_text('public class UniqueDeclared {}\n')
+    git(root,'add','-A');git(root,'commit','-m','synthetic committed declaration')
+    store=upgraded(root);scan_all(store);approve(store);base=git(root,'rev-parse','HEAD')
+    (root/'Tests/build').mkdir();(root/'Tests/Independent.cs').rename(root/'Tests/build/Independent.cs')
+    git(root,'add','-A');git(root,'commit','-m','synthetic compile-included relocation')
+    result=subprocess.run([str(sdk),'msbuild','Tests/Tests.csproj','-getItem:Compile'],cwd=root,env=env,text=True,capture_output=True)
+    (out/'compile-items.log').write_text(result.stdout+result.stderr)
+    assert result.returncode==0,result.stderr
+    items=json.loads(result.stdout)['Items']['Compile']
+    assert any(item['Identity'].replace('\\','/')=='build/Independent.cs' for item in items)
+    after=scan_all(store,base=base,head='HEAD');reconciliation=disc.reconcile(store,after['id'])
+    assert reconciliation['proposal'] is None
+    save(out/'corrections.json',dict(compile_items=items,reconciliation=reconciliation,source_is_compile_item=True,
+         policy='inventory processing completion does not prove negative coverage',regressions='tests/test_p1_r1.py',reviewed_commit='2a8664821d0f6512ecbce92280e25d6f19b3f32c'))
 
 
 if __name__=='__main__':main()
