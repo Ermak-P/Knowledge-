@@ -18,6 +18,46 @@ def main():
     runtime=scratch/'owned runtime';venv.EnvBuilder(with_pip=True).create(runtime);python=python_at(runtime)
     command('prior-install',[python,'-I','-m','pip','install','--no-index','--no-deps',*sorted(wheels.glob('*.whl'))])
     root=scratch/'Nonempty accepted project';root.mkdir()
+    prior_versions=json.loads(command('prior-versions',[python,'-I','-c','import knowledge,harness,json;print(json.dumps([knowledge.__version__,harness.__version__]))']).stdout);assert prior_versions==['0.1.0','0.2.0']
+    native_probe=None
+    if os.name=='nt':
+        # Accepted P2 explicitly has no native Windows executor. Exercise that
+        # boundary with the actual old binaries; never patch their POSIX guards.
+        probe=scratch/'prior-native-probe.py';probe.write_text('''import sys,json,hashlib
+from pathlib import Path
+import knowledge
+assert Path(knowledge.__file__).is_relative_to(Path(sys.prefix))
+sys.path.insert(0,TESTS)
+from p2_fixtures import project,configuration
+from fixtures import addition
+from knowledge.store import Store
+from knowledge.util import KnowledgeError
+from harness.runtime import validate_config
+root=project(Path(ROOT));s=Store(root);s.init();s.submit(addition());p=s.prepare()['fingerprint'];s.apply(p,p);s.acknowledge(p)
+try:validate_config(configuration('http://127.0.0.1/v1/chat/completions'))
+except KnowledgeError as error:
+ assert error.code=='recipe-executable-must-be-absolute'
+ result={'prior_native_executor':'UNSUPPORTED_POSIX_ONLY','error':error.code}
+else:raise AssertionError('unexpected prior native execution support')
+result['files']={p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'.knowledge').rglob('*') if p.is_file()}
+print(json.dumps(result))
+'''.replace('TESTS',repr(str(ROOT/'tests'))).replace('ROOT',repr(str(root))),encoding='utf-8')
+        native_probe=json.loads(command('prior-native-unsupported-probe',[python,'-I',probe]).stdout)
+        command('adopt-current-install',[sys.executable,kit/'install.py','install','--env',runtime,'--profile','full','--adopt'])
+        refusal='''import json,hashlib
+from pathlib import Path
+from knowledge.store import Store
+from knowledge.util import KnowledgeError
+root=Path(ROOT)
+try:Store(root).validate()
+except KnowledgeError as error:assert error.code=='project-identity-mismatch'
+else:raise AssertionError('prior Windows root identity was silently rebound')
+files={p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'.knowledge').rglob('*') if p.is_file()}
+assert files==EXPECTED
+print(json.dumps({'prior_store_preserved':True,'unsupported_identity_rebind_refused':True}))
+'''.replace('ROOT',repr(str(root))).replace('EXPECTED',repr(native_probe['files']))
+        native_probe.update(json.loads(command('prior-native-state-preserved-refusal',[python,'-I','-c',refusal]).stdout))
+        root=scratch/'Native current state Ω';root.mkdir()
     fixture=scratch/'fixture.py';fixture.write_text('''import sys,json
 from pathlib import Path
 import knowledge,harness
@@ -27,8 +67,8 @@ from p3_state_fixtures import rich,logical
 root=Path(ROOT)
 print(json.dumps(rich(root),ensure_ascii=False))
 '''.replace('TESTS',repr(str(ROOT/'tests'))).replace('ROOT',repr(str(root))),encoding='utf-8')
-    result=json.loads(command('prior-nonempty-state',[python,'-I',fixture]).stdout);before=result['snapshot']
-    command('adopt-current-install',[sys.executable,kit/'install.py','install','--env',runtime,'--profile','full','--adopt'])
+    result=json.loads(command('native-nonempty-state' if native_probe else 'prior-nonempty-state',[python,'-I',fixture]).stdout);before=result['snapshot']
+    if not native_probe:command('adopt-current-install',[sys.executable,kit/'install.py','install','--env',runtime,'--profile','full','--adopt'])
     inspect=scratch/'inspect.py';inspect.write_text('import sys,json;sys.path.insert(0,'+repr(str(ROOT/'tests'))+');from p3_state_fixtures import logical;print(json.dumps(logical('+repr(str(root))+'),ensure_ascii=False))',encoding='utf-8')
     after=json.loads(command('current-inspect',[python,'-I',inspect]).stdout);assert after==before
     def maintain(name,args):return json.loads(command(name,[python,'-I','-m','knowledge.maintain_cli',*args,'--root',root]).stdout)
@@ -40,8 +80,8 @@ print(json.dumps(rich(root),ensure_ascii=False))
     command('new-queue',[python,'-I','-c',change]);(root/'user-after-upgrade.txt').write_text('PRESERVE USER BYTES',encoding='utf-8')
     restore=maintain('restore-preview',['restore-preview','--archive',scratch/'before-upgrade.zip','--recovery',scratch/'replaced-state']);save(preview,restore['preview']);maintain('restore-apply',['apply','--input',preview,'--approve',restore['fingerprint']])
     assert json.loads(command('restored-inspect',[python,'-I',inspect]).stdout)==before
-    command('rollback-code',[python,'-I','-m','pip','install','--no-index','--no-deps',*sorted(wheels.glob('*.whl'))])
-    old_versions=json.loads(command('rollback-versions',[python,'-I','-c','import knowledge,harness,json;print(json.dumps([knowledge.__version__,harness.__version__]))']).stdout);assert old_versions==['0.1.0','0.2.0']
+    if not native_probe:command('rollback-code',[python,'-I','-m','pip','install','--no-index','--no-deps',*sorted(wheels.glob('*.whl'))])
+    old_versions=json.loads(command('restored-code-versions' if native_probe else 'rollback-versions',[python,'-I','-c','import knowledge,harness,json;print(json.dumps([knowledge.__version__,harness.__version__]))']).stdout);assert old_versions==(['0.3.0rc1','0.3.0rc1'] if native_probe else ['0.1.0','0.2.0'])
     assert json.loads(command('rollback-inspect',[python,'-I',inspect]).stdout)==before
     command('reinstall-current',[sys.executable,kit/'install.py','install','--env',runtime,'--profile','full'])
     assert json.loads(command('reinstalled-inspect',[python,'-I',inspect]).stdout)==before
@@ -52,6 +92,6 @@ print(json.dumps(rich(root),ensure_ascii=False))
     after_resume=json.loads(command('after-resume-inspect',[python,'-I',inspect]).stdout)
     assert after_resume['knowledge']==before['knowledge']
     assert after_resume['runs'][[r['id'] for r in after_resume['runs']].index(pending['id'])]['requests']==pending['requests']
-    save(out/'prior-upgrade.json',dict(accepted_commit=PIN,prior_versions=old_versions,before=before,after_install=after,after_upgrade=after_upgrade,restore_preserved_state=True,rollback_code_and_data=True,reinstall_preserved=True,outbox_resume=resumed,after_resume=after_resume,all_authority_and_dispositions_preserved=True,source_user_bytes_preserved=True))
-    print('PASS: accepted installed P2 rich state, current upgrade, exact backup/restore, real prior code/data rollback and reinstall/outbox recovery.')
+    save(out/'prior-upgrade.json',dict(profile='windows-native-current-state-and-prior-refusal' if native_probe else 'linux-accepted-prior-binaries',accepted_commit=PIN,prior_versions=prior_versions,prior_native_probe=native_probe,prior_native_code_upgrade='UNSUPPORTED' if native_probe else 'PASS',before=before,after_install=after,after_upgrade=after_upgrade,restore_preserved_state=True,rollback_code_and_data=not bool(native_probe),native_metadata_rollback=bool(native_probe),reinstall_preserved=True,outbox_resume=resumed,after_resume=after_resume,all_authority_and_dispositions_preserved=True,source_user_bytes_preserved=True))
+    print('PASS: native current-state upgrade/backup/restore/reinstall, preserved prior-store refusal; old P2 native code upgrade/rollback UNSUPPORTED.' if native_probe else 'PASS: accepted installed P2 rich state, current upgrade, exact backup/restore, real prior code/data rollback and reinstall/outbox recovery.')
 if __name__=='__main__':main()

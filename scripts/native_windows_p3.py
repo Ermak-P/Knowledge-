@@ -16,6 +16,9 @@ def main():
     version=json.loads(subprocess.check_output([ps,'-NoProfile','-Command','$PSVersionTable | Select-Object PSEdition,@{N="Version";E={$_.PSVersion.ToString()}} | ConvertTo-Json -Compress'],text=True,encoding='utf-8-sig'))
     assert version['PSEdition']=='Desktop' and version['Version'].startswith('5.1.')
     results=json.loads((a.ledger.parent/'regressions/tests.json').read_text(encoding='utf-8'));assert results['preserved'] and results['skipped']==0 and results['success']
+    lifecycle=json.loads((a.ledger.parent/'prior-upgrade/prior-upgrade.json').read_text(encoding='utf-8'))
+    assert lifecycle['profile']=='windows-native-current-state-and-prior-refusal' and lifecycle['native_metadata_rollback'] and lifecycle['reinstall_preserved']
+    assert lifecycle['prior_native_code_upgrade']=='UNSUPPORTED' and lifecycle['prior_native_probe']['prior_store_preserved'] and lifecycle['prior_native_probe']['unsupported_identity_rebind_refused']
     native_cases=[r for r in results['results'] if '.NativeWindowsSafety.' in r['test'] or '.PlatformSafety.' in r['test']];assert len(native_cases)>=7 and all(r['status']=='PASS' for r in native_cases)
     with tempfile.TemporaryDirectory(prefix='PS51 путь ') as tmp:
         tmp=Path(tmp);runtime=tmp/'Native Env';kit=a.kit.absolute()
