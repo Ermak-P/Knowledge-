@@ -24,15 +24,25 @@ def create_server(root):
         # outside the application budget; this exact UTF-8 text is inside it.
         return CallToolResult(content=[TextContent(type='text',text=canonical_json(value))])
 
-    @server.tool()
-    def knowledge_get_claim(identifier:str)->dict:
-        """Read a claim by stable ID."""
-        return call(store.lookup,'claims',identifier)
+    def bounded(value,max_bytes):
+        if type(max_bytes) is not int or not 256<=max_bytes<=1000000:
+            value={'ok':False,'error':'invalid-byte-budget'}
+        elif len(canonical_json(value).encode())>max_bytes:
+            value={'ok':True,'result':'budget-too-small','records':[]}
+        return CallToolResult(content=[TextContent(type='text',text=canonical_json(value))])
 
     @server.tool()
-    def knowledge_get_evidence(identifier:str)->dict:
+    def knowledge_get_claim(identifier:str,history:bool=False,max_bytes:int=16000)->CallToolResult:
+        """Read a claim by stable ID."""
+        if history:
+            from .lifecycle import history as read_history
+            return bounded(call(read_history,store,identifier),max_bytes)
+        return bounded(call(store.lookup,'claims',identifier),max_bytes)
+
+    @server.tool()
+    def knowledge_get_evidence(identifier:str,max_bytes:int=16000)->CallToolResult:
         """Read evidence by stable ID."""
-        return call(store.lookup,'evidence',identifier)
+        return bounded(call(store.lookup,'evidence',identifier),max_bytes)
     return server
 
 

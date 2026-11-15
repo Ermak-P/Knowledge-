@@ -298,6 +298,7 @@ class ContextEngine:
                      'confirmed': claim['status'] == CONFIRMED, 'type': claim['type'],
                      'statement': claim['statement'], 'last_verified': claim['last_verified'],
                      'provenance': claim['provenance'], 'evidence_ids': claim['evidence'], 'conflicts_with': claim['conflicts_with']}
+            if '_p1' in claim:entry['current']=claim['_p1']
             if not compact:
                 entry['score'] = score
                 entry['score_breakdown'] = doc['breakdown']
