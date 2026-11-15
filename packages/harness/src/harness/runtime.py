@@ -214,7 +214,7 @@ def validate_config(value):
     for name,recipe in value['recipes'].items():
         require(isinstance(name,str) and name.isidentifier(),'invalid-recipe-name')
         require(isinstance(recipe,dict) and set(recipe)=={'kind','argv','result','rerun_safe','env'},'invalid-recipe')
-        require(recipe['kind'] in ('build','test') and isinstance(recipe['argv'],list) and 0<len(recipe['argv'])<=40 and all(isinstance(a,str) and len(a)<=2000 for a in recipe['argv']),'invalid-recipe-argv')
+        require(recipe['kind'] in ('build','test') and isinstance(recipe['argv'],list) and 0<len(recipe['argv'])<=40 and all(isinstance(a,str) and len(a)<=2000 and '\0' not in a for a in recipe['argv']),'invalid-recipe-argv')
         if os.name=='nt':require(not recipe['argv'][0].startswith(('\\\\','//')) and len(Path(recipe['argv'][0]).drive)==2,'unsupported-windows-executable-path')
         require(Path(recipe['argv'][0]).is_absolute() and Path(recipe['argv'][0]).is_file(),'recipe-executable-must-be-absolute')
         require(type(recipe['rerun_safe']) is bool and isinstance(recipe['env'],dict),'invalid-recipe-options')
@@ -253,6 +253,10 @@ def recipe_inputs(project,configuration,task):
     def include(argument,executable=False):
         p=Path(argument)
         if not p.is_absolute():p=project.root/p
+        if os.name=='nt' and p.is_file():
+            from knowledge.project import windows_spelling,linked
+            windows_spelling(p)
+            require(not any(linked(part) for part in (p,*p.parents)),'linked-path')
         canonical=Path(os.path.abspath(p))
         if not canonical.is_relative_to(project.root):return
         if not p.is_file():return

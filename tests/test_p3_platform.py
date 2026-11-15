@@ -110,6 +110,15 @@ with tempfile.TemporaryDirectory(prefix='protocol-') as tmp:
 
 @unittest.skipUnless(os.name=='nt','native Windows/NTFS validation is not a Linux result')
 class NativeWindowsSafety(unittest.TestCase):
+    def test_external_junction_cannot_hide_project_verifier_input(self):
+        with tempfile.TemporaryDirectory() as tmp,http_provider(FixtureProvider(path='verify.py',desired='print("fake success")')) as endpoint:
+            base=Path(tmp);root=project(base/'Project');verify=root/'verify.py';verify.write_text('raise RuntimeError("trusted check")\n',encoding='utf-8');before=verify.read_bytes()
+            alias=base/'Outside alias';made=subprocess.run(['cmd.exe','/d','/c','mklink','/J',str(alias),str(root)],capture_output=True,text=True);self.assertEqual(made.returncode,0,made.stderr)
+            config=configuration(endpoint);config['recipes']['test']['argv']=[sys.executable,str(alias/'verify.py')];configure(root,config,True)
+            t=task();t['writable']=['*']
+            with self.assertRaisesRegex(KnowledgeError,'linked-path'):engine.start(root,t)
+            self.assertEqual(verify.read_bytes(),before)
+            alias.rmdir()
     def test_native_recipe_uses_selected_user_temp_without_secret_inheritance(self):
         with tempfile.TemporaryDirectory(prefix='Native temp ') as tmp,http_provider(FixtureProvider()) as endpoint:
             base=Path(tmp);root=project(base/'Project');user_temp=base/'Temp Ω';user_temp.mkdir()
