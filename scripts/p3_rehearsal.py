@@ -1,5 +1,5 @@
 """Fresh release-only UMUH-like rehearsal with actual HTTP/.NET/storage effects."""
-import argparse,asyncio,hashlib,json,os,shutil,subprocess,sys,tempfile,time
+import argparse,asyncio,hashlib,json,os,shutil,subprocess,sys,tempfile,threading,time
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'tests'))
@@ -80,7 +80,20 @@ def main():
                         if name=='harness_companion':
                             bad=await session.call_tool('harness_run',{'task_name':'not-enrolled'});assert not json.loads(bad.content[0].text)['ok']
                             result=await session.call_tool('harness_run',{'task_name':'approved_task'});protocol[name]['run']=json.loads(result.content[0].text)
-        before_canonical=driver('snapshot')['knowledge'];asyncio.run(mcp_calls());outcome=protocol['harness_companion']['run'];assert outcome['ok'],outcome
+        before_canonical=driver('snapshot')['knowledge']
+        # Preserve actual installed journal diagnostics if a native host request
+        # stalls. This is observation only, never a substitute for its result.
+        stopped=threading.Event()
+        def observe_protocol():
+            while not stopped.wait(30):
+                try:
+                    observed=subprocess.run([str(python),'-I',str(ROOT/'tests/p3_installed_driver.py'),'snapshot','--root',str(root)],cwd=root,env=baseenv,stdin=subprocess.DEVNULL,capture_output=True,timeout=15)
+                    (out/'protocol-progress.log').write_bytes(observed.stdout+observed.stderr)
+                except Exception as error:save(out/'protocol-progress-error.json',{'error':str(error)})
+        observer=threading.Thread(target=observe_protocol,daemon=True);observer.start()
+        try:asyncio.run(mcp_calls())
+        finally:stopped.set();observer.join(timeout=20)
+        outcome=protocol['harness_companion']['run'];assert outcome['ok'],outcome
         state1=driver('snapshot');assert state1['knowledge']['records']==before_canonical['records'] and state1['knowledge']['history']==before_canonical['history']
         pending=[q for q in state1['knowledge']['queue'] if q['status']=='pending'];assert len(pending)==1
         candidate1=pending[0];identifier=next(o['id'] for o in candidate1['payload']['operations'] if o['kind']=='claims')

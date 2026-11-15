@@ -22,14 +22,16 @@ def process_info(pid):
     return result
 
 def launch_worker(argv,env,lease):
+    # All supervisor input is persisted in the journal. Inheriting a host's
+    # overlapped MCP stdin can stall native Python startup and retain its pipe.
     descriptors=lease.lock.fds
-    if os.name!='nt':return subprocess.Popen(argv,env=env,pass_fds=descriptors,start_new_session=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    if os.name!='nt':return subprocess.Popen(argv,env=env,pass_fds=descriptors,start_new_session=True,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     import ctypes
     from .windows import k,INHERIT
     try:
         for fd in descriptors:require(bool(k.SetHandleInformation(fd,INHERIT,INHERIT)),'lease-handle-inherit-failed')
         startup=subprocess.STARTUPINFO();startup.lpAttributeList={'handle_list':list(descriptors)}
-        return subprocess.Popen(argv,env=env,startupinfo=startup,close_fds=True,creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        return subprocess.Popen(argv,env=env,startupinfo=startup,close_fds=True,creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     finally:
         for fd in descriptors:k.SetHandleInformation(fd,INHERIT,0)
 

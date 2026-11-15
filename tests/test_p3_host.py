@@ -1,11 +1,42 @@
-import tempfile,unittest,json
+import asyncio,tempfile,unittest,json,sys
+from datetime import timedelta
 from pathlib import Path
 from knowledge.util import KnowledgeError
 from harness import companion
 from harness.runtime import configure
-from p2_fixtures import project,configuration,task
+from p2_fixtures import project,configuration,task,http_provider,FixtureProvider
 
 class CompanionTests(unittest.TestCase):
+    def test_configured_stdio_companion_executes_real_guarded_recipes(self):
+        from mcp import ClientSession,StdioServerParameters
+        from mcp.client.stdio import stdio_client
+        from knowledge.store import Store
+        from harness.engine import status
+        from harness.runtime import Journal
+        provider=FixtureProvider()
+        with tempfile.TemporaryDirectory(prefix='Companion Ω ') as tmp,http_provider(provider) as endpoint:
+            root=project(tmp);configure(root,configuration(endpoint),True)
+            (root/'task.json').write_text(json.dumps(task()),encoding='utf-8')
+            plan=companion.preview(root,'task.json');companion.apply(root,plan['preview'],plan['fingerprint'])
+            entry=json.loads((root/'opencode.json').read_text(encoding='utf-8'))['mcp']['servers']['harness_companion']
+            async def execute():
+                async with asyncio.timeout(120):
+                    async with stdio_client(StdioServerParameters(command=entry['command'][0],args=entry['command'][1:])) as (read,write):
+                        async with ClientSession(read,write,read_timeout_seconds=timedelta(seconds=90)) as session:
+                            await session.initialize()
+                            result=await session.call_tool('harness_run',{'task_name':'approved_task'})
+                            return json.loads(result.content[0].text)
+            try:outcome=asyncio.run(execute())
+            except Exception:
+                journal=Journal(root)
+                print(json.dumps({'companion_failure_state':[{'run':run,'actions':journal.actions(run['id'])} for run in journal.runs()]}),file=sys.stderr)
+                raise
+            self.assertTrue(outcome['ok'],outcome)
+            self.assertEqual((root/'Feature.cs').read_text(encoding='utf-8'),provider.desired)
+            report=status(root,outcome['run_id'])
+            self.assertTrue(report['run']['gates']['build']['ok']);self.assertTrue(report['run']['gates']['test']['ok'])
+            store=Store(root);self.assertFalse(store.export()['records']['claims']);self.assertTrue(store.status()['queue'])
+
     def test_exact_local_merge_task_digest_doctor_and_reversible_bytes(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=project(tmp);configure(root,configuration('http://127.0.0.1/v1/chat/completions'),True)
