@@ -7,6 +7,16 @@ import json,os,shutil,subprocess,tempfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 def git(*args,cwd=ROOT):return subprocess.check_output(['git',*args],cwd=cwd,text=True).strip()
+def copy_run(source,target):
+    source=Path(source)
+    # Attempt archives superseded packets at its root. A recursive previous-*
+    # exclusion also drops prior-upgrade/previous-wheels, which is live evidence.
+    def superseded(directory,names):
+        return [name for name in names if name.startswith('previous-')] if Path(directory)==source else []
+    shutil.copytree(source,target,ignore=superseded)
+def preserve_bytes(repo):
+    subprocess.run(['git','config','core.autocrlf','false'],cwd=repo,check=True)
+    (Path(repo)/'.gitattributes').write_bytes(b'* -text\n')
 def main():
     assert os.environ.get('GITHUB_ACTIONS')=='true','CI-only receipt transport'
     sha=os.environ['GITHUB_SHA'];job=os.environ['P3_CI_PLATFORM'];branch='p3-ci-evidence'
@@ -22,8 +32,9 @@ def main():
         existing=subprocess.run(['git','fetch','origin',branch],cwd=repo,capture_output=True)
         if existing.returncode==0:subprocess.run(['git','checkout','-b',branch,'FETCH_HEAD'],cwd=repo,check=True)
         else:subprocess.run(['git','checkout','--orphan',branch],cwd=repo,check=True)
+        preserve_bytes(repo)
         target=repo/sha/job;target.mkdir(parents=True,exist_ok=True)
-        shutil.copyfile(summary,target/'verification-summary.json');shutil.copytree(evidence/'runs'/run,target/'runs'/run,ignore=shutil.ignore_patterns('previous-*'))
+        shutil.copyfile(summary,target/'verification-summary.json');copy_run(evidence/'runs'/run,target/'runs'/run)
         subprocess.run(['git','config','user.name','github-actions[bot]'],cwd=repo,check=True);subprocess.run(['git','config','user.email','41898282+github-actions[bot]@users.noreply.github.com'],cwd=repo,check=True)
         subprocess.run(['git','add','.'],cwd=repo,check=True);subprocess.run(['git','commit','-m','Retain P3 '+job+' evidence for '+sha],cwd=repo,check=True)
         for attempt in range(4):
