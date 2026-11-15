@@ -58,7 +58,15 @@ class Attempt:
     def persist(self):save(self.dir/'run.json',self.value);save(OUT/'verification-summary.json',self.value)
     def command(self,name,args,not_run=False):
         folder=self.dir/name;folder.mkdir(exist_ok=True);log=folder/'command.log';self.value['checks'][name]={'status':'IN_PROGRESS','command':[str(a) for a in args]};self.persist()
-        with log.open('w',encoding='utf-8') as out:p=subprocess.run([str(a) for a in args],cwd=ROOT,stdout=out,stderr=subprocess.STDOUT,env={**os.environ,'PYTHONUTF8':'1','PYTHONIOENCODING':'utf-8'})
+        # Keep an infrastructure hang from exhausting the whole CI job before
+        # its always-run artifact upload/receipt steps can preserve diagnostics.
+        timeout=600 if name=='regressions' else 900
+        with log.open('w',encoding='utf-8') as out:
+            try:
+                p=subprocess.run([str(a) for a in args],cwd=ROOT,stdout=out,stderr=subprocess.STDOUT,timeout=timeout,env={**os.environ,'PYTHONUTF8':'1','PYTHONIOENCODING':'utf-8'})
+            except subprocess.TimeoutExpired:
+                out.write('\nVerification check exceeded its '+str(timeout)+' second bound; FAIL.\n');out.flush()
+                p=subprocess.CompletedProcess(args,124)
         self.value['checks'][name].update(status='NOT_RUN' if not_run and p.returncode==0 else 'PASS' if p.returncode==0 else 'FAIL',returncode=p.returncode,artifacts={p.relative_to(OUT).as_posix():sha(p) for p in sorted(folder.rglob('*')) if p.is_file()})
         self.persist();assert p.returncode==0,log.read_text(encoding='utf-8')[-4000:];print(name+': '+self.value['checks'][name]['status'],flush=True)
     def finish(self,status):
