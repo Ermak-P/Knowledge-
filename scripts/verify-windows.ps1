@@ -15,12 +15,22 @@ $env:TEMP = $FixtureTemp
 $env:TMP = $FixtureTemp
 $env:TMPDIR = $FixtureTemp
 Set-Location (Split-Path $PSScriptRoot -Parent)
-$Py = Get-Command py -ErrorAction SilentlyContinue
-if ($Py) {
-  & $Py.Source -3.12 scripts/setup_p3.py
-} else {
-  & python scripts/setup_p3.py
+$SelectedPython = $env:KNOWLEDGE_PYTHON
+$PythonArgs = @()
+if (-not $SelectedPython) {
+  $Candidate = Get-Command python -ErrorAction SilentlyContinue
+  if ($Candidate) {
+    & $Candidate.Source -c 'import sys; sys.exit(0 if sys.version_info[:2] == (3, 12) else 1)'
+    if ($LASTEXITCODE -eq 0) { $SelectedPython = $Candidate.Source }
+  }
+  if (-not $SelectedPython) {
+    $Launcher = Get-Command py -ErrorAction SilentlyContinue
+    if (-not $Launcher) { throw 'Python 3.12 is required; select its executable with KNOWLEDGE_PYTHON.' }
+    $SelectedPython = $Launcher.Source
+    $PythonArgs = @('-3.12')
+  }
 }
+& $SelectedPython @PythonArgs scripts/setup_p3.py
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 $Python = Join-Path (Get-Location) '.venv\Scripts\python.exe'
 & $Python -X utf8 -B scripts/setup_benchmark.py

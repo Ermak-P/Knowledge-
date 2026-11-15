@@ -2,7 +2,7 @@
 
 Python 3.12 x64 is the declared runtime. The kit keeps distribution names knowledge-p0 and harness-p0, version 0.3.0rc1, and existing CLI/import names. Windows release qualification is independent of implementation; consult QUALIFICATION.json. Verify the external ZIP SHA-256 before extracting. No SDK/model/cache or project data is part of the distribution.
 
-From an extracted kit: `python install.py install --env "/new path/Knowledge Env" --profile knowledge`. Use `install.sh` on POSIX or `install.ps1` under Windows PowerShell 5.1. Both propagate failures and quote arguments. The launcher discovers Python; `KNOWLEDGE_PYTHON` selects it on POSIX. Python must already exist; an incompatible Python/venv is preserved and refused.
+From an extracted kit: `python install.py install --env "/new path/Knowledge Env" --profile knowledge`. Use `install.sh` on POSIX or `install.ps1` under Windows PowerShell 5.1. Both propagate failures and quote arguments. The launcher discovers Python; `KNOWLEDGE_PYTHON` selects an explicit executable on both launchers; otherwise the Windows launcher prefers a supported Python on PATH before the py -3.12 fallback. Python must already exist; an incompatible Python/venv is preserved and refused.
 
 Core install is offline: two local pure-Python wheels, `pip --no-index --no-deps`, ensurepip from the declared Python. Knowledge-only installs one wheel, imports no Harness/MCP and needs no model service. Add Harness by repeating with `--profile full` in the same owned environment. This creates an environment ownership marker; existing unmarked venvs require explicit `--adopt`, which grants only product package installation/removal and never venv deletion. Run `python install.py doctor --env PATH`.
 
