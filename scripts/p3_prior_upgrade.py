@@ -89,11 +89,11 @@ assert Path(knowledge.__file__).is_relative_to(Path(sys.prefix))
 sys.path.insert(0,TESTS)
 from p3_state_fixtures import rich,logical
 root=Path(ROOT)
-print(json.dumps(rich(root),ensure_ascii=False))
+print(json.dumps(rich(root)))
 '''.replace('TESTS',repr(str(ROOT/'tests'))).replace('ROOT',repr(str(root))),encoding='utf-8')
     result=json.loads(command('native-nonempty-state' if native_probe else 'prior-nonempty-state',[python,'-I',fixture]).stdout);before=result['snapshot']
     if not native_probe:command('adopt-current-install',[sys.executable,kit/'install.py','install','--env',runtime,'--profile','full','--adopt'])
-    inspect=scratch/'inspect.py';inspect.write_text('import sys,json;sys.path.insert(0,'+repr(str(ROOT/'tests'))+');from p3_state_fixtures import logical;print(json.dumps(logical('+repr(str(root))+'),ensure_ascii=False))',encoding='utf-8')
+    inspect=scratch/'inspect.py';inspect.write_text('import sys,json;sys.path.insert(0,'+repr(str(ROOT/'tests'))+');from p3_state_fixtures import logical;print(json.dumps(logical('+repr(str(root))+')))',encoding='utf-8')
     after=json.loads(command('current-inspect',[python,'-I',inspect]).stdout);assert after==before
     def maintain(name,args):return json.loads(command(name,[python,'-I','-m','knowledge.maintain_cli',*args,'--root',root]).stdout)
     plan=maintain('upgrade-preview',['upgrade-preview','--destination',scratch/'before-upgrade.zip']);preview=scratch/'preview.json';save(preview,plan['preview']);upgrade=maintain('upgrade-apply',['apply','--input',preview,'--approve',plan['fingerprint']]);assert upgrade['ok']

@@ -3,7 +3,7 @@ import argparse,json,sys,importlib.util
 from pathlib import Path
 from knowledge.store import Store
 from knowledge import lifecycle as life,discovery as disc,__version__
-from knowledge.util import canonical_json,loads,read_text
+from knowledge.util import emit_json,loads,read_text
 
 def approve(s):
     p=s.prepare();assert p['ok'],p;s.apply(p['fingerprint'],p['fingerprint']);s.acknowledge(p['fingerprint']);return p
@@ -53,5 +53,5 @@ def main():
         evidence=dict(id='rehearsal.uncertain.evidence',type='direct-technical',status='active',source='unknown.cs',location='unknown.cs#L1',description='Synthetic unsupported interpretation',substantiates=[claim['id']],captured_at='2026-11-15T00:00:00Z',provenance=claim['provenance'])
         s.submit({'version':1,'operation':'add','records':{'claims':[claim],'evidence':[evidence],'relationships':[]}});approve(s);value=s.context('hypothetical',include_unconfirmed=True);assert not value['claims']
     else:raise ValueError('unknown installed fixture command')
-    print(canonical_json(value))
+    emit_json(value)
 if __name__=='__main__':main()

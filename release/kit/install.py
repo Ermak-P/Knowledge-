@@ -55,7 +55,7 @@ def main():
         require(previous is not None,'installation marker absent')
         code='import importlib.metadata as m,json,sys; print(json.dumps({"python":sys.version,"prefix":sys.prefix,"packages":{n:m.version(n) for n in '+repr(previous['owned_packages'])+'}}))'
         value=json.loads(subprocess.check_output([str(python),'-I','-c',code],text=True));value['marker']=previous
-    print(json.dumps(dict(ok=True,result=value,platform=platform.platform()),ensure_ascii=False));return 0
+    print(json.dumps(dict(ok=True,result=value,platform=platform.platform())));return 0
 if __name__=='__main__':
     try:raise SystemExit(main())
-    except (RuntimeError,OSError,ValueError,subprocess.CalledProcessError) as error:print(json.dumps(dict(ok=False,error=str(error)),ensure_ascii=False));raise SystemExit(1)
+    except (RuntimeError,OSError,ValueError,subprocess.CalledProcessError) as error:print(json.dumps(dict(ok=False,error=str(error))));raise SystemExit(1)
