@@ -1,3 +1,4 @@
+from contextlib import closing
 """Exact-approved lifecycle tooling for root-bound Knowledge/Harness state.
 
 Execution lease -> exclusive maintenance gate -> SQLite backup/read snapshots.
@@ -36,7 +37,7 @@ def frozen(root,recovery=False):
             harness_db=project.root/'.harness/runs.sqlite3'
             if harness_db.exists():
                 try:
-                    with sqlite3.connect(harness_db.as_uri()+'?mode=ro',uri=True) as db:
+                    with closing(sqlite3.connect(harness_db.as_uri()+'?mode=ro',uri=True)) as db:
                         rows=[(r,i,loads(p)) for r,i,p in db.execute('SELECT run,id,payload FROM actions')]
                 except sqlite3.DatabaseError as e:raise KnowledgeError('maintenance-database-corrupt-or-unsupported') from e
                 if any(a.get('process_spec') and not a.get('process_result') for _,_,a in rows):
@@ -124,7 +125,7 @@ def snapshot(project,allow_absent=False):
     require(product_state is None or (isinstance(product_state,dict) and type(product_state.get('version')) is int and product_state.get('version')==1 and product_state.get('product')==__version__),'unsupported-maintenance-version')
     extension=None
     if '.knowledge' in counts:
-        with sqlite3.connect((project.root/'.knowledge/store.sqlite3').as_uri()+'?mode=ro',uri=True) as db:extension=1 if dict(db.execute('SELECT key,value FROM metadata')).get('p1')=='1' else None
+        with closing(sqlite3.connect((project.root/'.knowledge/store.sqlite3').as_uri()+'?mode=ro',uri=True)) as db:extension=1 if dict(db.execute('SELECT key,value FROM metadata')).get('p1')=='1' else None
     formats={'knowledge':'knowledge-sqlite-v1' if '.knowledge' in counts else None,'extension':extension,'harness':1 if '.harness' in counts else None}
     return dict(version=1,project=project.identity,root=str(project.root),platform=profile(),product=__version__,formats=formats,source=first,files={p:sha(data) for p,data in files.items()},counts=counts,product_state=product_state),files
 

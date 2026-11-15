@@ -17,19 +17,31 @@ SUFFIXES={'.cs','.csproj','.props','.targets','.sln','.json','.md','.yaml','.yml
 LIMIT=512000
 
 
+def has_git(root):
+    return any((p/'.git').exists() for p in (Path(root),*Path(root).parents))
+
+def git_process(root,*args,input=None):
+    try:return subprocess.run(['git','-C',str(root),*args],input=input,capture_output=True,timeout=15,env={**os.environ,'GIT_OPTIONAL_LOCKS':'0','GIT_TERMINAL_PROMPT':'0'})
+    except subprocess.TimeoutExpired as e:raise KnowledgeError('git-operation-timeout') from e
+    except FileNotFoundError as e:raise KnowledgeError('git-unavailable-for-existing-checkout') from e
+
 def git(root,*args,required=False):
-    p=subprocess.run(['git','-C',str(root),*args],capture_output=True)
+    if not has_git(root):
+        require(not required,'invalid-git-range-or-checkout');return None
+    p=git_process(root,*args)
     if required:require(p.returncode==0,'invalid-git-range-or-checkout')
     return p.stdout.decode('utf-8','replace').strip() if p.returncode==0 else None
 
 
 def inventory(root,base=None,head=None):
-    root=Path(root); files={}; excluded=[]
+    root=Path(root); files={}; excluded=[];repo=has_git(root);blobs={}
+    object_format=git(root,'rev-parse','--show-object-format',required=True) if repo else 'sha1'
+    require(object_format in ('sha1','sha256'),'unsupported-git-object-format')
     for folder,dirs,names in os.walk(root,followlinks=False):
         parent=Path(folder)
         for name in list(dirs):
             p=parent/name
-            if name in EXCLUDED or p.is_symlink() or name.startswith('.'):
+            if name in EXCLUDED or p.is_symlink() or p.is_junction() or name.startswith('.'):
                 excluded.append({'path':p.relative_to(root).as_posix(),'status':'excluded','reason':'dependency/generated/hidden or linked directory'})
                 dirs.remove(name)
         for name in names:
@@ -37,7 +49,9 @@ def inventory(root,base=None,head=None):
             if p.is_symlink() or p.suffix.lower() not in SUFFIXES or re.search(r'(?i)(secret|credential|\.env|appsettings\.(?!json)|\.g\.cs|\.designer\.cs)',name):
                 excluded.append({'path':rel,'status':'excluded','reason':'binary/unsupported/generated/credential-risk'});continue
             try:
+                safe_path(p)
                 with p.open('rb') as source:data=source.read(LIMIT+1)
+                if repo:blobs[rel]=hashlib.new(object_format,b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
                 text=data.decode('utf-8-sig')
                 require(len(data)<=LIMIT,'source-too-large')
                 files[rel]={'hash':'sha256:'+hashlib.sha256(data).hexdigest(),'status':'not-analyzed','partition':'.','bytes':len(data)}
@@ -68,7 +82,7 @@ def inventory(root,base=None,head=None):
         require(h==revision,'checkout-requested-head-first')
         git(root,'merge-base','--is-ancestor',b,h,required=True)
         delta={'base':b,'head':h,'committed':git(root,'diff','--name-status','-M',b,h,required=True)}
-    dirty_raw=subprocess.run(['git','-C',str(root),'status','--porcelain=v1','-z','--untracked-files=all'],capture_output=True)
+    dirty_raw=git_process(root,'status','--porcelain=v1','-z','--untracked-files=all') if repo else subprocess.CompletedProcess([],128,b'',b'')
     dirty=[]
     fields=dirty_raw.stdout.decode('utf-8','replace').split('\0');index=0
     while index<len(fields):
@@ -81,7 +95,7 @@ def inventory(root,base=None,head=None):
         allowed=path in files or (status.strip()=='D' and Path(path).suffix in SUFFIXES and not any(p in EXCLUDED or p.startswith('.') for p in Path(path).parts))
         if allowed:dirty.append({'path':path,'status':status,'original':original})
     dirty=sorted(dirty,key=lambda x:x['path'])
-    index_raw=subprocess.run(['git','-C',str(root),'ls-files','--stage','-z'],capture_output=True)
+    index_raw=git_process(root,'ls-files','--stage','-z') if repo else subprocess.CompletedProcess([],128,b'',b'')
     index_blobs={}
     for entry in index_raw.stdout.decode('utf-8','replace').split('\0'):
         if '\t' not in entry:continue
@@ -92,17 +106,21 @@ def inventory(root,base=None,head=None):
                 files[path].update(status='blocked',reason='unmerged Git index requires resolution')
 
     if revision:
-        head_raw=subprocess.run(['git','-C',str(root),'ls-tree','-r','-z',revision],capture_output=True,check=True)
+        head_raw=git_process(root,'ls-tree','-r','-z',revision);require(head_raw.returncode==0,'invalid-git-range-or-checkout')
         head_blobs={}
         for entry in head_raw.stdout.decode('utf-8','replace').split('\0'):
             if '\t' in entry:
                 meta,path=entry.split('\t',1);head_blobs[path]=meta.split()[-1]
         dirty_paths={d['path'] for d in dirty}
+        ignored_raw=git_process(root,'check-ignore','--stdin','-z',input=b''.join(p.encode('utf-8')+b'\0' for p in files))
+        ignored_paths=set(ignored_raw.stdout.decode('utf-8','replace').split('\0'))
         for path,entry in files.items():
-            blob=git(root,'hash-object','--no-filters','--',path,required=True)
+            blob=blobs.get(path)
             indexed=index_blobs.get(path,[])
+            if entry['hash'] is None:
+                entry.update(git_state='unverifiable',head_blob=head_blobs.get(path));continue
             if path not in head_blobs or blob!=head_blobs[path] or path in dirty_paths:
-                ignored=subprocess.run(['git','-C',str(root),'check-ignore','--quiet','--',path]).returncode==0
+                ignored=path in ignored_paths
                 entry['git_state']='ignored' if ignored else 'untracked' if not indexed else 'staged-or-unstaged'
                 if path not in dirty_paths:dirty.append({'path':path,'status':'!!' if ignored else '??' if not indexed else ' M','original':None})
             else:entry['git_state']='committed'

@@ -28,7 +28,7 @@ def fixture(root):
     (root/'Tests/Independent.cs').write_text('public class Independent {}\n')
     (root/'README.md').write_text('Synthetic fixture; not production or external deployment evidence.\n')
     (root/'Api/appsettings.json').write_text(json.dumps({'ExternalManagement':{'Endpoint':'https://synthetic.invalid/em'},'Independent':{'Label':'EM historical logs'}}))
-    git(root,'init');git(root,'config','user.email','synthetic@example.invalid');git(root,'config','user.name','Synthetic')
+    git(root,'init');git(root,'config','core.autocrlf','false');git(root,'config','user.email','synthetic@example.invalid');git(root,'config','user.name','Synthetic')
     git(root,'add','.');git(root,'commit','-m','synthetic before')
 
 

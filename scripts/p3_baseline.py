@@ -27,6 +27,7 @@ def main():
             if 'multiprocessing.get_context' in after and 'spawn' in after:changes.append('fork on Linux / native spawn on Windows; removed fork-only skips')
             if 'with closing(sqlite3.connect' in after:changes.append('close fixture SQLite handles after the same transaction, permitting NTFS cleanup')
             if 'read_timeout_seconds=timedelta' in after:changes.append('bounded real MCP requests; timeout remains failure and all assertions are unchanged')
+            if "'core.autocrlf','false'" in after:changes.append('fixture-local Git newline policy preserves exact source bytes in HEAD on both OSes')
         mappings.append(dict(file=name,behavioral_assertions_preserved=True,setup_changes=changes))
     save(a.output/'baseline.json',dict(accepted_commit=PIN,accepted_source_identity=SOURCE,accepted_files=len(source['source_files']),starting_main='0245afda6ecf7b873839adba4be4772611717210',ancestry=True,logical_regressions=138,old_cases=previous,mapping=mappings))
     print('PASS: accepted P2 inventory/ancestry, all 138 logical cases mapped and behavioral assertions preserved.')

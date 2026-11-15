@@ -11,6 +11,24 @@ from harness.platform import process_info,stop_owned
 from p2_fixtures import project,configuration,task,http_provider,FixtureProvider
 
 class PlatformSafety(unittest.TestCase):
+    def test_git_blob_provenance_and_ignored_paths_use_bounded_git_processes(self):
+        from knowledge import discovery
+        with tempfile.TemporaryDirectory() as tmp:
+            for algorithm in ('sha1','sha256'):
+                root=Path(tmp)/algorithm;root.mkdir()
+                def git(*args):
+                    return subprocess.check_output(['git','-C',str(root),*args],stderr=subprocess.DEVNULL).decode().strip()
+                git('init','--object-format='+algorithm);git('config','core.autocrlf','false')
+                (root/'.gitignore').write_bytes(b'Ignored.cs\n');(root/'.gitattributes').write_bytes(b'*.cs text eol=lf\n')
+                for i in range(30):(root/f'Type{i}.cs').write_bytes(b'public class Type {}\n')
+                git('add','.');git('-c','user.name=Synthetic','-c','user.email=fixture@example.invalid','commit','-qm','Synthetic source fixture')
+                (root/'Type0.cs').write_bytes(b'public class Type {}\r\n');(root/'Ignored.cs').write_bytes(b'public class Ignored {}\n')
+                raw=git('hash-object','--no-filters','Type0.cs');head=git('rev-parse','HEAD:Type0.cs')
+                with patch.object(discovery,'git_process',wraps=discovery.git_process) as commands:observed=discovery.inventory(root)
+                self.assertEqual(observed['files']['Type0.cs']['git_state'],'committed' if raw==head else 'staged-or-unstaged')
+                self.assertEqual(observed['files']['Type0.cs']['head_blob'],head)
+                self.assertEqual(observed['files']['Ignored.cs']['git_state'],'ignored')
+                self.assertLessEqual(len(commands.call_args_list),8)
     def test_unicode_validation_without_inherited_utf8_mode(self):
         # MCP deliberately inherits only a small environment; it need not inherit
         # PYTHONUTF8. Persisted validation artifacts must still use explicit UTF-8.
@@ -96,7 +114,23 @@ class NativeWindowsSafety(unittest.TestCase):
             with self.assertRaisesRegex(KnowledgeError,'linked-path'):Project(link)
             hard=root/'hard.txt';os.link(external/'outside.txt',hard)
             with self.assertRaisesRegex(KnowledgeError,'unsafe-filesystem-object'):safe_path(hard)
+            from knowledge.discovery import inventory
+            (external/'outside.cs').write_text('public class External {}',encoding='utf-8')
+            os.link(external/'outside.cs',root/'hard.cs')
+            scanned=inventory(root)
+            self.assertFalse(any(p.startswith('junction/') or p.startswith('symlink/') for p in scanned['files']))
+            self.assertEqual(scanned['files']['hard.cs']['status'],'blocked')
             junction.rmdir();link.unlink()
+    def test_compatible_upgrade_releases_backup_and_store_handles(self):
+        from knowledge.windows_lock import k,INVALID
+        from knowledge.store import Store
+        from knowledge import lifecycle as life
+        with tempfile.TemporaryDirectory() as tmp:
+            store=Store(tmp);store.init();result=life.upgrade(store,life.upgrade_preview(store)['fingerprint'])
+            for path in (store.path,Path(result['backup'])):
+                handle=k.CreateFileW(str(path),0xC0000000,0,None,3,0x80,None)
+                self.assertNotEqual(handle,INVALID)
+                k.CloseHandle(handle)
     def test_locked_target_edit_fails_with_original_bytes_intact(self):
         from knowledge.windows_lock import k,INVALID
         with tempfile.TemporaryDirectory() as tmp,http_provider(FixtureProvider()) as endpoint:
