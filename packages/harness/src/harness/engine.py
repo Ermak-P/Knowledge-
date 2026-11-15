@@ -7,7 +7,7 @@ import time
 import uuid
 from knowledge.util import require,KnowledgeError,canonical_json,loads,digest
 from . import runtime as rt,provider,capture
-from .runtime import Journal,Lease,config,validate_config,source_snapshot,stamp,ROLES,DEFAULT_LIMITS
+from .runtime import Journal,Lease,config,validate_config,source_snapshot,stamp,ROLES,DEFAULT_LIMITS,recipe_inputs
 from .tools import Broker,schemas,bounded,knowledge,stop_owned
 
 TERMINAL=('completed','completed-degraded','failed','cancelled')
@@ -28,24 +28,15 @@ def task_shape(task,configuration):
 
 
 def start(root,task,mode='multi'):
-    journal=Journal(root);configuration=config(root);task_shape(task,configuration)
+    journal=Journal(root)
     require(mode in ('multi','single'),'invalid-execution-mode')
     with Lease(journal):
+        configuration=config(root);task_shape(task,configuration)
         limits={**DEFAULT_LIMITS,**configuration['limits']};source=source_snapshot(journal.project,limits['file_bytes'])
         task=deepcopy(task);task['initial_source']=source
         run=dict(version=1,id=uuid.uuid4().hex,project=journal.project.identity,started=stamp(),status='running',execution='pending',capture={'state':'not-started'},
                  task=task,config_hash=digest(configuration),mode=mode,source=source,gates={},agents=[],frames=[],shared_history=[],requests=[],delegations=0,tool_calls=0,protected_paths=[],capture_prepared=False)
-        for name in task['recipes']:
-            argv=configuration['recipes'][name]['argv']
-            if '-m' in argv:
-                index=argv.index('-m')
-                if index+1<len(argv):
-                    module=argv[index+1].replace('.','/')
-                    for relative in (module+'.py',module+'/__main__.py',module+'/__init__.py'):
-                        if (journal.project.root/relative).is_file():run['protected_paths'].append(relative)
-            for arg in configuration['recipes'][name]['argv'][1:]:
-                p=journal.project.root/arg
-                if not Path(arg).is_absolute() and p.is_file():run['protected_paths'].append(p.relative_to(journal.project.root).as_posix())
+        run['protected_paths'],run['protected_executables']=recipe_inputs(journal.project,configuration,task)
         push(run,'Main',task['goal'],None);journal.save(run);journal.event(run['id'],'run-started',mode=mode,task_hash=digest(task),config=run['config_hash'])
     return resume(root,run['id'])
 
@@ -77,25 +68,26 @@ def status(root,run_id):
 
 
 def resume(root,run_id):
-    journal=Journal(root);configuration=config(root);run=journal.load(run_id)
-    waiting=time.monotonic()
-    if run['status'] in TERMINAL:return result(run)
+    journal=Journal(root);waiting=time.monotonic()
+    def owned(lease):
+        # Never retain mutable state/config across a scheduling/ownership boundary.
+        run=journal.load(run_id)
+        if run['status'] in TERMINAL:return result(run)
+        configuration=config(root)
+        run['lease_wait_seconds']=run.get('lease_wait_seconds',0)+time.monotonic()-waiting
+        return drive(journal,configuration,run,lease)
     try:
-        with Lease(journal) as lease:
-            run['lease_wait_seconds']=run.get('lease_wait_seconds',0)+time.monotonic()-waiting
-            return drive(journal,configuration,run,lease)
+        with Lease(journal) as lease:return owned(lease)
     except KnowledgeError as e:
         if e.code!='project-writer-busy':raise
-        # A recipe supervisor inherits ownership after worker death. Only stop
-        # processes whose stored PID/start identity belongs to this same run.
+        # Supervisor ownership is retained after worker death. Stop only matching
+        # PID/start/group processes, then reload everything after obtaining lease.
         stop_owned(journal,run_id)
         until=time.monotonic()+3
         while time.monotonic()<until:
             time.sleep(.05)
             try:
-                with Lease(journal) as lease:
-                    run=journal.load(run_id);run['lease_wait_seconds']=run.get('lease_wait_seconds',0)+time.monotonic()-waiting
-                    return drive(journal,configuration,run,lease)
+                with Lease(journal) as lease:return owned(lease)
             except KnowledgeError as conflict:
                 if conflict.code!='project-writer-busy':raise
         raise KnowledgeError('project-writer-busy')
@@ -109,6 +101,9 @@ def drive(journal,configuration,run,lease):
     limits={**DEFAULT_LIMITS,**configuration['limits']};broker=Broker(journal,configuration,run,lease)
     try:
         require(digest(configuration)==run['config_hash'],'configuration-changed-revalidation-required')
+        paths,executables=recipe_inputs(journal.project,configuration,run['task'])
+        run['protected_paths']=sorted(set(run['protected_paths'])|set(paths))
+        run['protected_executables']=executables
         run['usage_evidence']=configuration['provider'].get('evidence','live')
         if run['execution']=='passed':
             capture.deliver(journal,run,configuration);finish_capture(journal,run,configuration);return result(run)

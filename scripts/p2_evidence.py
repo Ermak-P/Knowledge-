@@ -3,8 +3,8 @@ import hashlib,json,subprocess,uuid
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'reports/P2'
-REQUIRED=('setup','baseline','packaging','product-tests','evaluation','sessions')
-DOCS=('P2-CONTRACTS.md','EXECUTION-AND-PERMISSIONS.md','CAPTURE-REPORT.md','RECOVERY-REPORT.md','ACCOUNTING-AND-COMPARISON.md','APPLICATION-EVALUATION.md')
+REQUIRED=('setup','baseline','packaging','product-tests','evaluation','sessions','corrections')
+DOCS=('P2-CONTRACTS.md','EXECUTION-AND-PERMISSIONS.md','CAPTURE-REPORT.md','RECOVERY-REPORT.md','ACCOUNTING-AND-COMPARISON.md','APPLICATION-EVALUATION.md','P2-R1-RESPONSE.md')
 
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def sources(root=ROOT):

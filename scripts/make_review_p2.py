@@ -38,6 +38,12 @@ EVIDENCE={
  '20':['evaluation/repair.json','evaluation/denied.json','sessions/capture-sessions.json'],
  '21':['run.json','product-tests/product-tests.json'], '22':['run.json']}
 
+CORRECTION_TESTS={
+ 'P2-R1':['test_r1_automatic_add_approve_two_updates_and_retired_return','test_r1_reviewed_meaning_and_legacy_capture_require_explicit_manual_review','test_r1_update_crash_and_rejected_deferred_retry_preserve_ownership','test_r1_malformed_observation_metadata_refuses_without_reset'],
+ 'P2-R2':['test_r2_absolute_relative_and_project_entrypoint_cannot_replace_verifier','test_r2_exact_explicit_script_edit_exception_is_observable','test_r2_recipe_input_resolver_rejects_links_and_hardlinks'],
+ 'P2-R3':['test_r3_prelease_race_retains_terminal_readonly_coding_and_capture','test_r3_configuration_is_reloaded_under_ownership_before_capture']}
+AFFECTED={'P2-R1':('11','12','13','14'),'P2-R2':('04','05','07','20'),'P2-R3':('05','06','09','13','15','20')}
+
 def main():
     value=validate_current();run=value['run_id'];directory=OUT/'runs'/run
     tests=json.loads((directory/'product-tests/product-tests.json').read_text());assert tests['success'] and tests['legacy_tests']==104
@@ -45,6 +51,12 @@ def main():
     application=json.loads((directory/'evaluation/application.json').read_text());assert application['outcome']['ok'] and int(application['before']['total'])==49 and application['after']['total']==50
     comparison=json.loads((directory/'evaluation/comparison.json').read_text());assert comparison['ok'] and comparison['comparison']['quality_speed_token_benefit']=='NOT_ESTABLISHED'
     sessions=json.loads((directory/'sessions/capture-sessions.json').read_text());assert len(sessions['sessions'])==5 and all(len(s['candidates'])==1 and s['canonical_claims']==0 for s in sessions['sessions'])
+    corrections=json.loads((directory/'corrections/corrections.json').read_text());assert all(v=='PASS' for v in corrections['findings'].values())
+    correction_rows=[]
+    for finding,names in CORRECTION_TESTS.items():
+        ids=['test_p2_r1.ReviewCorrections.'+name for name in names]
+        assert all(statuses.get(name)=='PASS' for name in ids)
+        correction_rows.append(dict(id=finding,status='PASS',tests=ids,evidence='runs/'+run+'/corrections/',external_acceptance='pending'))
     specs={}
     for line in (ROOT/'tasks/Knowledge-Harness-P2-Codex-Task.md').read_text().splitlines():
         if re.match(r'\| P2-A\d\d \|',line):
@@ -55,13 +67,16 @@ def main():
         for name in TESTS[number]:
             test=('test_p2_evidence.' if name.startswith('EvidenceGate.') else 'test_p2.')+name
             assert statuses.get(test)=='PASS',(identifier,test);names.append(test)
+        for finding,conditions in AFFECTED.items():
+            if number in conditions:names.extend('test_p2_r1.ReviewCorrections.'+name for name in CORRECTION_TESTS[finding])
         artifacts=['runs/'+run+'/'+p for p in EVIDENCE[number]]
+        if any(number in conditions for conditions in AFFECTED.values()):artifacts.append('runs/'+run+'/corrections/corrections.json')
         for path in artifacts:assert (OUT/path).is_file(),path
         rows.append(dict(id=identifier,requirement=specs[identifier],status='PASS',interpretation='implementation evidence submitted, external acceptance pending',tests=names,evidence=artifacts))
     head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     branch=subprocess.check_output(['git','branch','--show-current'],cwd=ROOT,text=True).strip();assert branch=='p2'
     optional=dict(live_model='NOT_RUN: no configured authorized provider endpoint/model',OpenCode='NOT_RUN',Windows_NTFS='NOT_RUN',private_MCP='NOT_RUN',live_quality_speed_token_benefit='NOT_ESTABLISHED')
-    acceptance=dict(version=1,phase='P2',submission='submitted for external review',run_id=run,source_identity=value['source_identity'],branch=branch,head_at_packet_creation=head,revision_binding='Containing Git commit identifies delivery; source inventory is authoritative. A commit cannot include its own hash.',conditions=rows,optional=optional)
+    acceptance=dict(version=1,phase='P2',submission='submitted for external review',run_id=run,source_identity=value['source_identity'],branch=branch,head_at_packet_creation=head,revision_binding='Containing Git commit identifies delivery; source inventory is authoritative. A commit cannot include its own hash.',conditions=rows,review_corrections=correction_rows,optional=optional)
     save(OUT/'ACCEPTANCE.json',acceptance)
     report=f'''# P2 implementation submitted for external review
 
@@ -72,6 +87,8 @@ Harness 0.2 implements actual HTTP model transport, immutable runtime roles, seq
 Executed `.venv/bin/python -B scripts/verify_p2.py`: fresh setup and isolated wheels; **{tests['tests_run']} tests passed, including all 104 accepted regressions**, no skips. Existing adapter stdio/API cases remain in that suite. Accepted historical source inventory/ancestry verified. Fresh eShop restore/build/test at the required pin: **49/49 baseline, 50/50 after** checked-overflow behavior plus independently specified new xUnit test; all previous test source bytes preserved. Two-project real C# failure -> repair -> fresh gates passed. Denied source/isolation scenario failed honestly without forbidden changes. Five eligible capture sessions automatically submitted one candidate each, canonical remained empty. Actual worker deaths, process timeout/cleanup, writer contention, unknown provider outcome, corrupt/busy Knowledge and concurrent accepted-before-ack replay were executed. Source/evidence gate negative cases reject failed/incomplete/stale/mixed/missing/tampered evidence.
 
 Comparison: same .NET repair task, provider and guarded policy in ordinary shared-history and isolated-context copies. Both succeed; complete costs include Main, every role, failed checks and repair. Fixture token counters are synthetic; no live efficiency/quality benefit is established. SDK version `{application['sdk']}`; upstream dependency/security and SDK warnings are retained in raw logs, baseline dependencies were preserved.
+
+P2 review correction round: R1 records verified positive observations through Knowledge's coordinated writer and ties later ownership to exact approved candidates; unowned/reviewed meanings require manual review. R2 protects canonical absolute/relative argv, script/module and project executable inputs; exact script exceptions are explicit events. R3 reloads all mutable run/config state under the lease and rechecks terminal state before execution. All three are reproduced with fresh raw artifacts in `corrections/`; the original 129 tests and their bodies are preserved. See P2-R1-RESPONSE.md.
 
 Self-review repaired invalid Unicode response handling, stale fixture review selection, module recipe-input protection, test-directory casing, fixed supervisor imports against project package/PYTHONPATH shadowing, and stricter durable-state/config validation. Final verification follows these repairs. Practical limits: trusted host build hooks, Linux process groups, conservative source profile, per-file filesystem transactions and uncertain remote request billing; see contracts/recovery documents. Failed/cancelled runs retain evidence and cannot be converted into success by reset. Main is unchanged by the delivery; application edits are not committed automatically.
 

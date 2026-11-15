@@ -1,6 +1,6 @@
 """Durable payload-bound delivery; no canonical Knowledge approval or alternate writer."""
 from knowledge.store import Store
-from knowledge.discovery import candidate_preview
+from knowledge.discovery import candidate_observe
 from knowledge.util import KnowledgeError,digest
 from . import runtime as rt
 from .runtime import stamp,source_snapshot
@@ -16,7 +16,7 @@ def deliver(journal,run,configuration):
             changed=[p for p,h in current.items() if run['task']['initial_source'].get(p)!=h]
             if not changed:
                 run['capture_prepared']=True;run['capture']={'state':'no-candidate','reason':'no changed source; no invented reusable facts'};journal.save(run);return
-            preview=candidate_preview(Store(journal.project.root),changed,run['capture_time'])
+            preview=candidate_observe(Store(journal.project.root),changed,run['capture_time'])
             # Publish all payloads plus the preparation flag in one Harness transaction.
             coding_actions=[i for i,a in journal.actions(run['id']).items() if a['tool']=='patch' and a['status']=='FINISHED' and a['result']['ok']]
             with journal.db() as db:

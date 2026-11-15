@@ -120,9 +120,11 @@ class Broker:
             for f in files:
                 require(isinstance(f,dict) and set(f)=={'path','before','after'} and isinstance(f['path'],str) and f['path'] not in seen,'invalid-patch-fields');seen.add(f['path'])
                 path=local_path(self.j.project,f['path'],True);writable(f['path'],self.r['task'])
-                require(f['path'] not in self.r['protected_paths'] or f['path'] in self.r['task']['existing_test_edits'],'recipe-input-edit-denied')
+                require(f['path'] not in self.r.get('protected_executables',[]) and (f['path'] not in self.r['protected_paths'] or f['path'] in self.r['task']['existing_test_edits']),'recipe-input-edit-denied')
                 require(isinstance(f['after'],str) and len(f['after'].encode())<=self.limits['file_bytes'],'patch-too-large')
                 require(before.get(f['path'])==f['before'],'edit-before-state-mismatch')
+            exceptions=[f['path'] for f in files if f['path'] in self.r['task']['existing_test_edits']]
+            if exceptions:self.j.event(self.r['id'],'explicit-test-edit-authorized',action=action_id,paths=exceptions)
             action['edit_intent']={'before_source':before,'files':files,'before_text':{f['path']:local_path(self.j.project,f['path']).read_text(encoding='utf-8') if local_path(self.j.project,f['path']).exists() else '' for f in files}};self.j.action(self.r['id'],action_id,action)
         intent=action['edit_intent'];current=source_snapshot(self.j.project,self.limits['file_bytes']);paths={f['path'] for f in files}
         require({k:v for k,v in current.items() if k not in paths}=={k:v for k,v in intent['before_source'].items() if k not in paths},'unrelated-source-conflict')
@@ -132,7 +134,7 @@ class Broker:
         written=[];reconciled=[]
         for f in files:
             path=local_path(self.j.project,f['path'],True);writable(f['path'],self.r['task'])
-            require(f['path'] not in self.r['protected_paths'] or f['path'] in self.r['task']['existing_test_edits'],'recipe-input-edit-denied')
+            require(f['path'] not in self.r.get('protected_executables',[]) and (f['path'] not in self.r['protected_paths'] or f['path'] in self.r['task']['existing_test_edits']),'recipe-input-edit-denied')
             actual=blob(path.read_bytes()) if path.exists() else None;after=blob(f['after'].encode())
             if actual==after:reconciled.append(f['path']);continue
             require(actual==f['before'],'edit-recovery-conflict',f['path'])

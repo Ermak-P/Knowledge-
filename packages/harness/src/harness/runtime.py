@@ -203,3 +203,34 @@ def configure(root,value,initialize_knowledge=False):
             s=Store(root)
             if not s.path.exists():s.init();lifecycle.upgrade(s,lifecycle.upgrade_preview(s)['fingerprint'])
     return {'ok':True,'configuration':digest(value)}
+
+
+def recipe_inputs(project,configuration,task):
+    """Canonical project-owned argv files, executable and Python module entries.
+
+    Check lexical ancestors before normalizing ..; resolving a symlink must never
+    erase evidence that a project input escaped through a linked ancestor.
+    External trusted tools are not project source and retain their host policy.
+    """
+    paths=set();executables=set()
+    def include(argument,executable=False):
+        p=Path(argument)
+        if not p.is_absolute():p=project.root/p
+        canonical=Path(os.path.abspath(p))
+        if not canonical.is_relative_to(project.root):return
+        if not p.is_file():return
+        safe_path(p);safe_path(canonical)
+        relative=canonical.relative_to(project.root).as_posix();paths.add(relative)
+        if executable:executables.add(relative)
+    for name in task['recipes']:
+        argv=configuration['recipes'][name]['argv']
+        for index,arg in enumerate(argv):include(arg,index==0)
+        if '-m' in argv:
+            index=argv.index('-m')
+            if index+1<len(argv):
+                parts=argv[index+1].split('.')
+                if all(part.isidentifier() for part in parts):
+                    module='/'.join(parts)
+                    include(module+'.py');include(module+'/__main__.py')
+                    for i in range(1,len(parts)+1):include('/'.join(parts[:i])+'/__init__.py')
+    return sorted(paths),sorted(executables)

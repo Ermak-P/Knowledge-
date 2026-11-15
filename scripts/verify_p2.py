@@ -6,7 +6,7 @@ def main():
     a=Attempt()
     try:
         a.command('setup',['bash','scripts/setup.sh'])
-        for name,script in [('baseline','p2_baseline.py'),('packaging','p2_packaging.py'),('product-tests','p2_tests.py'),('evaluation','evaluate_p2.py'),('sessions','p2_sessions.py')]:
+        for name,script in [('baseline','p2_baseline.py'),('packaging','p2_packaging.py'),('product-tests','p2_tests.py'),('evaluation','evaluate_p2.py'),('sessions','p2_sessions.py'),('corrections','p2_corrections.py')]:
             a.command(name,[sys.executable,'-B','scripts/'+script,'--output',str(a.dir/name)])
         a.finish('PASS');validate_current()
     except BaseException:

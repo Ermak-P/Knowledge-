@@ -20,7 +20,7 @@ def calls(*items,content=None):
 class FixtureProvider:
     def __init__(self,path='Feature.cs',desired='public class ImprovedFeature {}\n',repair=False,deny=False,review_reject=False):
         self.path=path;self.desired=desired;self.repair=repair;self.deny=deny;self.review_reject=review_reject
-        self.requests=[];self.agent_turns=defaultdict(int);self.coding_agents=[];self.main_agents=defaultdict(int)
+        self.transport_ids=[];self.requests=[];self.agent_turns=defaultdict(int);self.coding_agents=[];self.main_agents=defaultdict(int)
     def decide(self,body):
         system=loads(body['messages'][0]['content']);role=system['runtime_role'];agent=system['agent'];turn=self.agent_turns[agent];self.agent_turns[agent]+=1
         self.requests.append(body)
@@ -63,6 +63,7 @@ def http_provider(decider,usage=True,raw=None):
         def do_POST(self):
             length=int(self.headers.get('Content-Length','0'));body=json.loads(self.rfile.read(length))
             try:
+                if hasattr(decider,'transport_ids'):decider.transport_ids.append(self.headers.get('X-Harness-Request-ID'))
                 if raw is not None:value=raw(body)
                 else:
                     message=decider.decide(body) if hasattr(decider,'decide') else decider(body)
