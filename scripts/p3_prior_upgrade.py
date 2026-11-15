@@ -12,7 +12,7 @@ def main():
     with tarfile.open(archive) as tar:tar.extractall(source,filter='data')
     wheels=out/'previous-wheels';wheels.mkdir();env={**os.environ,'SOURCE_DATE_EPOCH':'1735689600','PYTHONUTF8':'1','PYTHONIOENCODING':'utf-8'};env.pop('PYTHONPATH',None)
     def command(label,argv,cwd=scratch,expected=0):
-        p=subprocess.run([str(x) for x in argv],cwd=cwd,env=env,text=True,encoding='utf-8',capture_output=True,timeout=600)
+        p=subprocess.run([str(x) for x in argv],cwd=cwd,env=env,stdin=subprocess.DEVNULL,text=True,encoding='utf-8',capture_output=True,timeout=600)
         (out/(label+'.log')).write_text(p.stdout+p.stderr,encoding='utf-8');assert p.returncode==expected,(label,p.stdout[-2000:],p.stderr[-2000:]);return p
     command('prior-wheels',[sys.executable,'-m','pip','wheel','--no-deps','--no-build-isolation','-w',wheels,source/'packages/knowledge',source/'packages/harness'])
     runtime=scratch/'owned runtime';venv.EnvBuilder(with_pip=True).create(runtime);python=python_at(runtime)
@@ -29,17 +29,31 @@ import knowledge
 assert Path(knowledge.__file__).is_relative_to(Path(sys.prefix))
 sys.path.insert(0,TESTS)
 from p2_fixtures import project,configuration
-from fixtures import addition
+from fixtures import addition,legacy_fixture
 from knowledge.store import Store
+from knowledge import migration,lifecycle as life,discovery as disc
 from knowledge.util import KnowledgeError
 from harness.runtime import validate_config
-root=project(Path(ROOT));s=Store(root);s.init();s.submit(addition());p=s.prepare()['fingerprint'];s.apply(p,p);s.acknowledge(p)
+root=project(Path(ROOT));legacy_fixture(root);migration.apply(root,migration.preview(root)['fingerprint']);s=Store(root);life.upgrade(s,life.upgrade_preview(s)['fingerprint'])
+def approve():
+ p=s.prepare();assert p['ok'];s.apply(p['fingerprint'],p['fingerprint']);s.acknowledge(p['fingerprint'])
+for text in ('public class InitialFeature {}\\n','public class InitialFeature : System.Object {}\\n'):
+ (root/'Feature.cs').write_text(text,encoding='utf-8')
+ for decision in disc.candidate_observe(s,['Feature.cs'])['decisions']:
+  if decision['decision']=='submit':s.submit(decision['payload'])
+ approve()
+for disposition in ('rejected','deferred'):
+ q=s.submit(addition('fixture.'+disposition,'Synthetic '+disposition+' meaning.'));life.dispose(s,q['candidate'],disposition,'Explicit fixture disposition')
+s.submit(addition('fixture.prepared','Synthetic prepared change.'));s.prepare()
+s.submit(addition('fixture.committed','Synthetic committed pending ack.'));p=s.prepare();s.apply(p['fingerprint'],p['fingerprint'])
+s.submit(addition('fixture.pending','Synthetic pending change.'))
 try:validate_config(configuration('http://127.0.0.1/v1/chat/completions'))
 except KnowledgeError as error:
  assert error.code=='recipe-executable-must-be-absolute'
  result={'prior_native_executor':'UNSUPPORTED_POSIX_ONLY','error':error.code}
 else:raise AssertionError('unexpected prior native execution support')
 result['files']={p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'.knowledge').rglob('*') if p.is_file()}
+result['knowledge']={'store':s.export(),'observations':disc.capture_observation_receipts(s)}
 print(json.dumps(result))
 '''.replace('TESTS',repr(str(ROOT/'tests'))).replace('ROOT',repr(str(root))),encoding='utf-8')
         native_probe=json.loads(command('prior-native-unsupported-probe',[python,'-I',probe]).stdout)
@@ -47,16 +61,24 @@ print(json.dumps(result))
         refusal='''import json,hashlib
 from pathlib import Path
 from knowledge.store import Store
-from knowledge.util import KnowledgeError
+from knowledge import discovery as disc
 root=Path(ROOT)
-try:Store(root).validate()
-except KnowledgeError as error:assert error.code=='project-identity-mismatch'
-else:raise AssertionError('prior Windows root identity was silently rebound')
+store=Store(root);store.validate()
+assert {'store':store.export(),'observations':disc.capture_observation_receipts(store)}==KNOWLEDGE
 files={p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'.knowledge').rglob('*') if p.is_file()}
 assert files==EXPECTED
-print(json.dumps({'prior_store_preserved':True,'unsupported_identity_rebind_refused':True}))
-'''.replace('ROOT',repr(str(root))).replace('EXPECTED',repr(native_probe['files']))
-        native_probe.update(json.loads(command('prior-native-state-preserved-refusal',[python,'-I','-c',refusal]).stdout))
+print(json.dumps({'prior_store_preserved':True,'root_identity_preserved':True}))
+'''.replace('ROOT',repr(str(root))).replace('EXPECTED',repr(native_probe['files'])).replace('KNOWLEDGE',repr(native_probe['knowledge']))
+        native_probe.update(json.loads(command('prior-native-knowledge-preserved',[python,'-I','-c',refusal]).stdout))
+        def old_knowledge_maintain(label,args):return json.loads(command(label,[python,'-I','-m','knowledge.maintain_cli',*args,'--root',root]).stdout)
+        plan=old_knowledge_maintain('prior-knowledge-upgrade-preview',['upgrade-preview','--destination',scratch/'prior-knowledge-backup.zip']);approved=scratch/'prior-knowledge-preview.json';save(approved,plan['preview']);old_knowledge_maintain('prior-knowledge-upgrade',['apply','--input',approved,'--approve',plan['fingerprint']])
+        change='import sys;sys.path.insert(0,'+repr(str(ROOT/'tests'))+');from fixtures import addition;from knowledge.store import Store;Store('+repr(str(root))+').submit(addition("fixture.after_upgrade","Synthetic later state."))'
+        command('prior-knowledge-change',[python,'-I','-c',change]);(root/'user-preserved.txt').write_text('PRESERVE',encoding='utf-8')
+        plan=old_knowledge_maintain('prior-knowledge-restore-preview',['restore-preview','--archive',scratch/'prior-knowledge-backup.zip','--recovery',scratch/'prior-knowledge-replaced']);save(approved,plan['preview']);old_knowledge_maintain('prior-knowledge-restore',['apply','--input',approved,'--approve',plan['fingerprint']])
+        command('prior-knowledge-old-code-rollback',[python,'-I','-m','pip','install','--no-index','--no-deps',*sorted(wheels.glob('*.whl'))])
+        check='import sys,knowledge;assert knowledge.__version__=="0.1.0";sys.path.insert(0,'+repr(str(ROOT/'tests'))+');from knowledge.store import Store;from knowledge import discovery as d;from pathlib import Path;root=Path('+repr(str(root))+');assert {"store":Store(root).export(),"observations":d.capture_observation_receipts(Store(root))}=='+repr(native_probe['knowledge'])+';assert (root/"user-preserved.txt").read_text()=="PRESERVE"'
+        command('prior-knowledge-old-code-inspection',[python,'-I','-c',check]);native_probe['prior_knowledge_upgrade_and_code_data_rollback']=True
+        command('current-after-knowledge-rollback',[sys.executable,kit/'install.py','install','--env',runtime,'--profile','full'])
         root=scratch/'Native current state Ω';root.mkdir()
     fixture=scratch/'fixture.py';fixture.write_text('''import sys,json
 from pathlib import Path
@@ -92,6 +114,6 @@ print(json.dumps(rich(root),ensure_ascii=False))
     after_resume=json.loads(command('after-resume-inspect',[python,'-I',inspect]).stdout)
     assert after_resume['knowledge']==before['knowledge']
     assert after_resume['runs'][[r['id'] for r in after_resume['runs']].index(pending['id'])]['requests']==pending['requests']
-    save(out/'prior-upgrade.json',dict(profile='windows-native-current-state-and-prior-refusal' if native_probe else 'linux-accepted-prior-binaries',accepted_commit=PIN,prior_versions=prior_versions,prior_native_probe=native_probe,prior_native_code_upgrade='UNSUPPORTED' if native_probe else 'PASS',before=before,after_install=after,after_upgrade=after_upgrade,restore_preserved_state=True,rollback_code_and_data=not bool(native_probe),native_metadata_rollback=bool(native_probe),reinstall_preserved=True,outbox_resume=resumed,after_resume=after_resume,all_authority_and_dispositions_preserved=True,source_user_bytes_preserved=True))
-    print('PASS: native current-state upgrade/backup/restore/reinstall, preserved prior-store refusal; old P2 native code upgrade/rollback UNSUPPORTED.' if native_probe else 'PASS: accepted installed P2 rich state, current upgrade, exact backup/restore, real prior code/data rollback and reinstall/outbox recovery.')
+    save(out/'prior-upgrade.json',dict(profile='windows-prior-knowledge-and-current-harness' if native_probe else 'linux-accepted-prior-binaries',accepted_commit=PIN,prior_versions=prior_versions,prior_native_probe=native_probe,prior_native_harness_upgrade='UNSUPPORTED' if native_probe else 'PASS',before=before,after_install=after,after_upgrade=after_upgrade,restore_preserved_state=True,rollback_code_and_data=not bool(native_probe),native_metadata_rollback=bool(native_probe),reinstall_preserved=True,outbox_resume=resumed,after_resume=after_resume,all_authority_and_dispositions_preserved=True,source_user_bytes_preserved=True))
+    print('PASS: real prior Knowledge code/data upgrade/rollback plus native current Harness rich-state round trip; old POSIX Harness native execution remains unsupported.' if native_probe else 'PASS: accepted installed P2 rich state, current upgrade, exact backup/restore, real prior code/data rollback and reinstall/outbox recovery.')
 if __name__=='__main__':main()
