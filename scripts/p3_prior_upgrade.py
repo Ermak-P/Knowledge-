@@ -69,7 +69,8 @@ files={p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
 assert files==EXPECTED
 print(json.dumps({'prior_store_preserved':True,'root_identity_preserved':True}))
 '''.replace('ROOT',repr(str(root))).replace('EXPECTED',repr(native_probe['files'])).replace('KNOWLEDGE',repr(native_probe['knowledge']))
-        native_probe.update(json.loads(command('prior-native-knowledge-preserved',[python,'-I','-c',refusal]).stdout))
+        preserved_script=scratch/'prior-knowledge-preserved.py';preserved_script.write_text(refusal,encoding='utf-8')
+        native_probe.update(json.loads(command('prior-native-knowledge-preserved',[python,'-I',preserved_script]).stdout))
         def old_knowledge_maintain(label,args):return json.loads(command(label,[python,'-I','-m','knowledge.maintain_cli',*args,'--root',root]).stdout)
         plan=old_knowledge_maintain('prior-knowledge-upgrade-preview',['upgrade-preview','--destination',scratch/'prior-knowledge-backup.zip']);approved=scratch/'prior-knowledge-preview.json';save(approved,plan['preview']);old_knowledge_maintain('prior-knowledge-upgrade',['apply','--input',approved,'--approve',plan['fingerprint']])
         change='import sys;sys.path.insert(0,'+repr(str(ROOT/'tests'))+');from fixtures import addition;from knowledge.store import Store;Store('+repr(str(root))+').submit(addition("fixture.after_upgrade","Synthetic later state."))'
@@ -77,7 +78,8 @@ print(json.dumps({'prior_store_preserved':True,'root_identity_preserved':True}))
         plan=old_knowledge_maintain('prior-knowledge-restore-preview',['restore-preview','--archive',scratch/'prior-knowledge-backup.zip','--recovery',scratch/'prior-knowledge-replaced']);save(approved,plan['preview']);old_knowledge_maintain('prior-knowledge-restore',['apply','--input',approved,'--approve',plan['fingerprint']])
         command('prior-knowledge-old-code-rollback',[python,'-I','-m','pip','install','--no-index','--no-deps',*sorted(wheels.glob('*.whl'))])
         check='import sys,knowledge;assert knowledge.__version__=="0.1.0";sys.path.insert(0,'+repr(str(ROOT/'tests'))+');from knowledge.store import Store;from knowledge import discovery as d;from pathlib import Path;root=Path('+repr(str(root))+');assert {"store":Store(root).export(),"observations":d.capture_observation_receipts(Store(root))}=='+repr(native_probe['knowledge'])+';assert (root/"user-preserved.txt").read_text()=="PRESERVE"'
-        command('prior-knowledge-old-code-inspection',[python,'-I','-c',check]);native_probe['prior_knowledge_upgrade_and_code_data_rollback']=True
+        old_inspection=scratch/'prior-knowledge-old-inspection.py';old_inspection.write_text(check,encoding='utf-8')
+        command('prior-knowledge-old-code-inspection',[python,'-I',old_inspection]);native_probe['prior_knowledge_upgrade_and_code_data_rollback']=True
         command('current-after-knowledge-rollback',[sys.executable,kit/'install.py','install','--env',runtime,'--profile','full'])
         root=scratch/'Native current state Ω';root.mkdir()
     fixture=scratch/'fixture.py';fixture.write_text('''import sys,json
