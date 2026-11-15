@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "D:\a\Knowledge-\Knowledge-\scripts\p3_prior_upgrade.py", line 57, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "D:\a\Knowledge-\Knowledge-\scripts\p3_prior_upgrade.py", line 30, in main
+    result=json.loads(command('prior-nonempty-state',[python,'-I',fixture]).stdout);before=result['snapshot']
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a\Knowledge-\Knowledge-\scripts\p3_prior_upgrade.py", line 16, in command
+    (out/(label+'.log')).write_text(p.stdout+p.stderr,encoding='utf-8');assert p.returncode==expected,(label,p.stdout[-2000:],p.stderr[-2000:]);return p
+                                                                               ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('prior-nonempty-state', '', 'Traceback (most recent call last):\n  File "D:\\a\\_temp\\knowledge-p3-native-fixtures\\p3-prior-3dxz448j\\fixture.py", line 8, in <module>\n    print(json.dumps(rich(root),ensure_ascii=False))\n                     ^^^^^^^^^^\n  File "D:\\a\\Knowledge-\\Knowledge-\\tests\\p3_state_fixtures.py", line 27, in rich\n    configure(root,configuration(endpoint),True);run=start(root,task());assert run[\'ok\'],run\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "D:\\a\\_temp\\knowledge-p3-native-fixtures\\p3-prior-3dxz448j\\owned runtime\\Lib\\site-packages\\harness\\runtime.py", line 196, in configure\n    journal=Journal(root);validate_config(value)\n                          ^^^^^^^^^^^^^^^^^^^^^^\n  File "D:\\a\\_temp\\knowledge-p3-native-fixtures\\p3-prior-3dxz448j\\owned runtime\\Lib\\site-packages\\harness\\runtime.py", line 183, in validate_config\n    require(recipe[\'argv\'][0].startswith(\'/\') and Path(recipe[\'argv\'][0]).is_file(),\'recipe-executable-must-be-absolute\')\n  File "D:\\a\\_temp\\knowledge-p3-native-fixtures\\p3-prior-3dxz448j\\owned runtime\\Lib\\site-packages\\knowledge\\util.py", line 35, in require\n    raise KnowledgeError(code, details)\nknowledge.util.KnowledgeError: recipe-executable-must-be-absolute\n')
