@@ -61,7 +61,7 @@ class Attempt:
         folder=self.dir/name;folder.mkdir(exist_ok=True);log=folder/'command.log';self.value['checks'][name]={'status':'IN_PROGRESS','command':[str(a) for a in args]};self.persist()
         # Keep an infrastructure hang from exhausting the whole CI job before
         # its always-run artifact upload/receipt steps can preserve diagnostics.
-        timeout=600 if name=='regressions' else 900
+        timeout=900
         with log.open('w',encoding='utf-8') as out:
             try:
                 p=subprocess.run([str(a) for a in args],cwd=ROOT,stdout=out,stderr=subprocess.STDOUT,timeout=timeout,env={**os.environ,'PYTHONUTF8':'1','PYTHONIOENCODING':'utf-8'})

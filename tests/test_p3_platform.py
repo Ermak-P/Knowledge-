@@ -11,6 +11,17 @@ from harness.platform import process_info,stop_owned
 from p2_fixtures import project,configuration,task,http_provider,FixtureProvider
 
 class PlatformSafety(unittest.TestCase):
+    def test_filesystem_capture_without_git_ignores_empty_parent_metadata(self):
+        from knowledge.store import Store
+        from knowledge import discovery,lifecycle
+        with tempfile.TemporaryDirectory() as tmp:
+            base=Path(tmp);(base/'.git').mkdir();root=project(base/'Root')
+            store=Store(root);store.init();lifecycle.upgrade(store,lifecycle.upgrade_preview(store)['fingerprint'])
+            with patch.dict(os.environ,{'PATH':''}):
+                snapshot=discovery.inventory(root);proposal=discovery.candidate_observe(store,['Feature.cs'])
+            self.assertIsNone(snapshot['revision']);self.assertEqual(snapshot['snapshot_kind'],'filesystem-no-history')
+            self.assertTrue(any(d['decision']=='submit' for d in proposal['decisions']))
+            self.assertEqual(store.validate()['counts']['claims'],0)
     def test_git_blob_provenance_and_ignored_paths_use_bounded_git_processes(self):
         from knowledge import discovery
         with tempfile.TemporaryDirectory() as tmp:
@@ -18,7 +29,7 @@ class PlatformSafety(unittest.TestCase):
                 root=Path(tmp)/algorithm;root.mkdir()
                 def git(*args):
                     return subprocess.check_output(['git','-C',str(root),*args],stderr=subprocess.DEVNULL).decode().strip()
-                git('init','--object-format='+algorithm);git('config','core.autocrlf','false')
+                git('init','--object-format='+algorithm);git('config','core.autocrlf','false');git('config','core.fsmonitor','false')
                 (root/'.gitignore').write_bytes(b'Ignored.cs\n');(root/'.gitattributes').write_bytes(b'*.cs text eol=lf\n')
                 for i in range(30):(root/f'Type{i}.cs').write_bytes(b'public class Type {}\n')
                 git('add','.');git('-c','user.name=Synthetic','-c','user.email=fixture@example.invalid','commit','-qm','Synthetic source fixture')

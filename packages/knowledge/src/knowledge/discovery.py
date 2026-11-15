@@ -18,10 +18,13 @@ LIMIT=512000
 
 
 def has_git(root):
-    return any((p/'.git').exists() for p in (Path(root),*Path(root).parents))
+    root=Path(root).absolute()
+    # Sandboxed workspaces can expose empty .git mount placeholders. They are
+    # not repository metadata and must not disable filesystem-only capture.
+    return any((p/'.git').is_file() or (p/'.git/HEAD').is_file() for p in (root,*root.parents))
 
 def git_process(root,*args,input=None):
-    try:return subprocess.run(['git','-C',str(root),*args],input=input,capture_output=True,timeout=15,env={**os.environ,'GIT_OPTIONAL_LOCKS':'0','GIT_TERMINAL_PROMPT':'0'})
+    try:return subprocess.run(['git','-c','core.fsmonitor=false','-C',str(root),*args],input=input,capture_output=True,timeout=15,env={**os.environ,'GIT_OPTIONAL_LOCKS':'0','GIT_TERMINAL_PROMPT':'0'})
     except subprocess.TimeoutExpired as e:raise KnowledgeError('git-operation-timeout') from e
     except FileNotFoundError as e:raise KnowledgeError('git-unavailable-for-existing-checkout') from e
 

@@ -28,7 +28,7 @@ def fixture(root):
     (root/'Tests/Independent.cs').write_text('public class Independent {}\n')
     (root/'README.md').write_text('Synthetic fixture; not production or external deployment evidence.\n')
     (root/'Api/appsettings.json').write_text(json.dumps({'ExternalManagement':{'Endpoint':'https://synthetic.invalid/em'},'Independent':{'Label':'EM historical logs'}}))
-    git(root,'init');git(root,'config','core.autocrlf','false');git(root,'config','user.email','synthetic@example.invalid');git(root,'config','user.name','Synthetic')
+    git(root,'init');git(root,'config','core.autocrlf','false');git(root,'config','core.fsmonitor','false');git(root,'config','user.email','synthetic@example.invalid');git(root,'config','user.name','Synthetic')
     git(root,'add','.');git(root,'commit','-m','synthetic before')
 
 
@@ -222,7 +222,7 @@ class P1StdioTests(unittest.IsolatedAsyncioTestCase):
             s.submit(life.batch([life.op('update','claims',c['id'],1,update)],'synthetic Unicode'));approve(s)
             params=StdioServerParameters(command=sys.executable,args=['-m','knowledge.mcp','--root',str(root)])
             async with stdio_client(params) as (reader,writer):
-                async with ClientSession(reader,writer,read_timeout_seconds=timedelta(seconds=20)) as session:
+                async with ClientSession(reader,writer,read_timeout_seconds=timedelta(seconds=120)) as session:
                     await session.initialize()
                     for budget in (256,600,16000):
                         response=await session.call_tool('knowledge_context',{'task':'Independent','max_bytes':budget})

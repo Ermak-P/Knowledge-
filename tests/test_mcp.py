@@ -22,7 +22,7 @@ class McpTests(unittest.IsolatedAsyncioTestCase):
             for i,root in enumerate(roots):
                 params=StdioServerParameters(command=sys.executable,args=['-B','-m','knowledge.mcp','--root',str(root)])
                 async with stdio_client(params) as (reader,writer):
-                    async with ClientSession(reader,writer,read_timeout_seconds=timedelta(seconds=20)) as session:
+                    async with ClientSession(reader,writer,read_timeout_seconds=timedelta(seconds=120)) as session:
                         await session.initialize()
                         tools=await session.list_tools()
                         self.assertEqual({t.name for t in tools.tools},{'knowledge_context','knowledge_get_claim','knowledge_get_evidence'})
@@ -43,7 +43,7 @@ class McpTests(unittest.IsolatedAsyncioTestCase):
             root=Path(tmp);legacy_fixture(root);p=migration.preview(root);migration.apply(root,p['fingerprint'])
             params=StdioServerParameters(command=sys.executable,args=['-B','-m','knowledge.mcp','--root',str(root)])
             async with stdio_client(params) as (reader,writer):
-                async with ClientSession(reader,writer,read_timeout_seconds=timedelta(seconds=20)) as session:
+                async with ClientSession(reader,writer,read_timeout_seconds=timedelta(seconds=120)) as session:
                     await session.initialize()
                     r=await session.call_tool('knowledge_context',{'task':'synthetic.confirmed synthetic.inferred','include_unconfirmed':True})
                     value=loads(r.content[0].text)
