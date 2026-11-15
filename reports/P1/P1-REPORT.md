@@ -1,8 +1,8 @@
 # P1 implementation submitted for independent review
 
-Run `6569a5ab46f94d9aa3633cfe203d36b4`; source `2ccbb7551190849e40fc4da0a2b65d354f1e1afee1aafc540fc3d045144db15a`. Raw evidence: `runs/6569a5ab46f94d9aa3633cfe203d36b4/`.
+Run `7c567e88b6b54922bcc21a8ae3a6ae3f`; source `e20dbd2635d808ce19366d90a0bb96b56ffbd730e5ed14b14e2fa1cfe8d3e96e`. Raw evidence: `runs/7c567e88b6b54922bcc21a8ae3a6ae3f/`.
 
-Branch `codex/knowledge-harness-p1`; baseline/HEAD `a3c7ac7afd7cff6137b916832cf40019ca8b8c87`, with uncommitted P1 changes identified
+Branch `codex/knowledge-harness-p1`; baseline/HEAD `fb2cf7909f44518e967c84069a8a0c10b430947e`, with uncommitted P1 changes identified
 by SOURCE-REVISION.json. Not externally accepted. P2 was not started.
 
 ## Actual verification
@@ -10,7 +10,7 @@ by SOURCE-REVISION.json. Not externally accepted. P2 was not started.
 `bash scripts/setup.sh`, then `.venv/bin/python scripts/setup_benchmark.py`,
 `.venv/bin/python scripts/verify_p1.py`, `.venv/bin/python scripts/make_review_p1.py`.
 Python 3.12.14, pinned SDK 10.0.404, SQLite, MCP 1.30.0 on Linux x64.
-68 product tests passed, including all 43 accepted P0 regressions;
+75 product tests passed, including all 43 accepted P0 regressions;
 no skips. Both wheels built and Knowledge ran in a dependency-free environment.
 Pinned application build and 49 unit tests passed before and 49 after P1
 integration, with zero failed or skipped tests. Real stdio sessions, killed

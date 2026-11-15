@@ -175,6 +175,25 @@ backup SQLite file at the same project's store.sqlite3, validate with P0/P1
 software, then preview a fresh upgrade. Do not move a store to another root,
 delete hot journals, or overwrite unrelated edits. See the contract for bounds.
 ''')
+    report('FUNCTIONAL-REVIEW.md',f'''# Functional review after initial P1 publication
+
+{common}
+The previously passing 68-test suite did not cover four reproduced failures:
+C# literals manufactured declarations/registrations; // inside route literals
+was treated as a comment; block-commented evidence remained trusted current;
+rename re-observation promoted INFERRED confidence and reset reviewed edges.
+The new FunctionalReviewTests reproduce these boundaries and verify the repairs.
+Additional cases cover XML comment dependencies, old extractor false positives
+with unchanged hashes, and evidence paths through linked ancestors.
+
+Discovery now uses offset-preserving lexical masks, re-extracts source support
+before freshness decisions, and preserves reviewed claim metadata on revision.
+Extractor version 2 refuses stale version-1 scan checkpoints. This remains a
+lexical capability pack, not a C# compiler or runtime proof.
+
+All claims of current verification refer to the new run above; earlier passing
+results describe their earlier source identities. No external acceptance is claimed.
+''')
     report('CHANGE-SUMMARY.md','''# P1 changes
 
 - Add lifecycle/revision, receipt, disposition and upgrade metadata to the shared SQLite store.
@@ -186,7 +205,7 @@ delete hot journals, or overwrite unrelated edits. See the contract for bounds.
     # Snapshot only allowlisted source and this completed run; never old/diagnostic runs/caches.
     files=[ROOT/p for p in v['source_files']]
     files.extend(p for p in directory.rglob('*') if p.is_file() and not p.name.startswith('previous-'))
-    files.extend(OUT/n for n in ('P1-REPORT.md','P1-CONTRACTS.md','ACCEPTANCE.json','SOURCE-REVISION.json','DISCOVERY-REPORT.md','LIFECYCLE-REPORT.md','UPGRADE-RECOVERY-REPORT.md','CHANGE-SUMMARY.md','verification-summary.json','STATUS.json'))
+    files.extend(OUT/n for n in ('P1-REPORT.md','P1-CONTRACTS.md','ACCEPTANCE.json','SOURCE-REVISION.json','DISCOVERY-REPORT.md','LIFECYCLE-REPORT.md','UPGRADE-RECOVERY-REPORT.md','CHANGE-SUMMARY.md','FUNCTIONAL-REVIEW.md','verification-summary.json','STATUS.json'))
     files=sorted(set(files));inventory={str(p.relative_to(ROOT)):dict(sha256=sha(p),bytes=p.stat().st_size) for p in files}
     save(OUT/'REVIEW-INVENTORY.json',inventory)
     packet=OUT/'P1-review.zip'

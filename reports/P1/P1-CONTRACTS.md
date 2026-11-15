@@ -89,7 +89,10 @@ inactive claims and any claim with missing/changed/unverifiable/retracted suppor
 then filters dependent closure. Returned P1 claims expose lifecycle, revision and
 freshness metadata inside the measured byte budget. Evidence hash equality is
 current; a byte-identical lexical anchor surviving unrelated edits is explicitly
-`anchor-valid-file-changed`. This does not certify method bodies or deployment.
+`anchor-valid-file-changed` only after syntax is re-extracted in its current
+context. A commented/string-only anchor is not current, including evidence from
+the legacy v1 extractor. Source reads reject linked ancestors and oversized files.
+This does not certify method bodies or deployment.
 
 `lookup` explicitly inspects latest record/lifecycle/freshness even if inactive;
 `history --id ID` exposes immutable revisions and their source/reason/plan;
@@ -116,7 +119,14 @@ included scope, including consumers, rather than labeling untouched partitions
 fresh without examining them. Without Git, hashes/resume work; no history-based
 retirement proof or revision-range guarantee is available.
 
-No hooks, source instructions or models execute. XML project/package references,
+No hooks, source instructions or models execute. The version-2 lexical reader masks C# comments and normal/verbatim/raw strings
+without treating slashes inside a route literal as comments. Interpolated string
+expressions remain conservatively opaque. XML comments cannot create dependency
+facts. Old extractor checkpoints require restart; old evidence is revalidated.
+Re-observation preserves reviewed confidence, provenance, dependencies, conflicts
+and independent supporting evidence instead of silently resetting those fields.
+
+XML project/package references,
 C# declarations/inheritance, simple generic DI, literal route attributes/minimal
 routes and persistence calls are lexical observations. Stable IDs bind logical
 project/category/key; evidence binds exact relative path, line/excerpt and hash.

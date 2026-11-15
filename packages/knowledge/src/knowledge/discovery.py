@@ -5,10 +5,12 @@ from pathlib import Path
 import re
 import subprocess
 import xml.etree.ElementTree as ET
-from .util import canonical_json, digest, fingerprint, loads, require
+from .util import canonical_json, digest, fingerprint, loads, require, KnowledgeError
+from .project import safe_path
 from . import lifecycle as life
 
-VERSION='dotnet-lexical-v1'
+VERSION='dotnet-lexical-v2'
+DISCOVERY_METHODS={'dotnet-lexical-v1',VERSION}
 EXCLUDED={'.git','.knowledge','.ai','.venv','.local','node_modules','vendor','packages','bin','obj','dist','build','.vs','TestResults'}
 SUFFIXES={'.cs','.csproj','.props','.targets','.sln','.json','.md','.yaml','.yml','.xml','.config'}
 LIMIT=512000
@@ -91,23 +93,24 @@ def extract(root,path,entry):
     if path.endswith('.csproj'):
         try: tree=ET.fromstring(text)
         except ET.ParseError:return [],'partial','invalid project XML'
-        for index,line in enumerate(lines,1):
+        xml_code=re.sub(r'<!--.*?-->',lambda m:''.join('\n' if c=='\n' else ' ' for c in m[0]),text,flags=re.S)
+        for index,line in enumerate(xml_code.splitlines(),1):
             if '<Project ' in line:emit('project','project',f'{project_name} declares a .NET project using {tree.attrib.get("Sdk","an unspecified SDK")}.',index,project_name)
             for tag in ('ProjectReference','PackageReference'):
                 m=re.search(r'<'+tag+r'\b[^>]*Include="([^"]+)"',line)
                 if m:emit('dependency',tag+':'+m[1],f'{project_name} declares {tag} {m[1]}.',index,m[1])
         return observations,'analyzed',None
     if path.endswith('.cs'):
-        # Strip comments, maintaining line offsets. Strings are retained for literal routes.
-        clean=re.sub(r'/\*.*?\*/',lambda m:'\n'*m[0].count('\n'),text,flags=re.S)
-        clean=re.sub(r'//[^\n]*','',clean)
-        for index,line in enumerate(clean.splitlines(),1):
+        code,literals=csharp_masks(text)
+        literal_lines=literals.splitlines()
+        for index,line in enumerate(code.splitlines(),1):
             for m in re.finditer(r'\b(class|interface|record)\s+(\w+)(?:\s*<[^>]+>)?\s*(?::\s*([^\{]+))?',line):
                 kind,name,bases=m.groups();bases=(bases or '').strip()
                 emit('declaration',name,f'{project_name} declares {kind} {name}'+(f' with declared bases {bases}' if bases else '')+'.',index,name)
             for m in re.finditer(r'\bAdd(Scoped|Singleton|Transient)\s*<([^>]+)>',line):
                 emit('wiring',m[2].split(',')[0].strip(),f'{project_name} contains Add{m[1]}<{m[2]}> registration syntax.',index,m[2].split(',')[0].strip())
-            for m in re.finditer(r'\b(MapGet|MapPost|MapPut|MapDelete|Route|HttpGet|HttpPost|HttpPut|HttpDelete)\s*\(\s*"([^"]*)"',line):
+            for m in re.finditer(r'\b(MapGet|MapPost|MapPut|MapDelete|Route|HttpGet|HttpPost|HttpPut|HttpDelete)\s*\(\s*"([^"]*)"',literal_lines[index-1]):
+                if not line[m.start():m.start()+1].strip():continue
                 emit('routing',Path(path).stem+':'+m[1]+':'+m[2],f'{project_name} declares {m[1]} route literal "{m[2]}" in {Path(path).stem}.',index,m[2])
             for m in re.finditer(r'\b(AddDbContext|UseSqlServer|UseSqlite|GetConnectionString)\s*(?:<([^>]+)>)?\s*\(',line):
                 emit('persistence',Path(path).stem+':'+m[1]+':'+str(m[2]),f'{project_name} contains {m[1]}'+(f'<{m[2]}>' if m[2] else '')+' persistence/configuration syntax.',index,m[2] or m[1])
@@ -122,12 +125,26 @@ def fresh_evidence(root,e):
     p=Path(path)
     if p.is_absolute() or '..' in p.parts:return 'not-verifiable'
     p=Path(root)/p
+    try:safe_path(p)
+    except (KnowledgeError,OSError):return 'not-verifiable'
     if not p.is_file() or p.is_symlink():return 'missing'
     try:
-        data=p.read_bytes()
+        with p.open('rb') as source:data=source.read(LIMIT+1)
+        if len(data)>LIMIT:return 'not-verifiable'
+        method=e.get('provenance',{}).get('method')
+        if method in DISCOVERY_METHODS:
+            # Re-extract syntax before trusting unchanged hashes or surviving lines:
+            # an old v1 false positive or a newly commented anchor is not current.
+            relative=p.relative_to(root).as_posix()
+            projects=[]
+            for parent in [p.parent,*p.parent.parents]:
+                if parent!=Path(root) and Path(root) not in parent.parents:break
+                projects.extend(candidate.relative_to(root).as_posix() for candidate in parent.glob('*.csproj') if not candidate.is_symlink())
+            partition=max(projects,key=len) if projects else '.'
+            observations,_,_=extract(root,relative,{'partition':partition,'hash':'sha256:'+hashlib.sha256(data).hexdigest()})
+            if not any(o['id'] in e['substantiates'] and o['anchor']==e['description'] for o in observations):return 'changed'
         if 'sha256:'+hashlib.sha256(data).hexdigest()==e['content_hash']:return 'unchanged'
-        # Exact anchored excerpt survives unrelated edits and line movement.
-        if e.get('provenance',{}).get('method')==VERSION and e['description'] in [line.strip() for line in data.decode('utf-8-sig').splitlines()]:return 'anchor-valid-file-changed'
+        if method in DISCOVERY_METHODS and e['description'] in [line.strip() for line in data.decode('utf-8-sig').splitlines()]:return 'anchor-valid-file-changed'
     except (OSError,UnicodeError):return 'not-verifiable'
     return 'changed'
 
@@ -149,6 +166,13 @@ def proposal(store,db,obs,snapshot,captured,records,states):
                   description=obs['anchor'],substantiates=[obs['id']],captured_at=captured,provenance=dict(actor='deterministic-discovery',method=VERSION))
     claim=dict(id=obs['id'],statement=obs['statement'],type='technical_fact',status='CONFIRMED',evidence=[eid],
                provenance=dict(actor='deterministic-discovery',method=VERSION),last_verified=captured[:10],depends_on=[],conflicts_with=[])
+    if known:
+        # Re-observation does not authorize promotion or loss of reviewed graph state.
+        claim.update(status=known['status'],type=known['type'],depends_on=list(known['depends_on']),
+                     conflicts_with=list(known['conflicts_with']),provenance=dict(known['provenance']))
+        if known['status']!='CONFIRMED':claim['last_verified']=known['last_verified']
+        evidence_by_id={e['id']:e for e in records['evidence']}
+        claim['evidence'].extend(i for i in known['evidence'] if evidence_by_id[i]['provenance']['method'] not in DISCOVERY_METHODS)
     ops=[]
     if not db.execute('SELECT 1 FROM records WHERE id=?',(eid,)).fetchone():ops.append(life.op('add','evidence',eid,0,evidence))
     ops.append(life.op('update' if known else 'add','claims',obs['id'],life.revision(db,obs['id']),claim))
@@ -227,7 +251,7 @@ def reconcile(store,scan_id):
             classification='unchanged' if fresh['trusted'] else 'not-verifiable'
             if states[c['id']]['lifecycle']!='active':classification='historical'
             elif not fresh['trusted'] and c['id'] in observed:classification='changed'
-            elif not fresh['trusted'] and c['provenance']['method']==VERSION:classification='suspected-obsolete'
+            elif not fresh['trusted'] and c['provenance']['method'] in DISCOVERY_METHODS:classification='suspected-obsolete'
             dependents=[d['id'] for d in records['claims'] if c['id'] in d['depends_on']]
             out.append(dict(id=c['id'],classification=classification,freshness=fresh,lifecycle=states[c['id']]['lifecycle'],dependents=dependents,
                             retirement_proposed=False,reason='Retirement requires reviewed positive corroboration; lexical absence alone is insufficient.'))
@@ -274,3 +298,41 @@ def proposal_identity(value):
             change['payload'].pop('captured_at',None)
             change['payload'].pop('last_verified',None)
     return digest(operations)
+
+
+def csharp_masks(text):
+    """Keep offsets/newlines: code masks literals+comments; literals masks comments.
+
+    Interpolation contents are conservatively opaque. Normal, verbatim, raw
+    strings and character literals cannot manufacture declarations or comments.
+    """
+    code=list(text);literals=list(text);length=len(text);i=0
+    def blank(start,end,comment=False):
+        for k in range(start,end):
+            if text[k] not in '\r\n':
+                code[k]=' '
+                if comment:literals[k]=' '
+    while i<length:
+        if text.startswith('//',i):
+            end=text.find('\n',i+2);end=length if end<0 else end
+            blank(i,end,True);i=end;continue
+        if text.startswith('/*',i):
+            end=text.find('*/',i+2);end=length if end<0 else end+2
+            blank(i,end,True);i=end;continue
+        if text[i] not in ('"',"'"):i+=1;continue
+        start=i;quote=text[i]
+        count=1
+        while i+count<length and text[i+count]==quote:count+=1
+        if quote=='"' and count>=3:
+            end=text.find('"'*count,i+count);i=length if end<0 else end+count
+        else:
+            verbatim=quote=='"' and (i>0 and text[i-1]=='@' or i>1 and text[i-2:i]=='@$')
+            i+=1
+            while i<length:
+                if verbatim and text.startswith('""',i):i+=2;continue
+                if not verbatim and text[i]=='\\':i+=2;continue
+                if text[i]==quote:i+=1;break
+                i+=1
+            i=min(i,length)
+        blank(start,i)
+    return ''.join(code),''.join(literals)

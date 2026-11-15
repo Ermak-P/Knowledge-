@@ -1,6 +1,6 @@
 # Nonempty P0 upgrade and transaction recovery
 
-Run `6569a5ab46f94d9aa3633cfe203d36b4`; source `2ccbb7551190849e40fc4da0a2b65d354f1e1afee1aafc540fc3d045144db15a`. Raw evidence: `runs/6569a5ab46f94d9aa3633cfe203d36b4/`.
+Run `7c567e88b6b54922bcc21a8ae3a6ae3f`; source `e20dbd2635d808ce19366d90a0bb96b56ffbd730e5ed14b14e2fa1cfe8d3e96e`. Raw evidence: `runs/7c567e88b6b54922bcc21a8ae3a6ae3f/`.
 
 upgrade.json records a nonempty accepted-format fixture with canonical data,
 a committed but unacknowledged transaction and a second pending candidate.
