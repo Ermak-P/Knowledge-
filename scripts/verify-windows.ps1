@@ -5,6 +5,14 @@ if ($PSVersionTable.PSEdition -ne 'Desktop' -or $PSVersionTable.PSVersion.Major 
 $env:PYTHONUTF8 = '1'
 $env:PYTHONIOENCODING = 'utf-8'
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
+# Hosted Windows often exposes TEMP as RUNNER~1. That alias class is deliberately
+# unsupported by the product. Choose a separate normal-spelling native fixture root.
+$FixtureParent = $env:RUNNER_TEMP
+if (-not $FixtureParent) { $FixtureParent = Join-Path $env:LOCALAPPDATA 'KnowledgeP3' }
+$FixtureTemp = Join-Path $FixtureParent 'knowledge-p3-native-fixtures'
+New-Item -ItemType Directory -Force -Path $FixtureTemp | Out-Null
+$env:TEMP = $FixtureTemp
+$env:TMP = $FixtureTemp
 Set-Location (Split-Path $PSScriptRoot -Parent)
 $Py = Get-Command py -ErrorAction SilentlyContinue
 if ($Py) {
