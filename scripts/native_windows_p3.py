@@ -13,7 +13,8 @@ def main():
     k.GetVolumeInformationW.argtypes=[ctypes.c_wchar_p,ctypes.c_wchar_p,ctypes.c_uint32,ctypes.c_void_p,ctypes.c_void_p,ctypes.c_void_p,ctypes.c_wchar_p,ctypes.c_uint32]
     assert k.GetVolumeInformationW(Path.cwd().anchor,None,0,None,None,None,fs,64) and fs.value=='NTFS'
     ps=shutil.which('powershell.exe');assert ps
-    version=json.loads(subprocess.check_output([ps,'-NoProfile','-Command','$PSVersionTable | Select-Object PSEdition,@{N="Version";E={$_.PSVersion.ToString()}} | ConvertTo-Json -Compress'],text=True,encoding='utf-8-sig'))
+    version=json.loads(subprocess.check_output([ps,'-NoProfile','-Command','[pscustomobject]@{PSEdition=$PSVersionTable.PSEdition;Version=$PSVersionTable.PSVersion.ToString()} | ConvertTo-Json -Compress'],text=True,encoding='utf-8-sig'))
+    save(out/'shell-probe.json',version)
     assert version['PSEdition']=='Desktop' and version['Version'].startswith('5.1.')
     results=json.loads((a.ledger.parent/'regressions/tests.json').read_text(encoding='utf-8'));assert results['preserved'] and results['skipped']==0 and results['success']
     lifecycle=json.loads((a.ledger.parent/'prior-upgrade/prior-upgrade.json').read_text(encoding='utf-8'))
