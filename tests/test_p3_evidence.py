@@ -40,10 +40,12 @@ class ReleaseGate(unittest.TestCase):
     def test_linux_pass_cannot_qualify_windows_or_stale_external_native_receipt(self):
         value=dict(status='PASS_PORTABLE',source_identity='s',wheel_sha256={'knowledge.whl':'h'},platform={'os':'Linux'},checks={n:dict(status='NOT_RUN' if n=='native' else 'PASS') for n in REQUIRED})
         self.assertEqual(qualification(value)['profiles']['windows-3.12-x64-ntfs-ps51']['verdict'],'NO_GO')
-        native=dict(status='PASS',source_identity='s',wheel_sha256={'knowledge.whl':'h'},platform={'os':'Windows','filesystem':'NTFS','python':'3.12.14','shell':'Windows PowerShell 5.1'},required_checks={k:'PASS' for k in ('regressions','platform','offline-core','lifecycle','rehearsal','application','launchers')},ci={'commit':'test-commit','run_id':'test-run'})
+        native=dict(status='PASS',source_identity='s',wheel_sha256={'knowledge.whl':'h'},platform={'os':'Windows','filesystem':'NTFS','python':'3.12.14','shell':'Windows PowerShell 5.1','architecture':'AMD64'},required_checks={k:'PASS' for k in ('regressions','platform','offline-core','lifecycle','rehearsal','application','launchers')},ci={'commit':'test-commit','run_id':'test-run'})
         require_native(value,native)
         for field,new in (('source_identity','other'),('wheel_sha256',{'knowledge.whl':'other'}),('platform',{'os':'Linux','filesystem':'NTFS','python':'3.12.14','shell':'Windows PowerShell 5.1'})):
             bad=copy.deepcopy(native);bad[field]=new
             with self.assertRaises(AssertionError):require_native(value,bad)
         bad=copy.deepcopy(native);del bad['required_checks']['platform']
+        with self.assertRaises(AssertionError):require_native(value,bad)
+        bad=copy.deepcopy(native);bad['platform']['architecture']='ARM64'
         with self.assertRaises(AssertionError):require_native(value,bad)

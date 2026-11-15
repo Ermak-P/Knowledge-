@@ -21,6 +21,7 @@ def main():
                 assert path.is_relative_to(OUT),'collected CI evidence must be under reports/P3';ci_files[path.relative_to(ROOT).as_posix()]=sha(path)
     if v['platform']['os']=='Windows':native=json.loads((base/'native/native.json').read_text(encoding='utf-8'))
     q=qualification(v,native);q['run_id']=run;q['ci_collection']=ci_status;save(OUT/'QUALIFICATION.json',q)
+    native_links=[path for path in sorted(ci_files) if '/collected/'+v['commit']+'/Windows/' in path and (path.endswith('/native/native.json') or path.endswith('/verification-summary.json'))]
     spec={}
     for line in (ROOT/'tasks/Knowledge-Harness-P3-Codex-Task.md').read_text(encoding='utf-8').splitlines():
         if re.match(r'\| P3-A\d\d \|',line):parts=line.split('|');spec[parts[1].strip()]=parts[2].strip()
@@ -34,13 +35,14 @@ def main():
         windows='PASS' if q['profiles']['windows-3.12-x64-ntfs-ps51']['verdict']=='GO' else 'FAIL' if ci_status=='FAIL' else 'NOT_RUN'
         status=windows if n in native_only else 'PARTIAL' if n in mixed and windows!='PASS' else 'PASS'
         relevant=[r['test'] for r in tests['results'] if r['status']=='PASS' and ((n in (9,10,11,12,14) and 'test_p3_lifecycle.' in r['test']) or (n in (4,5,6,7,8,21) and 'test_p3_platform.' in r['test']) or (n==15 and 'test_p3_host.' in r['test']) or (n==24 and 'test_p3_evidence.' in r['test']))]
-        rows.append(dict(id=identifier,requirement=spec[identifier],status=status,implementation='submitted for review',profiles={'linux':'NOT_APPLICABLE' if n in native_only else 'PASS','windows':windows},evidence=evidence,tests=relevant))
+        rows.append(dict(id=identifier,requirement=spec[identifier],status=status,implementation='submitted for review',profiles={'linux':'NOT_APPLICABLE' if n in native_only else 'PASS','windows':windows},evidence=evidence,windows_evidence=native_links,tests=relevant))
     save(OUT/'ACCEPTANCE.json',dict(version=1,phase='P3',submission='submitted for external review',source_identity=v['source_identity'],run_id=run,product=v['product'],conditions=rows,qualification=q,unexecuted={'native_windows':q['profiles']['windows-3.12-x64-ntfs-ps51']['verdict']!='GO','live_model':'NOT_RUN','OpenCode':'NOT_RUN','PS7':'NOT_CLAIMED','private_MCP':'NOT_RUN','production_migration':'NOT_AUTHORIZED'}))
     app=json.loads((base/'application/application.json').read_text(encoding='utf-8'));assert app['outcome']['ok'] and int(app['before']['total'])==49 and app['after']['total']==50
     rehearsal=json.loads((base/'rehearsal/rehearsal.json').read_text(encoding='utf-8'));assert rehearsal['metadata_roundtrip_exact'] and rehearsal['conflict_preserved']
+    native_detail=(f"Executed native profile: {native['platform']}; CI {native['ci']}. Exact-source/package receipts and raw native logs: {native_links}." if native else "No successful native receipt exists for this exact source/package. Missing native evidence blocks P3-A06/A07/A19 and the Windows portions of A04/A05/A21.")
     report=f'''# P3 submitted for external review
 
-Accepted P2 `{ '91689475a283a2cdc654cfb6090074f0251f895d' }`, accepted source `4bb5fdfc0dabe64fee7087a29565549b40da6f2a8f32e203ed46f58883110416`; ordinary p3 branch from merged main `0245afda6ecf7b873839adba4be4772611717210`. The containing delivery Git commit identifies the final submission; a file cannot embed its own commit hash. No dependency on a deleted p2 branch. Product version 0.3.0rc1; source `{v['source_identity']}`, current run `{run}`.
+Accepted P2 `{ '91689475a283a2cdc654cfb6090074f0251f895d' }`, accepted source `4bb5fdfc0dabe64fee7087a29565549b40da6f2a8f32e203ed46f58883110416`; ordinary p3 branch from merged main `0245afda6ecf7b873839adba4be4772611717210`. Tested implementation commit `{v['commit']}`. The containing delivery Git commit identifies the final evidence submission; a file cannot embed its own commit hash. No dependency on a deleted p2 branch. Product version 0.3.0rc1; source `{v['source_identity']}`, current run `{run}`.
 
 Implementation includes transferable reproducible core wheels/installers (same distribution names), independent Knowledge, native Windows file-lock/Job Object backend, Linux pidfd/group recovery, exact-approved consistent backup/restore/upgrade, staged fenced recovery, prior binary/data rollback, product-only uninstall/reinstall and project-local OpenCode v2 companion with enrolled tasks. Record/envelope schemas, Knowledge extension and Harness config/run versions stay distinct and unchanged. Unsupported root/state relocation and unverifiable process ownership refuse. No canonical approval is performed by the ordinary runner/maintenance.
 
@@ -50,7 +52,7 @@ Fresh installed-product UMUH-like rehearsal uses a distinct three-project domain
 
 Pinned eShopOnWeb `{app['pin']}` with SDK `{app['sdk']}`: fresh restore/build, 49/49 baseline, the independent new regression fails before repair, then 50/50. Existing test source and original checkout are preserved; actual license, logs and TRX are included. No previous P2 application artifact is reused.
 
-Implementation review: {q['implementation_review']}. Linux standalone profile: {q['profiles']['linux-3.12-x64']['verdict']}. Native Windows/NTFS/PowerShell 5.1 profile: **{q['profiles']['windows-3.12-x64-ntfs-ps51']['verdict']}**; CI evidence collection: {ci_status}. A workflow file/Linux result is not native proof. Missing native evidence blocks P3-A06/A07/A19 and the Windows portions of A04/A05/A21. Exact native handoff: `powershell -NoProfile -File scripts/verify-windows.ps1`; ordinary task-branch workflow `.github/workflows/p3.yml`. Collected CI evidence, if present, must match exact source/wheel/check/runtime identities and every artifact hash. No required native skip is accepted as GO.
+Implementation review: {q['implementation_review']}. Linux standalone profile: {q['profiles']['linux-3.12-x64']['verdict']}. Native Windows/NTFS/PowerShell 5.1 profile: **{q['profiles']['windows-3.12-x64-ntfs-ps51']['verdict']}**; CI evidence collection: {ci_status}. A workflow file/Linux result is not native proof. {native_detail} Exact native handoff: `powershell -NoProfile -File scripts/verify-windows.ps1`; ordinary task-branch workflow `.github/workflows/p3.yml`. Collected CI evidence must match exact source/wheel/check/runtime identities and every artifact hash. No required native skip is accepted as GO.
 
 Optional live model/llama-server, live OpenCode, PS7 and private MCP are unexecuted/not claimed; synthetic HTTP decisions do not certify them. Real production IPM/UMUH migration, merge, registry publication and deployment were not performed. Package publication/license decisions remain owner-controlled; no new public license grant is invented. Practical limits: trusted host programs, lexical source coverage, root-bound state and explicit unsupported active cross-OS migration. Expected negative failures/conflicts are retained separately from passing mandatory checks.
 
@@ -69,8 +71,11 @@ Distribution: `runs/{run}/distribution/knowledge-harness-0.3.0rc1.zip` and its e
     inventory=dict(version=1,run_id=run,source_identity=v['source_identity'],product=v['product'],files=dict(sorted(files.items())))
     archive=OUT/'P3-review.zip'
     with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as z:
-        for rel,h in sorted(files.items()):assert sha(ROOT/rel)==h;z.write(ROOT/rel,rel)
-        z.writestr('ZIP-INVENTORY.json',json.dumps(inventory,indent=2,ensure_ascii=False)+'\n')
+        def member(name,data):
+            info=zipfile.ZipInfo(name,(2025,1,1,0,0,0));info.create_system=3;info.external_attr=0o100644<<16;info.compress_type=zipfile.ZIP_DEFLATED
+            z.writestr(info,data,compresslevel=9)
+        for rel,h in sorted(files.items()):assert sha(ROOT/rel)==h;member(rel,(ROOT/rel).read_bytes())
+        member('ZIP-INVENTORY.json',(json.dumps(inventory,indent=2,ensure_ascii=False)+'\n').encode('utf-8'))
     with zipfile.ZipFile(archive) as z:
         assert z.testzip() is None and set(z.namelist())==set(files)|{'ZIP-INVENTORY.json'}
         assert json.loads(z.read('ZIP-INVENTORY.json'))==inventory

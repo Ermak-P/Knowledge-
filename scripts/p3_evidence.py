@@ -44,6 +44,7 @@ def require_native(value,native):
     assert native['source_identity']==value['source_identity'],'native source mismatch'
     assert native['platform']['os']=='Windows' and native['platform']['filesystem']=='NTFS','not native NTFS evidence'
     assert native['platform']['python'].startswith('3.12.') and native['platform']['shell']=='Windows PowerShell 5.1','wrong native runtime/shell'
+    assert native['platform'].get('architecture','').casefold() in ('amd64','x86_64'),'wrong native architecture'
     assert set(native['required_checks'])=={'regressions','platform','offline-core','lifecycle','rehearsal','application','launchers'},'incomplete native coverage'
     assert native['wheel_sha256']==value['wheel_sha256'],'native package mismatch'
     assert native.get('ci',{}).get('commit') and native['ci'].get('run_id'),'missing CI provenance'
