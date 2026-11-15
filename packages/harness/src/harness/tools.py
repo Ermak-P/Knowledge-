@@ -13,8 +13,8 @@ import xml.etree.ElementTree as ET
 from knowledge.util import require,KnowledgeError,canonical_json,loads,digest
 from knowledge.project import safe_path
 from . import runtime as rt
-from .runtime import TOOLS,local_path,source_snapshot,blob,stamp
-from .process_worker import process_info
+from .runtime import TOOLS,local_path,source_snapshot,blob,stamp,policy_path
+from .platform import process_info,launch_worker,KIND,compatible,stop_owned
 
 SCHEMAS={
  'read':{'path':{'type':'string'},'offset':{'type':'integer'},'limit':{'type':'integer'}},
@@ -55,7 +55,7 @@ def writable(path,task):
 
 def sanitized_env(extra):
     keep=('PATH','LANG','LC_ALL','TZ','SYSTEMROOT','TMPDIR','HTTPS_PROXY','HTTP_PROXY','ALL_PROXY','NO_PROXY','https_proxy','http_proxy','all_proxy','no_proxy','SSL_CERT_FILE','REQUESTS_CA_BUNDLE')
-    return {**{k:os.environ[k] for k in keep if k in os.environ},**extra,'PYTHONUNBUFFERED':'1'}
+    return {**{k:os.environ[k] for k in keep if k in os.environ},**extra,'PYTHONUNBUFFERED':'1','PYTHONUTF8':'1','PYTHONIOENCODING':'utf-8'}
 
 
 class Broker:
@@ -120,7 +120,7 @@ class Broker:
             for f in files:
                 require(isinstance(f,dict) and set(f)=={'path','before','after'} and isinstance(f['path'],str) and f['path'] not in seen,'invalid-patch-fields');seen.add(f['path'])
                 path=local_path(self.j.project,f['path'],True);writable(f['path'],self.r['task'])
-                require(f['path'] not in self.r.get('protected_executables',[]) and (f['path'] not in self.r['protected_paths'] or f['path'] in self.r['task']['existing_test_edits']),'recipe-input-edit-denied')
+                require(policy_path(f['path']) not in self.r.get('protected_executables',[]) and (policy_path(f['path']) not in self.r['protected_paths'] or f['path'] in self.r['task']['existing_test_edits']),'recipe-input-edit-denied')
                 require(isinstance(f['after'],str) and len(f['after'].encode())<=self.limits['file_bytes'],'patch-too-large')
                 require(before.get(f['path'])==f['before'],'edit-before-state-mismatch')
             exceptions=[f['path'] for f in files if f['path'] in self.r['task']['existing_test_edits']]
@@ -134,7 +134,7 @@ class Broker:
         written=[];reconciled=[]
         for f in files:
             path=local_path(self.j.project,f['path'],True);writable(f['path'],self.r['task'])
-            require(f['path'] not in self.r.get('protected_executables',[]) and (f['path'] not in self.r['protected_paths'] or f['path'] in self.r['task']['existing_test_edits']),'recipe-input-edit-denied')
+            require(policy_path(f['path']) not in self.r.get('protected_executables',[]) and (policy_path(f['path']) not in self.r['protected_paths'] or f['path'] in self.r['task']['existing_test_edits']),'recipe-input-edit-denied')
             actual=blob(path.read_bytes()) if path.exists() else None;after=blob(f['after'].encode())
             if actual==after:reconciled.append(f['path']);continue
             require(actual==f['before'],'edit-recovery-conflict',f['path'])
@@ -155,17 +155,23 @@ class Broker:
         attempt=action.get('process_attempt',0)
         if action.get('process_spec') and not action.get('process_result'):
             info=action.get('process');current=process_info(info['pid']) if info else None
+            if info:require(compatible(info),'unverifiable-process-ownership')
             require(current is None or current['start']!=info['start'],'recipe-still-running')
             require(recipe['rerun_safe'],'recipe-outcome-unknown')
+            action.setdefault('process_history',[]).append({'state':'unknown','process_spec':action['process_spec'],'process':action.get('process'),'started':action.get('process_started')})
             attempt+=1
         if 'process_result' not in action:
             artifacts=self.j.base/'artifacts'/self.r['id']/action_id/str(attempt);safe_path(artifacts);artifacts.mkdir(parents=True,exist_ok=True)
             argv=[a.replace('{artifacts}',str(artifacts)) for a in recipe['argv']]
             require(not any('{' in a or '}' in a for a in argv),'unknown-recipe-placeholder')
             action.update(process_attempt=attempt,process_spec={'argv':argv,'cwd':str(self.j.project.root),'log':str(artifacts/'process.log'),'timeout':min(self.limits['recipe_seconds'],max(.1,self.limits['elapsed_seconds']-(stamp()-self.r['started']))),'log_bytes':self.limits['log_bytes']},source_before=source)
+            action['process_platform']=KIND
+            if os.name=='nt':
+                import uuid
+                action['job_name']='Local\\Knowledge-'+uuid.uuid4().hex
             self.j.action(self.r['id'],action_id,action)
             env=sanitized_env(recipe['env']);env['HARNESS_ACTION_ID']=action_id
-            worker=subprocess.Popen([sys.executable,'-I','-m','harness.process_worker','--root',str(self.j.project.root),'--run',self.r['id'],'--action',action_id,'--lease-fd',str(self.lease.fd)],env=env,pass_fds=(self.lease.fd,),start_new_session=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+            worker=launch_worker([sys.executable,'-I','-m','harness.process_worker','--root',str(self.j.project.root),'--run',self.r['id'],'--action',action_id,'--lease-fd',str(self.lease.fd)],env,self.lease)
             while worker.poll() is None:time.sleep(.05)
             action=self.j.action(self.r['id'],action_id)
             require('process_result' in action,'recipe-outcome-unknown')
@@ -202,13 +208,3 @@ def knowledge(root,task,limit):
     from knowledge.store import Store
     try:return {'ok':True,'available':True,'context':Store(root).context(task,max_bytes=max(256,limit-200))}
     except KnowledgeError as e:return {'ok':False,'available':False,'reason':e.code}
-
-
-def stop_owned(journal,run):
-    for action in journal.actions(run).values():
-        info=action.get('process')
-        if info and not action.get('process_result'):
-            current=process_info(info['pid'])
-            if current and current['start']==info['start'] and current['group']==info['group']:
-                try:os.kill(info['pid'],signal.SIGTERM)
-                except ProcessLookupError:pass

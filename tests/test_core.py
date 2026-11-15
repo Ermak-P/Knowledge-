@@ -78,9 +78,8 @@ class CoreTests(unittest.TestCase):
                 with self.assertRaisesRegex(KnowledgeError,'store-busy-retry'): fn()
         self.s.apply(p,p); self.s.acknowledge(p)
 
-    @unittest.skipUnless(os.name=='posix','native subprocess scheduling fixture uses fork')
     def test_competing_writers(self):
-        ctx=multiprocessing.get_context('fork'); barrier=ctx.Barrier(3); results=ctx.Queue()
+        ctx=multiprocessing.get_context('fork' if os.name=='posix' else 'spawn'); barrier=ctx.Barrier(3); results=ctx.Queue()
         workers=[ctx.Process(target=competing,args=(str(self.root),barrier,results,i)) for i in (False,True)]
         for p in workers:p.start()
         barrier.wait()
@@ -137,9 +136,8 @@ class CoreTests(unittest.TestCase):
         for fn in [self.s.prepare,lambda:self.s.submit(addition()),self.s.recover,self.s.validate]:
             with self.assertRaises(KnowledgeError):fn()
 
-    @unittest.skipUnless(os.name=='posix','process crash fixture uses fork')
     def test_crash_boundaries(self):
-        ctx=multiprocessing.get_context('fork')
+        ctx=multiprocessing.get_context('fork' if os.name=='posix' else 'spawn')
         def run(phase,op,pid=None):
             p=ctx.Process(target=crash,args=(str(self.root),phase,op,pid));p.start();p.join(20);self.assertEqual(p.exitcode,73)
         run('queue-written','submit');self.assertEqual(self.s.status()['queue'],[])
@@ -151,11 +149,10 @@ class CoreTests(unittest.TestCase):
         self.s.recover();self.assertEqual(self.s.status()['queue'][0]['status'],'imported')
         self.s.recover();self.assertEqual(self.s.validate()['counts']['claims'],1)
 
-    @unittest.skipUnless(os.name=='posix','process crash fixture uses fork')
     def test_init_crash_before_and_after_publication(self):
         other=self.root.parent/'fresh';other.mkdir()
         for phase in ('init-before-publish','init-after-publish'):
-            p=multiprocessing.get_context('fork').Process(target=crash,args=(str(other),phase,'init'))
+            p=multiprocessing.get_context('fork' if os.name=='posix' else 'spawn').Process(target=crash,args=(str(other),phase,'init'))
             p.start();p.join(20);self.assertEqual(p.exitcode,73)
             if phase=='init-before-publish':self.assertFalse((other/'.knowledge/store.sqlite3').exists())
             else:self.assertEqual(Store(other).validate()['counts']['claims'],0)
@@ -260,19 +257,17 @@ class MigrationTests(unittest.TestCase):
         with self.assertRaisesRegex(KnowledgeError,'missing-plan'):migration.preview(self.root)
         with self.assertRaisesRegex(KnowledgeError,'legacy-store-present'):Store(self.root).init()
 
-    @unittest.skipUnless(os.name=='posix','process crash fixture uses fork')
     def test_interrupted_migration(self):
         before=migration.snapshot(self.root);pid=migration.preview(self.root)['fingerprint']
         for phase in ('migration-record-written','migration-before-publish'):
-            p=multiprocessing.get_context('fork').Process(target=crash,args=(str(self.root),phase,'migrate',pid));p.start();p.join(20)
+            p=multiprocessing.get_context('fork' if os.name=='posix' else 'spawn').Process(target=crash,args=(str(self.root),phase,'migrate',pid));p.start();p.join(20)
             self.assertEqual(p.exitcode,73);self.assertFalse((self.root/'.knowledge/store.sqlite3').exists())
             self.assertEqual(migration.snapshot(self.root),before)
         migration.apply(self.root,pid);Store(self.root).validate()
 
-    @unittest.skipUnless(os.name=='posix','process crash fixture uses fork')
     def test_migration_crash_after_publication(self):
         pid=migration.preview(self.root)['fingerprint']
-        p=multiprocessing.get_context('fork').Process(target=crash,args=(str(self.root),'migration-after-publish','migrate',pid))
+        p=multiprocessing.get_context('fork' if os.name=='posix' else 'spawn').Process(target=crash,args=(str(self.root),'migration-after-publish','migrate',pid))
         p.start();p.join(20);self.assertEqual(p.exitcode,73)
         Store(self.root).validate()
         self.assertEqual(migration.apply(self.root,pid)['result'],'already-migrated')

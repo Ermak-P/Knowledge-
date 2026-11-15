@@ -6,11 +6,17 @@ from .util import require, digest
 
 
 def linked(p):
-    return p.is_symlink() or (hasattr(p, 'is_junction') and p.is_junction())
+    return p.is_symlink() or (hasattr(p, 'is_junction') and p.is_junction()) or (os.name=='nt' and p.exists() and bool(getattr(p.lstat(),'st_file_attributes',0)&0x400))
 
 
 def safe_path(p):
     p = Path(p)
+    if os.name=='nt':
+        import re
+        text=str(p)
+        require(not text.startswith(('\\\\','//')) and (not p.drive or p.is_absolute()),'unsupported-windows-path')
+        for name in p.parts[1:] if p.anchor else p.parts:
+            require(not any(ch in name for ch in ':<>"|?*~') and not name.endswith((' ','.')) and not re.fullmatch(r'(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\..*)?',name,re.I),'unsupported-windows-path')
     for part in [p, *p.parents]:
         require(not linked(part), 'linked-path')
     if p.exists():

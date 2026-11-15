@@ -472,7 +472,7 @@ def negative_coverage_gaps(snapshot):
     """
     projects=[p for p in snapshot['files'] if p.endswith('.csproj')]
     result=[]
-    administrative={'.git','.gitignore','.gitattributes','.editorconfig','.knowledge','.ai','.venv','.local','.vs','TestResults'}
+    administrative={'.maintenance','.harness','.knowledge-control.lock','.git','.gitignore','.gitattributes','.editorconfig','.knowledge','.ai','.venv','.local','.vs','TestResults'}
     for excluded in snapshot['exclusions']:
         path=Path(excluded['path'])
         if any(part in administrative for part in path.parts):continue

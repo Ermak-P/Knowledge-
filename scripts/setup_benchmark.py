@@ -23,7 +23,11 @@ def main():
     assert actual==PIN,'Preserve existing checkout: unexpected revision'
     assert subprocess.check_output(['git','-C',str(host),'diff','HEAD','--'],text=True)=='','Preserve benchmark changes'
     if platform.system()!='Linux' or platform.machine() not in ('x86_64','AMD64'):
-        print('Checkout ready. Install .NET SDK 10.0.404 for your native platform from Microsoft, then run scripts/verify.py. Linux SDK installation not applicable.')
+        native=shutil.which('dotnet')
+        assert native,'Native .NET SDK 10.0.404 required; install it with the official native bootstrap or Actions setup-dotnet. Existing installations preserved.'
+        version=subprocess.check_output([native,'--version'],text=True,cwd=host).strip()
+        assert version=='10.0.404','Existing native SDK differs; preserve it and select the supported SDK explicitly.'
+        print(f'Pinned host {PIN}; verified native SDK {version}: {native}')
         return
     parser=argparse.ArgumentParser()
     parser.add_argument('--sdk-dir',type=Path,default=repo/'.local/dotnet')

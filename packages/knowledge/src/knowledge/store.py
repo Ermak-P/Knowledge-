@@ -120,7 +120,13 @@ class Store:
         self.base, self.path = self.project.base, self.project.db
 
     @contextmanager
-    def connection(self, write=False):
+    def connection(self,write=False):
+        from .coordination import gate
+        with gate(self.project.root):
+            with self._connection(write) as db:yield db
+
+    @contextmanager
+    def _connection(self, write=False):
         safe_tree(self.base)
         require(self.path.is_file(), 'knowledge-absent')
         db = None
@@ -204,6 +210,10 @@ class Store:
                 self._verify_committed(db,pid,plans[pid][0])
 
     def init(self):
+        from .coordination import gate
+        with gate(self.project.root):return self._init()
+
+    def _init(self):
         require(not (self.project.root/'.ai').exists(), 'legacy-store-present-use-migration')
         if self.path.exists():
             return self.validate()

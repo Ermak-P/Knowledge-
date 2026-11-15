@@ -97,7 +97,12 @@ def preview(root):
     return {'ok':True,'fingerprint':fingerprint(value),'manifest':value}
 
 
-def apply(root, approval):
+def apply(root,approval):
+    from .coordination import gate
+    with gate(Project(root).root):return _apply(root,approval)
+
+
+def _apply(root, approval):
     plan = preview(root)
     require(plan['fingerprint']==approval, 'exact-migration-approval-required')
     project = Project(root)

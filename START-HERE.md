@@ -1,26 +1,22 @@
-# Knowledge + Harness: P2
+# Knowledge + Harness — P3 release candidate
 
-Knowledge is independently installable. Harness 0.2 adds controlled agent execution with a configurable OpenAI-compatible HTTP provider, five role contexts, scoped edits, real recipe checks, durable recovery and automatic reviewable Knowledge candidates. P2 is submitted for external review; live model/host effectiveness is not certified.
+Version 0.3.0rc1 keeps the existing knowledge-p0/harness-p0 distribution and CLI/import names. P3 adds a transferable offline core bundle, a native Windows execution backend, approved upgrade/backup/restore/rollback tooling and an opt-in OpenCode v2 MCP companion. See the current [P3 report](reports/P3/P3-REPORT.md) and [qualification matrix](reports/P3/QUALIFICATION.json) for executed OS profiles. Implementation review, native qualification, live-host/model validation and production migration are separate claims.
+
+Build the distribution with Python 3.12:
 
 ```bash
-bash scripts/setup.sh
-# Local llama-server: enable an appropriate tool-capable chat template / --jinja.
-# Set model/endpoint and absolute recipe executable in your copy of this file.
-cp -R examples/p2-project /tmp/p2-demo
-.venv/bin/harness-run configure --root /tmp/p2-demo --input examples/p2-provider.json --init-knowledge
-.venv/bin/harness-run validate-config --root /tmp/p2-demo
-.venv/bin/harness-run run --root /tmp/p2-demo --input examples/p2-task.json
-.venv/bin/harness-run status --root /tmp/p2-demo
-# Use the returned run ID:
-.venv/bin/harness-run metrics --root /tmp/p2-demo --run-id RUN_ID
-.venv/bin/harness-run resume --root /tmp/p2-demo --run-id RUN_ID
-.venv/bin/harness-run capture-status --root /tmp/p2-demo --run-id RUN_ID
-.venv/bin/harness-run capture-retry --root /tmp/p2-demo --run-id RUN_ID
-.venv/bin/harness-run cancel --root /tmp/p2-demo --run-id RUN_ID
+python scripts/setup_p3.py
+.venv/bin/python -B scripts/build_p3.py --output .local/release
+# Transfer and verify the bundle's external SHA-256, then extract outside this checkout.
+python install.py install --env "/new path/Knowledge Env" --profile knowledge
+python install.py doctor --env "/new path/Knowledge Env"
+python install.py install --env "/new path/Knowledge Env" --profile full
 ```
 
-The demo intentionally starts with VALUE=1 and an independent expected VALUE=2 test; the task authorizes only Feature.py. Python edits have no supported .NET discovery fact, so automatic capture honestly reports no candidate. For .NET source behavior/capture examples see the executed evaluation and generators. Endpoint credentials, if needed, use provider `key_env` naming your environment variable, never JSON secrets. Only configure recipes you trust: role checks are not an OS sandbox for build hooks.
+On native Windows, use `powershell -NoProfile -File install.ps1 install --env "C:\new path\Knowledge Env" --profile full` with Python 3.12 installed. Windows PowerShell 5.1 is the claimed launcher; PS7 is not certified. The product launcher discovers native executable locations. Core uses local wheels only; optional MCP is a pinned online add-on (`--mcp-online`), not an offline complete wheelhouse.
 
-The original `harness --root ROOT --task TEXT` is still read-only. Knowledge retains its CLI, subprocess JSON and MCP adapters and explicit prepare/review/apply lifecycle. Run independent Knowledge using `pip install ./packages/knowledge`; Harness/model services are unnecessary.
+Installed commands: `knowledge --root ROOT` plus its existing subcommands; `harness` remains read-only; `harness-run version|doctor|configure|run|status|resume|cancel|capture-status|capture-retry|metrics|compare --root ROOT`; `knowledge-maintain backup-preview|upgrade-preview|restore-preview|apply|status|recover|doctor --root ROOT`; `harness-host preview|apply|remove-preview|doctor|run --root ROOT`. Use the selected environment's Python with `-m knowledge.cli`, `-m knowledge.maintain_cli`, `-m harness.run_cli` or `-m harness.companion` on either OS. Initialization and discovery are distinct; all canonical updates retain exact explicit approval/apply/ack.
 
-Verify everything: `.venv/bin/python -B scripts/verify_p2.py` (requires the pinned benchmark and SDK; `scripts/setup_benchmark.py` provisions the documented baseline). Generate packet: `.venv/bin/python -B scripts/make_review_p2.py`. See [P2 contracts](reports/P2/P2-CONTRACTS.md) and [report](reports/P2/P2-REPORT.md). P0/P1 tasks and reports remain historical evidence. No P3 work is included.
+Run the full verification on Linux with `.venv/bin/python -B scripts/setup_benchmark.py` then `.venv/bin/python -B scripts/verify_p3.py`. Native Windows uses `powershell -NoProfile -File scripts/verify-windows.ps1` and native .NET 10.0.404. Standard task-branch Actions jobs exercise both profiles and retain raw evidence even on failure. Generate the final review packet with `scripts/make_review_p3.py`; missing/mismatched native evidence keeps Windows NO_GO.
+
+Read [install](docs/P3/INSTALL.md), [upgrade](docs/P3/UPGRADE.md), [backup/restore/rollback](docs/P3/BACKUP-RESTORE-ROLLBACK.md), [uninstall](docs/P3/UNINSTALL.md), [Windows](docs/P3/WINDOWS-VALIDATION.md), [companion](docs/P3/OPENCODE-INTEGRATION.md), [rehearsal](docs/P3/UMUH-ONBOARDING-REHEARSAL.md) and [adoption runbook](docs/P3/ADOPTION-RUNBOOK.md). Existing root-bound stores are not relocated by copying directories; new projects get fresh identities. Canonical knowledge is never silently applied by Harness or maintenance. P0/P1/P2 reports remain historical evidence. No production cutover, merge or publication is performed automatically.

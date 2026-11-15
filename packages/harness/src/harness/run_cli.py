@@ -9,11 +9,19 @@ from .engine import start,resume,status
 
 def main():
     parser=argparse.ArgumentParser(description='Controlled Harness execution')
-    parser.add_argument('command',choices=['configure','validate-config','run','status','resume','cancel','capture-status','capture-retry','metrics','compare'])
+    parser.add_argument('command',choices=['version','doctor','configure','validate-config','run','status','resume','cancel','capture-status','capture-retry','metrics','compare'])
     parser.add_argument('--output',type=Path);parser.add_argument('--root',required=True);parser.add_argument('--input',type=Path);parser.add_argument('--run-id');parser.add_argument('--mode',choices=['multi','single'],default='multi');parser.add_argument('--init-knowledge',action='store_true')
     args=parser.parse_args()
     try:
-        if args.command=='configure':value=configure(args.root,loads(read_text(args.input)),args.init_knowledge)
+        if args.command=='version':
+            from . import __version__
+            from .platform import KIND
+            value={'ok':True,'version':__version__,'runner_config':1,'run_state':1,'execution_backend':KIND,'provider':'OpenAI-compatible HTTP','qualification':'separate exact-profile evidence required'}
+        elif args.command=='doctor':
+            from knowledge.project import Project
+            project=Project(args.root);path=project.root/'.harness/runner.json'
+            value={'ok':True,'project':project.describe(),'configured':path.exists(),'configuration':config(args.root) if path.exists() else None}
+        elif args.command=='configure':value=configure(args.root,loads(read_text(args.input)),args.init_knowledge)
         elif args.command=='validate-config':value={'ok':True,'configuration':config(args.root)}
         elif args.command=='compare':
             from .comparison import compare
