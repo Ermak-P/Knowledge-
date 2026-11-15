@@ -1,0 +1,2157 @@
+{
+  "ok": true,
+  "run": {
+    "agents": [
+      {
+        "finished": 1794769792.4768977,
+        "id": "163fbed2f29e483cbc87598c57743548",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": null,
+        "provider_requests": 2,
+        "role": "Main",
+        "started": 1794769789.025668,
+        "status": "done"
+      },
+      {
+        "finished": 1794769789.0881627,
+        "id": "77e2e0e1edb64052ace5c416300ccbcf",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "163fbed2f29e483cbc87598c57743548",
+        "provider_requests": 1,
+        "role": "Planning",
+        "started": 1794769789.0636048,
+        "status": "done"
+      },
+      {
+        "finished": 1794769789.158217,
+        "id": "bf6c45dafd774d1db8cdb3a7f8259ba8",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "163fbed2f29e483cbc87598c57743548",
+        "provider_requests": 2,
+        "role": "Coding",
+        "started": 1794769789.0916414,
+        "status": "done"
+      },
+      {
+        "finished": 1794769791.5025277,
+        "id": "047480038f9f4901b28e6c183d1589b9",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "163fbed2f29e483cbc87598c57743548",
+        "provider_requests": 2,
+        "role": "Building",
+        "started": 1794769789.1614227,
+        "status": "done"
+      },
+      {
+        "finished": 1794769792.271573,
+        "id": "8dd39c7a2f544d969aea202d0eb4e9ef",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "163fbed2f29e483cbc87598c57743548",
+        "provider_requests": 2,
+        "role": "Testing",
+        "started": 1794769791.5059488,
+        "status": "done"
+      },
+      {
+        "finished": 1794769792.4333687,
+        "id": "f1ca96b1f4ce4a77b9fdad1f8f24a69e",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "163fbed2f29e483cbc87598c57743548",
+        "provider_requests": 3,
+        "role": "Reviewing",
+        "started": 1794769792.2750804,
+        "status": "done"
+      }
+    ],
+    "capture": {
+      "reason": "execution did not pass mandatory gates",
+      "state": "not-eligible"
+    },
+    "capture_prepared": false,
+    "config_hash": "af15866a5e4ac01456d08bbef8d2291da349d79b8dec871da53b021367aab36b",
+    "delegations": 5,
+    "error": "required-check-missing-failed-or-stale",
+    "execution": "failed",
+    "finished": 1794769792.5096822,
+    "frames": [
+      {
+        "assignment": "Feature.Value returns 2, verified by independent Checks project.",
+        "cursor": 0,
+        "history": [
+          [
+            {
+              "content": "MAIN_PRIVATE_MARKER",
+              "role": "assistant",
+              "tool_calls": [
+                {
+                  "function": {
+                    "arguments": "{\"role\": \"Planning\", \"assignment\": \"Perform Planning for Core/Feature.cs\"}",
+                    "name": "delegate"
+                  },
+                  "id": "call0",
+                  "type": "function"
+                },
+                {
+                  "function": {
+                    "arguments": "{\"role\": \"Coding\", \"assignment\": \"Perform Coding for Core/Feature.cs\"}",
+                    "name": "delegate"
+                  },
+                  "id": "call1",
+                  "type": "function"
+                },
+                {
+                  "function": {
+                    "arguments": "{\"role\": \"Building\", \"assignment\": \"Perform Building for Core/Feature.cs\"}",
+                    "name": "delegate"
+                  },
+                  "id": "call2",
+                  "type": "function"
+                },
+                {
+                  "function": {
+                    "arguments": "{\"role\": \"Testing\", \"assignment\": \"Perform Testing for Core/Feature.cs\"}",
+                    "name": "delegate"
+                  },
+                  "id": "call3",
+                  "type": "function"
+                },
+                {
+                  "function": {
+                    "arguments": "{\"role\": \"Reviewing\", \"assignment\": \"Perform Reviewing for Core/Feature.cs\"}",
+                    "name": "delegate"
+                  },
+                  "id": "call4",
+                  "type": "function"
+                }
+              ]
+            },
+            {
+              "content": "{\"agent\":\"77e2e0e1edb64052ace5c416300ccbcf\",\"last_result\":null,\"ok\":true,\"role\":\"Planning\",\"summary\":\"Bounded plan: inspect, edit the declared file, run configured checks, review diff.\"}",
+              "role": "tool",
+              "tool_call_id": "call0"
+            },
+            {
+              "content": "{\"agent\":\"bf6c45dafd774d1db8cdb3a7f8259ba8\",\"last_result\":{\"error\":\"role-tool-denied\",\"ok\":false},\"ok\":true,\"role\":\"Coding\",\"summary\":\"Denied attempts observed\"}",
+              "role": "tool",
+              "tool_call_id": "call1"
+            },
+            {
+              "content": "{\"agent\":\"047480038f9f4901b28e6c183d1589b9\",\"last_result\":{\"artifact\":null,\"config\":\"af15866a5e4ac01456d08bbef8d2291da349d79b8dec871da53b021367aab36b\",\"counts\":null,\"descendants_stopped\":true,\"duration\":2.187010574999988,\"kind\":\"build\",\"log\":\".harness/artifacts/8394ce06d6b7403db2ce7d3161e1e549/2a500cb69d1d569a8d2b78310be81ac1581db7c289dcdb5cd453f017e772f367/0/process.log\",\"log_bytes\":366,\"observed_log_bytes\":366,\"ok\":true,\"output\":\"  Determining projects to restore...\\n  All projects are up-to-date for restore.\\n  Core -> /tmp/p2-application-3jb92zzs/multi project проверка/Core/bin/Debug/net10.0/Core.dll\\n  Checks -> /tmp/p2-application-3jb92zzs/multi project проверка/Checks/bin/Debug/net10.0/Checks.dll\\n\\nBuild succeeded.\\n    0 Warning(s)\\n    0 Error(s)\\n\\nTime Elapsed 00:00:01.97\\n\",\"reason\":null,\"recipe\":\"build\",\"returncode\":0,\"source\":\"fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6\",\"truncated\":false},\"ok\":true,\"role\":\"Building\",\"summary\":\"synthetic role completed\"}",
+              "role": "tool",
+              "tool_call_id": "call2"
+            },
+            {
+              "content": "{\"agent\":\"8dd39c7a2f544d969aea202d0eb4e9ef\",\"last_result\":{\"artifact\":null,\"config\":\"af15866a5e4ac01456d08bbef8d2291da349d79b8dec871da53b021367aab36b\",\"counts\":null,\"descendants_stopped\":true,\"duration\":0.6428448149999895,\"kind\":\"test\",\"log\":\".harness/artifacts/8394ce06d6b7403db2ce7d3161e1e549/03ba98c750ba1e3d012a0e837fe8312afac85d72ca7669efe87bb31235cf48fa/0/process.log\",\"log_bytes\":0,\"observed_log_bytes\":0,\"ok\":false,\"output\":\"\",\"reason\":null,\"recipe\":\"test\",\"returncode\":1,\"source\":\"fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6\",\"truncated\":false},\"ok\":true,\"role\":\"Testing\",\"summary\":\"synthetic role completed\"}",
+              "role": "tool",
+              "tool_call_id": "call3"
+            },
+            {
+              "content": "{\"agent\":\"f1ca96b1f4ce4a77b9fdad1f8f24a69e\",\"last_result\":{\"config\":\"af15866a5e4ac01456d08bbef8d2291da349d79b8dec871da53b021367aab36b\",\"findings\":[\"Source/receipt does not meet independent fixture expectation.\"],\"ok\":true,\"source\":\"fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6\",\"verdict\":\"reject\"},\"ok\":true,\"role\":\"Reviewing\",\"summary\":\"synthetic role completed\"}",
+              "role": "tool",
+              "tool_call_id": "call4"
+            }
+          ]
+        ],
+        "id": "163fbed2f29e483cbc87598c57743548",
+        "inflight": null,
+        "last_result": {
+          "agent": "f1ca96b1f4ce4a77b9fdad1f8f24a69e",
+          "last_result": {
+            "config": "af15866a5e4ac01456d08bbef8d2291da349d79b8dec871da53b021367aab36b",
+            "findings": [
+              "Source/receipt does not meet independent fixture expectation."
+            ],
+            "ok": true,
+            "source": "fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6",
+            "verdict": "reject"
+          },
+          "ok": true,
+          "role": "Reviewing",
+          "summary": "synthetic role completed"
+        },
+        "parent": null,
+        "pending": null,
+        "request_id": "7dd96be02a8c435e928dfb8a6e4f8e11",
+        "results": [],
+        "role": "Main",
+        "started": 1794769789.0256665,
+        "status": "running",
+        "turns": 2,
+        "waiting": "9023ab5441cfd6b19dc520aa82d0365de7f836054c22cec97b8ff25bb7306b02"
+      }
+    ],
+    "gates": {
+      "build": {
+        "action": "2a500cb69d1d569a8d2b78310be81ac1581db7c289dcdb5cd453f017e772f367",
+        "artifact": null,
+        "config": "af15866a5e4ac01456d08bbef8d2291da349d79b8dec871da53b021367aab36b",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 2.187010574999988,
+        "kind": "build",
+        "log": ".harness/artifacts/8394ce06d6b7403db2ce7d3161e1e549/2a500cb69d1d569a8d2b78310be81ac1581db7c289dcdb5cd453f017e772f367/0/process.log",
+        "log_bytes": 366,
+        "observed_log_bytes": 366,
+        "ok": true,
+        "output": "  Determining projects to restore...\n  All projects are up-to-date for restore.\n  Core -> /tmp/p2-application-3jb92zzs/multi project проверка/Core/bin/Debug/net10.0/Core.dll\n  Checks -> /tmp/p2-application-3jb92zzs/multi project проверка/Checks/bin/Debug/net10.0/Checks.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:01.97\n",
+        "reason": null,
+        "recipe": "build",
+        "returncode": 0,
+        "source": "fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6",
+        "truncated": false
+      },
+      "review": {
+        "action": "481501167fe33c6630726ebed045bf9e9adba507fb82b67cf56b22d7e206895d",
+        "config": "af15866a5e4ac01456d08bbef8d2291da349d79b8dec871da53b021367aab36b",
+        "findings": [
+          "Source/receipt does not meet independent fixture expectation."
+        ],
+        "ok": true,
+        "source": "fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6",
+        "verdict": "reject"
+      },
+      "test": {
+        "action": "03ba98c750ba1e3d012a0e837fe8312afac85d72ca7669efe87bb31235cf48fa",
+        "artifact": null,
+        "config": "af15866a5e4ac01456d08bbef8d2291da349d79b8dec871da53b021367aab36b",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.6428448149999895,
+        "kind": "test",
+        "log": ".harness/artifacts/8394ce06d6b7403db2ce7d3161e1e549/03ba98c750ba1e3d012a0e837fe8312afac85d72ca7669efe87bb31235cf48fa/0/process.log",
+        "log_bytes": 0,
+        "observed_log_bytes": 0,
+        "ok": false,
+        "output": "",
+        "reason": null,
+        "recipe": "test",
+        "returncode": 1,
+        "source": "fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6",
+        "truncated": false
+      }
+    },
+    "id": "8394ce06d6b7403db2ce7d3161e1e549",
+    "lease_wait_seconds": 0.0028831460000446896,
+    "mode": "multi",
+    "project": "fea2be67bdf1513a91e9e8118f6abfe28d8d72d9af85f3b3064310de8f5bf6fc",
+    "protected_executables": [],
+    "protected_paths": [
+      "Checks/Checks.csproj"
+    ],
+    "requests": [
+      {
+        "agent": "163fbed2f29e483cbc87598c57743548",
+        "at": 1794769789.0398672,
+        "duration": 0.014014852999991945,
+        "id": "0461ae61659b428db956276a8c3c45c4",
+        "input_bytes": 3351,
+        "input_hash": "cd5cae0e34acb819bc0a911b228768b017d071ff3f0c44597ed54938f58ecd0c",
+        "response_bytes": 1181,
+        "role": "Main",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "77e2e0e1edb64052ace5c416300ccbcf",
+        "at": 1794769789.0703638,
+        "duration": 0.0136528929999713,
+        "id": "7d654871ae544c2ca70024c4ee7eac2f",
+        "input_bytes": 2763,
+        "input_hash": "1184a6b60865be67712d987835911d41a5eb9306d9da824220224fd7154dbc90",
+        "response_bytes": 433,
+        "role": "Planning",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "bf6c45dafd774d1db8cdb3a7f8259ba8",
+        "at": 1794769789.0984793,
+        "duration": 0.014065543000015168,
+        "id": "3c5577f9f7dd40b89cb16e056b25bff0",
+        "input_bytes": 3209,
+        "input_hash": "a82e2b10e3e7183de83ae426710cc312801f71e968e69c923dc2c126bf0a62d4",
+        "response_bytes": 744,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "bf6c45dafd774d1db8cdb3a7f8259ba8",
+        "at": 1794769789.1404617,
+        "duration": 0.013715155999989292,
+        "id": "8294fa8b19bd416a8107dc039b8cb51b",
+        "input_bytes": 3962,
+        "input_hash": "cb81d082257f334e5ac504eef663f280dca79178f64bf7d4ec72ff62226c303b",
+        "response_bytes": 375,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "047480038f9f4901b28e6c183d1589b9",
+        "at": 1794769789.172012,
+        "duration": 0.013536135999970611,
+        "id": "94bc388b88f544818cea66e7b0213f39",
+        "input_bytes": 2763,
+        "input_hash": "86abe798da587f504217d9ab4941513689c32b236783b6f56767ac57bbc2d7cd",
+        "response_bytes": 425,
+        "role": "Building",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "047480038f9f4901b28e6c183d1589b9",
+        "at": 1794769791.4781044,
+        "duration": 0.01399115599997458,
+        "id": "2337f47179114edfbb8a0a2a54e45f20",
+        "input_bytes": 4114,
+        "input_hash": "80f0814e6088ad06e7ceeb4a82f956e591e2d132bf4c0ec082183e8aa21410c1",
+        "response_bytes": 375,
+        "role": "Building",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "8dd39c7a2f544d969aea202d0eb4e9ef",
+        "at": 1794769791.512848,
+        "duration": 0.01361949500000037,
+        "id": "474ca3c11f3942d1a561c861b9a54921",
+        "input_bytes": 2960,
+        "input_hash": "3b4953cccf77f847a0cca226a674410aee9fae7d68621720981e531228ad8ac2",
+        "response_bytes": 424,
+        "role": "Testing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "8dd39c7a2f544d969aea202d0eb4e9ef",
+        "at": 1794769792.2533333,
+        "duration": 0.013985036999997646,
+        "id": "0dd1db12e4ed40c2a38574e2141caddc",
+        "input_bytes": 3921,
+        "input_hash": "95d589e11728cfb3cbe141c31d8aea1515fe1575425e77c8a7c91e8280061ddd",
+        "response_bytes": 375,
+        "role": "Testing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "f1ca96b1f4ce4a77b9fdad1f8f24a69e",
+        "at": 1794769792.2820277,
+        "duration": 0.01364198000004535,
+        "id": "1fab334bcc2845be8d1ed43b433d2aa0",
+        "input_bytes": 3776,
+        "input_hash": "3134c87790f361f33e459f7578b0bde06cdea91be637b46e027f8b5b0fdc7168",
+        "response_bytes": 773,
+        "role": "Reviewing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "f1ca96b1f4ce4a77b9fdad1f8f24a69e",
+        "at": 1794769792.3450983,
+        "duration": 0.013805280999974912,
+        "id": "264f3f9474154b738b041edd6800cf4a",
+        "input_bytes": 6517,
+        "input_hash": "b9b471652afb1b03c5edcc10c767800f32d2b4ea7ed5777d5f21ea02ad63f7e4",
+        "response_bytes": 512,
+        "role": "Reviewing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "f1ca96b1f4ce4a77b9fdad1f8f24a69e",
+        "at": 1794769792.4103992,
+        "duration": 0.01866599900000665,
+        "id": "8bbe91a89a2b479889a568bb07affef3",
+        "input_bytes": 7290,
+        "input_hash": "380a7132a9220b921b4ec18b33a5cc5d8c7779cd8289f32fc7fb5c2ac6e97273",
+        "response_bytes": 375,
+        "role": "Reviewing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "163fbed2f29e483cbc87598c57743548",
+        "at": 1794769792.4585938,
+        "duration": 0.013785682999980509,
+        "id": "7dd96be02a8c435e928dfb8a6e4f8e11",
+        "input_bytes": 7681,
+        "input_hash": "5dcb4b75c33633202e5afb0a1a9d789cb82ae2a48a3a7b3b814b94777547562f",
+        "response_bytes": 375,
+        "role": "Main",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      }
+    ],
+    "shared_history": [],
+    "source": {
+      "Checks/Checks.csproj": "0b7785b8ec8ca74e38179f5bd6b7ba973fdcc59470baf6a032c5d6f245500b7b",
+      "Checks/Program.cs": "a9b3e215762a15ea294be24fe14f3563b5f2c64cbb06770fd7362e381eda3cda",
+      "Core/Core.csproj": "70c34fafea2e093c458e3d2014ec7d305658813bd4e5ec4d80b6b87fddb1bdb2",
+      "Core/Feature.cs": "602975e693930bdfd079093780156c9e7c884af437a4e0c7b5d6e709384a83fd",
+      "global.json": "0c5038c8f214cbc41ea605d1c6edc9e7fd5a17b7386053124ec9115eddedd1e7"
+    },
+    "started": 1794769789.0250728,
+    "status": "failed",
+    "task": {
+      "existing_test_edits": [],
+      "goal": "Feature.Value returns 2, verified by independent Checks project.",
+      "initial_source": {
+        "Checks/Checks.csproj": "0b7785b8ec8ca74e38179f5bd6b7ba973fdcc59470baf6a032c5d6f245500b7b",
+        "Checks/Program.cs": "a9b3e215762a15ea294be24fe14f3563b5f2c64cbb06770fd7362e381eda3cda",
+        "Core/Core.csproj": "70c34fafea2e093c458e3d2014ec7d305658813bd4e5ec4d80b6b87fddb1bdb2",
+        "Core/Feature.cs": "602975e693930bdfd079093780156c9e7c884af437a4e0c7b5d6e709384a83fd",
+        "global.json": "0c5038c8f214cbc41ea605d1c6edc9e7fd5a17b7386053124ec9115eddedd1e7"
+      },
+      "kind": "coding",
+      "recipes": [
+        "build",
+        "test"
+      ],
+      "version": 1,
+      "writable": [
+        "Core/Feature.cs"
+      ]
+    },
+    "tool_calls": 14,
+    "usage_evidence": "test-double",
+    "version": 1
+  },
+  "events": [
+    {
+      "at": 1794769789.0274851,
+      "config": "af15866a5e4ac01456d08bbef8d2291da349d79b8dec871da53b021367aab36b",
+      "kind": "run-started",
+      "mode": "multi",
+      "sequence": 1,
+      "task_hash": "ab22048d86b5dfccdb418c2cffe0a6a7853dfbd1178fe7d95079b8a776c88ad7",
+      "version": 1
+    },
+    {
+      "agent": "163fbed2f29e483cbc87598c57743548",
+      "at": 1794769789.0416446,
+      "id": "0461ae61659b428db956276a8c3c45c4",
+      "input_bytes": 3351,
+      "input_hash": "cd5cae0e34acb819bc0a911b228768b017d071ff3f0c44597ed54938f58ecd0c",
+      "kind": "provider-request",
+      "role": "Main",
+      "sequence": 2,
+      "version": 1
+    },
+    {
+      "at": 1794769789.0571246,
+      "kind": "provider-response",
+      "request": "0461ae61659b428db956276a8c3c45c4",
+      "response_bytes": 1181,
+      "sequence": 3,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "action": "e49d96e8821ac3881dc57af45fcbca94bcaffb564577041a2feaa3b2e3ba8162",
+      "at": 1794769789.062889,
+      "kind": "delegated",
+      "parent": "163fbed2f29e483cbc87598c57743548",
+      "role": "Planning",
+      "sequence": 4,
+      "version": 1
+    },
+    {
+      "agent": "77e2e0e1edb64052ace5c416300ccbcf",
+      "at": 1794769789.0721426,
+      "id": "7d654871ae544c2ca70024c4ee7eac2f",
+      "input_bytes": 2763,
+      "input_hash": "1184a6b60865be67712d987835911d41a5eb9306d9da824220224fd7154dbc90",
+      "kind": "provider-request",
+      "role": "Planning",
+      "sequence": 5,
+      "version": 1
+    },
+    {
+      "at": 1794769789.0872676,
+      "kind": "provider-response",
+      "request": "7d654871ae544c2ca70024c4ee7eac2f",
+      "response_bytes": 433,
+      "sequence": 6,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "action": "abd6f3cea35466392b6e694fcc90a93b9af763e5168606f7ac2fb4f6cdeffa38",
+      "at": 1794769789.090869,
+      "kind": "delegated",
+      "parent": "163fbed2f29e483cbc87598c57743548",
+      "role": "Coding",
+      "sequence": 7,
+      "version": 1
+    },
+    {
+      "agent": "bf6c45dafd774d1db8cdb3a7f8259ba8",
+      "at": 1794769789.100244,
+      "id": "3c5577f9f7dd40b89cb16e056b25bff0",
+      "input_bytes": 3209,
+      "input_hash": "a82e2b10e3e7183de83ae426710cc312801f71e968e69c923dc2c126bf0a62d4",
+      "kind": "provider-request",
+      "role": "Coding",
+      "sequence": 8,
+      "version": 1
+    },
+    {
+      "at": 1794769789.115807,
+      "kind": "provider-response",
+      "request": "3c5577f9f7dd40b89cb16e056b25bff0",
+      "response_bytes": 744,
+      "sequence": 9,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "action": "f77545d645b0b83be9cc8caad74e3c881a707abec686136f40df70aaf360845e",
+      "agent": "bf6c45dafd774d1db8cdb3a7f8259ba8",
+      "at": 1794769789.119897,
+      "error": "role-tool-denied",
+      "kind": "tool-denied",
+      "role": "Coding",
+      "sequence": 10,
+      "tool": "recipe",
+      "version": 1
+    },
+    {
+      "action": "13a53b544be9bd25a36edf465e2cbd05b52b05fb7c881152c627390b31099d95",
+      "at": 1794769789.1272228,
+      "kind": "tool-finished",
+      "ok": false,
+      "role": "Coding",
+      "sequence": 11,
+      "tool": "patch",
+      "version": 1
+    },
+    {
+      "action": "69c755f87af5ff1faf94e8100aca7b3558dedf5ad2034477a486bf3d133c44b9",
+      "agent": "bf6c45dafd774d1db8cdb3a7f8259ba8",
+      "at": 1794769789.1304255,
+      "error": "role-tool-denied",
+      "kind": "tool-denied",
+      "role": "Coding",
+      "sequence": 12,
+      "tool": "delegate",
+      "version": 1
+    },
+    {
+      "agent": "bf6c45dafd774d1db8cdb3a7f8259ba8",
+      "at": 1794769789.142201,
+      "id": "8294fa8b19bd416a8107dc039b8cb51b",
+      "input_bytes": 3962,
+      "input_hash": "cb81d082257f334e5ac504eef663f280dca79178f64bf7d4ec72ff62226c303b",
+      "kind": "provider-request",
+      "role": "Coding",
+      "sequence": 13,
+      "version": 1
+    },
+    {
+      "at": 1794769789.1573863,
+      "kind": "provider-response",
+      "request": "8294fa8b19bd416a8107dc039b8cb51b",
+      "response_bytes": 375,
+      "sequence": 14,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "action": "c3c7b9b84f7c5abda8effd04d19e8719b73f2103111cd7fcb217fda76b7634bb",
+      "at": 1794769789.1607325,
+      "kind": "delegated",
+      "parent": "163fbed2f29e483cbc87598c57743548",
+      "role": "Building",
+      "sequence": 15,
+      "version": 1
+    },
+    {
+      "agent": "047480038f9f4901b28e6c183d1589b9",
+      "at": 1794769789.173717,
+      "id": "94bc388b88f544818cea66e7b0213f39",
+      "input_bytes": 2763,
+      "input_hash": "86abe798da587f504217d9ab4941513689c32b236783b6f56767ac57bbc2d7cd",
+      "kind": "provider-request",
+      "role": "Building",
+      "sequence": 16,
+      "version": 1
+    },
+    {
+      "at": 1794769789.188643,
+      "kind": "provider-response",
+      "request": "94bc388b88f544818cea66e7b0213f39",
+      "response_bytes": 425,
+      "sequence": 17,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "action": "2a500cb69d1d569a8d2b78310be81ac1581db7c289dcdb5cd453f017e772f367",
+      "at": 1794769791.4675398,
+      "kind": "tool-finished",
+      "ok": true,
+      "role": "Building",
+      "sequence": 18,
+      "tool": "recipe",
+      "version": 1
+    },
+    {
+      "agent": "047480038f9f4901b28e6c183d1589b9",
+      "at": 1794769791.4860492,
+      "id": "2337f47179114edfbb8a0a2a54e45f20",
+      "input_bytes": 4114,
+      "input_hash": "80f0814e6088ad06e7ceeb4a82f956e591e2d132bf4c0ec082183e8aa21410c1",
+      "kind": "provider-request",
+      "role": "Building",
+      "sequence": 19,
+      "version": 1
+    },
+    {
+      "at": 1794769791.5014946,
+      "kind": "provider-response",
+      "request": "2337f47179114edfbb8a0a2a54e45f20",
+      "response_bytes": 375,
+      "sequence": 20,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "action": "400bad2b03862aa5e7185ba6b082652e2234b2daed915c5fbbee80e10db29213",
+      "at": 1794769791.505229,
+      "kind": "delegated",
+      "parent": "163fbed2f29e483cbc87598c57743548",
+      "role": "Testing",
+      "sequence": 21,
+      "version": 1
+    },
+    {
+      "agent": "8dd39c7a2f544d969aea202d0eb4e9ef",
+      "at": 1794769791.514621,
+      "id": "474ca3c11f3942d1a561c861b9a54921",
+      "input_bytes": 2960,
+      "input_hash": "3b4953cccf77f847a0cca226a674410aee9fae7d68621720981e531228ad8ac2",
+      "kind": "provider-request",
+      "role": "Testing",
+      "sequence": 22,
+      "version": 1
+    },
+    {
+      "at": 1794769791.5297174,
+      "kind": "provider-response",
+      "request": "474ca3c11f3942d1a561c861b9a54921",
+      "response_bytes": 424,
+      "sequence": 23,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "action": "03ba98c750ba1e3d012a0e837fe8312afac85d72ca7669efe87bb31235cf48fa",
+      "at": 1794769792.242726,
+      "kind": "tool-finished",
+      "ok": false,
+      "role": "Testing",
+      "sequence": 24,
+      "tool": "recipe",
+      "version": 1
+    },
+    {
+      "agent": "8dd39c7a2f544d969aea202d0eb4e9ef",
+      "at": 1794769792.2552068,
+      "id": "0dd1db12e4ed40c2a38574e2141caddc",
+      "input_bytes": 3921,
+      "input_hash": "95d589e11728cfb3cbe141c31d8aea1515fe1575425e77c8a7c91e8280061ddd",
+      "kind": "provider-request",
+      "role": "Testing",
+      "sequence": 25,
+      "version": 1
+    },
+    {
+      "at": 1794769792.2706912,
+      "kind": "provider-response",
+      "request": "0dd1db12e4ed40c2a38574e2141caddc",
+      "response_bytes": 375,
+      "sequence": 26,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "action": "9023ab5441cfd6b19dc520aa82d0365de7f836054c22cec97b8ff25bb7306b02",
+      "at": 1794769792.2743406,
+      "kind": "delegated",
+      "parent": "163fbed2f29e483cbc87598c57743548",
+      "role": "Reviewing",
+      "sequence": 27,
+      "version": 1
+    },
+    {
+      "agent": "f1ca96b1f4ce4a77b9fdad1f8f24a69e",
+      "at": 1794769792.2839303,
+      "id": "1fab334bcc2845be8d1ed43b433d2aa0",
+      "input_bytes": 3776,
+      "input_hash": "3134c87790f361f33e459f7578b0bde06cdea91be637b46e027f8b5b0fdc7168",
+      "kind": "provider-request",
+      "role": "Reviewing",
+      "sequence": 28,
+      "version": 1
+    },
+    {
+      "at": 1794769792.299753,
+      "kind": "provider-response",
+      "request": "1fab334bcc2845be8d1ed43b433d2aa0",
+      "response_bytes": 773,
+      "sequence": 29,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "action": "de10e699a0f12b7e27feec0b79b15920d799fad38e9afe69910f0753eb028110",
+      "at": 1794769792.3064148,
+      "kind": "tool-finished",
+      "ok": true,
+      "role": "Reviewing",
+      "sequence": 30,
+      "tool": "read",
+      "version": 1
+    },
+    {
+      "action": "f2903dcb0626f43e47c31c1c6df79db00ae30c4ae38bf8acbe185b51281c23c6",
+      "at": 1794769792.326928,
+      "kind": "tool-finished",
+      "ok": true,
+      "role": "Reviewing",
+      "sequence": 31,
+      "tool": "artifact",
+      "version": 1
+    },
+    {
+      "action": "5df7d8c499543bca441309a78ad83246ae8e0cdd9e6850333a2cecfe233e9431",
+      "at": 1794769792.334661,
+      "kind": "tool-finished",
+      "ok": true,
+      "role": "Reviewing",
+      "sequence": 32,
+      "tool": "artifact",
+      "version": 1
+    },
+    {
+      "agent": "f1ca96b1f4ce4a77b9fdad1f8f24a69e",
+      "at": 1794769792.3471038,
+      "id": "264f3f9474154b738b041edd6800cf4a",
+      "input_bytes": 6517,
+      "input_hash": "b9b471652afb1b03c5edcc10c767800f32d2b4ea7ed5777d5f21ea02ad63f7e4",
+      "kind": "provider-request",
+      "role": "Reviewing",
+      "sequence": 33,
+      "version": 1
+    },
+    {
+      "at": 1794769792.3623118,
+      "kind": "provider-response",
+      "request": "264f3f9474154b738b041edd6800cf4a",
+      "response_bytes": 512,
+      "sequence": 34,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "action": "481501167fe33c6630726ebed045bf9e9adba507fb82b67cf56b22d7e206895d",
+      "at": 1794769792.3953226,
+      "kind": "tool-finished",
+      "ok": true,
+      "role": "Reviewing",
+      "sequence": 35,
+      "tool": "review",
+      "version": 1
+    },
+    {
+      "agent": "f1ca96b1f4ce4a77b9fdad1f8f24a69e",
+      "at": 1794769792.4124236,
+      "id": "8bbe91a89a2b479889a568bb07affef3",
+      "input_bytes": 7290,
+      "input_hash": "380a7132a9220b921b4ec18b33a5cc5d8c7779cd8289f32fc7fb5c2ac6e97273",
+      "kind": "provider-request",
+      "role": "Reviewing",
+      "sequence": 36,
+      "version": 1
+    },
+    {
+      "at": 1794769792.4325848,
+      "kind": "provider-response",
+      "request": "8bbe91a89a2b479889a568bb07affef3",
+      "response_bytes": 375,
+      "sequence": 37,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "agent": "163fbed2f29e483cbc87598c57743548",
+      "at": 1794769792.460615,
+      "id": "7dd96be02a8c435e928dfb8a6e4f8e11",
+      "input_bytes": 7681,
+      "input_hash": "5dcb4b75c33633202e5afb0a1a9d789cb82ae2a48a3a7b3b814b94777547562f",
+      "kind": "provider-request",
+      "role": "Main",
+      "sequence": 38,
+      "version": 1
+    },
+    {
+      "at": 1794769792.47612,
+      "kind": "provider-response",
+      "request": "7dd96be02a8c435e928dfb8a6e4f8e11",
+      "response_bytes": 375,
+      "sequence": 39,
+      "usage": {
+        "cached_input": 3,
+        "coverage": "reported",
+        "input": 11,
+        "output": 7,
+        "raw": {
+          "completion_tokens": 7,
+          "completion_tokens_details": {
+            "reasoning_tokens": 2
+          },
+          "prompt_tokens": 11,
+          "prompt_tokens_details": {
+            "cached_tokens": 3
+          },
+          "total_tokens": 18
+        },
+        "reasoning_output": 2,
+        "total": 18
+      },
+      "version": 1
+    },
+    {
+      "at": 1794769792.480556,
+      "error": "required-check-missing-failed-or-stale",
+      "kind": "run-stopped",
+      "sequence": 40,
+      "status": "failed",
+      "version": 1
+    }
+  ],
+  "actions": {
+    "03ba98c750ba1e3d012a0e837fe8312afac85d72ca7669efe87bb31235cf48fa": {
+      "agent": "8dd39c7a2f544d969aea202d0eb4e9ef",
+      "args": {
+        "name": "test"
+      },
+      "at": 1794769791.5331504,
+      "finished": 1794769792.2408462,
+      "process": {
+        "group": 12154,
+        "host": "793809278fc838293ba3aed5d92be1ad3889158a2a81fc6642da2c7bcc6ca12e",
+        "pid": 12154,
+        "platform": "linux-pgroup-v1",
+        "start": "41561",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1794769792.2168822,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.6428448149999895,
+        "log_bytes": 0,
+        "observed_log_bytes": 0,
+        "reason": null,
+        "returncode": 1,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/usr/share/dotnet/dotnet",
+          "run",
+          "--project",
+          "Checks/Checks.csproj",
+          "--no-build",
+          "--",
+          "/tmp/p2-application-3jb92zzs/multi project проверка/.harness/artifacts/8394ce06d6b7403db2ce7d3161e1e549/03ba98c750ba1e3d012a0e837fe8312afac85d72ca7669efe87bb31235cf48fa/0/checks.json"
+        ],
+        "cwd": "/tmp/p2-application-3jb92zzs/multi project проверка",
+        "log": "/tmp/p2-application-3jb92zzs/multi project проверка/.harness/artifacts/8394ce06d6b7403db2ce7d3161e1e549/03ba98c750ba1e3d012a0e837fe8312afac85d72ca7669efe87bb31235cf48fa/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 120
+      },
+      "process_started": 1794769791.5722525,
+      "request": "474ca3c11f3942d1a561c861b9a54921",
+      "result": {
+        "artifact": null,
+        "config": "af15866a5e4ac01456d08bbef8d2291da349d79b8dec871da53b021367aab36b",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.6428448149999895,
+        "kind": "test",
+        "log": ".harness/artifacts/8394ce06d6b7403db2ce7d3161e1e549/03ba98c750ba1e3d012a0e837fe8312afac85d72ca7669efe87bb31235cf48fa/0/process.log",
+        "log_bytes": 0,
+        "observed_log_bytes": 0,
+        "ok": false,
+        "output": "",
+        "reason": null,
+        "recipe": "test",
+        "returncode": 1,
+        "source": "fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6",
+        "truncated": false
+      },
+      "role": "Testing",
+      "signature": "a470e8febdfe6a992d12e490d43cd27e1017517982360bb607ad4b50e83245d1",
+      "source_before": {
+        "Checks/Checks.csproj": "0b7785b8ec8ca74e38179f5bd6b7ba973fdcc59470baf6a032c5d6f245500b7b",
+        "Checks/Program.cs": "a9b3e215762a15ea294be24fe14f3563b5f2c64cbb06770fd7362e381eda3cda",
+        "Core/Core.csproj": "70c34fafea2e093c458e3d2014ec7d305658813bd4e5ec4d80b6b87fddb1bdb2",
+        "Core/Feature.cs": "602975e693930bdfd079093780156c9e7c884af437a4e0c7b5d6e709384a83fd",
+        "global.json": "0c5038c8f214cbc41ea605d1c6edc9e7fd5a17b7386053124ec9115eddedd1e7"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "13a53b544be9bd25a36edf465e2cbd05b52b05fb7c881152c627390b31099d95": {
+      "agent": "bf6c45dafd774d1db8cdb3a7f8259ba8",
+      "args": {
+        "files": [
+          {
+            "after": "forbidden",
+            "before": null,
+            "path": "../outside.cs"
+          }
+        ]
+      },
+      "at": 1794769789.123327,
+      "finished": 1794769789.125649,
+      "request": "3c5577f9f7dd40b89cb16e056b25bff0",
+      "result": {
+        "details": null,
+        "error": "path-denied",
+        "ok": false
+      },
+      "role": "Coding",
+      "signature": "599c67f41cb5dd88549f9ac7e5f41071f882d88a21955382b521dc140a0a1e53",
+      "status": "FINISHED",
+      "tool": "patch",
+      "version": 1
+    },
+    "2a500cb69d1d569a8d2b78310be81ac1581db7c289dcdb5cd453f017e772f367": {
+      "agent": "047480038f9f4901b28e6c183d1589b9",
+      "args": {
+        "name": "build"
+      },
+      "at": 1794769789.1920917,
+      "finished": 1794769791.452802,
+      "process": {
+        "group": 12106,
+        "host": "793809278fc838293ba3aed5d92be1ad3889158a2a81fc6642da2c7bcc6ca12e",
+        "pid": 12106,
+        "platform": "linux-pgroup-v1",
+        "start": "41327",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1794769791.421246,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 2.187010574999988,
+        "log_bytes": 366,
+        "observed_log_bytes": 366,
+        "reason": null,
+        "returncode": 0,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/usr/share/dotnet/dotnet",
+          "build",
+          "Checks/Checks.csproj",
+          "-m:1",
+          "-p:UseSharedCompilation=false"
+        ],
+        "cwd": "/tmp/p2-application-3jb92zzs/multi project проверка",
+        "log": "/tmp/p2-application-3jb92zzs/multi project проверка/.harness/artifacts/8394ce06d6b7403db2ce7d3161e1e549/2a500cb69d1d569a8d2b78310be81ac1581db7c289dcdb5cd453f017e772f367/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 120
+      },
+      "process_started": 1794769789.2320318,
+      "request": "94bc388b88f544818cea66e7b0213f39",
+      "result": {
+        "artifact": null,
+        "config": "af15866a5e4ac01456d08bbef8d2291da349d79b8dec871da53b021367aab36b",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 2.187010574999988,
+        "kind": "build",
+        "log": ".harness/artifacts/8394ce06d6b7403db2ce7d3161e1e549/2a500cb69d1d569a8d2b78310be81ac1581db7c289dcdb5cd453f017e772f367/0/process.log",
+        "log_bytes": 366,
+        "observed_log_bytes": 366,
+        "ok": true,
+        "output": "  Determining projects to restore...\n  All projects are up-to-date for restore.\n  Core -> /tmp/p2-application-3jb92zzs/multi project проверка/Core/bin/Debug/net10.0/Core.dll\n  Checks -> /tmp/p2-application-3jb92zzs/multi project проверка/Checks/bin/Debug/net10.0/Checks.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:01.97\n",
+        "reason": null,
+        "recipe": "build",
+        "returncode": 0,
+        "source": "fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "2a74761d17623be81ab144caca479e8a9e39e255955c8911d62f751bc8c03716",
+      "source_before": {
+        "Checks/Checks.csproj": "0b7785b8ec8ca74e38179f5bd6b7ba973fdcc59470baf6a032c5d6f245500b7b",
+        "Checks/Program.cs": "a9b3e215762a15ea294be24fe14f3563b5f2c64cbb06770fd7362e381eda3cda",
+        "Core/Core.csproj": "70c34fafea2e093c458e3d2014ec7d305658813bd4e5ec4d80b6b87fddb1bdb2",
+        "Core/Feature.cs": "602975e693930bdfd079093780156c9e7c884af437a4e0c7b5d6e709384a83fd",
+        "global.json": "0c5038c8f214cbc41ea605d1c6edc9e7fd5a17b7386053124ec9115eddedd1e7"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "481501167fe33c6630726ebed045bf9e9adba507fb82b67cf56b22d7e206895d": {
+      "agent": "f1ca96b1f4ce4a77b9fdad1f8f24a69e",
+      "args": {
+        "findings": [
+          "Source/receipt does not meet independent fixture expectation."
+        ],
+        "verdict": "reject"
+      },
+      "at": 1794769792.3915904,
+      "finished": 1794769792.3938375,
+      "request": "264f3f9474154b738b041edd6800cf4a",
+      "result": {
+        "config": "af15866a5e4ac01456d08bbef8d2291da349d79b8dec871da53b021367aab36b",
+        "findings": [
+          "Source/receipt does not meet independent fixture expectation."
+        ],
+        "ok": true,
+        "source": "fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6",
+        "verdict": "reject"
+      },
+      "role": "Reviewing",
+      "signature": "c415626bddd8d27397b5418b7c60fc5a4321e221e5d9171c612345d567fe9725",
+      "status": "FINISHED",
+      "tool": "review",
+      "version": 1
+    },
+    "5df7d8c499543bca441309a78ad83246ae8e0cdd9e6850333a2cecfe233e9431": {
+      "agent": "f1ca96b1f4ce4a77b9fdad1f8f24a69e",
+      "args": {
+        "action": "03ba98c750ba1e3d012a0e837fe8312afac85d72ca7669efe87bb31235cf48fa"
+      },
+      "at": 1794769792.3309064,
+      "finished": 1794769792.3331473,
+      "request": "1fab334bcc2845be8d1ed43b433d2aa0",
+      "result": {
+        "action": "03ba98c750ba1e3d012a0e837fe8312afac85d72ca7669efe87bb31235cf48fa",
+        "ok": true,
+        "receipt": {
+          "artifact": null,
+          "config": "af15866a5e4ac01456d08bbef8d2291da349d79b8dec871da53b021367aab36b",
+          "counts": null,
+          "descendants_stopped": true,
+          "duration": 0.6428448149999895,
+          "kind": "test",
+          "log": ".harness/artifacts/8394ce06d6b7403db2ce7d3161e1e549/03ba98c750ba1e3d012a0e837fe8312afac85d72ca7669efe87bb31235cf48fa/0/process.log",
+          "log_bytes": 0,
+          "observed_log_bytes": 0,
+          "ok": false,
+          "output": "",
+          "reason": null,
+          "recipe": "test",
+          "returncode": 1,
+          "source": "fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6",
+          "truncated": false
+        },
+        "signature": "a470e8febdfe6a992d12e490d43cd27e1017517982360bb607ad4b50e83245d1"
+      },
+      "role": "Reviewing",
+      "signature": "a81b883f75de24daa283a7e3ecec58c10b4264b52aa2c017084ab389c35810fc",
+      "status": "FINISHED",
+      "tool": "artifact",
+      "version": 1
+    },
+    "de10e699a0f12b7e27feec0b79b15920d799fad38e9afe69910f0753eb028110": {
+      "agent": "f1ca96b1f4ce4a77b9fdad1f8f24a69e",
+      "args": {
+        "path": "Core/Feature.cs"
+      },
+      "at": 1794769792.3032641,
+      "finished": 1794769792.3049128,
+      "request": "1fab334bcc2845be8d1ed43b433d2aa0",
+      "result": {
+        "ok": true,
+        "partial": false,
+        "path": "Core/Feature.cs",
+        "sha256": "602975e693930bdfd079093780156c9e7c884af437a4e0c7b5d6e709384a83fd",
+        "text": "public static class Feature { public static int Value => 1; }\n"
+      },
+      "role": "Reviewing",
+      "signature": "ce00512d15e38570b7c31c9f95197e62a53a747d59d4aa5151dc4ad98d2c77b7",
+      "status": "FINISHED",
+      "tool": "read",
+      "version": 1
+    },
+    "f2903dcb0626f43e47c31c1c6df79db00ae30c4ae38bf8acbe185b51281c23c6": {
+      "agent": "f1ca96b1f4ce4a77b9fdad1f8f24a69e",
+      "args": {
+        "action": "2a500cb69d1d569a8d2b78310be81ac1581db7c289dcdb5cd453f017e772f367"
+      },
+      "at": 1794769792.323054,
+      "finished": 1794769792.3251646,
+      "request": "1fab334bcc2845be8d1ed43b433d2aa0",
+      "result": {
+        "action": "2a500cb69d1d569a8d2b78310be81ac1581db7c289dcdb5cd453f017e772f367",
+        "ok": true,
+        "receipt": {
+          "artifact": null,
+          "config": "af15866a5e4ac01456d08bbef8d2291da349d79b8dec871da53b021367aab36b",
+          "counts": null,
+          "descendants_stopped": true,
+          "duration": 2.187010574999988,
+          "kind": "build",
+          "log": ".harness/artifacts/8394ce06d6b7403db2ce7d3161e1e549/2a500cb69d1d569a8d2b78310be81ac1581db7c289dcdb5cd453f017e772f367/0/process.log",
+          "log_bytes": 366,
+          "observed_log_bytes": 366,
+          "ok": true,
+          "output": "  Determining projects to restore...\n  All projects are up-to-date for restore.\n  Core -> /tmp/p2-application-3jb92zzs/multi project проверка/Core/bin/Debug/net10.0/Core.dll\n  Checks -> /tmp/p2-application-3jb92zzs/multi project проверка/Checks/bin/Debug/net10.0/Checks.dll\n\nBuild succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:01.97\n",
+          "reason": null,
+          "recipe": "build",
+          "returncode": 0,
+          "source": "fe3fbf757510ab0ab88256abe8d5225ff4d2f0413cb26cbfb854595d05dae9c6",
+          "truncated": false
+        },
+        "signature": "2a74761d17623be81ab144caca479e8a9e39e255955c8911d62f751bc8c03716"
+      },
+      "role": "Reviewing",
+      "signature": "00384008e74ebedc96c61adcf83933326e67a52e01463c33cb69947febaf6dfc",
+      "status": "FINISHED",
+      "tool": "artifact",
+      "version": 1
+    }
+  },
+  "outbox": {},
+  "metrics": {
+    "version": 1,
+    "mode": "multi",
+    "process_attempt_details": [
+      {
+        "action": "03ba98c750ba1e3d012a0e837fe8312afac85d72ca7669efe87bb31235cf48fa",
+        "role": "Testing",
+        "prior_unknown": [],
+        "current": {
+          "descendants_stopped": true,
+          "duration": 0.6428448149999895,
+          "log_bytes": 0,
+          "observed_log_bytes": 0,
+          "reason": null,
+          "returncode": 1,
+          "truncated": false
+        },
+        "spec": {
+          "argv": [
+            "/usr/share/dotnet/dotnet",
+            "run",
+            "--project",
+            "Checks/Checks.csproj",
+            "--no-build",
+            "--",
+            "/tmp/p2-application-3jb92zzs/multi project проверка/.harness/artifacts/8394ce06d6b7403db2ce7d3161e1e549/03ba98c750ba1e3d012a0e837fe8312afac85d72ca7669efe87bb31235cf48fa/0/checks.json"
+          ],
+          "cwd": "/tmp/p2-application-3jb92zzs/multi project проверка",
+          "log": "/tmp/p2-application-3jb92zzs/multi project проверка/.harness/artifacts/8394ce06d6b7403db2ce7d3161e1e549/03ba98c750ba1e3d012a0e837fe8312afac85d72ca7669efe87bb31235cf48fa/0/process.log",
+          "log_bytes": 20000,
+          "timeout": 120
+        }
+      },
+      {
+        "action": "2a500cb69d1d569a8d2b78310be81ac1581db7c289dcdb5cd453f017e772f367",
+        "role": "Building",
+        "prior_unknown": [],
+        "current": {
+          "descendants_stopped": true,
+          "duration": 2.187010574999988,
+          "log_bytes": 366,
+          "observed_log_bytes": 366,
+          "reason": null,
+          "returncode": 0,
+          "truncated": false
+        },
+        "spec": {
+          "argv": [
+            "/usr/share/dotnet/dotnet",
+            "build",
+            "Checks/Checks.csproj",
+            "-m:1",
+            "-p:UseSharedCompilation=false"
+          ],
+          "cwd": "/tmp/p2-application-3jb92zzs/multi project проверка",
+          "log": "/tmp/p2-application-3jb92zzs/multi project проверка/.harness/artifacts/8394ce06d6b7403db2ce7d3161e1e549/2a500cb69d1d569a8d2b78310be81ac1581db7c289dcdb5cd453f017e772f367/0/process.log",
+          "log_bytes": 20000,
+          "timeout": 120
+        }
+      }
+    ],
+    "unknown_process_attempts": 0,
+    "attempts": [
+      {
+        "agent": "163fbed2f29e483cbc87598c57743548",
+        "at": 1794769789.0398672,
+        "duration": 0.014014852999991945,
+        "id": "0461ae61659b428db956276a8c3c45c4",
+        "input_bytes": 3351,
+        "input_hash": "cd5cae0e34acb819bc0a911b228768b017d071ff3f0c44597ed54938f58ecd0c",
+        "response_bytes": 1181,
+        "role": "Main",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "77e2e0e1edb64052ace5c416300ccbcf",
+        "at": 1794769789.0703638,
+        "duration": 0.0136528929999713,
+        "id": "7d654871ae544c2ca70024c4ee7eac2f",
+        "input_bytes": 2763,
+        "input_hash": "1184a6b60865be67712d987835911d41a5eb9306d9da824220224fd7154dbc90",
+        "response_bytes": 433,
+        "role": "Planning",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "bf6c45dafd774d1db8cdb3a7f8259ba8",
+        "at": 1794769789.0984793,
+        "duration": 0.014065543000015168,
+        "id": "3c5577f9f7dd40b89cb16e056b25bff0",
+        "input_bytes": 3209,
+        "input_hash": "a82e2b10e3e7183de83ae426710cc312801f71e968e69c923dc2c126bf0a62d4",
+        "response_bytes": 744,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "bf6c45dafd774d1db8cdb3a7f8259ba8",
+        "at": 1794769789.1404617,
+        "duration": 0.013715155999989292,
+        "id": "8294fa8b19bd416a8107dc039b8cb51b",
+        "input_bytes": 3962,
+        "input_hash": "cb81d082257f334e5ac504eef663f280dca79178f64bf7d4ec72ff62226c303b",
+        "response_bytes": 375,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "047480038f9f4901b28e6c183d1589b9",
+        "at": 1794769789.172012,
+        "duration": 0.013536135999970611,
+        "id": "94bc388b88f544818cea66e7b0213f39",
+        "input_bytes": 2763,
+        "input_hash": "86abe798da587f504217d9ab4941513689c32b236783b6f56767ac57bbc2d7cd",
+        "response_bytes": 425,
+        "role": "Building",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "047480038f9f4901b28e6c183d1589b9",
+        "at": 1794769791.4781044,
+        "duration": 0.01399115599997458,
+        "id": "2337f47179114edfbb8a0a2a54e45f20",
+        "input_bytes": 4114,
+        "input_hash": "80f0814e6088ad06e7ceeb4a82f956e591e2d132bf4c0ec082183e8aa21410c1",
+        "response_bytes": 375,
+        "role": "Building",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "8dd39c7a2f544d969aea202d0eb4e9ef",
+        "at": 1794769791.512848,
+        "duration": 0.01361949500000037,
+        "id": "474ca3c11f3942d1a561c861b9a54921",
+        "input_bytes": 2960,
+        "input_hash": "3b4953cccf77f847a0cca226a674410aee9fae7d68621720981e531228ad8ac2",
+        "response_bytes": 424,
+        "role": "Testing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "8dd39c7a2f544d969aea202d0eb4e9ef",
+        "at": 1794769792.2533333,
+        "duration": 0.013985036999997646,
+        "id": "0dd1db12e4ed40c2a38574e2141caddc",
+        "input_bytes": 3921,
+        "input_hash": "95d589e11728cfb3cbe141c31d8aea1515fe1575425e77c8a7c91e8280061ddd",
+        "response_bytes": 375,
+        "role": "Testing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "f1ca96b1f4ce4a77b9fdad1f8f24a69e",
+        "at": 1794769792.2820277,
+        "duration": 0.01364198000004535,
+        "id": "1fab334bcc2845be8d1ed43b433d2aa0",
+        "input_bytes": 3776,
+        "input_hash": "3134c87790f361f33e459f7578b0bde06cdea91be637b46e027f8b5b0fdc7168",
+        "response_bytes": 773,
+        "role": "Reviewing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "f1ca96b1f4ce4a77b9fdad1f8f24a69e",
+        "at": 1794769792.3450983,
+        "duration": 0.013805280999974912,
+        "id": "264f3f9474154b738b041edd6800cf4a",
+        "input_bytes": 6517,
+        "input_hash": "b9b471652afb1b03c5edcc10c767800f32d2b4ea7ed5777d5f21ea02ad63f7e4",
+        "response_bytes": 512,
+        "role": "Reviewing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "f1ca96b1f4ce4a77b9fdad1f8f24a69e",
+        "at": 1794769792.4103992,
+        "duration": 0.01866599900000665,
+        "id": "8bbe91a89a2b479889a568bb07affef3",
+        "input_bytes": 7290,
+        "input_hash": "380a7132a9220b921b4ec18b33a5cc5d8c7779cd8289f32fc7fb5c2ac6e97273",
+        "response_bytes": 375,
+        "role": "Reviewing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "163fbed2f29e483cbc87598c57743548",
+        "at": 1794769792.4585938,
+        "duration": 0.013785682999980509,
+        "id": "7dd96be02a8c435e928dfb8a6e4f8e11",
+        "input_bytes": 7681,
+        "input_hash": "5dcb4b75c33633202e5afb0a1a9d789cb82ae2a48a3a7b3b814b94777547562f",
+        "response_bytes": 375,
+        "role": "Main",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      }
+    ],
+    "tool_durations": [
+      {
+        "action": "03ba98c750ba1e3d012a0e837fe8312afac85d72ca7669efe87bb31235cf48fa",
+        "role": "Testing",
+        "seconds": 0.707695722579956,
+        "state": "FINISHED"
+      },
+      {
+        "action": "13a53b544be9bd25a36edf465e2cbd05b52b05fb7c881152c627390b31099d95",
+        "role": "Coding",
+        "seconds": 0.002321958541870117,
+        "state": "FINISHED"
+      },
+      {
+        "action": "2a500cb69d1d569a8d2b78310be81ac1581db7c289dcdb5cd453f017e772f367",
+        "role": "Building",
+        "seconds": 2.2607102394104004,
+        "state": "FINISHED"
+      },
+      {
+        "action": "481501167fe33c6630726ebed045bf9e9adba507fb82b67cf56b22d7e206895d",
+        "role": "Reviewing",
+        "seconds": 0.0022470951080322266,
+        "state": "FINISHED"
+      },
+      {
+        "action": "5df7d8c499543bca441309a78ad83246ae8e0cdd9e6850333a2cecfe233e9431",
+        "role": "Reviewing",
+        "seconds": 0.002240896224975586,
+        "state": "FINISHED"
+      },
+      {
+        "action": "de10e699a0f12b7e27feec0b79b15920d799fad38e9afe69910f0753eb028110",
+        "role": "Reviewing",
+        "seconds": 0.0016486644744873047,
+        "state": "FINISHED"
+      },
+      {
+        "action": "f2903dcb0626f43e47c31c1c6df79db00ae30c4ae38bf8acbe185b51281c23c6",
+        "role": "Reviewing",
+        "seconds": 0.0021104812622070312,
+        "state": "FINISHED"
+      }
+    ],
+    "lease_wait_seconds": 0.0028831460000446896,
+    "roles": [
+      {
+        "finished": 1794769792.4768977,
+        "id": "163fbed2f29e483cbc87598c57743548",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": null,
+        "provider_requests": 2,
+        "role": "Main",
+        "started": 1794769789.025668,
+        "status": "done",
+        "requests": 2,
+        "reported_tokens": 36,
+        "unknown_usage_requests": 0,
+        "input_tokens": 22,
+        "output_tokens": 14,
+        "provider_seconds": 0.027800535999972453,
+        "tool_actions": 0,
+        "process_seconds": 0,
+        "input_bytes": 11032
+      },
+      {
+        "finished": 1794769789.0881627,
+        "id": "77e2e0e1edb64052ace5c416300ccbcf",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "163fbed2f29e483cbc87598c57743548",
+        "provider_requests": 1,
+        "role": "Planning",
+        "started": 1794769789.0636048,
+        "status": "done",
+        "requests": 1,
+        "reported_tokens": 18,
+        "unknown_usage_requests": 0,
+        "input_tokens": 11,
+        "output_tokens": 7,
+        "provider_seconds": 0.0136528929999713,
+        "tool_actions": 0,
+        "process_seconds": 0,
+        "input_bytes": 2763
+      },
+      {
+        "finished": 1794769789.158217,
+        "id": "bf6c45dafd774d1db8cdb3a7f8259ba8",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "163fbed2f29e483cbc87598c57743548",
+        "provider_requests": 2,
+        "role": "Coding",
+        "started": 1794769789.0916414,
+        "status": "done",
+        "requests": 2,
+        "reported_tokens": 36,
+        "unknown_usage_requests": 0,
+        "input_tokens": 22,
+        "output_tokens": 14,
+        "provider_seconds": 0.02778069900000446,
+        "tool_actions": 1,
+        "process_seconds": 0,
+        "input_bytes": 7171
+      },
+      {
+        "finished": 1794769791.5025277,
+        "id": "047480038f9f4901b28e6c183d1589b9",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "163fbed2f29e483cbc87598c57743548",
+        "provider_requests": 2,
+        "role": "Building",
+        "started": 1794769789.1614227,
+        "status": "done",
+        "requests": 2,
+        "reported_tokens": 36,
+        "unknown_usage_requests": 0,
+        "input_tokens": 22,
+        "output_tokens": 14,
+        "provider_seconds": 0.02752729199994519,
+        "tool_actions": 1,
+        "process_seconds": 2.187010574999988,
+        "input_bytes": 6877
+      },
+      {
+        "finished": 1794769792.271573,
+        "id": "8dd39c7a2f544d969aea202d0eb4e9ef",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "163fbed2f29e483cbc87598c57743548",
+        "provider_requests": 2,
+        "role": "Testing",
+        "started": 1794769791.5059488,
+        "status": "done",
+        "requests": 2,
+        "reported_tokens": 36,
+        "unknown_usage_requests": 0,
+        "input_tokens": 22,
+        "output_tokens": 14,
+        "provider_seconds": 0.027604531999998017,
+        "tool_actions": 1,
+        "process_seconds": 0.6428448149999895,
+        "input_bytes": 6881
+      },
+      {
+        "finished": 1794769792.4333687,
+        "id": "f1ca96b1f4ce4a77b9fdad1f8f24a69e",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "163fbed2f29e483cbc87598c57743548",
+        "provider_requests": 3,
+        "role": "Reviewing",
+        "started": 1794769792.2750804,
+        "status": "done",
+        "requests": 3,
+        "reported_tokens": 54,
+        "unknown_usage_requests": 0,
+        "input_tokens": 33,
+        "output_tokens": 21,
+        "provider_seconds": 0.04611326000002691,
+        "tool_actions": 4,
+        "process_seconds": 0,
+        "input_bytes": 17583
+      }
+    ],
+    "requests": 12,
+    "reported_tokens": 216,
+    "unknown_usage_requests": 0,
+    "usage_evidence": "test-double",
+    "wall_seconds": 3.484609365463257,
+    "provider_seconds": 0.17047921199991833,
+    "process_seconds": 2.8298553899999774,
+    "tool_attempts": 14,
+    "process_attempts": 2,
+    "cost": null,
+    "cost_reason": "no configured monetary rate; no invented zero cost",
+    "performance_benefit": "NOT_ESTABLISHED",
+    "timing_policy": "sequential execution; summed components are not wall elapsed time"
+  }
+}
