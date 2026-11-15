@@ -99,6 +99,14 @@ with tempfile.TemporaryDirectory(prefix='protocol-') as tmp:
 
 @unittest.skipUnless(os.name=='nt','native Windows/NTFS validation is not a Linux result')
 class NativeWindowsSafety(unittest.TestCase):
+    def test_native_recipe_uses_selected_user_temp_without_secret_inheritance(self):
+        with tempfile.TemporaryDirectory(prefix='Native temp ') as tmp,http_provider(FixtureProvider()) as endpoint:
+            base=Path(tmp);root=project(base/'Project');user_temp=base/'Temp Ω';user_temp.mkdir()
+            code='import ctypes,os,sys;from pathlib import Path;b=ctypes.create_unicode_buffer(32768);assert ctypes.WinDLL("kernel32").GetTempPathW(len(b),b);assert Path(b.value)==Path(sys.argv[1]);assert "HARNESS_TEST_SECRET" not in os.environ;Path(b.value,"native-temp-proof").write_text("owned temp",encoding="utf-8")'
+            config=configuration(endpoint);config['recipes']['build']['argv']=[sys.executable,'-c',code,str(user_temp)]
+            with patch.dict(os.environ,{'TEMP':str(user_temp),'TMP':str(user_temp),'TMPDIR':str(user_temp),'HARNESS_TEST_SECRET':'synthetic-not-a-credential'}):
+                configure(root,config,True);result=engine.start(root,task())
+            self.assertTrue(result['ok'],result);self.assertEqual((user_temp/'native-temp-proof').read_text(),'owned temp')
     def test_drive_case_unicode_identity_reserved_alias_and_traversal_policy(self):
         with tempfile.TemporaryDirectory(prefix='P3 путь ') as tmp,tempfile.TemporaryDirectory() as other:
             root=Path(tmp);self.assertEqual(Project(root).identity,Project(str(root).upper()).identity);self.assertNotEqual(Project(root).identity,Project(other).identity)

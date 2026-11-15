@@ -55,6 +55,7 @@ def writable(path,task):
 
 def sanitized_env(extra):
     keep=('PATH','LANG','LC_ALL','TZ','SYSTEMROOT','TMPDIR','HTTPS_PROXY','HTTP_PROXY','ALL_PROXY','NO_PROXY','https_proxy','http_proxy','all_proxy','no_proxy','SSL_CERT_FILE','REQUESTS_CA_BUNDLE')
+    if os.name=='nt':keep+=('TEMP','TMP','LOCALAPPDATA','APPDATA','USERPROFILE','PROGRAMFILES','PROGRAMFILES(X86)','PROGRAMW6432','WINDIR','PROCESSOR_ARCHITECTURE')
     return {**{k:os.environ[k] for k in keep if k in os.environ},**extra,'PYTHONUNBUFFERED':'1','PYTHONUTF8':'1','PYTHONIOENCODING':'utf-8'}
 
 
