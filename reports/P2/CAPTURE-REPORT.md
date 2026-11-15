@@ -1,0 +1,7 @@
+# Automatic capture
+
+`capture-sessions.json` in the current run records five independent successful source-changing Harness sessions, each with its actual tool receipts, automatically submitted candidates and empty canonical claim set. The expected class declaration is defined before each session. Python-only changes and read-only/no-change sessions produce no eligible candidate. Narrow syntactic source observations keep the existing P1 confidence policy; test success and overflow semantics do not themselves become CONFIRMED business claims.
+
+Production capture uses `candidate_preview` and `Store.submit`. Payloads, original timestamps, event identity, coding actions and returned candidate IDs are retained in the run outbox. It never prepares/applies canonical values. The eShop evaluation separately performs explicit fingerprint approval as an authorized test fixture and checks canonical claims before and after it.
+
+Executed regression cases cover unchanged rejected and deferred payloads, exact duplicate delivery, busy Knowledge followed by delivery-only resume, corrupt Knowledge, accepted-before-ack real process death and two concurrent delivery processes. The queue remains one candidate per expected payload; canonical stays unchanged until explicit fixture approval. Required capture can leave execution passed with capture pending; resuming does not rewrite source. Full names and results are in product-tests.json/log and the recovery test bodies.

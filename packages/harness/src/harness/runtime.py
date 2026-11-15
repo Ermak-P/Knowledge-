@@ -1,0 +1,205 @@
+"""P2 operational state. Knowledge remains an independent writer/API."""
+from contextlib import contextmanager
+import fnmatch
+import hashlib
+import os
+from pathlib import Path
+import sqlite3
+import time
+import uuid
+from knowledge.project import Project,safe_path,safe_tree
+from knowledge.util import require,KnowledgeError,canonical_json,loads,digest,read_text
+
+ROLES=('Main','Planning','Coding','Building','Testing','Reviewing')
+TOOLS={'Main':('read','search','knowledge','delegate','status','capability'),
+       'Planning':('read','search','knowledge','capability'),
+       'Coding':('read','search','knowledge','patch','capability'),
+       'Building':('read','recipe','artifact','capability'),
+       'Testing':('read','recipe','artifact','capability'),
+       'Reviewing':('read','search','knowledge','artifact','review','capability')}
+IGNORED={'.git','.harness','.knowledge','.ai','.venv','.local','node_modules','bin','obj','__pycache__','.vs','TestResults'}
+BINARY={'.png','.jpg','.jpeg','.gif','.ico','.zip','.dll','.exe','.pdb','.woff','.woff2','.ttf','.pdf','.sqlite3','.pyc'}
+DEFAULT_LIMITS=dict(context_bytes=24000,response_bytes=64000,tool_bytes=6000,log_bytes=20000,file_bytes=1048576,
+                    output_tokens=2048,requests=64,turns_per_agent=16,delegations=16,elapsed_seconds=600,
+                    provider_seconds=15,recipe_seconds=60,reported_tokens=None)
+
+
+def fault(phase):
+    """Test-only crash seam. No activation by config, model or environment."""
+
+
+def stamp():return time.time()
+
+def blob(data):return hashlib.sha256(data).hexdigest()
+
+
+def source_snapshot(project,limit=1048576):
+    result={}
+    for directory,dirs,files in os.walk(project.root,followlinks=False):
+        parent=Path(directory)
+        for name in list(dirs):
+            p=parent/name
+            if name in IGNORED or name.startswith('.'):dirs.remove(name)
+            elif p.is_symlink():result[p.relative_to(project.root).as_posix()]={'linked':True};dirs.remove(name)
+        for name in files:
+            path=parent/name;relative=path.relative_to(project.root).as_posix()
+            if path.suffix.lower() in BINARY or (name.startswith('.') and name not in ('.gitignore','.gitattributes','.editorconfig')) or any(part in name.casefold() for part in ('secret','credential','privatekey')):continue
+            if path.is_symlink():result[relative]={'linked':True};continue
+            safe_path(path)
+            require(path.stat().st_size<=limit,'source-file-too-large',relative)
+            result[relative]=blob(path.read_bytes())
+    return dict(sorted(result.items()))
+
+
+def local_path(project,relative,write=False):
+    require(isinstance(relative,str) and relative and len(relative)<=1024,'invalid-relative-path')
+    p=Path(relative)
+    require(not p.is_absolute() and '..' not in p.parts and not any(x.startswith('.') or x in IGNORED for x in p.parts),'path-denied')
+    require(not any(x in relative.casefold() for x in ('secret','credential','.env','privatekey','appsettings')) and p.suffix.casefold() not in ('.pem','.key','.pfx','.p12'),'private-path-denied')
+    path=project.root/p;safe_path(path)
+    if write:require(path.suffix.lower() not in ('.csproj','.props','.targets','.sln','.lock') and path.name not in ('pyproject.toml','package.json','package-lock.json','requirements.txt'),'protected-build-policy')
+    return path
+
+
+class Journal:
+    def __init__(self,root):
+        self.project=Project(root);self.base=self.project.root/'.harness';safe_tree(self.base)
+        self.base.mkdir(exist_ok=True);self.path=self.base/'runs.sqlite3';safe_path(self.path)
+        with self.db() as db:
+            db.execute('CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY,value TEXT)')
+            old=dict(db.execute('SELECT key,value FROM meta'))
+            if old:require(old=={'version':'1','project':self.project.identity},'harness-state-version-or-project-mismatch')
+            else:db.executemany('INSERT INTO meta VALUES (?,?)',[('version','1'),('project',self.project.identity)])
+            db.execute('CREATE TABLE IF NOT EXISTS runs(id TEXT PRIMARY KEY,payload TEXT NOT NULL)')
+            db.execute('CREATE TABLE IF NOT EXISTS events(run TEXT,sequence INTEGER,payload TEXT,PRIMARY KEY(run,sequence))')
+            db.execute('CREATE TABLE IF NOT EXISTS actions(run TEXT,id TEXT,payload TEXT,PRIMARY KEY(run,id))')
+            db.execute('CREATE TABLE IF NOT EXISTS outbox(id TEXT PRIMARY KEY,run TEXT,payload TEXT)')
+            db.execute('CREATE TABLE IF NOT EXISTS cancels(run TEXT PRIMARY KEY,at REAL)')
+    @contextmanager
+    def db(self):
+        safe_path(self.path)
+        db=sqlite3.connect(self.path,timeout=.15)
+        try:
+            db.execute('PRAGMA synchronous=FULL');db.execute('BEGIN IMMEDIATE')
+            require(db.execute('PRAGMA quick_check').fetchone()==('ok',),'harness-state-corrupt')
+            yield db;db.commit()
+        except sqlite3.OperationalError as e:
+            raise KnowledgeError('harness-busy' if 'locked' in str(e) else 'harness-database-error') from e
+        except sqlite3.DatabaseError as e:raise KnowledgeError('harness-state-corrupt') from e
+        finally:db.close()
+    def save(self,run):
+        require(run.get('version')==1 and run['project']==self.project.identity,'harness-run-version-or-project-mismatch')
+        with self.db() as db:db.execute('INSERT OR REPLACE INTO runs VALUES (?,?)',(run['id'],canonical_json(run)))
+    def load(self,run_id):
+        with self.db() as db:r=db.execute('SELECT payload FROM runs WHERE id=?',(run_id,)).fetchone()
+        require(r is not None,'unknown-run');value=loads(r[0])
+        require(isinstance(value,dict) and type(value.get('version')) is int and value.get('version')==1 and value.get('project')==self.project.identity,'harness-run-version-or-project-mismatch')
+        require(value.get('id')==run_id and value.get('status') in ('running','completed','completed-degraded','failed','cancelled','blocked','awaiting-capture'),'invalid-harness-run-state')
+        require(all(isinstance(value.get(k),list) for k in ('agents','frames','requests')) and all(isinstance(value.get(k),dict) for k in ('source','task','gates','capture')) and isinstance(value.get('config_hash'),str),'invalid-harness-run-state')
+        for frame in value['frames']:
+            require(isinstance(frame,dict) and frame.get('role') in ROLES and any(isinstance(a,dict) and a.get('id')==frame.get('id') and a.get('role')==frame['role'] for a in value['agents']),'invalid-harness-role-frame')
+        return value
+    def event(self,run,kind,**data):
+        with self.db() as db:
+            sequence=db.execute('SELECT COALESCE(MAX(sequence),0)+1 FROM events WHERE run=?',(run,)).fetchone()[0]
+            value=dict(version=1,sequence=sequence,at=stamp(),kind=kind,**data)
+            db.execute('INSERT INTO events VALUES (?,?,?)',(run,sequence,canonical_json(value)))
+        return value
+    def runs(self):
+        with self.db() as db:return [loads(p) for p, in db.execute('SELECT payload FROM runs')]
+    def events(self,run):
+        with self.db() as db:return [loads(p) for p, in db.execute('SELECT payload FROM events WHERE run=? ORDER BY sequence',(run,))]
+    def action(self,run,identifier,value=None):
+        with self.db() as db:
+            if value is not None:db.execute('INSERT OR REPLACE INTO actions VALUES (?,?,?)',(run,identifier,canonical_json(value)))
+            row=db.execute('SELECT payload FROM actions WHERE run=? AND id=?',(run,identifier)).fetchone()
+        return loads(row[0]) if row else None
+    def actions(self,run):
+        with self.db() as db:return {i:loads(p) for i,p in db.execute('SELECT id,payload FROM actions WHERE run=?',(run,))}
+    def cancelled(self,run):
+        with self.db() as db:return db.execute('SELECT 1 FROM cancels WHERE run=?',(run,)).fetchone() is not None
+    def cancel(self,run):
+        self.load(run)
+        with self.db() as db:db.execute('INSERT OR IGNORE INTO cancels VALUES (?,?)',(run,stamp()))
+        self.event(run,'cancellation-requested')
+    def put_outbox(self,identifier,run,value):
+        with self.db() as db:db.execute('INSERT INTO outbox VALUES (?,?,?)',(identifier,run,canonical_json(value)))
+    def outbox(self,run):
+        with self.db() as db:return {i:loads(p) for i,p in db.execute('SELECT id,payload FROM outbox WHERE run=?',(run,))}
+    def update_outbox(self,identifier,value):
+        with self.db() as db:db.execute('UPDATE outbox SET payload=? WHERE id=?',(canonical_json(value),identifier))
+
+
+class Lease:
+    def __init__(self,journal):self.journal=journal;self.fd=None
+    def __enter__(self):
+        require(os.name=='posix' and Path('/proc/self/stat').is_file(),'execution-host-unsupported')
+        import fcntl
+        path=self.journal.base/'writer.lock';safe_path(path)
+        self.fd=os.open(path,os.O_RDWR|os.O_CREAT,0o600)
+        try:fcntl.flock(self.fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        except BlockingIOError:
+            os.close(self.fd);self.fd=None;raise KnowledgeError('project-writer-busy')
+        return self
+    def __exit__(self,*args):
+        # Closing, not LOCK_UN: an inherited child must retain ownership after a crash.
+        if self.fd is not None:os.close(self.fd);self.fd=None
+
+
+def config(root):
+    project=Project(root);p=project.root/'.harness/runner.json';safe_path(p);value=loads(read_text(p))
+    return validate_config(value)
+
+
+def validate_config(value):
+    require(isinstance(value,dict) and set(value)=={'version','provider','recipes','limits','capture'},'invalid-runner-config')
+    require(type(value['version']) is int and value['version']==1,'unsupported-runner-config')
+    provider=value['provider']
+    require(isinstance(provider,dict) and set(provider)<= {'endpoint','model','key_env','evidence'} and {'endpoint','model'}<=set(provider),'invalid-provider-config')
+    from urllib.parse import urlsplit
+    require(isinstance(provider['endpoint'],str) and 0<len(provider['endpoint'])<=2000,'invalid-provider-endpoint')
+    try:endpoint=urlsplit(provider['endpoint'])
+    except ValueError as e:raise KnowledgeError('invalid-provider-endpoint') from e
+    require(endpoint.scheme in ('http','https') and endpoint.hostname and not endpoint.username and not endpoint.password and not endpoint.query and not endpoint.fragment,'invalid-provider-endpoint')
+    require(endpoint.path.endswith('/chat/completions'),'unsupported-provider-endpoint')
+    require(isinstance(provider['model'],str) and 0<len(provider['model'])<=200,'invalid-model')
+    require(provider.get('evidence','live') in ('live','test-double'),'invalid-provider-evidence')
+    if provider.get('key_env'):
+        import re
+        require(re.fullmatch('[A-Za-z_][A-Za-z0-9_]*',provider['key_env']),'invalid-key-binding')
+        require(endpoint.scheme=='https' or endpoint.hostname in ('localhost','127.0.0.1','::1'),'credentials-require-tls')
+    limits=value['limits'];require(isinstance(limits,dict) and set(limits)<=set(DEFAULT_LIMITS),'invalid-limits')
+    merged={**DEFAULT_LIMITS,**limits}
+    for k,v in merged.items():
+        if k=='reported_tokens' and v is None:continue
+        require(type(v) is int and 0<v<=10000000,'invalid-limit',k)
+    require(4096<=merged['context_bytes']<=1000000 and merged['response_bytes']<=2000000,'invalid-context-or-response-limit')
+    require(value['capture'] in ('required','optional','off'),'invalid-capture-policy')
+    require(isinstance(value['recipes'],dict) and len(value['recipes'])<=20,'invalid-recipes')
+    for name,recipe in value['recipes'].items():
+        require(isinstance(name,str) and name.isidentifier(),'invalid-recipe-name')
+        require(isinstance(recipe,dict) and set(recipe)=={'kind','argv','result','rerun_safe','env'},'invalid-recipe')
+        require(recipe['kind'] in ('build','test') and isinstance(recipe['argv'],list) and 0<len(recipe['argv'])<=40 and all(isinstance(a,str) and len(a)<=2000 for a in recipe['argv']),'invalid-recipe-argv')
+        require(recipe['argv'][0].startswith('/') and Path(recipe['argv'][0]).is_file(),'recipe-executable-must-be-absolute')
+        require(type(recipe['rerun_safe']) is bool and isinstance(recipe['env'],dict),'invalid-recipe-options')
+        require(all(isinstance(k,str) and isinstance(v,str) and not any(word in k.upper() for word in ('TOKEN','KEY','SECRET','PASSWORD')) for k,v in recipe['env'].items()),'recipe-secret-environment-denied')
+        result=recipe['result'];require(isinstance(result,dict) and set(result)=={'format','path'},'invalid-recipe-result')
+        require(result['format'] in (('exit',) if recipe['kind']=='build' else ('unittest','trx','json')),'test-result-parser-required')
+        require(isinstance(result['path'],str) and (not result['path'] or result['path'].startswith('{artifacts}/')),'result-path-must-be-owned-artifact')
+        if result['path']:
+            tail=Path(result['path'][len('{artifacts}/'):]);require(bool(tail.parts) and not tail.is_absolute() and '..' not in tail.parts and '{' not in str(tail) and '}' not in str(tail),'result-path-must-be-owned-artifact')
+        if result['format'] in ('trx','json'):require(bool(result['path']),'test-artifact-path-required')
+    return value
+
+
+def configure(root,value,initialize_knowledge=False):
+    journal=Journal(root);validate_config(value)
+    with Lease(journal):
+        path=journal.base/'runner.json';safe_path(path)
+        temporary=journal.base/('config-'+uuid.uuid4().hex+'.tmp');temporary.write_text(canonical_json(value),encoding='utf-8');os.replace(temporary,path)
+        if initialize_knowledge:
+            from knowledge.store import Store
+            from knowledge import lifecycle
+            s=Store(root)
+            if not s.path.exists():s.init();lifecycle.upgrade(s,lifecycle.upgrade_preview(s)['fingerprint'])
+    return {'ok':True,'configuration':digest(value)}

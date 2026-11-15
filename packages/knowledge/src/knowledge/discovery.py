@@ -511,3 +511,30 @@ def equivalent_occurrence(first,second):
     # These claims only assert that one file contains literal syntax; multiple
     # identical occurrences support the same assertion, not distinct type owners.
     return first['category']!='declaration' and not first.get('unsupported') and not second.get('unsupported') and all(first[k]==second[k] for k in ('id','project','category','statement','path','subject'))
+
+
+def candidate_preview(store,paths,captured_at=None):
+    """Read-only public proposal API for delivery coordinators; no SQL writes.
+
+    Selection is limited to caller-observed changed paths. P1 owns extraction,
+    operation construction, identity, review-ownership and semantic deduplication.
+    """
+    require(isinstance(paths,list) and all(isinstance(p,str) for p in paths),'invalid-preview-paths')
+    scope=analysis_scope(store.project.root);snapshot=scope['snapshot'];decisions=[]
+    with store.connection() as db:
+        require(life.enabled(db),'upgrade-required')
+        records=store._records(db);states=life.latest(db)
+        known=[(cid,loads(payload),status) for cid,payload,status in db.execute('SELECT id,payload,status FROM queue')]
+        for obs in scope['observations']:
+            if obs['path'] not in paths:continue
+            legacy=[c['id'] for c in records['claims'] if c['provenance']['method'] in LEGACY_METHODS and c['id']==obs['legacy_id']]
+            if legacy:
+                decisions.append({'observation':obs['id'],'decision':'manual-review','legacy_ids':legacy});continue
+            value=proposal(store,db,obs,snapshot,captured_at or life.now(),records,states,scope)
+            if value is None:continue
+            equivalent=next(((cid,status) for cid,item,status in known if item['version']==2 and proposal_identity(item)==proposal_identity(value)),None)
+            if equivalent:decisions.append({'observation':obs['id'],'decision':'existing','candidate':equivalent[0],'status':equivalent[1]})
+            else:decisions.append({'observation':obs['id'],'decision':'submit','payload':value})
+    require(inventory(store.project.root)['identity']==snapshot['identity'],'source-changed-during-preview')
+    return {'ok':True,'source':snapshot['identity'],'decisions':decisions,'gaps':list(scope['ambiguous']),
+            'reason':'eligible changed-source syntax' if decisions else 'no new eligible supported source fact'}

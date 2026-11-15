@@ -1,4 +1,4 @@
-"""Read-only executor boundary. No shell/write/agent execution capability."""
+"""Compatible read-only context facade. Execution is explicit through harness-run."""
 from knowledge.project import Project, safe_path
 from knowledge.store import Store
 from knowledge.util import KnowledgeError, loads, require, canonical_json, read_text
@@ -18,8 +18,8 @@ def context(root,task,max_bytes=None,include_unconfirmed=False):
         if e.code in ('knowledge-absent','store-busy-retry','database-unavailable-or-corrupt'):
             # Corruption is an explicit unavailable/error result, never empty knowledge success.
             return {'ok':True,'mode':'degraded','knowledge_available':False,'reason':e.code,
-                    'runner':'not-implemented','claims':[]}
+                    'runner':'not-invoked','claims':[]}
         raise
-    response={'ok':True,'mode':'knowledge','runner':'not-implemented','context':result}
+    response={'ok':True,'mode':'knowledge','runner':'not-invoked','context':result}
     require(len(canonical_json(response).encode())<=budget,'harness-response-budget-exceeded')
     return response
