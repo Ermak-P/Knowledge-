@@ -1,8 +1,8 @@
 # P1 implementation submitted for independent review
 
-Run `7c567e88b6b54922bcc21a8ae3a6ae3f`; source `e20dbd2635d808ce19366d90a0bb96b56ffbd730e5ed14b14e2fa1cfe8d3e96e`. Raw evidence: `runs/7c567e88b6b54922bcc21a8ae3a6ae3f/`.
+Run `fe11fd6fd62e4372b5d6e830889775be`; source `f6fbbd3dc18cfe085c3694bd6ab529f23e5eb7ac7b0c54bb450083bb33069954`. Raw evidence: `runs/fe11fd6fd62e4372b5d6e830889775be/`.
 
-Branch `codex/knowledge-harness-p1`; baseline/HEAD `fb2cf7909f44518e967c84069a8a0c10b430947e`, with uncommitted P1 changes identified
+Branch `p1`; baseline/HEAD `a767c744cc771541e4b3727ff15b8cd526657ba6`, with uncommitted P1 changes identified
 by SOURCE-REVISION.json. Not externally accepted. P2 was not started.
 
 ## Actual verification
@@ -10,7 +10,7 @@ by SOURCE-REVISION.json. Not externally accepted. P2 was not started.
 `bash scripts/setup.sh`, then `.venv/bin/python scripts/setup_benchmark.py`,
 `.venv/bin/python scripts/verify_p1.py`, `.venv/bin/python scripts/make_review_p1.py`.
 Python 3.12.14, pinned SDK 10.0.404, SQLite, MCP 1.30.0 on Linux x64.
-75 product tests passed, including all 43 accepted P0 regressions;
+104 product tests passed, including all 43 accepted P0 regressions;
 no skips. Both wheels built and Knowledge ran in a dependency-free environment.
 Pinned application build and 49 unit tests passed before and 49 after P1
 integration, with zero failed or skipped tests. Real stdio sessions, killed
@@ -39,7 +39,8 @@ Self-review repaired a real history/current graph interaction: retired edges mus
 not force a newly independent current payload to retain an obsolete dependency.
 It also tightened historical receipt ownership, upgrade backup binding, P0
 prepared-approval compatibility and scan identity exclusion of store journals.
-The final run was executed after these changes.
+The final run was executed after these changes. The independent R1–R5 corrections are in P1-R1-RESPONSE.md; the shared
+reactivation model, canonical uniqueness and bounded-work repairs are in P1-R2-RESPONSE.md.
 
 Discovery is deliberately lexical. It proves source syntax, not business rationale,
 runtime dispatch, deployment availability or complete semantic analysis. Unsupported

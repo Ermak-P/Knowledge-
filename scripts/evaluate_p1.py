@@ -80,22 +80,27 @@ def main():
     assert len({o['project'] for o in r['observations'] if o['project'].startswith('src/')})>=3
     plan=approve(s);questions=[]
     for question,path,anchor,answer in EXPECTATIONS:
-        result=s.context(question,max_items=100,max_bytes=200000)
+        result=s.context(question)
+        diagnostic=s.context(question,max_items=100,max_bytes=200000)
         supported=any(answer in c['statement'] for c in result['claims'])
-        questions.append(dict(question=question,expected=answer,independent_anchor=anchor,path=path,status='PASS' if supported else 'FAIL',result=result))
+        questions.append(dict(question=question,expected=answer,independent_anchor=anchor,path=path,status='PASS' if supported else 'FAIL',result=result,diagnostic=diagnostic,ordinary_defaults={'max_items':10,'max_bytes':16000}))
     no=s.context('zxqvnonexistenthyperdrive');assert not no['claims']
     # Unconfirmed synthetic record is explicitly distinct from discovered real-source data.
     sys.path.insert(0,str(ROOT/'tests'));from fixtures import addition
     s.submit(addition('synthetic.uncertain','Synthetic hypothetical hyperdrive.','INFERRED'));approve(s)
     assert not s.context('hyperdrive')['claims'];assert s.context('hyperdrive',include_unconfirmed=True)['claims']==[] # no current source evidence
     count=len(s.status()['queue']);repeat=scan_all(s);assert len(s.status()['queue'])==count
-    save(out/'discovery.json',dict(scan=r,representative_inspection=inspected,candidates=s.export()['queue'],repeat_added_candidates=0,limitations=r['limits'],curated_input_used=False))
+    scope=disc.analysis_scope(project)
+    assert not set(scope['ambiguous']) & {c['id'] for c in s.export()['records']['claims']}
+    save(out/'discovery.json',dict(ambiguous_groups=scope['ambiguous'],withheld_groups=len(scope['ambiguous']),previous_review={'observations':536,'duplicate_gaps':11},scan=r,representative_inspection=inspected,candidates=s.export()['queue'],repeat_added_candidates=0,limitations=r['limits'],curated_input_used=False))
     save(out/'questions.json',dict(questions=questions,no_answer=no,unconfirmed='synthetic claim retained but excluded from trusted current: no verifiable checkout evidence',broad_accuracy_claim=False))
     after=tests('after-discovery')
     save(out/'benchmark.json',dict(pin=PIN,sdk=subprocess.check_output([str(sdk),'--version'],cwd=project,env=env,text=True).strip(),before=before,after=after))
     assert disc.git(project,'diff','HEAD')=='';assert disc.git(host,'diff','HEAD')==''
     save(out/'source-immutability.json',dict(pin=PIN,benchmark_tracked_diff='',original_tracked_diff='',source_manifest=r['snapshot'],copy=str(project)))
     controlled(out,scratch)
+    correction_evidence(out,scratch,sdk,env)
+    round2_evidence(out,scratch)
     # A lexical miss is a real failed evaluation, never rewritten as PASS.
     assert all(q['status']=='PASS' for q in questions),'Retrieval expectation failed; see questions.json'
 
@@ -125,6 +130,70 @@ def controlled(out,scratch):
     old=s.export();u=life.upgrade(s,life.upgrade_preview(s)['fingerprint']);new=s.export();assert {k:new[k] for k in old}==old
     s.recover();assert s.lookup('claims','synthetic.rule')['record']==old['records']['claims'][0]
     save(out/'upgrade.json',dict(synthetic=True,before=old,after=new,upgrade=u,recovery=s.status(),preserved_p0_fields=True))
+
+
+def correction_evidence(out,scratch,sdk,env):
+    """Real SDK compile-item check for the reviewer's excluded-live-source probe."""
+    from test_p1 import fixture,git,upgraded
+    root=scratch/'excluded-source';root.mkdir();fixture(root)
+    (root/'Tests/Independent.cs').write_text('public class UniqueDeclared {}\n')
+    git(root,'add','-A');git(root,'commit','-m','synthetic committed declaration')
+    store=upgraded(root);scan_all(store);approve(store);base=git(root,'rev-parse','HEAD')
+    (root/'Tests/build').mkdir();(root/'Tests/Independent.cs').rename(root/'Tests/build/Independent.cs')
+    git(root,'add','-A');git(root,'commit','-m','synthetic compile-included relocation')
+    result=subprocess.run([str(sdk),'msbuild','Tests/Tests.csproj','-getItem:Compile'],cwd=root,env=env,text=True,capture_output=True)
+    (out/'compile-items.log').write_text(result.stdout+result.stderr)
+    assert result.returncode==0,result.stderr
+    items=json.loads(result.stdout)['Items']['Compile']
+    assert any(item['Identity'].replace('\\','/')=='build/Independent.cs' for item in items)
+    after=scan_all(store,base=base,head='HEAD');reconciliation=disc.reconcile(store,after['id'])
+    assert reconciliation['proposal'] is None
+    save(out/'corrections.json',dict(compile_items=items,reconciliation=reconciliation,source_is_compile_item=True,
+         policy='inventory processing completion does not prove negative coverage',regressions='tests/test_p1_r1.py',reviewed_commit='2a8664821d0f6512ecbce92280e25d6f19b3f32c'))
+
+
+def round2_evidence(out,scratch):
+    """Measured real extraction work and the resulting reviewed reactivation model."""
+    from collections import Counter
+    from copy import deepcopy
+    from unittest.mock import patch
+    from test_p1 import fixture,upgraded
+    root=scratch/'round2';root.mkdir();fixture(root)
+    for i in range(20):(root/'Tests'/f'Extra{i:02}.cs').write_text(f'public class Extra{i:02} {{}}\n')
+    store=upgraded(root);calls=[];measurements=[];extractor=disc.extract
+    def observed(*args):calls.append(args[1]);return extractor(*args)
+    with patch.object(disc,'extract',side_effect=observed):
+        state=None
+        while state is None or not state['complete']:
+            before=len(calls)
+            state=disc.scan(store,scan_id=state['id'] if state else None,max_files=1)
+            measurement=dict(requested_max_files=1,actual_extract_calls=len(calls)-before,distinct_files=len(set(calls[before:])),durable_processed=state['work']['durable_extracted_files'])
+            assert measurement['actual_extract_calls']==1,measurement
+            measurements.append(measurement)
+        before=len(calls);again=disc.scan(store,state['id'],1)
+        assert len(calls)==before and again['work']['extracted_this_call']==0
+    assert len(calls)==len(state['coverage']) and all(count==1 for count in Counter(calls).values())
+    approve(store)
+    record=next(c for c in store.export()['records']['claims'] if 'Independent' in c['statement'])
+    store.submit(life.batch([life.op('retire','claims',record['id'],1)],'synthetic manual retirement'));retirement=approve(store)
+    evidence=deepcopy(next(e for e in store.export()['records']['evidence'] if e['id']==record['evidence'][0]))
+    evidence.update(id='synthetic.r2.evidence',substantiates=['synthetic.r2.replacement'],provenance={'actor':'synthetic-reviewer','method':'reviewed-fixture-source'})
+    replacement=dict(record,id='synthetic.r2.replacement',evidence=[evidence['id']])
+    store.submit(life.batch([life.op('add','evidence',evidence['id'],0,evidence),life.op('add','claims',replacement['id'],0,replacement)],'synthetic reviewed replacement'));approve(store)
+    disc.scan(store,state['id'],1);blocked=store.prepare();assert not blocked['ok'] and blocked['blocked'][0]['code']=='duplicate-statement'
+    for cid in blocked['candidates']:life.dispose(store,cid,'deferred','duplicate must be resolved by explicit reviewed closure')
+    relation=dict(id='synthetic.r2.relationship',type='depends_on',**{'from':replacement['id'],'to':record['id']},provenance={'actor':'synthetic','method':'fixture'})
+    updated=dict(replacement,statement='Synthetic distinct reviewed replacement assertion.',depends_on=[record['id']])
+    store.submit(life.batch([life.op('reactivate','claims',record['id'],2,record),life.op('update','claims',replacement['id'],1,updated),life.op('add','relationships',relation['id'],0,relation)],'synthetic reviewed mixed closure'))
+    preview=store.prepare();assert preview['ok'],preview
+    with store.connection() as db:simulated=life.simulate(store,db,preview['candidates'])
+    pid=preview['fingerprint'];store.apply(pid,pid);store.acknowledge(pid)
+    assert simulated==store.export()['records'] and store.validate()['ok']
+    store.apply(retirement['fingerprint'],retirement['fingerprint']);store.acknowledge(retirement['fingerprint'])
+    save(out/'round2.json',dict(synthetic=True,reviewed_commit='a767c744cc771541e4b3727ff15b8cd526657ba6',
+        work=dict(inventory_files=len(state['coverage']),measurements=measurements,total_actual_extractions=len(calls),unchanged_rerun_extractions=0),
+        invalid_duplicate_preview=blocked,valid_mixed_preview=preview,resulting_records=simulated,
+        history=life.history(store,record['id']),canonical_valid=True,old_retry_did_not_revert=True))
 
 
 if __name__=='__main__':main()

@@ -9,8 +9,9 @@ from .util import canonical_json, digest, fingerprint, loads, require, Knowledge
 from .project import safe_path
 from . import lifecycle as life
 
-VERSION='dotnet-lexical-v2'
-DISCOVERY_METHODS={'dotnet-lexical-v1',VERSION}
+VERSION='dotnet-lexical-v3'
+LEGACY_METHODS={'dotnet-lexical-v1','dotnet-lexical-v2'}
+DISCOVERY_METHODS=LEGACY_METHODS|{VERSION}
 EXCLUDED={'.git','.knowledge','.ai','.venv','.local','node_modules','vendor','packages','bin','obj','dist','build','.vs','TestResults'}
 SUFFIXES={'.cs','.csproj','.props','.targets','.sln','.json','.md','.yaml','.yml','.xml','.config'}
 LIMIT=512000
@@ -40,12 +41,25 @@ def inventory(root,base=None,head=None):
                 text=data.decode('utf-8-sig')
                 require(len(data)<=LIMIT,'source-too-large')
                 files[rel]={'hash':'sha256:'+hashlib.sha256(data).hexdigest(),'status':'not-analyzed','partition':'.','bytes':len(data)}
+                if p.suffix.lower() in ('.csproj','.props','.targets'):
+                    try:
+                        project_xml=ET.fromstring(text)
+                        custom=any((node.tag.rsplit('}',1)[-1]=='Compile' and 'Include' in node.attrib) or node.tag.rsplit('}',1)[-1] in ('Import','EnableDefaultCompileItems') for node in project_xml.iter())
+                        sdk=project_xml.attrib.get('Sdk','')
+                        if custom or (p.suffix.lower()=='.csproj' and not sdk.startswith('Microsoft.NET.Sdk')):
+                            files[rel]['negative_scope_reason']='custom source inclusion/import/SDK requires manual coverage validation'
+                    except ET.ParseError:files[rel]['negative_scope_reason']='invalid project/source-inclusion XML'
+
             except (OSError,UnicodeError,ValueError):
                 files[rel]={'hash':None,'status':'blocked','partition':'.','reason':'unreadable, non-UTF8 or oversized source'}
     projects=[p for p in files if p.endswith('.csproj')]
     for p,item in files.items():
         ancestors=[proj for proj in projects if Path(proj).parent==Path(p).parent or Path(proj).parent in Path(p).parents]
-        if ancestors:item['partition']=max(ancestors,key=len)
+        if ancestors:
+            depth=max(len(Path(proj).parent.parts) for proj in ancestors)
+            nearest=sorted(proj for proj in ancestors if len(Path(proj).parent.parts)==depth)
+            item['partition']=p if p.endswith('.csproj') else nearest[0]
+            item['partition_ambiguous']=not p.endswith('.csproj') and len(nearest)>1
     revision=git(root,'rev-parse','--verify','HEAD')
     delta=None
     if base or head:
@@ -77,19 +91,37 @@ def inventory(root,base=None,head=None):
             if not meta.endswith(' 0'):
                 files[path].update(status='blocked',reason='unmerged Git index requires resolution')
 
+    if revision:
+        head_raw=subprocess.run(['git','-C',str(root),'ls-tree','-r','-z',revision],capture_output=True,check=True)
+        head_blobs={}
+        for entry in head_raw.stdout.decode('utf-8','replace').split('\0'):
+            if '\t' in entry:
+                meta,path=entry.split('\t',1);head_blobs[path]=meta.split()[-1]
+        dirty_paths={d['path'] for d in dirty}
+        for path,entry in files.items():
+            blob=git(root,'hash-object','--no-filters','--',path,required=True)
+            indexed=index_blobs.get(path,[])
+            if path not in head_blobs or blob!=head_blobs[path] or path in dirty_paths:
+                ignored=subprocess.run(['git','-C',str(root),'check-ignore','--quiet','--',path]).returncode==0
+                entry['git_state']='ignored' if ignored else 'untracked' if not indexed else 'staged-or-unstaged'
+                if path not in dirty_paths:dirty.append({'path':path,'status':'!!' if ignored else '??' if not indexed else ' M','original':None})
+            else:entry['git_state']='committed'
+            entry['head_blob']=head_blobs.get(path)
+        dirty.sort(key=lambda d:d['path'])
     core={'index_blobs':index_blobs,'policy':{'excluded_dirs':sorted(EXCLUDED),'suffixes':sorted(SUFFIXES),'max_file_bytes':LIMIT},'extractor':VERSION,'files':{p:{k:v for k,v in item.items() if k!='status'} for p,item in sorted(files.items())},'exclusions':sorted(excluded,key=lambda x:x['path']), 'revision':revision,'dirty':dirty}
     return {'identity':digest(core),**core,'files':files,'delta':delta,'snapshot_kind':'working-tree-with-hashes' if dirty else 'committed' if revision else 'filesystem-no-history'}
 
 
 def extract(root,path,entry):
     text=(Path(root)/path).read_text(encoding='utf-8-sig');lines=text.splitlines(); project=entry['partition']
-    project_name=Path(project).stem if project!='.' else 'root'
+    project_name=(Path(project).stem+' ['+project+']') if project!='.' else 'root [.]'
     observations=[]
+    scope_unsupported=entry.get('partition_ambiguous',False)
     def emit(category,key,statement,line,subject):
         anchor=lines[line-1].strip()
-        identifier='scan.'+digest([project_name,category,key])[:32]
+        identifier='scan.'+digest(['identity-v3',project,category,key])[:32]
         observations.append(dict(id=identifier,category=category,project=project,path=path,line=line,anchor=anchor,
-                                 statement=statement,subject=subject,method=VERSION,content_hash=entry['hash']))
+                                 statement=statement,subject=subject,legacy_id='scan.'+digest([Path(project).stem if project!='.' else 'root',category,key.split('.')[-1].split('`')[0] if category=='declaration' else key])[:32],method=VERSION,content_hash=entry['hash'],unsupported=scope_unsupported))
     if path.endswith('.csproj'):
         try: tree=ET.fromstring(text)
         except ET.ParseError:return [],'partial','invalid project XML'
@@ -102,11 +134,18 @@ def extract(root,path,entry):
         return observations,'analyzed',None
     if path.endswith('.cs'):
         code,literals=csharp_masks(text)
+        contexts=declaration_contexts(code)
+        namespace_pattern=r'\bnamespace\s+((?:[^\W\d]|_)\w*(?:\.(?:[^\W\d]|_)\w*)*)\s*([;{])'
+        if len(re.findall(r'\bnamespace\b',code))!=len(re.findall(namespace_pattern,code)):
+            scope_unsupported=True
+        offset=0
         literal_lines=literals.splitlines()
-        for index,line in enumerate(code.splitlines(),1):
+        for index,line in enumerate(code.splitlines(keepends=True),1):
             for m in re.finditer(r'\b(class|interface|record)\s+(\w+)(?:\s*<[^>]+>)?\s*(?::\s*([^\{]+))?',line):
                 kind,name,bases=m.groups();bases=(bases or '').strip()
-                emit('declaration',name,f'{project_name} declares {kind} {name}'+(f' with declared bases {bases}' if bases else '')+'.',index,name)
+                qualified=contexts.get(offset+m.start(),name)
+                emit('declaration',qualified,f'{project_name} declares {kind} {qualified}'+(f' with declared bases {bases}' if bases else '')+'.',index,name)
+                if re.search(r'\bpartial\s*$',line[:m.start()]) or (kind=='record' and name in ('class','struct')):observations[-1]['unsupported']=True
             for m in re.finditer(r'\bAdd(Scoped|Singleton|Transient)\s*<([^>]+)>',line):
                 emit('wiring',m[2].split(',')[0].strip(),f'{project_name} contains Add{m[1]}<{m[2]}> registration syntax.',index,m[2].split(',')[0].strip())
             for m in re.finditer(r'\b(MapGet|MapPost|MapPut|MapDelete|Route|HttpGet|HttpPost|HttpPut|HttpDelete)\s*\(\s*"([^"]*)"',literal_lines[index-1]):
@@ -114,11 +153,12 @@ def extract(root,path,entry):
                 emit('routing',Path(path).stem+':'+m[1]+':'+m[2],f'{project_name} declares {m[1]} route literal "{m[2]}" in {Path(path).stem}.',index,m[2])
             for m in re.finditer(r'\b(AddDbContext|UseSqlServer|UseSqlite|GetConnectionString)\s*(?:<([^>]+)>)?\s*\(',line):
                 emit('persistence',Path(path).stem+':'+m[1]+':'+str(m[2]),f'{project_name} contains {m[1]}'+(f'<{m[2]}>' if m[2] else '')+' persistence/configuration syntax.',index,m[2] or m[1])
+            offset+=len(line)
         return observations,'partial','lexical extraction only; no Roslyn symbol resolution, preprocessor or runtime proof'
     return [],'partial','inventory/content hash only; semantic extractor unavailable for this file type'
 
 
-def fresh_evidence(root,e):
+def fresh_evidence(root,e,scope=None):
     path=e.get('source'); path=path.get('reference') if isinstance(path,dict) else path
     location=e.get('location','');location=location.get('reference','') if isinstance(location,dict) else location
     if not e.get('content_hash') or not isinstance(path,str):return 'not-verifiable'
@@ -135,32 +175,33 @@ def fresh_evidence(root,e):
         if method in DISCOVERY_METHODS:
             # Re-extract syntax before trusting unchanged hashes or surviving lines:
             # an old v1 false positive or a newly commented anchor is not current.
-            relative=p.relative_to(root).as_posix()
-            projects=[]
-            for parent in [p.parent,*p.parent.parents]:
-                if parent!=Path(root) and Path(root) not in parent.parents:break
-                projects.extend(candidate.relative_to(root).as_posix() for candidate in parent.glob('*.csproj') if not candidate.is_symlink())
-            partition=max(projects,key=len) if projects else '.'
-            observations,_,_=extract(root,relative,{'partition':partition,'hash':'sha256:'+hashlib.sha256(data).hexdigest()})
-            if not any(o['id'] in e['substantiates'] and o['anchor']==e['description'] for o in observations):return 'changed'
+            if method in LEGACY_METHODS:return 'legacy-identity-review-required'
+            scope=scope if scope is not None else analysis_scope(root)
+            if not scope.get('complete',True):return 'not-analyzed'
+            observations=scope['observations']
+            if any(i in scope['ambiguous'] for i in e['substantiates']):return 'ambiguous-identity'
+            if not any(o['id'] in e['substantiates'] and o['path']==p.relative_to(root).as_posix() and o['anchor']==e['description'] for o in observations):return 'changed'
         if 'sha256:'+hashlib.sha256(data).hexdigest()==e['content_hash']:return 'unchanged'
         if method in DISCOVERY_METHODS and e['description'] in [line.strip() for line in data.decode('utf-8-sig').splitlines()]:return 'anchor-valid-file-changed'
     except (OSError,UnicodeError):return 'not-verifiable'
     return 'changed'
 
 
-def freshness(root,claim,records):
+def freshness(root,claim,records,scope=None):
     evidence={e['id']:e for e in records['evidence']}
-    results={i:fresh_evidence(root,evidence[i]) for i in claim['evidence'] if i in evidence}
+    results={i:fresh_evidence(root,evidence[i],scope) for i in claim['evidence'] if i in evidence}
     trusted=bool(results) and all(v in ('unchanged','anchor-valid-file-changed') and evidence[i]['status']=='active' for i,v in results.items())
     return {'trusted':trusted,'evidence':results,'policy':'all supporting evidence current; confidence unchanged'}
 
 
-def proposal(store,db,obs,snapshot,captured,records,states):
+def proposal(store,db,obs,snapshot,captured,records,states,scope=None):
     from .store import empty
     current={r['id']:r for r in records['claims']};known=current.get(obs['id'])
-    if known and known['statement']==obs['statement'] and freshness(store.project.root,known,records)['trusted']:return None
-    if known and states[obs['id']]['lifecycle']!='active':return None
+    if known and states[obs['id']]['lifecycle']=='active' and known['statement']==obs['statement'] and freshness(store.project.root,known,records,scope)['trusted']:return None
+    if known and (not discovery_owned(db,known,records)):
+        # A reviewed meaning is not automatically overwritten by a lexical re-observation.
+        return None
+    if known and states[obs['id']]['lifecycle']=='superseded':return None
     eid='evidence.'+digest([obs['id'],obs['path'],obs['content_hash'],obs['anchor']])
     evidence=dict(id=eid,type='direct-technical',status='active',source=obs['path'],location=obs['path']+'#L'+str(obs['line']),content_hash=obs['content_hash'],
                   description=obs['anchor'],substantiates=[obs['id']],captured_at=captured,provenance=dict(actor='deterministic-discovery',method=VERSION))
@@ -175,7 +216,7 @@ def proposal(store,db,obs,snapshot,captured,records,states):
         claim['evidence'].extend(i for i in known['evidence'] if evidence_by_id[i]['provenance']['method'] not in DISCOVERY_METHODS)
     ops=[]
     if not db.execute('SELECT 1 FROM records WHERE id=?',(eid,)).fetchone():ops.append(life.op('add','evidence',eid,0,evidence))
-    ops.append(life.op('update' if known else 'add','claims',obs['id'],life.revision(db,obs['id']),claim))
+    ops.append(life.op('reactivate' if known and states[obs['id']]['lifecycle']=='retired' else 'update' if known else 'add','claims',obs['id'],life.revision(db,obs['id']),claim))
     return life.batch(ops,'Source-backed lexical observation; not runtime or business semantics',{'identity':snapshot['identity'],'revision':snapshot['revision'],'kind':snapshot['snapshot_kind']})
 
 
@@ -188,23 +229,42 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False):
             row=db.execute('SELECT payload FROM scans WHERE id=?',(scan_id,)).fetchone();require(row is not None,'unknown-scan')
             state=loads(row[0]);require(state['snapshot']['identity']==snap['identity'],'stale-scan-restart-required')
             require(state['extractor']==VERSION,'stale-extractor-restart-required')
+            if base or head:require(state['snapshot']['delta']==snap['delta'],'scan-range-mismatch-restart-required')
         else:
             scan_id=digest([store.project.identity,snap['identity'],snap['delta'],VERSION])
             row=db.execute('SELECT payload FROM scans WHERE id=?',(scan_id,)).fetchone()
             state=loads(row[0]) if row else dict(id=scan_id,extractor=VERSION,snapshot=snap,coverage=deep_files(snap['files']),observations=[],candidates=[],captured_at=life.now(),complete=False)
         pending=sorted((p for p,e in state['coverage'].items() if e['status']=='not-analyzed'),key=lambda p:(not p.endswith(('.csproj','.cs')),p))
+        extracted_this_call=[]
         for path in pending[:max_files]:
             observations,status,reason=extract(store.project.root,path,state['coverage'][path])
+            extracted_this_call.append(path)
             # Ambiguous identities from overloads/duplicate declarations are gaps, never guessed.
             existing={o['id'] for o in state['observations']}
+            ambiguous=set(state.get('ambiguous',[]))
             for o in observations:
-                if o['id'] in existing:
-                    state.setdefault('gaps',[]).append({'id':o['id'],'reason':'duplicate lexical identity','path':path});continue
+                prior=next((prior for prior in state['observations'] if prior['id']==o['id']),None)
+                if prior and equivalent_occurrence(prior,o):
+                    prior.setdefault('occurrences',[occurrence(prior)]).append(occurrence(o))
+                    continue
+                if o['id'] in existing or o['id'] in ambiguous or o.get('unsupported'):
+                    ambiguous.add(o['id'])
+                    state['observations']=[prior for prior in state['observations'] if prior['id']!=o['id']]
+                    state.setdefault('gaps',[]).append({'id':o['id'],'reason':'ambiguous lexical identity: all members withheld','path':path});continue
                 existing.add(o['id']);state['observations'].append(o)
+            state['ambiguous']=sorted(ambiguous)
             state['coverage'][path].update(status=status,reason=reason)
         state['complete']=not any(e['status'] in ('not-analyzed','blocked') for e in state['coverage'].values())
+        # The durable snapshot-bound chunks already contain global ambiguity state.
+        # Do not re-extract completed or not-yet-budgeted files for this scan.
+        scope={'snapshot':state['snapshot'],'observations':state['observations'],
+               'ambiguous':dict.fromkeys(state.get('ambiguous',[])), 'complete':state['complete']}
+        state['work']={'version':1,'extracted_this_call':len(extracted_this_call),'paths_this_call':extracted_this_call,
+                       'durable_extracted_files':sum(e['status'] not in ('not-analyzed','blocked') for e in state['coverage'].values()),
+                       'remaining_files':sum(e['status']=='not-analyzed' for e in state['coverage'].values()),
+                       'enumeration_and_hashing':'whole-snapshot; distinct from bounded extraction'}
         records=store._records(db)
-        changed={e['id'] for e in records['evidence'] if fresh_evidence(store.project.root,e) not in ('unchanged','anchor-valid-file-changed')}
+        changed={e['id'] for e in records['evidence'] if fresh_evidence(store.project.root,e,scope) not in ('unchanged','anchor-valid-file-changed')}
         owners={c['id'] for c in records['claims'] if changed.intersection(c['evidence'])}
         closure=set(owners)
         while True:
@@ -214,16 +274,30 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False):
         state['impact']={'changed_or_unverifiable_evidence':sorted(changed),'direct_claims':sorted(owners),
                          'dependent_claims':sorted(closure-owners),
                          'relationships':[r['id'] for r in records['relationships'] if r['from'] in closure or r['to'] in closure],
-                         'policy':'full included scope reexamined; impact is a review request, not retirement'}
+                         'policy':('completed included scope reused' if state['complete'] else 'partial durable scope; unexamined discovery evidence is not freshly verified')+'; impact is a review request, not retirement'}
         state['semantic_coverage_complete']=False
         state['limits']=['No runtime/deployment proof or business rationale','C# lexical matches are partial, not compiler analysis','Non-code files are content inventory only','Untracked permitted source is included with dirty hashes; Git dirty state is separate from committed HEAD']
         # Enqueue only at completion: partial scan observations remain durable, no claim of absence.
         if state['complete']:
             records=store._records(db);states=life.latest(db)
             signatures={proposal_identity(loads(p)) for p, in db.execute('SELECT payload FROM queue') if loads(p)['version']==2}
+            state['compatibility']=[]
+            state['reintroductions']=[]
+            state['review_required']=[]
             for obs in state['observations']:
-                value=proposal(store,db,obs,snap,state['captured_at'],records,states)
+                known=next((c for c in records['claims'] if c['id']==obs['id']),None)
+                if known and (states[known['id']]['lifecycle']=='superseded' or not discovery_owned(db,known,records)):
+                    state['review_required'].append({'id':known['id'],'reason':'supersession or reviewed assertion ownership requires manual review; no automatic overwrite/reactivation'})
+                legacy=[c for c in records['claims'] if c['provenance']['method'] in LEGACY_METHODS and states[c['id']]['lifecycle']=='active' and (c['id']==obs['legacy_id'] or c['statement']==obs['statement'])]
+                if legacy:
+                    state['compatibility'].append({'observation':obs,'legacy_ids':[c['id'] for c in legacy],'reason':'identity-v3 requires explicit reviewed migration; no automatic reassignment'})
+                    continue
+                value=proposal(store,db,obs,snap,state['captured_at'],records,states,scope)
                 if value:
+                    if any(o['action']=='reactivate' for o in value['operations']):
+                        state['reintroductions'].append({'id':obs['id'],'expected_revision':states[obs['id']]['revision'],
+                            'relationships':[r['id'] for r in records['relationships'] if obs['id'] in (r['from'],r['to'])],
+                            'policy':'explicit fresh approval required; relationships and superseded successors are not automatically restored'})
                     cid=digest(value)
                     # Repeated scans retain disposition; compare unchanged operation payloads even if snapshot differs.
                     if proposal_identity(value) not in signatures:
@@ -245,9 +319,10 @@ def reconcile(store,scan_id):
         row=db.execute('SELECT payload FROM scans WHERE id=?',(scan_id,)).fetchone();require(row is not None,'unknown-scan')
         scan=loads(row[0]);require(inventory(store.project.root)['identity']==scan['snapshot']['identity'],'stale-scan-restart-required')
         records=store._records(db);states=life.latest(db);out=[]
+        scope=analysis_scope(store.project.root,snapshot=scan['snapshot'])
         observed={o['id']:o for o in scan['observations']}
         for c in records['claims']:
-            fresh=freshness(store.project.root,c,records)
+            fresh=freshness(store.project.root,c,records,scope)
             classification='unchanged' if fresh['trusted'] else 'not-verifiable'
             if states[c['id']]['lifecycle']!='active':classification='historical'
             elif not fresh['trusted'] and c['id'] in observed:classification='changed'
@@ -256,6 +331,8 @@ def reconcile(store,scan_id):
             out.append(dict(id=c['id'],classification=classification,freshness=fresh,lifecycle=states[c['id']]['lifecycle'],dependents=dependents,
                             retirement_proposed=False,reason='Retirement requires reviewed positive corroboration; lexical absence alone is insufficient.'))
         retirement=[]
+        current={c['id']:c for c in records['claims']}
+        negative_gaps=negative_coverage_gaps(scan['snapshot'])
         delta=scan['snapshot'].get('delta')
         if scan['complete'] and delta and not scan.get('gaps'):
             before={}
@@ -267,6 +344,14 @@ def reconcile(store,scan_id):
             for row in out:
                 old=before.get(row['id'])
                 if not old or row['id'] in observed or row['lifecycle']!='active':continue
+                claim=current[row['id']]
+                if old.get('method')!=VERSION or claim['provenance']!={'actor':'deterministic-discovery','method':VERSION} or claim['statement']!=old['statement']:
+                    row.update(classification='not-verifiable',reason='Current reviewed meaning/ownership does not match the source assertion; manual review required.')
+                    continue
+                relevant=[g for g in negative_gaps if g['project']==old['project']]
+                if relevant:
+                    row.update(classification='not-verifiable',reason='Excluded/unsupported source prevents negative evidence proof.',coverage_gaps=relevant)
+                    continue
                 # Before/after exact source proof + complete lexical inventory + reference/consumer search.
                 raw=subprocess.run(['git','-C',str(store.project.root),'show',delta['base']+':'+old['path']],capture_output=True)
                 if raw.returncode or 'sha256:'+hashlib.sha256(raw.stdout).hexdigest()!=old['content_hash']:continue
@@ -280,7 +365,7 @@ def reconcile(store,scan_id):
                     retirement.append(life.op('retire','relationships',r['id'],life.revision(db,r['id'])))
         proposal=life.batch(retirement,'Reviewed source removal corroborated by before/after and consumer inventory',
                             {'identity':scan['snapshot']['identity'],'revision':scan['snapshot']['revision'],'kind':scan['snapshot']['snapshot_kind'],'delta':delta}) if retirement else None
-        return {'ok':True,'scan':scan_id,'complete':scan['complete'],'claims':out,'source':scan['snapshot'],'canonical_unchanged':True,'proposal':proposal}
+        return {'ok':True,'scan':scan_id,'complete':scan['complete'],'claims':out,'source':scan['snapshot'],'canonical_unchanged':True,'negative_evidence_gaps':negative_gaps,'proposal':proposal}
 
 
 def status(store,scan_id=None):
@@ -336,3 +421,93 @@ def csharp_masks(text):
             i=min(i,length)
         blank(start,i)
     return ''.join(code),''.join(literals)
+
+
+def declaration_contexts(code):
+    """Qualified lexical type identity; no compiler binding is claimed.
+
+    Partial declarations with the same qualified identity are withheld as a group.
+    Braces in strings/comments have already been masked.
+    """
+    token=re.compile(r'\bnamespace\s+((?:[^\W\d]|_)\w*(?:\.(?:[^\W\d]|_)\w*)*)\s*([;{])|\b(class|interface|record)\s+(\w+)(?:\s*<([^>]+)>)?|[{}]')
+    stack=[];file_namespace='';pending=None;result={}
+    for m in token.finditer(code):
+        if m[1]:
+            if m[2]==';':file_namespace=m[1]
+            else:stack.append(('namespace',m[1]))
+        elif m[3]:
+            name=m[4]+('`'+str(len(m[5].split(','))) if m[5] else '')
+            prefix=[file_namespace] if file_namespace else []
+            prefix.extend(name for kind,name in stack if kind in ('namespace','type'))
+            result[m.start()]='.'.join([*prefix,name]);pending=('type',name)
+        elif m[0]=='{':stack.append(pending or ('block',''));pending=None
+        elif m[0]=='}':
+            if stack:stack.pop()
+            pending=None
+    return result
+
+
+def analysis_scope(root,snapshot=None):
+    """One complete included-scope analysis for ambiguity-sensitive reads."""
+    snapshot=snapshot if snapshot is not None else inventory(root)
+    groups={}
+    for path,entry in sorted(snapshot['files'].items()):
+        if entry['status']=='blocked':continue
+        try:observations,_,_=extract(root,path,entry)
+        except (OSError,UnicodeError):continue
+        for observation in observations:groups.setdefault(observation['id'],[]).append(observation)
+    for identifier,items in list(groups.items()):
+        if len(items)>1 and all(equivalent_occurrence(items[0],o) for o in items[1:]):
+            merged=dict(items[0],occurrences=[occurrence(o) for o in items]);groups[identifier]=[merged]
+    ambiguous={i:items for i,items in groups.items() if len(items)>1 or any(o.get('unsupported') for o in items)}
+    return {'snapshot':snapshot,'observations':[items[0] for i,items in groups.items() if i not in ambiguous],
+            'ambiguous':ambiguous}
+
+
+def negative_coverage_gaps(snapshot):
+    """Excluded source is not negative evidence. No excluded content is loaded.
+
+    Administrative storage is exempt. Other excluded source/output directories
+    block negative proof: arbitrary Compile Include rules may make them live.
+    """
+    projects=[p for p in snapshot['files'] if p.endswith('.csproj')]
+    result=[]
+    administrative={'.git','.gitignore','.gitattributes','.editorconfig','.knowledge','.ai','.venv','.local','.vs','TestResults'}
+    for excluded in snapshot['exclusions']:
+        path=Path(excluded['path'])
+        if any(part in administrative for part in path.parts):continue
+        relevant=path.suffix.lower() in {'.cs','.csproj','.props','.targets','.fs','.vb','.razor','.json','.config'} or not path.suffix
+        if not relevant:continue
+        for project in projects:
+            directory=Path(project).parent
+            if directory==path.parent or directory in path.parents or directory==Path('.'):
+                result.append({'project':project,'path':str(path),'reason':'excluded potentially live source/configuration; no absence proof'})
+    for path,entry in snapshot['files'].items():
+        if entry.get('negative_scope_reason'):
+            affected=[path] if path.endswith('.csproj') else projects
+            result.extend({'project':project,'path':path,'reason':entry['negative_scope_reason']} for project in affected)
+        if entry['status']=='blocked':result.append({'project':entry['partition'],'path':path,'reason':entry.get('reason','blocked source')})
+    return result
+
+
+def discovery_owned(db,claim,records):
+    """A former ID/provenance alone does not own a later reviewed assertion."""
+    if claim['provenance']!={'actor':'deterministic-discovery','method':VERSION}:return False
+    evidence={e['id']:e for e in records['evidence']}
+    for payload, in db.execute('SELECT payload FROM scans'):
+        prior=loads(payload)
+        if prior.get('extractor')!=VERSION or not prior['complete']:continue
+        for observation in prior['observations']:
+            if observation['id']==claim['id'] and observation['statement']==claim['statement']:
+                if any(evidence[i].get('content_hash')==observation['content_hash'] and evidence[i]['source']==observation['path'] for i in claim['evidence']):return True
+    return False
+
+
+def occurrence(observation):
+    return {k:observation[k] for k in ('path','line','anchor','content_hash')}
+
+
+def equivalent_occurrence(first,second):
+    # These claims only assert that one file contains literal syntax; multiple
+    # identical occurrences support the same assertion, not distinct type owners.
+    return first['category']!='declaration' and not first.get('unsupported') and not second.get('unsupported') and all(first[k]==second[k] for k in ('id','project','category','statement','path','subject'))

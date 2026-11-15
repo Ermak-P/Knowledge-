@@ -1,10 +1,10 @@
 # Automatically generated discovery evaluation
 
-Run `7c567e88b6b54922bcc21a8ae3a6ae3f`; source `e20dbd2635d808ce19366d90a0bb96b56ffbd730e5ed14b14e2fa1cfe8d3e96e`. Raw evidence: `runs/7c567e88b6b54922bcc21a8ae3a6ae3f/`.
+Run `fe11fd6fd62e4372b5d6e830889775be`; source `f6fbbd3dc18cfe085c3694bd6ab529f23e5eb7ac7b0c54bb450083bb33069954`. Raw evidence: `runs/fe11fd6fd62e4372b5d6e830889775be/`.
 
 Pinned eShopOnWeb 0c2c95d9d450d07fcd4e96e95e1cd48c20834e99; ordinary disposable copy, no worktree.
 No curated benchmark dataset was read as discovery input.
-536 observations; categories: {"declaration": 349, "dependency": 132, "persistence": 7, "project": 13, "routing": 6, "wiring": 29}.
+529 observations; categories: {"declaration": 342, "dependency": 132, "persistence": 7, "project": 13, "routing": 6, "wiring": 29}.
 14 partitions with observations.
 Inventory completion: True; semantic completeness:
 False. Coverage/exclusions/source manifest,
