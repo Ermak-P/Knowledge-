@@ -1,3 +1,4 @@
+from contextlib import closing
 """Actual native processes. Windows-only classes never qualify from Linux skips."""
 import json,os,signal,subprocess,sys,tempfile,time,unittest
 from pathlib import Path
@@ -10,6 +11,13 @@ from harness.platform import process_info,stop_owned
 from p2_fixtures import project,configuration,task,http_provider,FixtureProvider
 
 class PlatformSafety(unittest.TestCase):
+    def test_unicode_validation_without_inherited_utf8_mode(self):
+        # MCP deliberately inherits only a small environment; it need not inherit
+        # PYTHONUTF8. Persisted validation artifacts must still use explicit UTF-8.
+        code='from knowledge.store import validate_records;from fixtures import addition;validate_records(addition(statement="\\u0424\\u0430\\u043a\\u0442 \\U0001f642")["records"]);print("UTF8_OK")'
+        env={**os.environ,'PYTHONUTF8':'0','PYTHONCOERCECLOCALE':'0','LC_ALL':'C'}
+        result=subprocess.run([sys.executable,'-X','utf8=0','-c',code],cwd=Path(__file__).parent,env=env,capture_output=True,text=True,timeout=15)
+        self.assertEqual(result.returncode,0,result.stderr);self.assertIn('UTF8_OK',result.stdout)
     def test_supervisor_death_cleans_real_grandchild_before_releasing_ownership(self):
         with tempfile.TemporaryDirectory() as tmp,http_provider(FixtureProvider()) as endpoint:
             root=project(tmp);c=configuration(endpoint,recipe_seconds=20)
@@ -117,7 +125,7 @@ class DurableInitialization(unittest.TestCase):
             self.assertEqual(db.read_bytes(),b'')
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);j=Journal(root)
-            with sqlite3.connect(j.path) as db:db.execute('DROP TABLE actions')
+            with closing(sqlite3.connect(j.path)) as db, db:db.execute('DROP TABLE actions')
             before=j.path.read_bytes()
             with self.assertRaisesRegex(KnowledgeError,'harness-state-incomplete'):Journal(root)
             self.assertEqual(j.path.read_bytes(),before)

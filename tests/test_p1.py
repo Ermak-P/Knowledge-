@@ -1,3 +1,4 @@
+from datetime import timedelta
 """Portable P1 tests; all generated repositories and statements are synthetic."""
 import asyncio
 import json
@@ -221,7 +222,7 @@ class P1StdioTests(unittest.IsolatedAsyncioTestCase):
             s.submit(life.batch([life.op('update','claims',c['id'],1,update)],'synthetic Unicode'));approve(s)
             params=StdioServerParameters(command=sys.executable,args=['-m','knowledge.mcp','--root',str(root)])
             async with stdio_client(params) as (reader,writer):
-                async with ClientSession(reader,writer) as session:
+                async with ClientSession(reader,writer,read_timeout_seconds=timedelta(seconds=20)) as session:
                     await session.initialize()
                     for budget in (256,600,16000):
                         response=await session.call_tool('knowledge_context',{'task':'Independent','max_bytes':budget})

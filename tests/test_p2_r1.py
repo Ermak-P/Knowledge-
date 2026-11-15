@@ -1,3 +1,4 @@
+from contextlib import closing
 """Exact P2-R1/R2/R3 production reproductions, preserving the original 129 cases."""
 import tempfile,unittest
 from pathlib import Path
@@ -47,7 +48,7 @@ class ReviewCorrections(unittest.TestCase):
         import sqlite3
         with tempfile.TemporaryDirectory() as tmp:
             root=project(tmp);configure(root,configuration('http://127.0.0.1/v1/chat/completions'),True);store=Store(root)
-            with sqlite3.connect(store.path) as db:db.execute('INSERT INTO metadata VALUES (?,?)',('capture-observation-v1:invalid','{"version":99}'))
+            with closing(sqlite3.connect(store.path)) as db, db:db.execute('INSERT INTO metadata VALUES (?,?)',('capture-observation-v1:invalid','{"version":99}'))
             before=store.path.read_bytes()
             with self.assertRaisesRegex(KnowledgeError,'corrupt-capture-observation-receipt'):store.validate()
             self.assertEqual(store.path.read_bytes(),before)

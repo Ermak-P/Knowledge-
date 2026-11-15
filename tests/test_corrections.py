@@ -1,3 +1,4 @@
+from datetime import timedelta
 """Independent review reproductions at public subprocess/stdio boundaries."""
 import asyncio
 import json
@@ -97,7 +98,7 @@ class WireBudget(unittest.IsolatedAsyncioTestCase):
             store=Store(root);store.submit(item);plan=store.prepare()['fingerprint'];store.apply(plan,plan);store.acknowledge(plan)
             params=StdioServerParameters(command=sys.executable,args=['-m','knowledge.mcp','--root',tmp])
             async with stdio_client(params) as (reader,writer):
-                async with ClientSession(reader,writer) as session:
+                async with ClientSession(reader,writer,read_timeout_seconds=timedelta(seconds=20)) as session:
                     await session.initialize()
                     for budget in (256,512,1000,4000,16000):
                         for query in ('synthetic.confirmed synthetic.inferred','synthetic.unicode','несуществующий квантовый фотон'):

@@ -197,7 +197,7 @@ class Broker:
                         from datetime import datetime
                         require(datetime.fromisoformat(created.attrib['start']).timestamp()>=action['process_started']-2,'stale-trx')
                 else:
-                    data=loads(path.read_text());require(data.get('action')==action_id,'test-artifact-identity-mismatch')
+                    data=loads(path.read_text(encoding='utf-8'));require(data.get('action')==action_id,'test-artifact-identity-mismatch')
                     counts={'executed':data.get('executed',0),'failed':data.get('failed',0)};success=type(counts['executed']) is int and counts['executed']>0 and type(counts['failed']) is int and counts['failed']==0
         after=source_snapshot(self.j.project,self.limits['file_bytes'])
         require(after==action['source_before'],'source-changed-during-gate')

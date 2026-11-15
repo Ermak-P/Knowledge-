@@ -1,3 +1,4 @@
+from contextlib import closing
 from copy import deepcopy
 import json
 import multiprocessing
@@ -106,7 +107,7 @@ class CoreTests(unittest.TestCase):
 
     def test_damaged_plan_refused(self):
         self.s.submit(addition());self.s.prepare()
-        with sqlite3.connect(self.s.path) as db:db.execute("UPDATE plans SET payload='{}'")
+        with closing(sqlite3.connect(self.s.path)) as db, db:db.execute("UPDATE plans SET payload='{}'")
         with self.assertRaisesRegex(KnowledgeError,'corrupt-plan'):self.s.recover()
 
     def test_conflicting_ids_and_partial_duplicate(self):
@@ -132,7 +133,7 @@ class CoreTests(unittest.TestCase):
 
     def test_corrupt_queue_refused(self):
         self.s.submit(addition())
-        with sqlite3.connect(self.s.path) as db:db.execute("UPDATE queue SET payload='{}'")
+        with closing(sqlite3.connect(self.s.path)) as db, db:db.execute("UPDATE queue SET payload='{}'")
         for fn in [self.s.prepare,lambda:self.s.submit(addition()),self.s.recover,self.s.validate]:
             with self.assertRaises(KnowledgeError):fn()
 
@@ -160,7 +161,7 @@ class CoreTests(unittest.TestCase):
 
     def test_changed_committed_payload_preserved(self):
         self.s.submit(addition());pid=self.s.prepare()['fingerprint'];self.s.apply(pid,pid)
-        with sqlite3.connect(self.s.path) as db:
+        with closing(sqlite3.connect(self.s.path)) as db, db:
             row=db.execute("SELECT payload FROM records WHERE kind='claims'").fetchone();item=loads(row[0]);item['statement']='Unrelated edit.'
             db.execute("UPDATE records SET payload=? WHERE kind='claims'",(canonical_json(item),))
         with self.assertRaisesRegex(KnowledgeError,'committed-payload-changed'):self.s.recover()
@@ -169,7 +170,7 @@ class CoreTests(unittest.TestCase):
 
     def test_ack_payload_not_just_id(self):
         self.s.submit(addition());pid=self.s.prepare()['fingerprint'];self.s.apply(pid,pid)
-        with sqlite3.connect(self.s.path) as db:
+        with closing(sqlite3.connect(self.s.path)) as db, db:
             item=addition();item['records']['claims'][0]['statement']='Replaced same claim ID.'
             from knowledge.util import digest
             db.execute('UPDATE queue SET id=?,payload=?',(digest(item),canonical_json(item)))

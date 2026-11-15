@@ -41,7 +41,7 @@ def shape(records):
     ids = set()
     for group, items in records.items():
         require(isinstance(items, list), 'invalid-record-list')
-        schema = loads((SCHEMAS / (KINDS[group] + '.schema.json')).read_text())
+        schema = loads((SCHEMAS / (KINDS[group] + '.schema.json')).read_text(encoding='utf-8'))
         for item in items:
             issues = legacy.schema_errors(item, schema)
             require(not issues, 'invalid-record', issues)
@@ -54,13 +54,13 @@ def validate_records(records):
     with tempfile.TemporaryDirectory(prefix='knowledge-validation-') as tmp:
         base = Path(tmp)
         (base/'schema').mkdir()
-        (base/'manifest.yaml').write_text(canonical_json(legacy.MANIFEST))
+        (base/'manifest.yaml').write_text(canonical_json(legacy.MANIFEST),encoding='utf-8')
         for p in SCHEMAS.glob('*.json'):
             shutil.copyfile(p, base/'schema'/p.name)
         for g, path in GROUPS.items():
             (base/path).mkdir(parents=True)
             for index, record in enumerate(records[g]):
-                (base/path/f'{index}.json').write_text(canonical_json(record))
+                (base/path/f'{index}.json').write_text(canonical_json(record),encoding='utf-8')
         errors, warnings = legacy.validate(base)
         require(not errors, 'invalid-dataset', errors)
         return warnings

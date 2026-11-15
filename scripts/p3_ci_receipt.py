@@ -36,6 +36,10 @@ def main():
         # Delegate authentication to checkout's local config without reading or
         # copying credential/header values into commands, logs or artifacts.
         subprocess.run(['git','config','include.path',str(ROOT/'.git/config')],cwd=repo,check=True)
+        # Configure before checkout as well as before add: native Git must not
+        # truncate deep artifact paths or convert existing receipt bytes.
+        subprocess.run(['git','config','core.autocrlf','false'],cwd=repo,check=True)
+        subprocess.run(['git','config','core.longpaths','true'],cwd=repo,check=True)
         existing=subprocess.run(['git','fetch','origin',branch],cwd=repo,capture_output=True)
         if existing.returncode==0:subprocess.run(['git','checkout','-b',branch,'FETCH_HEAD'],cwd=repo,check=True)
         else:subprocess.run(['git','checkout','--orphan',branch],cwd=repo,check=True)

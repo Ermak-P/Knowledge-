@@ -8,7 +8,7 @@ def main():
     class Result(unittest.TextTestResult):
         def addSuccess(self,test):super().addSuccess(test);rows.append({'test':test.id(),'status':'PASS'})
         def addFailure(self,test,error):super().addFailure(test,error);rows.append({'test':test.id(),'status':'FAIL'})
-        def addError(self,test,error):super().addError(test,error);rows.append({'test':test.id(),'status':'ERROR'})
+        def addError(self,test,error):super().addError(test,error);self.stream.writeln(self._exc_info_to_string(error,test));rows.append({'test':test.id(),'status':'ERROR'})
         def addSkip(self,test,reason):super().addSkip(test,reason);rows.append({'test':test.id(),'status':'SKIP','reason':reason})
     faulthandler.enable();faulthandler.dump_traceback_later(60,repeat=True)
     suite=unittest.defaultTestLoader.discover(str(ROOT/'tests'));result=unittest.TextTestRunner(verbosity=2,resultclass=Result).run(suite)

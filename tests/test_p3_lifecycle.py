@@ -1,3 +1,4 @@
+from contextlib import closing
 import json,os,sqlite3,subprocess,sys,tempfile,unittest,zipfile
 from pathlib import Path
 from unittest.mock import patch
@@ -34,7 +35,7 @@ class LifecycleTests(unittest.TestCase):
                 with self.assertRaisesRegex(KnowledgeError,'project-writer-busy'):m.preview(root,'backup',base/'backup.zip')
             with Store(root).connection(True):
                 with self.assertRaisesRegex(KnowledgeError,'maintenance-busy'):m.preview(root,'backup',base/'backup.zip')
-            with sqlite3.connect(root/'.harness/runs.sqlite3') as db:db.execute("UPDATE meta SET value='99' WHERE key='version'")
+            with closing(sqlite3.connect(root/'.harness/runs.sqlite3')) as db, db:db.execute("UPDATE meta SET value='99' WHERE key='version'")
             with self.assertRaisesRegex(KnowledgeError,'unsupported-harness-state'):m.preview(root,'backup',base/'backup.zip')
             other=base/'absent';other.mkdir()
             with self.assertRaisesRegex(KnowledgeError,'maintenance-state-absent'):m.preview(other,'upgrade',base/'absent.zip')
