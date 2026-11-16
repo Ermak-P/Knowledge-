@@ -62,6 +62,7 @@ def main():
     original_host='{\n  "model": "synthetic-original-host-model"\n}\n';(root/'opencode.json').write_text(original_host,encoding='utf-8',newline='')
     # Optional MCP is an explicitly online, pinned add-on. Core installation above was offline.
     run([sys.executable,installer,'install','--env',env,'--profile','full','--mcp-online'],scratch,out/'optional-mcp-online.log',env=baseenv)
+    run([python,'-I',ROOT/'tests/p3_companion_review_driver.py','--output',out/'companion-review.json'],scratch,out/'companion-review.log',env=baseenv)
     first=EditScenario(DOMAIN,EXPECTED,{EVIDENCE:FIRST})
     with http_provider(first) as endpoint:
         config_path=scratch/'config.json';save(config_path,configuration(endpoint));cli('harness.run_cli','configure',input=config_path)

@@ -27,17 +27,24 @@ def task_shape(task,configuration):
     else:require(not task['writable'] and not task['recipes'],'read-only-task-has-write-authority')
 
 
-def start(root,task,mode='multi'):
+def start(root,task,mode='multi',*,entry_authority=None):
+    task=deepcopy(task);entry_authority=deepcopy(entry_authority)
     journal=Journal(root)
     require(mode in ('multi','single'),'invalid-execution-mode')
-    with Lease(journal):
+    with Lease(journal) as lease:
         configuration=config(root);task_shape(task,configuration)
+        if entry_authority is not None:
+            from .companion import validate_entry
+            validate_entry(root,entry_authority,task,configuration)
         limits={**DEFAULT_LIMITS,**configuration['limits']};source=source_snapshot(journal.project,limits['file_bytes'])
         task=deepcopy(task);task['initial_source']=source
         run=dict(version=1,id=uuid.uuid4().hex,project=journal.project.identity,started=stamp(),status='running',execution='pending',capture={'state':'not-started'},
                  task=task,config_hash=digest(configuration),mode=mode,source=source,gates={},agents=[],frames=[],shared_history=[],requests=[],delegations=0,tool_calls=0,protected_paths=[],capture_prepared=False)
         run['protected_paths'],run['protected_executables']=recipe_inputs(journal.project,configuration,task)
+        if entry_authority is not None:run['entry_authority']=entry_authority
         push(run,'Main',task['goal'],None);journal.save(run);journal.event(run['id'],'run-started',mode=mode,task_hash=digest(task),config=run['config_hash'])
+        # Companion authorization and its first effects share one ownership span.
+        if entry_authority is not None:return drive(journal,configuration,run,lease)
     return resume(root,run['id'])
 
 
@@ -101,6 +108,9 @@ def drive(journal,configuration,run,lease):
     limits={**DEFAULT_LIMITS,**configuration['limits']};broker=Broker(journal,configuration,run,lease)
     try:
         require(digest(configuration)==run['config_hash'],'configuration-changed-revalidation-required')
+        if 'entry_authority' in run:
+            from .companion import validate_entry
+            validate_entry(journal.project.root,run['entry_authority'],{k:v for k,v in run['task'].items() if k!='initial_source'},configuration)
         paths,executables=recipe_inputs(journal.project,configuration,run['task'])
         run['protected_paths']=sorted(set(run['protected_paths'])|set(paths))
         run['protected_executables']=executables
