@@ -39,7 +39,9 @@ def main():
         require(a.profile!='knowledge' or not installed['imports']['harness'],'profile downgrade requires product uninstall or a fresh environment')
         wheels=[base/name for name in m['files'] if name.endswith('.whl') and (a.profile=='full' or Path(name).name.startswith('knowledge_p0-'))]
         require(len(wheels)==(2 if a.profile=='full' else 1),'incomplete core wheel set')
-        call([python,'-I','-m','pip','install','--no-index','--no-deps','--disable-pip-version-check',*wheels])
+        # An unpublished candidate may retain its version while sealed wheel
+        # hashes change. Install the actual supplied owned bytes, not old code.
+        call([python,'-I','-m','pip','install','--no-index','--no-deps','--force-reinstall','--disable-pip-version-check',*wheels])
         if a.mcp_online:call([python,'-I','-m','pip','install','--disable-pip-version-check','-r',base/'optional-mcp.lock'])
         call([python,'-I','-m','pip','check'])
         owned=['knowledge-p0']+(['harness-p0'] if a.profile=='full' else [])

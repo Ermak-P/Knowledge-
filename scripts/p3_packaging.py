@@ -26,10 +26,20 @@ def main():
         call('reinstall',[sys.executable,kit/'install.py','install','--env',env,'--profile','full']);call('retained-validate',[python,'-I','-m','knowledge.cli','validate','--root',root])
         if os.name!='nt':
             call('posix-launcher',['sh',kit/'install.sh','doctor','--env',env]);call('posix-launcher-failure',['sh',kit/'install.sh','doctor','--env',tmp/'not-owned'],expected=1)
+        # The actual original candidate shares our version. A metadata-only
+        # success while pip retains its vulnerable old code must fail this check.
+        prior=ROOT/'reports/P3/runs/487b8e58b2c645db988705ff213f362c/distribution/knowledge-harness-0.3.0rc1'
+        prior_env=tmp/'Prior candidate runtime';candidate=tmp/'Existing candidate project';state=tmp/'original-candidate-state.json';driver=ROOT/'tests/p3_same_version_upgrade.py'
+        call('original-candidate-install',[sys.executable,prior/'install.py','install','--env',prior_env,'--profile','full'])
+        prior_python=python_at(prior_env)
+        call('original-candidate-probe',[prior_python,'-I',driver,'before','--root',candidate,'--state',state])
+        call('same-version-candidate-refresh',[sys.executable,kit/'install.py','install','--env',prior_env,'--profile','full'])
+        refreshed=json.loads(call('same-version-candidate-inspection',[prior_python,'-I',driver,'after','--root',candidate,'--state',state]).stdout)
+        (out/'same-version-upgrade.json').write_bytes((json.dumps(refreshed,indent=2)+'\n').encode('utf-8'))
         # Tamper a local wheel: rejection occurs before a new environment exists.
         wheel=next((kit/'wheels').glob('*.whl'));wheel.write_bytes(wheel.read_bytes()+b'TAMPER')
         call('tampered-package',[sys.executable,kit/'install.py','install','--env',tmp/'refused'],expected=1);assert not (tmp/'refused').exists()
-        value=dict(version=1,profile='core-offline',standalone=standalone,package_transfer=True,no_development_imports=True,isolated_install=True,uninstall_reinstall=True,source_store_preserved=True,core_network='kernel connect blocked' if sys.platform=='linux' else 'pip --no-index --no-deps; all core wheel inputs local',optional_mcp='online, separately tested; not bundled as an offline wheelhouse',posix_launcher='PASS' if os.name!='nt' else 'NOT_APPLICABLE')
+        value=dict(version=1,profile='core-offline',standalone=standalone,package_transfer=True,no_development_imports=True,isolated_install=True,uninstall_reinstall=True,source_store_preserved=True,same_version_candidate_refresh=refreshed,core_network='kernel connect blocked' if sys.platform=='linux' else 'pip --no-index --no-deps; all core wheel inputs local',optional_mcp='online, separately tested; not bundled as an offline wheelhouse',posix_launcher='PASS' if os.name!='nt' else 'NOT_APPLICABLE')
         (out/'packaging.json').write_text(json.dumps(value,indent=2,ensure_ascii=False)+'\n',encoding='utf-8')
     print('PASS: transferred local core wheels install offline, independent Knowledge, installed CLIs, tamper refusal and product-only uninstall/reinstall.')
 if __name__=='__main__':main()
