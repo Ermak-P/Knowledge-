@@ -1,6 +1,6 @@
 """P2 review reproductions. Only HTTP decisions are scripted; effects are production."""
 from pathlib import Path
-import hashlib,json,sys,threading
+import hashlib,json,sys,threading,os,shutil
 from unittest.mock import patch
 from knowledge import lifecycle as life,discovery as disc
 from knowledge.store import Store
@@ -96,6 +96,13 @@ def verifier(root,absolute=True,executable=False,exception=False):
     with http_provider(scenario) as endpoint:
         c=configuration(endpoint);entry=str(path) if absolute else 'verify.py'
         c['recipes']['test']['argv']=[str(path)] if executable else [sys.executable,entry]
+        if executable and os.name=='nt':
+            # Windows does not execute a POSIX shebang. Use a genuine project PE
+            # interpreter and retain the same protected verifier script/content.
+            native=root/'project-verifier.exe';shutil.copyfile(sys._base_executable,native)
+            c['recipes']['test']['argv']=[str(native),entry]
+            c['recipes']['test']['env']={'PATH':str(Path(sys._base_executable).parent)+os.pathsep+os.environ.get('PATH','')}
+
         runtime.configure(root,c,True);t=task();t['writable']=['*']
         if exception:t['existing_test_edits']=['verify.py']
         outcome=engine.start(root,t)

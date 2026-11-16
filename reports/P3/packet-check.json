@@ -1,0 +1,24 @@
+{
+  "status": "PASS",
+  "run_id": "c72e6b4fcb41419cb5ff40a61a506466",
+  "source_identity": "041f1ee4e1c533be7addd41c88a3b314609b13733a67f33f970bee2a8e02e808",
+  "archive_sha256": "6644258bfa88d8fe79474fee438dfe594b1c007e9314cf92af6c2c0b310eee43",
+  "members_verified": 863,
+  "qualified_profiles": {
+    "linux-3.12-x64": {
+      "verdict": "GO",
+      "scope": "tested standalone core plus optional MCP; accepted Linux P2 binary upgrade/rollback; synthetic HTTP decisions"
+    },
+    "windows-3.12-x64-ntfs-ps51": {
+      "verdict": "GO",
+      "reasons": [],
+      "scope": "fresh native installation, prior Knowledge upgrade/rollback and current-native Harness lifecycle; no supported P2 native Harness predecessor"
+    },
+    "windows-prior-p2-harness-upgrade": {
+      "verdict": "NO_GO",
+      "reasons": [
+        "accepted P2 Harness is POSIX-only; its native execution/migration is unsupported; prior Knowledge code/data is tested separately on Windows; preserve source/root bindings"
+      ]
+    }
+  }
+}

@@ -27,17 +27,24 @@ def task_shape(task,configuration):
     else:require(not task['writable'] and not task['recipes'],'read-only-task-has-write-authority')
 
 
-def start(root,task,mode='multi'):
+def start(root,task,mode='multi',*,entry_authority=None):
+    task=deepcopy(task);entry_authority=deepcopy(entry_authority)
     journal=Journal(root)
     require(mode in ('multi','single'),'invalid-execution-mode')
-    with Lease(journal):
+    with Lease(journal) as lease:
         configuration=config(root);task_shape(task,configuration)
+        if entry_authority is not None:
+            from .companion import validate_entry
+            validate_entry(root,entry_authority,task,configuration)
         limits={**DEFAULT_LIMITS,**configuration['limits']};source=source_snapshot(journal.project,limits['file_bytes'])
         task=deepcopy(task);task['initial_source']=source
         run=dict(version=1,id=uuid.uuid4().hex,project=journal.project.identity,started=stamp(),status='running',execution='pending',capture={'state':'not-started'},
                  task=task,config_hash=digest(configuration),mode=mode,source=source,gates={},agents=[],frames=[],shared_history=[],requests=[],delegations=0,tool_calls=0,protected_paths=[],capture_prepared=False)
         run['protected_paths'],run['protected_executables']=recipe_inputs(journal.project,configuration,task)
+        if entry_authority is not None:run['entry_authority']=entry_authority
         push(run,'Main',task['goal'],None);journal.save(run);journal.event(run['id'],'run-started',mode=mode,task_hash=digest(task),config=run['config_hash'])
+        # Companion authorization and its first effects share one ownership span.
+        if entry_authority is not None:return drive(journal,configuration,run,lease)
     return resume(root,run['id'])
 
 
@@ -54,7 +61,7 @@ def metrics(run,actions):
         known=[r['usage'] for r in calls if r.get('usage',{}).get('coverage')=='reported']
         rows.append({**agent,'requests':len(calls),'reported_tokens':sum(u['total'] for u in known),'unknown_usage_requests':sum(r.get('usage',{}).get('coverage')!='reported' for r in calls),
                      'input_tokens':sum(u['input'] for u in known),'output_tokens':sum(u['output'] for u in known),'provider_seconds':sum(r.get('duration',0) for r in calls),'tool_actions':sum(a.get('agent')==agent['id'] for a in actions.values()),'process_seconds':sum(a.get('result',{}).get('duration',0) for a in actions.values() if a.get('agent')==agent['id']),'input_bytes':sum(r.get('input_bytes',0) for r in calls)})
-    return {'version':1,'mode':run['mode'],'attempts':deepcopy(run['requests']),'tool_durations':[{'action':i,'role':a['role'],'seconds':max(0,a.get('finished',stamp())-a['at']),'state':a['status']} for i,a in actions.items()],'lease_wait_seconds':run.get('lease_wait_seconds',0),'roles':rows,'requests':len(run['requests']),'reported_tokens':sum(r['reported_tokens'] for r in rows),
+    return {'version':1,'mode':run['mode'],'process_attempt_details':[{'action':i,'role':a['role'],'prior_unknown':a.get('process_history',[]),'current':a.get('process_result'),'spec':a.get('process_spec')} for i,a in actions.items() if a['tool']=='recipe'],'unknown_process_attempts':sum(len(a.get('process_history',[]))+(1 if a.get('process_spec') and not a.get('process_result') else 0) for a in actions.values()),'attempts':deepcopy(run['requests']),'tool_durations':[{'action':i,'role':a['role'],'seconds':max(0,a.get('finished',stamp())-a['at']),'state':a['status']} for i,a in actions.items()],'lease_wait_seconds':run.get('lease_wait_seconds',0),'roles':rows,'requests':len(run['requests']),'reported_tokens':sum(r['reported_tokens'] for r in rows),
             'unknown_usage_requests':sum(r['unknown_usage_requests'] for r in rows),'usage_evidence':run.get('usage_evidence','unknown'),
             'wall_seconds':max(0,run.get('finished',stamp())-run['started']),
             'provider_seconds':sum(r['provider_seconds'] for r in rows),'process_seconds':sum(a.get('result',{}).get('duration',0) for a in actions.values()),
@@ -101,6 +108,9 @@ def drive(journal,configuration,run,lease):
     limits={**DEFAULT_LIMITS,**configuration['limits']};broker=Broker(journal,configuration,run,lease)
     try:
         require(digest(configuration)==run['config_hash'],'configuration-changed-revalidation-required')
+        if 'entry_authority' in run:
+            from .companion import validate_entry
+            validate_entry(journal.project.root,run['entry_authority'],{k:v for k,v in run['task'].items() if k!='initial_source'},configuration)
         paths,executables=recipe_inputs(journal.project,configuration,run['task'])
         run['protected_paths']=sorted(set(run['protected_paths'])|set(paths))
         run['protected_executables']=executables
@@ -190,6 +200,8 @@ def drive(journal,configuration,run,lease):
             if frame['role']=='Main':
                 require(final['status']=='done','main-reported-failure')
                 require(source_snapshot(journal.project,limits['file_bytes'])==run['source'],'source-conflict')
+                from .platform import fence_pending
+                fence_pending(journal)
                 completion_gates(run)
                 run['frames'].pop();run['execution']='passed';run['final_source']=digest(run['source']);run['capture_time']=datetime.now(timezone.utc).isoformat();run['capture_event']=journal.event(run['id'],'execution-passed')['sequence']
                 journal.save(run);rt.fault('execution-passed')

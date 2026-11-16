@@ -1,5 +1,6 @@
 import hashlib
 import json
+import sys
 
 
 def canonical_json(value):
@@ -9,6 +10,15 @@ def canonical_json(value):
         return text
     except (UnicodeError,TypeError,ValueError) as e:
         raise KnowledgeError('invalid-json-value') from e
+
+
+def emit_json(value):
+    """CLI protocol bytes stay UTF-8 even with a redirected Windows ANSI stream."""
+    text=canonical_json(value)+'\n'
+    binary=getattr(sys.stdout,'buffer',None)
+    if binary is None:sys.stdout.write(text)
+    else:binary.write(text.encode('utf-8'))
+    sys.stdout.flush()
 
 
 def digest(value):

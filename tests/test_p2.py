@@ -1,3 +1,4 @@
+from contextlib import closing
 import tempfile
 from pathlib import Path
 import unittest
@@ -320,7 +321,7 @@ class BoundaryTests(unittest.TestCase):
             root=project(tmp);j=Journal(root)
             shutil.copytree(root/'.harness',Path(other)/'.harness')
             with self.assertRaisesRegex(KnowledgeError,'harness-state-version-or-project-mismatch'):Journal(other)
-            with sqlite3.connect(j.path) as db:db.execute("UPDATE meta SET value='99' WHERE key='version'")
+            with closing(sqlite3.connect(j.path)) as db, db:db.execute("UPDATE meta SET value='99' WHERE key='version'")
             before=j.path.read_bytes()
             with self.assertRaisesRegex(KnowledgeError,'harness-state-version-or-project-mismatch'):Journal(root)
             self.assertEqual(j.path.read_bytes(),before)

@@ -1,3 +1,4 @@
+from contextlib import closing
 """Round-2 A/B: real resulting-model and extraction-budget regressions."""
 from collections import Counter
 from copy import deepcopy
@@ -83,7 +84,7 @@ class ReactivationModelTests(unittest.TestCase):
             db.execute('UPDATE records SET payload=? WHERE id=?',(canonical_json(bad),self.b['id']))
             life.append(db,self.b['id'],'claims',bad,'active','test-only-corruption','synthetic corrupt fixture',None)
         with self.assertRaisesRegex(KnowledgeError,'duplicate-statement'):Store(self.root).validate()
-        with sqlite3.connect(self.s.path) as db:
+        with closing(sqlite3.connect(self.s.path)) as db, db:
             self.assertEqual(db.execute('SELECT COUNT(*) FROM revisions WHERE id=?',(self.b['id'],)).fetchone()[0],2)
             self.assertEqual(db.execute('SELECT payload FROM records WHERE id=?',(self.b['id'],)).fetchone()[0],canonical_json(bad))
 

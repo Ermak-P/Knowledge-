@@ -1,0 +1,643 @@
+{
+  "version": 1,
+  "phase": "P3",
+  "submission": "submitted for external review",
+  "source_identity": "8f7fbfb6ecd243e64b9bbcd927bee157a03df7bd28b37f880b48954617582ed2",
+  "run_id": "487b8e58b2c645db988705ff213f362c",
+  "product": "0.3.0rc1",
+  "conditions": [
+    {
+      "id": "P3-A01",
+      "requirement": "Accepted P2 ancestry/inventory verified; 138 logical regressions mapped/preserved and all previous blocking fixes retained.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/baseline/baseline.json",
+        "runs/487b8e58b2c645db988705ff213f362c/regressions/tests.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": []
+    },
+    {
+      "id": "P3-A02",
+      "requirement": "Versioned wheels/install kit/dependency manifests install from clean isolated artifacts outside the source tree; standalone Knowledge stays independent.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/distribution/knowledge-harness-0.3.0rc1/RELEASE.json",
+        "runs/487b8e58b2c645db988705ff213f362c/packaging/packaging.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": []
+    },
+    {
+      "id": "P3-A03",
+      "requirement": "Actual offline core installation and declared optional dependency paths work; package/import/CLI versions and upgrade names do not conflict.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/packaging/packaging.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": []
+    },
+    {
+      "id": "P3-A04",
+      "requirement": "Linux and PowerShell launchers discover native runtimes, quote paths/Unicode correctly and propagate failures under claimed shells.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/packaging/command.log",
+        "runs/487b8e58b2c645db988705ff213f362c/native/native.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": [
+        "test_p3_platform.DurableInitialization.test_existing_empty_or_missing_table_state_is_not_reinitialized",
+        "test_p3_platform.PlatformSafety.test_filesystem_capture_without_git_ignores_empty_parent_metadata",
+        "test_p3_platform.PlatformSafety.test_foreign_receipt_cannot_terminate_unrelated_process",
+        "test_p3_platform.PlatformSafety.test_git_blob_provenance_and_ignored_paths_use_bounded_git_processes",
+        "test_p3_platform.PlatformSafety.test_supervisor_death_cleans_real_grandchild_before_releasing_ownership",
+        "test_p3_platform.PlatformSafety.test_unicode_validation_without_inherited_utf8_mode"
+      ]
+    },
+    {
+      "id": "P3-A05",
+      "requirement": "Real Windows process/lease/path backend is implemented; no skipped/unlocked stub substitutes for execution guarantees.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/native/native.json",
+        "runs/487b8e58b2c645db988705ff213f362c/regressions/tests.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": [
+        "test_p3_platform.DurableInitialization.test_existing_empty_or_missing_table_state_is_not_reinitialized",
+        "test_p3_platform.PlatformSafety.test_filesystem_capture_without_git_ignores_empty_parent_metadata",
+        "test_p3_platform.PlatformSafety.test_foreign_receipt_cannot_terminate_unrelated_process",
+        "test_p3_platform.PlatformSafety.test_git_blob_provenance_and_ignored_paths_use_bounded_git_processes",
+        "test_p3_platform.PlatformSafety.test_supervisor_death_cleans_real_grandchild_before_releasing_ownership",
+        "test_p3_platform.PlatformSafety.test_unicode_validation_without_inherited_utf8_mode"
+      ]
+    },
+    {
+      "id": "P3-A06",
+      "requirement": "Native Windows competing writers, parent/supervisor death, descendant cancellation/cleanup and owner identity protection pass.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "NOT_APPLICABLE",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/native/native.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": [
+        "test_p3_platform.DurableInitialization.test_existing_empty_or_missing_table_state_is_not_reinitialized",
+        "test_p3_platform.PlatformSafety.test_filesystem_capture_without_git_ignores_empty_parent_metadata",
+        "test_p3_platform.PlatformSafety.test_foreign_receipt_cannot_terminate_unrelated_process",
+        "test_p3_platform.PlatformSafety.test_git_blob_provenance_and_ignored_paths_use_bounded_git_processes",
+        "test_p3_platform.PlatformSafety.test_supervisor_death_cleans_real_grandchild_before_releasing_ownership",
+        "test_p3_platform.PlatformSafety.test_unicode_validation_without_inherited_utf8_mode"
+      ]
+    },
+    {
+      "id": "P3-A07",
+      "requirement": "Native Windows/NTFS identity, case/path, junction/link/hardlink/escape and locked-file policies are executed and honest about unsupported forms.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "NOT_APPLICABLE",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/native/native.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": [
+        "test_p3_platform.DurableInitialization.test_existing_empty_or_missing_table_state_is_not_reinitialized",
+        "test_p3_platform.PlatformSafety.test_filesystem_capture_without_git_ignores_empty_parent_metadata",
+        "test_p3_platform.PlatformSafety.test_foreign_receipt_cannot_terminate_unrelated_process",
+        "test_p3_platform.PlatformSafety.test_git_blob_provenance_and_ignored_paths_use_bounded_git_processes",
+        "test_p3_platform.PlatformSafety.test_supervisor_death_cleans_real_grandchild_before_releasing_ownership",
+        "test_p3_platform.PlatformSafety.test_unicode_validation_without_inherited_utf8_mode"
+      ]
+    },
+    {
+      "id": "P3-A08",
+      "requirement": "Linux's accepted ownership/process/recovery guarantees still pass; platform receipts cannot become another OS/process's authority.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/regressions/tests.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": [
+        "test_p3_platform.DurableInitialization.test_existing_empty_or_missing_table_state_is_not_reinitialized",
+        "test_p3_platform.PlatformSafety.test_filesystem_capture_without_git_ignores_empty_parent_metadata",
+        "test_p3_platform.PlatformSafety.test_foreign_receipt_cannot_terminate_unrelated_process",
+        "test_p3_platform.PlatformSafety.test_git_blob_provenance_and_ignored_paths_use_bounded_git_processes",
+        "test_p3_platform.PlatformSafety.test_supervisor_death_cleans_real_grandchild_before_releasing_ownership",
+        "test_p3_platform.PlatformSafety.test_unicode_validation_without_inherited_utf8_mode"
+      ]
+    },
+    {
+      "id": "P3-A09",
+      "requirement": "Nonempty accepted-format Knowledge/Harness upgrade preview/apply preserves records, queues, receipts, ownership metadata, runs and outbox/history.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/prior-upgrade/prior-upgrade.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": "Actual accepted P2 Harness binary upgrade/old-code rollback is Linux-only. Windows proves real prior Knowledge code/data upgrade/rollback and current-native Harness rich-state lifecycle; prior POSIX Harness native migration remains a separate NO_GO.",
+      "tests": [
+        "test_p3_lifecycle.LifecycleTests.test_exclusive_freeze_refuses_an_independent_canonical_writer",
+        "test_p3_lifecycle.LifecycleTests.test_legacy_sqlite_writer_without_new_gate_is_refused",
+        "test_p3_lifecycle.LifecycleTests.test_nonempty_upgrade_backup_restore_preserves_all_authority_and_user_source",
+        "test_p3_lifecycle.LifecycleTests.test_real_restore_crash_windows_fence_and_idempotent_recovery",
+        "test_p3_lifecycle.LifecycleTests.test_restore_absent_metadata_and_repeat_exact_approval_are_idempotent",
+        "test_p3_lifecycle.LifecycleTests.test_stale_busy_unknown_absent_and_corrupt_refuse_without_reset",
+        "test_p3_lifecycle.LifecycleTests.test_tampered_restore_staging_cannot_replace_live_metadata",
+        "test_p3_lifecycle.LifecycleTests.test_unknown_operational_marker_and_manifest_counts_refuse",
+        "test_p3_lifecycle.LifecycleTests.test_untrusted_backup_members_checksum_and_root_binding_refuse",
+        "test_p3_lifecycle.LifecycleTests.test_upgrade_commit_crash_recovery_preserves_exact_nonempty_state"
+      ]
+    },
+    {
+      "id": "P3-A10",
+      "requirement": "Wrong/stale approvals, active owners, interrupted/repeated upgrade and unsupported versions refuse/recover without resetting data.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/regressions/tests.json",
+        "runs/487b8e58b2c645db988705ff213f362c/prior-upgrade/prior-upgrade.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": [
+        "test_p3_lifecycle.LifecycleTests.test_exclusive_freeze_refuses_an_independent_canonical_writer",
+        "test_p3_lifecycle.LifecycleTests.test_legacy_sqlite_writer_without_new_gate_is_refused",
+        "test_p3_lifecycle.LifecycleTests.test_nonempty_upgrade_backup_restore_preserves_all_authority_and_user_source",
+        "test_p3_lifecycle.LifecycleTests.test_real_restore_crash_windows_fence_and_idempotent_recovery",
+        "test_p3_lifecycle.LifecycleTests.test_restore_absent_metadata_and_repeat_exact_approval_are_idempotent",
+        "test_p3_lifecycle.LifecycleTests.test_stale_busy_unknown_absent_and_corrupt_refuse_without_reset",
+        "test_p3_lifecycle.LifecycleTests.test_tampered_restore_staging_cannot_replace_live_metadata",
+        "test_p3_lifecycle.LifecycleTests.test_unknown_operational_marker_and_manifest_counts_refuse",
+        "test_p3_lifecycle.LifecycleTests.test_untrusted_backup_members_checksum_and_root_binding_refuse",
+        "test_p3_lifecycle.LifecycleTests.test_upgrade_commit_crash_recovery_preserves_exact_nonempty_state"
+      ]
+    },
+    {
+      "id": "P3-A11",
+      "requirement": "Consistent complete backup manifest/checksums and cross-store freeze policy are implemented and tested with real nonempty state.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/prior-upgrade/prior-upgrade.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": [
+        "test_p3_lifecycle.LifecycleTests.test_exclusive_freeze_refuses_an_independent_canonical_writer",
+        "test_p3_lifecycle.LifecycleTests.test_legacy_sqlite_writer_without_new_gate_is_refused",
+        "test_p3_lifecycle.LifecycleTests.test_nonempty_upgrade_backup_restore_preserves_all_authority_and_user_source",
+        "test_p3_lifecycle.LifecycleTests.test_real_restore_crash_windows_fence_and_idempotent_recovery",
+        "test_p3_lifecycle.LifecycleTests.test_restore_absent_metadata_and_repeat_exact_approval_are_idempotent",
+        "test_p3_lifecycle.LifecycleTests.test_stale_busy_unknown_absent_and_corrupt_refuse_without_reset",
+        "test_p3_lifecycle.LifecycleTests.test_tampered_restore_staging_cannot_replace_live_metadata",
+        "test_p3_lifecycle.LifecycleTests.test_unknown_operational_marker_and_manifest_counts_refuse",
+        "test_p3_lifecycle.LifecycleTests.test_untrusted_backup_members_checksum_and_root_binding_refuse",
+        "test_p3_lifecycle.LifecycleTests.test_upgrade_commit_crash_recovery_preserves_exact_nonempty_state"
+      ]
+    },
+    {
+      "id": "P3-A12",
+      "requirement": "Restore/rollback verifies integrity/target/compatibility, survives interruption and preserves replaced state/unrelated user bytes.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/regressions/tests.json",
+        "runs/487b8e58b2c645db988705ff213f362c/prior-upgrade/prior-upgrade.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": "Actual accepted P2 Harness binary upgrade/old-code rollback is Linux-only. Windows proves real prior Knowledge code/data upgrade/rollback and current-native Harness rich-state lifecycle; prior POSIX Harness native migration remains a separate NO_GO.",
+      "tests": [
+        "test_p3_lifecycle.LifecycleTests.test_exclusive_freeze_refuses_an_independent_canonical_writer",
+        "test_p3_lifecycle.LifecycleTests.test_legacy_sqlite_writer_without_new_gate_is_refused",
+        "test_p3_lifecycle.LifecycleTests.test_nonempty_upgrade_backup_restore_preserves_all_authority_and_user_source",
+        "test_p3_lifecycle.LifecycleTests.test_real_restore_crash_windows_fence_and_idempotent_recovery",
+        "test_p3_lifecycle.LifecycleTests.test_restore_absent_metadata_and_repeat_exact_approval_are_idempotent",
+        "test_p3_lifecycle.LifecycleTests.test_stale_busy_unknown_absent_and_corrupt_refuse_without_reset",
+        "test_p3_lifecycle.LifecycleTests.test_tampered_restore_staging_cannot_replace_live_metadata",
+        "test_p3_lifecycle.LifecycleTests.test_unknown_operational_marker_and_manifest_counts_refuse",
+        "test_p3_lifecycle.LifecycleTests.test_untrusted_backup_members_checksum_and_root_binding_refuse",
+        "test_p3_lifecycle.LifecycleTests.test_upgrade_commit_crash_recovery_preserves_exact_nonempty_state"
+      ]
+    },
+    {
+      "id": "P3-A13",
+      "requirement": "Package transfer and fresh-root onboarding work; existing root-bound state relocation is supported explicitly or refused with a safe actionable preservation policy.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/packaging/packaging.json",
+        "runs/487b8e58b2c645db988705ff213f362c/rehearsal/rehearsal.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": []
+    },
+    {
+      "id": "P3-A14",
+      "requirement": "Uninstall/reinstall removes only installation-owned artifacts and retains project data/history/configuration by default; retained state remains usable.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/packaging/packaging.json",
+        "runs/487b8e58b2c645db988705ff213f362c/prior-upgrade/prior-upgrade.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": "Actual accepted P2 Harness binary upgrade/old-code rollback is Linux-only. Windows proves real prior Knowledge code/data upgrade/rollback and current-native Harness rich-state lifecycle; prior POSIX Harness native migration remains a separate NO_GO.",
+      "tests": [
+        "test_p3_lifecycle.LifecycleTests.test_exclusive_freeze_refuses_an_independent_canonical_writer",
+        "test_p3_lifecycle.LifecycleTests.test_legacy_sqlite_writer_without_new_gate_is_refused",
+        "test_p3_lifecycle.LifecycleTests.test_nonempty_upgrade_backup_restore_preserves_all_authority_and_user_source",
+        "test_p3_lifecycle.LifecycleTests.test_real_restore_crash_windows_fence_and_idempotent_recovery",
+        "test_p3_lifecycle.LifecycleTests.test_restore_absent_metadata_and_repeat_exact_approval_are_idempotent",
+        "test_p3_lifecycle.LifecycleTests.test_stale_busy_unknown_absent_and_corrupt_refuse_without_reset",
+        "test_p3_lifecycle.LifecycleTests.test_tampered_restore_staging_cannot_replace_live_metadata",
+        "test_p3_lifecycle.LifecycleTests.test_unknown_operational_marker_and_manifest_counts_refuse",
+        "test_p3_lifecycle.LifecycleTests.test_untrusted_backup_members_checksum_and_root_binding_refuse",
+        "test_p3_lifecycle.LifecycleTests.test_upgrade_commit_crash_recovery_preserves_exact_nonempty_state"
+      ]
+    },
+    {
+      "id": "P3-A15",
+      "requirement": "Project-local OpenCode/companion bootstrap/doctor is real, reversible and root-correct; no global policy overwrite or false native-subagent claim.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/rehearsal/rehearsal.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": [
+        "test_p3_host.CompanionTests.test_configured_stdio_companion_executes_real_guarded_recipes",
+        "test_p3_host.CompanionTests.test_exact_local_merge_task_digest_doctor_and_reversible_bytes",
+        "test_p3_host.CompanionTests.test_host_conflicts_jsonc_and_intervening_changes_refuse"
+      ]
+    },
+    {
+      "id": "P3-A16",
+      "requirement": "Clean installed-product UMUH-like rehearsal works across a distinct layout with no core changes or IPM-specific path assumptions.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/rehearsal/rehearsal.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": []
+    },
+    {
+      "id": "P3-A17",
+      "requirement": "Rehearsal performs actual controlled source change/build/test/review/capture, repeated approved learning and explicit canonical approval/history checks.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/rehearsal/rehearsal.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": []
+    },
+    {
+      "id": "P3-A18",
+      "requirement": "Rehearsal interruption/recovery/restore/reinstall and multi-project isolation preserve edits, request accounting, candidates and ownership.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/rehearsal/rehearsal.json",
+        "runs/487b8e58b2c645db988705ff213f362c/prior-upgrade/prior-upgrade.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": []
+    },
+    {
+      "id": "P3-A19",
+      "requirement": "Native Windows rehearsal and installed-product execution pass on the declared profile, with real transport/process/filesystem evidence.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "NOT_APPLICABLE",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/native/native.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": []
+    },
+    {
+      "id": "P3-A20",
+      "requirement": "Fresh pinned eShop baseline/behavior workflow preserves prior tests/original source and binds actual SDK/build/TRX evidence to this release candidate.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/application/application.json",
+        "runs/487b8e58b2c645db988705ff213f362c/application/baseline.trx",
+        "runs/487b8e58b2c645db988705ff213f362c/application/original-immutability.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": []
+    },
+    {
+      "id": "P3-A21",
+      "requirement": "Linux/native Windows CI and per-platform regression mapping execute the actual release artifacts; required skipped/unrun controls block that profile's GO.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/native/native.json",
+        "runs/487b8e58b2c645db988705ff213f362c/regressions/tests.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": [
+        "test_p3_platform.DurableInitialization.test_existing_empty_or_missing_table_state_is_not_reinitialized",
+        "test_p3_platform.PlatformSafety.test_filesystem_capture_without_git_ignores_empty_parent_metadata",
+        "test_p3_platform.PlatformSafety.test_foreign_receipt_cannot_terminate_unrelated_process",
+        "test_p3_platform.PlatformSafety.test_git_blob_provenance_and_ignored_paths_use_bounded_git_processes",
+        "test_p3_platform.PlatformSafety.test_supervisor_death_cleans_real_grandchild_before_releasing_ownership",
+        "test_p3_platform.PlatformSafety.test_unicode_validation_without_inherited_utf8_mode"
+      ]
+    },
+    {
+      "id": "P3-A22",
+      "requirement": "Bounded work, full accounting/uncertainty, stale/tampered/duplicate/concurrent failure cases and comparison remain correct after packaging/porting.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/bounded/bounded.json",
+        "runs/487b8e58b2c645db988705ff213f362c/rehearsal/comparison.json",
+        "runs/487b8e58b2c645db988705ff213f362c/regressions/tests.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": []
+    },
+    {
+      "id": "P3-A23",
+      "requirement": "Release verdicts distinguish implementation readiness, OS/integration qualification and external acceptance; missing native evidence cannot yield Windows GO.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/native/native.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": []
+    },
+    {
+      "id": "P3-A24",
+      "requirement": "Current run/source/package/CI evidence gate rejects stale, mixed, failed, incomplete or modified evidence, including externally collected native artifacts.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/regressions/tests.json",
+        "runs/487b8e58b2c645db988705ff213f362c/run.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": [
+        "test_p3_evidence.ReleaseGate.test_ci_git_transport_retains_prior_wheels_and_exact_log_bytes",
+        "test_p3_evidence.ReleaseGate.test_failed_stale_mixed_incomplete_modified_package_or_evidence_refuse",
+        "test_p3_evidence.ReleaseGate.test_linux_pass_cannot_qualify_windows_or_stale_external_native_receipt"
+      ]
+    },
+    {
+      "id": "P3-A25",
+      "requirement": "Complete distribution/review bundles, compatibility/runbooks/licenses/inventories/checksums are reproducible and contain no credentials/private caches.",
+      "status": "PASS",
+      "implementation": "submitted for review",
+      "profiles": {
+        "linux": "PASS",
+        "windows": "PASS"
+      },
+      "evidence": [
+        "runs/487b8e58b2c645db988705ff213f362c/distribution/knowledge-harness-0.3.0rc1/RELEASE.json",
+        "runs/487b8e58b2c645db988705ff213f362c/reproducibility/reproducibility.json"
+      ],
+      "windows_evidence": [
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/runs/99830a07843b4655bfb26662c46e73e1/native/native.json",
+        "reports/P3/CI/3c28581124a4b045f1339c09fa3fd6bcd06f2983/collected/3c28581124a4b045f1339c09fa3fd6bcd06f2983/Windows/verification-summary.json"
+      ],
+      "scope_note": null,
+      "tests": []
+    }
+  ],
+  "qualification": {
+    "version": 1,
+    "source_identity": "8f7fbfb6ecd243e64b9bbcd927bee157a03df7bd28b37f880b48954617582ed2",
+    "implementation_review": "READY_FOR_EXTERNAL_REVIEW",
+    "profiles": {
+      "linux-3.12-x64": {
+        "verdict": "GO",
+        "scope": "tested standalone core plus optional MCP; accepted Linux P2 binary upgrade/rollback; synthetic HTTP decisions"
+      },
+      "windows-3.12-x64-ntfs-ps51": {
+        "verdict": "GO",
+        "reasons": [],
+        "scope": "fresh native installation, prior Knowledge upgrade/rollback and current-native Harness lifecycle; no supported P2 native Harness predecessor"
+      },
+      "windows-prior-p2-harness-upgrade": {
+        "verdict": "NO_GO",
+        "reasons": [
+          "accepted P2 Harness is POSIX-only; its native execution/migration is unsupported; prior Knowledge code/data is tested separately on Windows; preserve source/root bindings"
+        ]
+      }
+    },
+    "live_model": "NOT_RUN",
+    "OpenCode": "NOT_RUN",
+    "production_migration": "NOT_AUTHORIZED",
+    "external_acceptance": "PENDING",
+    "publication": "USER_CONTROLLED",
+    "run_id": "487b8e58b2c645db988705ff213f362c",
+    "ci_collection": "PASS"
+  },
+  "unexecuted": {
+    "native_windows": false,
+    "live_model": "NOT_RUN",
+    "OpenCode": "NOT_RUN",
+    "PS7": "NOT_CLAIMED",
+    "private_MCP": "NOT_RUN",
+    "production_migration": "NOT_AUTHORIZED"
+  }
+}

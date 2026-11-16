@@ -1,3 +1,4 @@
+from contextlib import closing
 """P1 revisions share P0's database, lock, queue, plans and commit boundaries."""
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -131,8 +132,8 @@ def upgrade(store,approval):
     # A SQLite-consistent backup is retained before mutation; never overwrite one.
     backup=store.base/('backup-'+preview['fingerprint'][7:]+'.sqlite3')
     if not backup.exists():
-        with sqlite3.connect(store.path) as source,sqlite3.connect(backup) as dest:source.backup(dest)
-    with sqlite3.connect(backup) as saved:
+        with closing(sqlite3.connect(store.path)) as source,closing(sqlite3.connect(backup)) as dest, dest:source.backup(dest)
+    with closing(sqlite3.connect(backup)) as saved:
         require(fingerprint(upgrade_snapshot(saved))==preview['base'],'backup-state-mismatch-repreview')
     with store.connection(True) as db:
         require(fingerprint(upgrade_snapshot(db))==preview['base'],'stale-upgrade-preview')

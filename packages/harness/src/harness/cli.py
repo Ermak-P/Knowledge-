@@ -1,6 +1,6 @@
 import argparse
 import sys
-from knowledge.util import canonical_json, KnowledgeError
+from knowledge.util import emit_json, canonical_json, KnowledgeError
 from .consumer import context
 
 
@@ -15,7 +15,7 @@ def main():
         result=context(a.root,a.task,a.max_bytes,a.include_unconfirmed)
     except (KnowledgeError,OSError) as e:
         result={'ok':False,'error':getattr(e,'code','filesystem-error')}
-    print(canonical_json(result))
+    emit_json(result)
     return 0 if result['ok'] else 1
 
 

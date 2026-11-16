@@ -51,25 +51,46 @@ def source_snapshot(project,limit=1048576):
     return dict(sorted(result.items()))
 
 
+def policy_path(relative):return relative.casefold() if os.name=='nt' else relative
+
+
 def local_path(project,relative,write=False):
     require(isinstance(relative,str) and relative and len(relative)<=1024,'invalid-relative-path')
     p=Path(relative)
-    require(not p.is_absolute() and '..' not in p.parts and not any(x.startswith('.') or x in IGNORED for x in p.parts),'path-denied')
+    require(not p.is_absolute() and '..' not in p.parts and not any(x.startswith('.') or x.casefold() in {i.casefold() for i in IGNORED} for x in p.parts),'path-denied')
     require(not any(x in relative.casefold() for x in ('secret','credential','.env','privatekey','appsettings')) and p.suffix.casefold() not in ('.pem','.key','.pfx','.p12'),'private-path-denied')
     path=project.root/p;safe_path(path)
-    if write:require(path.suffix.lower() not in ('.csproj','.props','.targets','.sln','.lock') and path.name not in ('pyproject.toml','package.json','package-lock.json','requirements.txt'),'protected-build-policy')
+    if write:require(path.suffix.lower() not in ('.csproj','.props','.targets','.sln','.lock') and path.name.casefold() not in ('pyproject.toml','package.json','package-lock.json','requirements.txt','global.json','nuget.config','opencode.json','opencode.jsonc'),'protected-build-policy')
     return path
 
 
 class Journal:
     def __init__(self,root):
         self.project=Project(root);self.base=self.project.root/'.harness';safe_tree(self.base)
-        self.base.mkdir(exist_ok=True);self.path=self.base/'runs.sqlite3';safe_path(self.path)
+        self.path=self.base/'runs.sqlite3'
+        from knowledge.coordination import gate
+        with gate(self.project.root):self._initialize()
+    def _initialize(self):
+        from knowledge.execution_lock import ExecutionLock
+        self.base.mkdir(exist_ok=True);safe_path(self.path);lock=ExecutionLock(self.base/'init.lock');until=time.monotonic()+3
+        while True:
+            try:lock.acquire();break
+            except KnowledgeError as error:
+                if error.code!='project-writer-busy' or time.monotonic()>=until:raise KnowledgeError('harness-busy') from error
+                time.sleep(.01)
+        try:self._initialize_owned(not self.path.exists())
+        finally:lock.close()
+    def _initialize_owned(self,new):
         with self.db() as db:
+            if not new:
+                tables={r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+                require({'meta','runs','events','actions','outbox','cancels'}<=tables,'harness-state-incomplete-preserve-and-restore')
             db.execute('CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY,value TEXT)')
             old=dict(db.execute('SELECT key,value FROM meta'))
             if old:require(old=={'version':'1','project':self.project.identity},'harness-state-version-or-project-mismatch')
-            else:db.executemany('INSERT INTO meta VALUES (?,?)',[('version','1'),('project',self.project.identity)])
+            else:
+                require(new,'harness-state-incomplete-preserve-and-restore')
+                db.executemany('INSERT INTO meta VALUES (?,?)',[('version','1'),('project',self.project.identity)])
             db.execute('CREATE TABLE IF NOT EXISTS runs(id TEXT PRIMARY KEY,payload TEXT NOT NULL)')
             db.execute('CREATE TABLE IF NOT EXISTS events(run TEXT,sequence INTEGER,payload TEXT,PRIMARY KEY(run,sequence))')
             db.execute('CREATE TABLE IF NOT EXISTS actions(run TEXT,id TEXT,payload TEXT,PRIMARY KEY(run,id))')
@@ -77,6 +98,12 @@ class Journal:
             db.execute('CREATE TABLE IF NOT EXISTS cancels(run TEXT PRIMARY KEY,at REAL)')
     @contextmanager
     def db(self):
+        from knowledge.coordination import gate
+        with gate(self.project.root):
+            with self._db() as db:yield db
+
+    @contextmanager
+    def _db(self):
         safe_path(self.path)
         db=sqlite3.connect(self.path,timeout=.15)
         try:
@@ -111,9 +138,19 @@ class Journal:
         with self.db() as db:return [loads(p) for p, in db.execute('SELECT payload FROM events WHERE run=? ORDER BY sequence',(run,))]
     def action(self,run,identifier,value=None):
         with self.db() as db:
-            if value is not None:db.execute('INSERT OR REPLACE INTO actions VALUES (?,?,?)',(run,identifier,canonical_json(value)))
+            if value is not None:
+                previous=db.execute('SELECT payload FROM actions WHERE run=? AND id=?',(run,identifier)).fetchone()
+                previous=loads(previous[0]) if previous else {}
+                if previous.get('recovery_stop') and previous.get('process_attempt',0)==value.get('process_attempt',0):value={**value,'recovery_stop':True}
+                db.execute('INSERT OR REPLACE INTO actions VALUES (?,?,?)',(run,identifier,canonical_json(value)))
             row=db.execute('SELECT payload FROM actions WHERE run=? AND id=?',(run,identifier)).fetchone()
         return loads(row[0]) if row else None
+    def request_recipe_stop(self,run,identifier):
+        with self.db() as db:
+            row=db.execute('SELECT payload FROM actions WHERE run=? AND id=?',(run,identifier)).fetchone();require(row is not None,'unknown-action')
+            value=loads(row[0]);value['recovery_stop']=True
+            db.execute('UPDATE actions SET payload=? WHERE run=? AND id=?',(canonical_json(value),run,identifier))
+        return value
     def actions(self,run):
         with self.db() as db:return {i:loads(p) for i,p in db.execute('SELECT id,payload FROM actions WHERE run=?',(run,))}
     def cancelled(self,run):
@@ -131,19 +168,17 @@ class Journal:
 
 
 class Lease:
-    def __init__(self,journal):self.journal=journal;self.fd=None
+    def __init__(self,journal):self.journal=journal;self.fd=None;self.lock=None
     def __enter__(self):
-        require(os.name=='posix' and Path('/proc/self/stat').is_file(),'execution-host-unsupported')
-        import fcntl
-        path=self.journal.base/'writer.lock';safe_path(path)
-        self.fd=os.open(path,os.O_RDWR|os.O_CREAT,0o600)
-        try:fcntl.flock(self.fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
-        except BlockingIOError:
-            os.close(self.fd);self.fd=None;raise KnowledgeError('project-writer-busy')
+        from knowledge.execution_lock import ProjectExecutionLock
+        self.lock=ProjectExecutionLock(self.journal.project.root).acquire();self.fd=self.lock.fd
+        try:
+            from .platform import fence_pending
+            fence_pending(self.journal)
+        except BaseException:self.lock.close();self.fd=None;raise
         return self
     def __exit__(self,*args):
-        # Closing, not LOCK_UN: an inherited child must retain ownership after a crash.
-        if self.fd is not None:os.close(self.fd);self.fd=None
+        if self.lock:self.lock.close();self.fd=None
 
 
 def config(root):
@@ -179,14 +214,16 @@ def validate_config(value):
     for name,recipe in value['recipes'].items():
         require(isinstance(name,str) and name.isidentifier(),'invalid-recipe-name')
         require(isinstance(recipe,dict) and set(recipe)=={'kind','argv','result','rerun_safe','env'},'invalid-recipe')
-        require(recipe['kind'] in ('build','test') and isinstance(recipe['argv'],list) and 0<len(recipe['argv'])<=40 and all(isinstance(a,str) and len(a)<=2000 for a in recipe['argv']),'invalid-recipe-argv')
-        require(recipe['argv'][0].startswith('/') and Path(recipe['argv'][0]).is_file(),'recipe-executable-must-be-absolute')
+        require(recipe['kind'] in ('build','test') and isinstance(recipe['argv'],list) and 0<len(recipe['argv'])<=40 and all(isinstance(a,str) and len(a)<=2000 and '\0' not in a for a in recipe['argv']),'invalid-recipe-argv')
+        if os.name=='nt':require(not recipe['argv'][0].startswith(('\\\\','//')) and len(Path(recipe['argv'][0]).drive)==2,'unsupported-windows-executable-path')
+        require(Path(recipe['argv'][0]).is_absolute() and Path(recipe['argv'][0]).is_file(),'recipe-executable-must-be-absolute')
         require(type(recipe['rerun_safe']) is bool and isinstance(recipe['env'],dict),'invalid-recipe-options')
         require(all(isinstance(k,str) and isinstance(v,str) and not any(word in k.upper() for word in ('TOKEN','KEY','SECRET','PASSWORD')) for k,v in recipe['env'].items()),'recipe-secret-environment-denied')
         result=recipe['result'];require(isinstance(result,dict) and set(result)=={'format','path'},'invalid-recipe-result')
         require(result['format'] in (('exit',) if recipe['kind']=='build' else ('unittest','trx','json')),'test-result-parser-required')
         require(isinstance(result['path'],str) and (not result['path'] or result['path'].startswith('{artifacts}/')),'result-path-must-be-owned-artifact')
         if result['path']:
+            require(not any(x in result['path'] for x in ('//','\\',':')),'result-path-must-be-owned-artifact')
             tail=Path(result['path'][len('{artifacts}/'):]);require(bool(tail.parts) and not tail.is_absolute() and '..' not in tail.parts and '{' not in str(tail) and '}' not in str(tail),'result-path-must-be-owned-artifact')
         if result['format'] in ('trx','json'):require(bool(result['path']),'test-artifact-path-required')
     return value
@@ -216,11 +253,15 @@ def recipe_inputs(project,configuration,task):
     def include(argument,executable=False):
         p=Path(argument)
         if not p.is_absolute():p=project.root/p
+        if os.name=='nt' and p.is_file():
+            from knowledge.project import windows_spelling,linked
+            windows_spelling(p)
+            require(not any(linked(part) for part in (p,*p.parents)),'linked-path')
         canonical=Path(os.path.abspath(p))
         if not canonical.is_relative_to(project.root):return
         if not p.is_file():return
         safe_path(p);safe_path(canonical)
-        relative=canonical.relative_to(project.root).as_posix();paths.add(relative)
+        relative=policy_path(canonical.relative_to(project.root).as_posix());paths.add(relative)
         if executable:executables.add(relative)
     for name in task['recipes']:
         argv=configuration['recipes'][name]['argv']
