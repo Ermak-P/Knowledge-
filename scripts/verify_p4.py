@@ -58,7 +58,7 @@ raise SystemExit(not value['success'])
             command('accepted-p3-maintenance-recovery',[py,'-I','-B',ROOT/'scripts/p4_lifecycle.py',kit,out/'lifecycle-pending','pending-marker'],base)
             command('accepted-p3-lifecycle-unmarked',[py,'-I','-B',ROOT/'scripts/p4_lifecycle.py',kit,out/'lifecycle-unmarked','no-marker'],base)
             command('comparison',[py,'-I','-B',ROOT/'scripts/p4_evaluate.py',kit,out/'comparison'],base)
-            command('benchmark-setup',[py,'-I','-B',ROOT/'scripts/setup_benchmark.py'],base)
+            command('benchmark-setup',[py,'-B',ROOT/'scripts/setup_benchmark.py'],base)
             command('dotnet-application',[py,'-I','-B',ROOT/'scripts/p4_application.py','--output',out/'application'],base)
             # Knowledge independence is exercised by this route, with no Harness/MCP install in its venv.
             independent=base/'knowledge-only'

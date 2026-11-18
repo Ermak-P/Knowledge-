@@ -1,7 +1,7 @@
 """Executed NTFS, PowerShell 5.1 and clean native launcher qualification."""
 import ctypes,json,os,shutil,subprocess,sys,tempfile
 from pathlib import Path
-from build_p4 import VERSION
+from harness import __version__ as VERSION
 
 def main():
     assert os.name=='nt','native Windows only'
