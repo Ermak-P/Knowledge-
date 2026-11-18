@@ -90,7 +90,7 @@ def database(path,project):
         else:
             require(dict(db.execute('SELECT key,value FROM meta'))=={'project':project.identity,'version':'1'},'unsupported-harness-state')
             for payload, in db.execute('SELECT payload FROM runs'):
-                r=loads(payload);require(r.get('version')==1 and r.get('project')==project.identity,'unsupported-harness-run')
+                r=loads(payload);require(r.get('version') in (1,2) and r.get('project')==project.identity,'unsupported-harness-run')
         tables=[r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")]
         require(all(t.replace('_','').isalnum() for t in tables),'unsafe-database-table')
         counts={t:db.execute('SELECT count(*) FROM "'+t+'"').fetchone()[0] for t in tables}

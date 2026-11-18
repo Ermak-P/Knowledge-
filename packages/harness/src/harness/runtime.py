@@ -115,14 +115,17 @@ class Journal:
         except sqlite3.DatabaseError as e:raise KnowledgeError('harness-state-corrupt') from e
         finally:db.close()
     def save(self,run):
-        require(run.get('version')==1 and run['project']==self.project.identity,'harness-run-version-or-project-mismatch')
+        require(type(run.get('version')) is int and run.get('version') in (1,2) and run['project']==self.project.identity,'harness-run-version-or-project-mismatch')
         with self.db() as db:db.execute('INSERT OR REPLACE INTO runs VALUES (?,?)',(run['id'],canonical_json(run)))
     def load(self,run_id):
         with self.db() as db:r=db.execute('SELECT payload FROM runs WHERE id=?',(run_id,)).fetchone()
         require(r is not None,'unknown-run');value=loads(r[0])
-        require(isinstance(value,dict) and type(value.get('version')) is int and value.get('version')==1 and value.get('project')==self.project.identity,'harness-run-version-or-project-mismatch')
+        require(isinstance(value,dict) and type(value.get('version')) is int and value.get('version') in (1,2) and value.get('project')==self.project.identity,'harness-run-version-or-project-mismatch')
         require(value.get('id')==run_id and value.get('status') in ('running','completed','completed-degraded','failed','cancelled','blocked','awaiting-capture'),'invalid-harness-run-state')
         require(all(isinstance(value.get(k),list) for k in ('agents','frames','requests')) and all(isinstance(value.get(k),dict) for k in ('source','task','gates','capture')) and isinstance(value.get('config_hash'),str),'invalid-harness-run-state')
+        if value['version']==2:
+            require(value.get('p4',{}).get('version')==1 and value['p4'].get('policy')=='bounded-v1' and value['task'].get('version')==2,'unsupported-p4-state')
+        else:require('p4' not in value and value['task'].get('version')==1,'unsupported-p4-state')
         for frame in value['frames']:
             require(isinstance(frame,dict) and frame.get('role') in ROLES and any(isinstance(a,dict) and a.get('id')==frame.get('id') and a.get('role')==frame['role'] for a in value['agents']),'invalid-harness-role-frame')
         return value

@@ -52,7 +52,7 @@ def _snapshot(root):
         task_raw=_read(_task_path(project,item['path']));payload=_json(task_raw)
         require(digest(payload)==item['digest'],'host-task-changed-review-required');task_shape(payload,configuration)
         tasks[name]={'path':item['path'],'digest':item['digest'],'bytes':_hash(task_raw)};payloads[name]=payload
-    return dict(version=1,project=project.identity,root=str(project.root),python=sys.executable,installation=_hash(raw),host=_hash(host),runner=_hash(runner),configuration=digest(configuration),tasks=tasks),payloads
+    return dict(version=1,project=project.identity,root=str(project.root),python=sys.executable,installed_code=digest({p.name:_hash(p.read_bytes()) for p in Path(__file__).parent.glob('*.py')}),installation=_hash(raw),host=_hash(host),runner=_hash(runner),configuration=digest(configuration),tasks=tasks),payloads
 
 def validate_entry(root,authority,task,configuration):
     require(isinstance(authority,dict) and authority.get('version')==1,'unsupported-companion-authority')

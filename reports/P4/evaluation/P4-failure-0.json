@@ -1,0 +1,1523 @@
+{
+  "result": {
+    "ok": false,
+    "run_id": "882f82f332e94d04b5684f17121523e6",
+    "status": "failed",
+    "execution": "failed",
+    "capture": {
+      "state": "not-eligible",
+      "reason": "execution did not pass mandatory gates"
+    },
+    "error": "repair-exhausted"
+  },
+  "run": {
+    "agents": [
+      {
+        "finished": 1795030090.7649455,
+        "id": "651f991639e7494d80c2cf51766907c1",
+        "parent": null,
+        "provider_requests": 1,
+        "role": "Main",
+        "started": 1795030089.5429425,
+        "status": "failed"
+      },
+      {
+        "finished": 1795030089.6587021,
+        "id": "3fa61016f29c442b947c12cc67dc5e71",
+        "parent": "651f991639e7494d80c2cf51766907c1",
+        "provider_requests": 3,
+        "role": "Coding",
+        "started": 1795030089.574718,
+        "status": "done"
+      },
+      {
+        "finished": 1795030090.0369425,
+        "id": "256e01c1430d4fe88e6a4099c111ab7b",
+        "parent": "651f991639e7494d80c2cf51766907c1",
+        "provider_requests": 3,
+        "role": "Coding",
+        "started": 1795030089.939117,
+        "status": "done"
+      },
+      {
+        "finished": 1795030090.3402963,
+        "id": "97f1d20ab7014f9f9e617aee319f7fe4",
+        "parent": "651f991639e7494d80c2cf51766907c1",
+        "provider_requests": 1,
+        "role": "Planning",
+        "started": 1795030090.3186004,
+        "status": "done"
+      },
+      {
+        "finished": 1795030090.429556,
+        "id": "9abdb94c3f8349b1ac8e47fbf994a3b8",
+        "parent": "651f991639e7494d80c2cf51766907c1",
+        "provider_requests": 3,
+        "role": "Coding",
+        "started": 1795030090.3431175,
+        "status": "done"
+      }
+    ],
+    "capture": {
+      "reason": "execution did not pass mandatory gates",
+      "state": "not-eligible"
+    },
+    "capture_prepared": false,
+    "config_hash": "6d72b6196870b65477457ce6768b44676c2099e8b3263974368861404b3f263d",
+    "delegations": 1,
+    "error": "repair-exhausted",
+    "execution": "failed",
+    "finished": 1795030090.7669082,
+    "frames": [
+      {
+        "assignment": "Synthetic controlled source change and verification.",
+        "cursor": 0,
+        "history": [],
+        "id": "651f991639e7494d80c2cf51766907c1",
+        "inflight": null,
+        "last_result": null,
+        "parent": null,
+        "pending": {
+          "content": null,
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{\"role\": \"Coding\", \"assignment\": \"Implement authorized objective\"}",
+                "name": "delegate"
+              },
+              "id": "call0",
+              "type": "function"
+            }
+          ]
+        },
+        "request_id": "1233fb1370aa435ca83bb0614e914cbd",
+        "results": [],
+        "role": "Main",
+        "started": 1795030089.542941,
+        "status": "running",
+        "turns": 1,
+        "waiting": "17dee795cf0ce08d31bea0f55a03a14945484980dcd4452e45be487c96d03143"
+      },
+      {
+        "assignment": "Synthetic controlled source change and verification.",
+        "cursor": 0,
+        "epoch": 0,
+        "history": [
+          [
+            {
+              "content": null,
+              "role": "assistant",
+              "tool_calls": [
+                {
+                  "function": {
+                    "arguments": "{\"path\": \"Feature.cs\"}",
+                    "name": "read"
+                  },
+                  "id": "call0",
+                  "type": "function"
+                }
+              ]
+            },
+            {
+              "content": "{\"ok\":true,\"partial\":false,\"path\":\"Feature.cs\",\"sha256\":\"dfe3c0c3baa5940daa02cd9871322e2fce6610693b6789cf564efc8b9d696e8f\",\"text\":\"public class BrokenFeature {}\\n\"}",
+              "role": "tool",
+              "tool_call_id": "call0"
+            }
+          ],
+          [
+            {
+              "content": null,
+              "role": "assistant",
+              "tool_calls": [
+                {
+                  "function": {
+                    "arguments": "{\"files\": [{\"path\": \"Feature.cs\", \"before\": \"dfe3c0c3baa5940daa02cd9871322e2fce6610693b6789cf564efc8b9d696e8f\", \"after\": \"public class BrokenFeature {}\\n\"}]}",
+                    "name": "patch"
+                  },
+                  "id": "call0",
+                  "type": "function"
+                }
+              ]
+            },
+            {
+              "content": "{\"ok\":true,\"reconciled\":[\"Feature.cs\"],\"written\":[]}",
+              "role": "tool",
+              "tool_call_id": "call0"
+            }
+          ]
+        ],
+        "id": "9abdb94c3f8349b1ac8e47fbf994a3b8",
+        "inflight": null,
+        "item": "work",
+        "last_result": {
+          "ok": true,
+          "reconciled": [
+            "Feature.cs"
+          ],
+          "written": []
+        },
+        "p4_final": {
+          "status": "done",
+          "summary": "synthetic role completed",
+          "version": 1
+        },
+        "parent": "651f991639e7494d80c2cf51766907c1",
+        "pending": null,
+        "request_id": "4d1677f80e274e2a826490af627381c5",
+        "results": [],
+        "role": "Coding",
+        "started": 1795030090.3431163,
+        "status": "running",
+        "turns": 3
+      }
+    ],
+    "gates": {
+      "build": {
+        "action": "e34255735e87385a752fc0de0a221a4b8e059fb3321775559eaaa67652c93758",
+        "artifact": null,
+        "config": "6d72b6196870b65477457ce6768b44676c2099e8b3263974368861404b3f263d",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.05773377500008792,
+        "kind": "build",
+        "log": ".harness/artifacts/882f82f332e94d04b5684f17121523e6/e34255735e87385a752fc0de0a221a4b8e059fb3321775559eaaa67652c93758/0/process.log",
+        "log_bytes": 30,
+        "observed_log_bytes": 30,
+        "ok": true,
+        "output": "synthetic lexical build check\n",
+        "reason": null,
+        "recipe": "build",
+        "returncode": 0,
+        "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed",
+        "truncated": false
+      },
+      "test": {
+        "action": "dba56245658752dd6c94d886d5b24c8219c4e1ce2c70da6f563e19d4d2d981f9",
+        "artifact": null,
+        "config": "6d72b6196870b65477457ce6768b44676c2099e8b3263974368861404b3f263d",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.06820001899995987,
+        "kind": "test",
+        "log": ".harness/artifacts/882f82f332e94d04b5684f17121523e6/dba56245658752dd6c94d886d5b24c8219c4e1ce2c70da6f563e19d4d2d981f9/0/process.log",
+        "log_bytes": 749,
+        "observed_log_bytes": 749,
+        "ok": false,
+        "output": "F\n======================================================================\nFAIL: test_expected_source (__main__.Behavior.test_expected_source)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/p4-evaluation-s7l19hpm/P4failure0/test_feature.py\", line 5, in test_expected_source\n    self.assertEqual(Path(\"Feature.cs\").read_text(),'public class ImprovedFeature {}\\n')\nAssertionError: 'public class BrokenFeature {}\\n' != 'public class ImprovedFeature {}\\n'\n- public class BrokenFeature {}\n?              ^  ^ ^\n+ public class ImprovedFeature {}\n?              ^^^  ^ ^\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n",
+        "reason": null,
+        "recipe": "test",
+        "returncode": 1,
+        "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed",
+        "truncated": false
+      }
+    },
+    "id": "882f82f332e94d04b5684f17121523e6",
+    "lease_wait_seconds": 0.0018371440000919392,
+    "mode": "multi",
+    "p4": {
+      "checkpoints": [],
+      "cycles": [
+        {
+          "attempt": 1,
+          "failed": [
+            "test"
+          ],
+          "family": "4272fb434f12964cf8aab55c3a55333f0b3ab506d494aa593582dfe7d63c86bd",
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        },
+        {
+          "actions": [
+            "cf3afd0fab18d55f2ac64f5ad98ed81df797cfaab64d48a4fd9f9bc4d4367eca"
+          ],
+          "attempt": 2,
+          "failed": [
+            "test"
+          ],
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        },
+        {
+          "attempt": 2,
+          "failed": [
+            "test"
+          ],
+          "family": "4272fb434f12964cf8aab55c3a55333f0b3ab506d494aa593582dfe7d63c86bd",
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        },
+        {
+          "actions": [
+            "7ed00d4f6d30803dba1ac217dd231dc152674178610a10241a523cba34b5771f"
+          ],
+          "attempt": 2,
+          "failed": [
+            "test"
+          ],
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        },
+        {
+          "attempt": 3,
+          "failed": [
+            "test"
+          ],
+          "family": "4272fb434f12964cf8aab55c3a55333f0b3ab506d494aa593582dfe7d63c86bd",
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        }
+      ],
+      "diagnoses": 1,
+      "failures": 5,
+      "items": [
+        {
+          "attempts": 3,
+          "depends": [],
+          "epochs": [
+            "3fa61016f29c442b947c12cc67dc5e71",
+            "256e01c1430d4fe88e6a4099c111ab7b",
+            "97f1d20ab7014f9f9e617aee319f7fe4",
+            "9abdb94c3f8349b1ac8e47fbf994a3b8"
+          ],
+          "handoff": null,
+          "id": "work",
+          "issues": [
+            "Failed verification: test"
+          ],
+          "objective": "Synthetic controlled source change and verification.",
+          "status": "failed",
+          "writable": [
+            "Feature.cs"
+          ]
+        }
+      ],
+      "plan_hash": "9e4874984d660b578fa7e859b3572a30a40b4fc3c797e4be014d54729fa7773c",
+      "policy": "bounded-v1",
+      "rotations": 0,
+      "verifiers": [
+        {
+          "action": "534e14927f91180d7db19111291170693a26269fcb75596f10119f2d141414d6",
+          "attempt": 1,
+          "config": "6d72b6196870b65477457ce6768b44676c2099e8b3263974368861404b3f263d",
+          "deterministic": true,
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        },
+        {
+          "action": "cf3afd0fab18d55f2ac64f5ad98ed81df797cfaab64d48a4fd9f9bc4d4367eca",
+          "attempt": 1,
+          "config": "6d72b6196870b65477457ce6768b44676c2099e8b3263974368861404b3f263d",
+          "deterministic": true,
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        },
+        {
+          "action": "dddfa160ee8e07f294d9ba2cd1f7d1c537385d58e32824ef3f3a0f4e2872eaaa",
+          "attempt": 2,
+          "config": "6d72b6196870b65477457ce6768b44676c2099e8b3263974368861404b3f263d",
+          "deterministic": true,
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        },
+        {
+          "action": "7ed00d4f6d30803dba1ac217dd231dc152674178610a10241a523cba34b5771f",
+          "attempt": 2,
+          "config": "6d72b6196870b65477457ce6768b44676c2099e8b3263974368861404b3f263d",
+          "deterministic": true,
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        },
+        {
+          "action": "e34255735e87385a752fc0de0a221a4b8e059fb3321775559eaaa67652c93758",
+          "attempt": 3,
+          "config": "6d72b6196870b65477457ce6768b44676c2099e8b3263974368861404b3f263d",
+          "deterministic": true,
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        },
+        {
+          "action": "dba56245658752dd6c94d886d5b24c8219c4e1ce2c70da6f563e19d4d2d981f9",
+          "attempt": 3,
+          "config": "6d72b6196870b65477457ce6768b44676c2099e8b3263974368861404b3f263d",
+          "deterministic": true,
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        }
+      ],
+      "version": 1
+    },
+    "project": "09b76aecc082c3847a90457ef50bd33bb9b8af4b5c90558044c0c0176148b812",
+    "protected_executables": [],
+    "protected_paths": [
+      "build.py",
+      "test_feature.py"
+    ],
+    "requests": [
+      {
+        "agent": "651f991639e7494d80c2cf51766907c1",
+        "at": 1795030089.5518172,
+        "duration": 0.010870033999935913,
+        "id": "1233fb1370aa435ca83bb0614e914cbd",
+        "input_bytes": 3049,
+        "input_hash": "e98a735143e4e165e65a7afe635ed2d01998d1f9f0516cdcaf91fe56184ea9ac",
+        "response_bytes": 480,
+        "role": "Main",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "3fa61016f29c442b947c12cc67dc5e71",
+        "at": 1795030089.5781713,
+        "duration": 0.007808780999994269,
+        "id": "4413601f56164894a75e6f685d29b03d",
+        "input_bytes": 2967,
+        "input_hash": "0a01994dc49ecf61ff06780de653e49e269e34f81544c7a839ac769189d1f818",
+        "response_bytes": 428,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "3fa61016f29c442b947c12cc67dc5e71",
+        "at": 1795030089.6090288,
+        "duration": 0.008891916000038691,
+        "id": "d66cf79685e84d04b4e041e9ca8597a5",
+        "input_bytes": 3353,
+        "input_hash": "046ae6fe2b922b70541faf68ef6b6f0edd495de3d026d2ab7b9b4194f7183963",
+        "response_bytes": 575,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "3fa61016f29c442b947c12cc67dc5e71",
+        "at": 1795030089.6465583,
+        "duration": 0.0068003379999481695,
+        "id": "3841c2431edd4e11a55eaf8df57569ac",
+        "input_bytes": 3900,
+        "input_hash": "aa96d2b54096f63486df927addabeccfd33f6b0e137558c5dc4193651ec126f0",
+        "response_bytes": 375,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "256e01c1430d4fe88e6a4099c111ab7b",
+        "at": 1795030089.943905,
+        "duration": 0.007757302999948479,
+        "id": "20db0e9ed21845599e8605efff5bfbd0",
+        "input_bytes": 5418,
+        "input_hash": "ab818d2d812983568a407df4801e2ce1be081b270d4b58bc6a9e80738699ed0e",
+        "response_bytes": 428,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "256e01c1430d4fe88e6a4099c111ab7b",
+        "at": 1795030089.9780712,
+        "duration": 0.008137836999935644,
+        "id": "7d89ad0d6fa24f35aa172079b18d7db5",
+        "input_bytes": 5803,
+        "input_hash": "56e8f25218cadbe7db7cf8aa3d8c00c69094a7160afdb32194ddc9684be754bd",
+        "response_bytes": 575,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "256e01c1430d4fe88e6a4099c111ab7b",
+        "at": 1795030090.01691,
+        "duration": 0.009082473000034952,
+        "id": "b962e3c9ca42481e9fd0d140db005bef",
+        "input_bytes": 4204,
+        "input_hash": "f02ac96581ea6b25703dcf7cb0351e25cf0143e49caf95776727da7e55d90eb2",
+        "response_bytes": 375,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "97f1d20ab7014f9f9e617aee319f7fe4",
+        "at": 1795030090.3220205,
+        "duration": 0.010533273999953963,
+        "id": "38aa335ad7a1487898f39ac0efa95275",
+        "input_bytes": 5274,
+        "input_hash": "4556f8825d95bffbd67e37a19b09d8ee2ba2570dfe347b713045241dd4494bb4",
+        "response_bytes": 411,
+        "role": "Planning",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "9abdb94c3f8349b1ac8e47fbf994a3b8",
+        "at": 1795030090.3468215,
+        "duration": 0.010500535000005584,
+        "id": "ea1e89c2bea846f6b10c46d11da84f74",
+        "input_bytes": 5780,
+        "input_hash": "445d860fc2e9a8f67a60c886df3fd1496ed205f2d93dcef8ccbfc745b5c38e9a",
+        "response_bytes": 428,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "9abdb94c3f8349b1ac8e47fbf994a3b8",
+        "at": 1795030090.3832324,
+        "duration": 0.007884754999963661,
+        "id": "cecaf4db1df541f4a118067c60ea58ca",
+        "input_bytes": 6165,
+        "input_hash": "725757892634161e4fecfd5383988e0b41e36fde5b4ba2ccccfcb3c6840cbfbe",
+        "response_bytes": 575,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "9abdb94c3f8349b1ac8e47fbf994a3b8",
+        "at": 1795030090.415626,
+        "duration": 0.0073803129999987505,
+        "id": "4d1677f80e274e2a826490af627381c5",
+        "input_bytes": 4566,
+        "input_hash": "2478426f3e571e6b05c1bbb3c514e982e725c00e5585126865e2cc5ca4e135fa",
+        "response_bytes": 375,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      }
+    ],
+    "shared_history": [],
+    "source": {
+      "Feature.cs": "dfe3c0c3baa5940daa02cd9871322e2fce6610693b6789cf564efc8b9d696e8f",
+      "Large.cs": "690d2b3e29a0f655a5f05ee4d4e2322e2b0d2763108161ff99f96fe018088ad1",
+      "Project.csproj": "1760dd450403df3d97942fe570a81c71ea2a934018dae57cbf52bbcafa484601",
+      "build.py": "17055a15028e2d594ca39972059fd69e7d07510e28d01869f142846b3cda501c",
+      "test_feature.py": "f078edafa87034de45e527364c5569a1d39fa22c1c08abcc5ae6734e9bdaf210"
+    },
+    "started": 1795030089.542672,
+    "status": "failed",
+    "task": {
+      "acceptance": [
+        "Preserve exact expected ImprovedFeature source."
+      ],
+      "existing_test_edits": [],
+      "goal": "Synthetic controlled source change and verification.",
+      "initial_source": {
+        "Feature.cs": "b1a9c3c8b9bf903ae0ee0a104e31616619eae02d85355cf81e4e4c8052043da7",
+        "Large.cs": "690d2b3e29a0f655a5f05ee4d4e2322e2b0d2763108161ff99f96fe018088ad1",
+        "Project.csproj": "1760dd450403df3d97942fe570a81c71ea2a934018dae57cbf52bbcafa484601",
+        "build.py": "17055a15028e2d594ca39972059fd69e7d07510e28d01869f142846b3cda501c",
+        "test_feature.py": "f078edafa87034de45e527364c5569a1d39fa22c1c08abcc5ae6734e9bdaf210"
+      },
+      "items": [],
+      "kind": "coding",
+      "recipes": [
+        "build",
+        "test"
+      ],
+      "version": 2,
+      "writable": [
+        "Feature.cs"
+      ]
+    },
+    "tool_calls": 7,
+    "usage_evidence": "test-double",
+    "version": 1
+  },
+  "metrics": {
+    "p4": {
+      "checkpoints": [],
+      "cycles": [
+        {
+          "attempt": 1,
+          "failed": [
+            "test"
+          ],
+          "family": "4272fb434f12964cf8aab55c3a55333f0b3ab506d494aa593582dfe7d63c86bd",
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        },
+        {
+          "actions": [
+            "cf3afd0fab18d55f2ac64f5ad98ed81df797cfaab64d48a4fd9f9bc4d4367eca"
+          ],
+          "attempt": 2,
+          "failed": [
+            "test"
+          ],
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        },
+        {
+          "attempt": 2,
+          "failed": [
+            "test"
+          ],
+          "family": "4272fb434f12964cf8aab55c3a55333f0b3ab506d494aa593582dfe7d63c86bd",
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        },
+        {
+          "actions": [
+            "7ed00d4f6d30803dba1ac217dd231dc152674178610a10241a523cba34b5771f"
+          ],
+          "attempt": 2,
+          "failed": [
+            "test"
+          ],
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        },
+        {
+          "attempt": 3,
+          "failed": [
+            "test"
+          ],
+          "family": "4272fb434f12964cf8aab55c3a55333f0b3ab506d494aa593582dfe7d63c86bd",
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        }
+      ],
+      "diagnoses": 1,
+      "failures": 5,
+      "items": [
+        {
+          "attempts": 3,
+          "depends": [],
+          "epochs": [
+            "3fa61016f29c442b947c12cc67dc5e71",
+            "256e01c1430d4fe88e6a4099c111ab7b",
+            "97f1d20ab7014f9f9e617aee319f7fe4",
+            "9abdb94c3f8349b1ac8e47fbf994a3b8"
+          ],
+          "handoff": null,
+          "id": "work",
+          "issues": [
+            "Failed verification: test"
+          ],
+          "objective": "Synthetic controlled source change and verification.",
+          "status": "failed",
+          "writable": [
+            "Feature.cs"
+          ]
+        }
+      ],
+      "plan_hash": "9e4874984d660b578fa7e859b3572a30a40b4fc3c797e4be014d54729fa7773c",
+      "policy": "bounded-v1",
+      "rotations": 0,
+      "verifiers": [
+        {
+          "action": "534e14927f91180d7db19111291170693a26269fcb75596f10119f2d141414d6",
+          "attempt": 1,
+          "config": "6d72b6196870b65477457ce6768b44676c2099e8b3263974368861404b3f263d",
+          "deterministic": true,
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        },
+        {
+          "action": "cf3afd0fab18d55f2ac64f5ad98ed81df797cfaab64d48a4fd9f9bc4d4367eca",
+          "attempt": 1,
+          "config": "6d72b6196870b65477457ce6768b44676c2099e8b3263974368861404b3f263d",
+          "deterministic": true,
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        },
+        {
+          "action": "dddfa160ee8e07f294d9ba2cd1f7d1c537385d58e32824ef3f3a0f4e2872eaaa",
+          "attempt": 2,
+          "config": "6d72b6196870b65477457ce6768b44676c2099e8b3263974368861404b3f263d",
+          "deterministic": true,
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        },
+        {
+          "action": "7ed00d4f6d30803dba1ac217dd231dc152674178610a10241a523cba34b5771f",
+          "attempt": 2,
+          "config": "6d72b6196870b65477457ce6768b44676c2099e8b3263974368861404b3f263d",
+          "deterministic": true,
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        },
+        {
+          "action": "e34255735e87385a752fc0de0a221a4b8e059fb3321775559eaaa67652c93758",
+          "attempt": 3,
+          "config": "6d72b6196870b65477457ce6768b44676c2099e8b3263974368861404b3f263d",
+          "deterministic": true,
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        },
+        {
+          "action": "dba56245658752dd6c94d886d5b24c8219c4e1ce2c70da6f563e19d4d2d981f9",
+          "attempt": 3,
+          "config": "6d72b6196870b65477457ce6768b44676c2099e8b3263974368861404b3f263d",
+          "deterministic": true,
+          "item": "work",
+          "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed"
+        }
+      ],
+      "version": 1
+    },
+    "max_input_bytes": 6165,
+    "total_input_bytes": 50479,
+    "version": 1,
+    "mode": "multi",
+    "process_attempt_details": [
+      {
+        "action": "534e14927f91180d7db19111291170693a26269fcb75596f10119f2d141414d6",
+        "role": "Building",
+        "prior_unknown": [],
+        "current": {
+          "descendants_stopped": true,
+          "duration": 0.027351361000000907,
+          "log_bytes": 30,
+          "observed_log_bytes": 30,
+          "reason": null,
+          "returncode": 0,
+          "truncated": false
+        },
+        "spec": {
+          "argv": [
+            "/workspace/Knowledge-/.venv/bin/python",
+            "build.py"
+          ],
+          "cwd": "/tmp/p4-evaluation-s7l19hpm/P4failure0",
+          "log": "/tmp/p4-evaluation-s7l19hpm/P4failure0/.harness/artifacts/882f82f332e94d04b5684f17121523e6/534e14927f91180d7db19111291170693a26269fcb75596f10119f2d141414d6/0/process.log",
+          "log_bytes": 20000,
+          "timeout": 60
+        }
+      },
+      {
+        "action": "7ed00d4f6d30803dba1ac217dd231dc152674178610a10241a523cba34b5771f",
+        "role": "Testing",
+        "prior_unknown": [],
+        "current": {
+          "descendants_stopped": true,
+          "duration": 0.07305018600004587,
+          "log_bytes": 749,
+          "observed_log_bytes": 749,
+          "reason": null,
+          "returncode": 1,
+          "truncated": false
+        },
+        "spec": {
+          "argv": [
+            "/workspace/Knowledge-/.venv/bin/python",
+            "test_feature.py"
+          ],
+          "cwd": "/tmp/p4-evaluation-s7l19hpm/P4failure0",
+          "log": "/tmp/p4-evaluation-s7l19hpm/P4failure0/.harness/artifacts/882f82f332e94d04b5684f17121523e6/7ed00d4f6d30803dba1ac217dd231dc152674178610a10241a523cba34b5771f/0/process.log",
+          "log_bytes": 20000,
+          "timeout": 60
+        }
+      },
+      {
+        "action": "cf3afd0fab18d55f2ac64f5ad98ed81df797cfaab64d48a4fd9f9bc4d4367eca",
+        "role": "Testing",
+        "prior_unknown": [],
+        "current": {
+          "descendants_stopped": true,
+          "duration": 0.08413019300007818,
+          "log_bytes": 749,
+          "observed_log_bytes": 749,
+          "reason": null,
+          "returncode": 1,
+          "truncated": false
+        },
+        "spec": {
+          "argv": [
+            "/workspace/Knowledge-/.venv/bin/python",
+            "test_feature.py"
+          ],
+          "cwd": "/tmp/p4-evaluation-s7l19hpm/P4failure0",
+          "log": "/tmp/p4-evaluation-s7l19hpm/P4failure0/.harness/artifacts/882f82f332e94d04b5684f17121523e6/cf3afd0fab18d55f2ac64f5ad98ed81df797cfaab64d48a4fd9f9bc4d4367eca/0/process.log",
+          "log_bytes": 20000,
+          "timeout": 60
+        }
+      },
+      {
+        "action": "dba56245658752dd6c94d886d5b24c8219c4e1ce2c70da6f563e19d4d2d981f9",
+        "role": "Testing",
+        "prior_unknown": [],
+        "current": {
+          "descendants_stopped": true,
+          "duration": 0.06820001899995987,
+          "log_bytes": 749,
+          "observed_log_bytes": 749,
+          "reason": null,
+          "returncode": 1,
+          "truncated": false
+        },
+        "spec": {
+          "argv": [
+            "/workspace/Knowledge-/.venv/bin/python",
+            "test_feature.py"
+          ],
+          "cwd": "/tmp/p4-evaluation-s7l19hpm/P4failure0",
+          "log": "/tmp/p4-evaluation-s7l19hpm/P4failure0/.harness/artifacts/882f82f332e94d04b5684f17121523e6/dba56245658752dd6c94d886d5b24c8219c4e1ce2c70da6f563e19d4d2d981f9/0/process.log",
+          "log_bytes": 20000,
+          "timeout": 60
+        }
+      },
+      {
+        "action": "dddfa160ee8e07f294d9ba2cd1f7d1c537385d58e32824ef3f3a0f4e2872eaaa",
+        "role": "Building",
+        "prior_unknown": [],
+        "current": {
+          "descendants_stopped": true,
+          "duration": 0.029352218999974866,
+          "log_bytes": 30,
+          "observed_log_bytes": 30,
+          "reason": null,
+          "returncode": 0,
+          "truncated": false
+        },
+        "spec": {
+          "argv": [
+            "/workspace/Knowledge-/.venv/bin/python",
+            "build.py"
+          ],
+          "cwd": "/tmp/p4-evaluation-s7l19hpm/P4failure0",
+          "log": "/tmp/p4-evaluation-s7l19hpm/P4failure0/.harness/artifacts/882f82f332e94d04b5684f17121523e6/dddfa160ee8e07f294d9ba2cd1f7d1c537385d58e32824ef3f3a0f4e2872eaaa/0/process.log",
+          "log_bytes": 20000,
+          "timeout": 60
+        }
+      },
+      {
+        "action": "e34255735e87385a752fc0de0a221a4b8e059fb3321775559eaaa67652c93758",
+        "role": "Building",
+        "prior_unknown": [],
+        "current": {
+          "descendants_stopped": true,
+          "duration": 0.05773377500008792,
+          "log_bytes": 30,
+          "observed_log_bytes": 30,
+          "reason": null,
+          "returncode": 0,
+          "truncated": false
+        },
+        "spec": {
+          "argv": [
+            "/workspace/Knowledge-/.venv/bin/python",
+            "build.py"
+          ],
+          "cwd": "/tmp/p4-evaluation-s7l19hpm/P4failure0",
+          "log": "/tmp/p4-evaluation-s7l19hpm/P4failure0/.harness/artifacts/882f82f332e94d04b5684f17121523e6/e34255735e87385a752fc0de0a221a4b8e059fb3321775559eaaa67652c93758/0/process.log",
+          "log_bytes": 20000,
+          "timeout": 60
+        }
+      }
+    ],
+    "unknown_process_attempts": 0,
+    "attempts": [
+      {
+        "agent": "651f991639e7494d80c2cf51766907c1",
+        "at": 1795030089.5518172,
+        "duration": 0.010870033999935913,
+        "id": "1233fb1370aa435ca83bb0614e914cbd",
+        "input_bytes": 3049,
+        "input_hash": "e98a735143e4e165e65a7afe635ed2d01998d1f9f0516cdcaf91fe56184ea9ac",
+        "response_bytes": 480,
+        "role": "Main",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "3fa61016f29c442b947c12cc67dc5e71",
+        "at": 1795030089.5781713,
+        "duration": 0.007808780999994269,
+        "id": "4413601f56164894a75e6f685d29b03d",
+        "input_bytes": 2967,
+        "input_hash": "0a01994dc49ecf61ff06780de653e49e269e34f81544c7a839ac769189d1f818",
+        "response_bytes": 428,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "3fa61016f29c442b947c12cc67dc5e71",
+        "at": 1795030089.6090288,
+        "duration": 0.008891916000038691,
+        "id": "d66cf79685e84d04b4e041e9ca8597a5",
+        "input_bytes": 3353,
+        "input_hash": "046ae6fe2b922b70541faf68ef6b6f0edd495de3d026d2ab7b9b4194f7183963",
+        "response_bytes": 575,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "3fa61016f29c442b947c12cc67dc5e71",
+        "at": 1795030089.6465583,
+        "duration": 0.0068003379999481695,
+        "id": "3841c2431edd4e11a55eaf8df57569ac",
+        "input_bytes": 3900,
+        "input_hash": "aa96d2b54096f63486df927addabeccfd33f6b0e137558c5dc4193651ec126f0",
+        "response_bytes": 375,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "256e01c1430d4fe88e6a4099c111ab7b",
+        "at": 1795030089.943905,
+        "duration": 0.007757302999948479,
+        "id": "20db0e9ed21845599e8605efff5bfbd0",
+        "input_bytes": 5418,
+        "input_hash": "ab818d2d812983568a407df4801e2ce1be081b270d4b58bc6a9e80738699ed0e",
+        "response_bytes": 428,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "256e01c1430d4fe88e6a4099c111ab7b",
+        "at": 1795030089.9780712,
+        "duration": 0.008137836999935644,
+        "id": "7d89ad0d6fa24f35aa172079b18d7db5",
+        "input_bytes": 5803,
+        "input_hash": "56e8f25218cadbe7db7cf8aa3d8c00c69094a7160afdb32194ddc9684be754bd",
+        "response_bytes": 575,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "256e01c1430d4fe88e6a4099c111ab7b",
+        "at": 1795030090.01691,
+        "duration": 0.009082473000034952,
+        "id": "b962e3c9ca42481e9fd0d140db005bef",
+        "input_bytes": 4204,
+        "input_hash": "f02ac96581ea6b25703dcf7cb0351e25cf0143e49caf95776727da7e55d90eb2",
+        "response_bytes": 375,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "97f1d20ab7014f9f9e617aee319f7fe4",
+        "at": 1795030090.3220205,
+        "duration": 0.010533273999953963,
+        "id": "38aa335ad7a1487898f39ac0efa95275",
+        "input_bytes": 5274,
+        "input_hash": "4556f8825d95bffbd67e37a19b09d8ee2ba2570dfe347b713045241dd4494bb4",
+        "response_bytes": 411,
+        "role": "Planning",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "9abdb94c3f8349b1ac8e47fbf994a3b8",
+        "at": 1795030090.3468215,
+        "duration": 0.010500535000005584,
+        "id": "ea1e89c2bea846f6b10c46d11da84f74",
+        "input_bytes": 5780,
+        "input_hash": "445d860fc2e9a8f67a60c886df3fd1496ed205f2d93dcef8ccbfc745b5c38e9a",
+        "response_bytes": 428,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "9abdb94c3f8349b1ac8e47fbf994a3b8",
+        "at": 1795030090.3832324,
+        "duration": 0.007884754999963661,
+        "id": "cecaf4db1df541f4a118067c60ea58ca",
+        "input_bytes": 6165,
+        "input_hash": "725757892634161e4fecfd5383988e0b41e36fde5b4ba2ccccfcb3c6840cbfbe",
+        "response_bytes": 575,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "9abdb94c3f8349b1ac8e47fbf994a3b8",
+        "at": 1795030090.415626,
+        "duration": 0.0073803129999987505,
+        "id": "4d1677f80e274e2a826490af627381c5",
+        "input_bytes": 4566,
+        "input_hash": "2478426f3e571e6b05c1bbb3c514e982e725c00e5585126865e2cc5ca4e135fa",
+        "response_bytes": 375,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      }
+    ],
+    "tool_durations": [
+      {
+        "action": "01f2eb079150fa4c2fe67a00963749d3b156f5dd885ac26520e4fea6bf026560",
+        "role": "Coding",
+        "seconds": 0.0025365352630615234,
+        "state": "FINISHED"
+      },
+      {
+        "action": "38880a0df898bffc0e6706eca4d9caa410ed3d77f89eb81170776f710b94bd4d",
+        "role": "Coding",
+        "seconds": 0.005629062652587891,
+        "state": "FINISHED"
+      },
+      {
+        "action": "534e14927f91180d7db19111291170693a26269fcb75596f10119f2d141414d6",
+        "role": "Building",
+        "seconds": 0.1069343090057373,
+        "state": "FINISHED"
+      },
+      {
+        "action": "7ed00d4f6d30803dba1ac217dd231dc152674178610a10241a523cba34b5771f",
+        "role": "Testing",
+        "seconds": 0.15772080421447754,
+        "state": "FINISHED"
+      },
+      {
+        "action": "80cf13f0613fdfb1bae9e24b492d9935b1f73b5bd1b10a1c1b215cc5a760297f",
+        "role": "Coding",
+        "seconds": 0.006216526031494141,
+        "state": "FINISHED"
+      },
+      {
+        "action": "8ac1e4b9603a68ad332a192d5e92912423ad9903e9002caac72f1ea4c93cbf77",
+        "role": "Coding",
+        "seconds": 0.0025463104248046875,
+        "state": "FINISHED"
+      },
+      {
+        "action": "cf3afd0fab18d55f2ac64f5ad98ed81df797cfaab64d48a4fd9f9bc4d4367eca",
+        "role": "Testing",
+        "seconds": 0.15686249732971191,
+        "state": "FINISHED"
+      },
+      {
+        "action": "dac95bc926e3e08a8ace1c80025b69e813df0c1e177bd7dab947be7f7dfb60bc",
+        "role": "Coding",
+        "seconds": 0.0017685890197753906,
+        "state": "FINISHED"
+      },
+      {
+        "action": "dba56245658752dd6c94d886d5b24c8219c4e1ce2c70da6f563e19d4d2d981f9",
+        "role": "Testing",
+        "seconds": 0.1569678783416748,
+        "state": "FINISHED"
+      },
+      {
+        "action": "dddfa160ee8e07f294d9ba2cd1f7d1c537385d58e32824ef3f3a0f4e2872eaaa",
+        "role": "Building",
+        "seconds": 0.10718274116516113,
+        "state": "FINISHED"
+      },
+      {
+        "action": "e34255735e87385a752fc0de0a221a4b8e059fb3321775559eaaa67652c93758",
+        "role": "Building",
+        "seconds": 0.15869688987731934,
+        "state": "FINISHED"
+      },
+      {
+        "action": "ffd1d7729e0330277387991d7c310a35b939da61671d19c0316e637b716815ee",
+        "role": "Coding",
+        "seconds": 0.0065691471099853516,
+        "state": "FINISHED"
+      }
+    ],
+    "lease_wait_seconds": 0.0018371440000919392,
+    "roles": [
+      {
+        "finished": 1795030090.7649455,
+        "id": "651f991639e7494d80c2cf51766907c1",
+        "parent": null,
+        "provider_requests": 1,
+        "role": "Main",
+        "started": 1795030089.5429425,
+        "status": "failed",
+        "requests": 1,
+        "reported_tokens": 18,
+        "unknown_usage_requests": 0,
+        "input_tokens": 11,
+        "output_tokens": 7,
+        "provider_seconds": 0.010870033999935913,
+        "tool_actions": 0,
+        "process_seconds": 0,
+        "input_bytes": 3049
+      },
+      {
+        "finished": 1795030089.6587021,
+        "id": "3fa61016f29c442b947c12cc67dc5e71",
+        "parent": "651f991639e7494d80c2cf51766907c1",
+        "provider_requests": 3,
+        "role": "Coding",
+        "started": 1795030089.574718,
+        "status": "done",
+        "requests": 3,
+        "reported_tokens": 54,
+        "unknown_usage_requests": 0,
+        "input_tokens": 33,
+        "output_tokens": 21,
+        "provider_seconds": 0.02350103499998113,
+        "tool_actions": 2,
+        "process_seconds": 0,
+        "input_bytes": 10220
+      },
+      {
+        "finished": 1795030090.0369425,
+        "id": "256e01c1430d4fe88e6a4099c111ab7b",
+        "parent": "651f991639e7494d80c2cf51766907c1",
+        "provider_requests": 3,
+        "role": "Coding",
+        "started": 1795030089.939117,
+        "status": "done",
+        "requests": 3,
+        "reported_tokens": 54,
+        "unknown_usage_requests": 0,
+        "input_tokens": 33,
+        "output_tokens": 21,
+        "provider_seconds": 0.024977612999919074,
+        "tool_actions": 2,
+        "process_seconds": 0,
+        "input_bytes": 15425
+      },
+      {
+        "finished": 1795030090.3402963,
+        "id": "97f1d20ab7014f9f9e617aee319f7fe4",
+        "parent": "651f991639e7494d80c2cf51766907c1",
+        "provider_requests": 1,
+        "role": "Planning",
+        "started": 1795030090.3186004,
+        "status": "done",
+        "requests": 1,
+        "reported_tokens": 18,
+        "unknown_usage_requests": 0,
+        "input_tokens": 11,
+        "output_tokens": 7,
+        "provider_seconds": 0.010533273999953963,
+        "tool_actions": 0,
+        "process_seconds": 0,
+        "input_bytes": 5274
+      },
+      {
+        "finished": 1795030090.429556,
+        "id": "9abdb94c3f8349b1ac8e47fbf994a3b8",
+        "parent": "651f991639e7494d80c2cf51766907c1",
+        "provider_requests": 3,
+        "role": "Coding",
+        "started": 1795030090.3431175,
+        "status": "done",
+        "requests": 3,
+        "reported_tokens": 54,
+        "unknown_usage_requests": 0,
+        "input_tokens": 33,
+        "output_tokens": 21,
+        "provider_seconds": 0.025765602999967996,
+        "tool_actions": 2,
+        "process_seconds": 0,
+        "input_bytes": 16511
+      }
+    ],
+    "requests": 11,
+    "reported_tokens": 198,
+    "unknown_usage_requests": 0,
+    "usage_evidence": "test-double",
+    "wall_seconds": 1.224236249923706,
+    "provider_seconds": 0.09564755899975808,
+    "process_seconds": 0.3398177530001476,
+    "tool_attempts": 7,
+    "process_attempts": 6,
+    "cost": null,
+    "cost_reason": "no configured monetary rate; no invented zero cost",
+    "performance_benefit": "NOT_ESTABLISHED",
+    "timing_policy": "sequential execution; summed components are not wall elapsed time"
+  }
+}

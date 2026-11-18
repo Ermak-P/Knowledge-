@@ -16,7 +16,7 @@ def main():
         if args.command=='version':
             from . import __version__
             from .platform import KIND
-            value={'ok':True,'version':__version__,'runner_config':1,'run_state':1,'execution_backend':KIND,'provider':'OpenAI-compatible HTTP','qualification':'separate exact-profile evidence required'}
+            value={'ok':True,'version':__version__,'execution_policies':['legacy-v1','bounded-v2'],'task_versions':[1,2],'runner_config':1,'run_state':1,'execution_backend':KIND,'provider':'OpenAI-compatible HTTP','qualification':'separate exact-profile evidence required'}
         elif args.command=='doctor':
             from knowledge.project import Project
             project=Project(args.root);path=project.root/'.harness/runner.json'

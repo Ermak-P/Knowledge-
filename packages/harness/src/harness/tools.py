@@ -22,8 +22,8 @@ SCHEMAS={
  'patch':{'files':{'type':'array','items':{'type':'object','properties':{'path':{'type':'string'},'before':{'type':['string','null']},'after':{'type':'string'}},'required':['path','before','after'],'additionalProperties':False}}},
  'recipe':{'name':{'type':'string'}},'delegate':{'role':{'type':'string'},'assignment':{'type':'string'}},
  'review':{'verdict':{'enum':['approve','reject']},'findings':{'type':'array','items':{'type':'string'}}},
- 'artifact':{'action':{'type':'string'}},'status':{},'capability':{'name':{'type':'string'}}}
-REQUIRED={name:list(fields) for name,fields in SCHEMAS.items()};REQUIRED['read']=['path']
+ 'artifact':{'action':{'type':'string'},'offset':{'type':'integer'},'limit':{'type':'integer'}},'status':{},'capability':{'name':{'type':'string'}}}
+REQUIRED={name:list(fields) for name,fields in SCHEMAS.items()};REQUIRED['read']=['path'];REQUIRED['artifact']=['action']
 
 
 def schemas(role):
@@ -62,7 +62,8 @@ def sanitized_env(extra):
 class Broker:
     def __init__(self,journal,configuration,run,lease):self.j=journal;self.c=configuration;self.r=run;self.lease=lease;self.limits={**rt.DEFAULT_LIMITS,**configuration['limits']}
     def execute(self,role,action_id,name,args):
-        authorize(role,name,args)
+        if self.r.get('p4') and role in ('Main','Planning') and name=='artifact':authorize('Reviewing',name,args)
+        else:authorize(role,name,args)
         previous=self.j.action(self.r['id'],action_id)
         signature=digest({'role':role,'tool':name,'args':args})
         if previous:
@@ -95,6 +96,12 @@ class Broker:
             elif name=='knowledge':result=knowledge(self.j.project.root,args['task'],self.limits['tool_bytes'])
             elif name=='artifact':
                 action=self.j.action(self.r['id'],args['action']);require(action is not None,'unknown-artifact');result={'ok':True,'action':args['action'],'receipt':action.get('result',{}),'signature':action['signature']}
+                if action['tool']=='recipe' and action.get('process_spec'):
+                    offset=args.get('offset',0);limit=args.get('limit',1000)
+                    require(type(offset) is int and offset>=0 and type(limit) is int and 0<limit<=self.limits['tool_bytes']//2,'invalid-artifact-range')
+                    path=Path(action['process_spec']['log']);safe_path(path)
+                    require(path.is_relative_to(self.j.base/'artifacts'/self.r['id']) and path.stat().st_size<=self.limits['log_bytes'],'invalid-artifact-path')
+                    raw=path.read_bytes();result['log_excerpt']=raw[offset:offset+limit].decode('utf-8',errors='replace');result['log_sha256']=blob(raw);result['size']=len(raw)
                 if action['tool']=='patch':
                     result['receipt']={k:v for k,v in result['receipt'].items() if k!='after_source'}
                     import difflib
@@ -200,7 +207,7 @@ class Broker:
                         require(datetime.fromisoformat(created.attrib['start']).timestamp()>=action['process_started']-2,'stale-trx')
                 else:
                     data=loads(path.read_text(encoding='utf-8'));require(data.get('action')==action_id,'test-artifact-identity-mismatch')
-                    counts={'executed':data.get('executed',0),'failed':data.get('failed',0)};success=type(counts['executed']) is int and counts['executed']>0 and type(counts['failed']) is int and counts['failed']==0
+                    counts={'executed':data.get('executed',0),'failed':data.get('failed',0)};success=data.get('skipped',0)==0 and type(counts['executed']) is int and counts['executed']>0 and type(counts['failed']) is int and counts['failed']==0
         after=source_snapshot(self.j.project,self.limits['file_bytes'])
         require(after==action['source_before'],'source-changed-during-gate')
         return {'ok':bool(success),'recipe':name,'kind':recipe['kind'],'source':digest(after),'config':self.r['config_hash'],'counts':counts,'artifact':artifact,'output':log[-min(self.limits['tool_bytes']//2,4000):],'log':str(log_path.relative_to(self.j.project.root)),**process}
