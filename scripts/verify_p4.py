@@ -36,15 +36,20 @@ assert Path(harness.__file__).is_relative_to(Path(sys.prefix)) and Path(knowledg
 assert harness.__version__==knowledge.__version__==VERSION
 sys.path.insert(0,TESTS)
 suite=unittest.defaultTestLoader.discover(TESTS)
-rows=[]
+rows={}
 class Result(unittest.TextTestResult):
- def addSuccess(self,t):super().addSuccess(t);rows.append(dict(test=t.id(),status='PASS'))
- def addFailure(self,t,e):super().addFailure(t,e);rows.append(dict(test=t.id(),status='FAIL'))
- def addError(self,t,e):super().addError(t,e);rows.append(dict(test=t.id(),status='ERROR'))
- def addSkip(self,t,reason):super().addSkip(t,reason);rows.append(dict(test=t.id(),status='SKIP',reason=reason))
+ def startTest(self,t):super().startTest(t);rows[t.id()]=dict(test=t.id(),status='RUNNING')
+ def addSuccess(self,t):super().addSuccess(t);rows[t.id()]['status']='PASS'
+ def addFailure(self,t,e):super().addFailure(t,e);rows[t.id()]['status']='FAIL'
+ def addError(self,t,e):super().addError(t,e);rows[t.id()]['status']='ERROR'
+ def addSkip(self,t,reason):super().addSkip(t,reason);rows[t.id()].update(status='SKIP',reason=reason)
+ def addSubTest(self,t,sub,e):
+  super().addSubTest(t,sub,e)
+  if e:rows[t.id()]['status']='FAIL' if issubclass(e[0],t.failureException) else 'ERROR'
 r=unittest.TextTestRunner(verbosity=2,resultclass=Result).run(suite)
+rows=list(rows.values())
 valid_skips=all(os.name!='nt' and '.NativeWindowsSafety.' in t.id() for t,reason in r.skipped)
-value=dict(results=rows,run=RUN,tests=r.testsRun,passed=r.testsRun-len(r.failures)-len(r.errors)-len(r.skipped),failed=len(r.failures),errors=len(r.errors),skipped=len(r.skipped),skip_reasons=[dict(test=t.id(),reason=reason) for t,reason in r.skipped],success=r.wasSuccessful() and r.testsRun>=199 and valid_skips)
+value=dict(results=rows,run=RUN,tests=r.testsRun,passed=sum(x['status']=='PASS' for x in rows),failed=sum(x['status']=='FAIL' for x in rows),errors=sum(x['status']=='ERROR' for x in rows),skipped=len(r.skipped),skip_reasons=[dict(test=t.id(),reason=reason) for t,reason in r.skipped],success=r.wasSuccessful() and r.testsRun>=199 and valid_skips)
 Path(RESULT).write_text(json.dumps(value,indent=2)+'\\n',encoding='utf-8')
 raise SystemExit(not value['success'])
 '''.replace('VERSION',repr(VERSION)).replace('TESTS',repr(str(ROOT/'tests'))).replace('RUN',repr(rid)).replace('RESULT',repr(str(out/'tests.json'))),encoding='utf-8')
@@ -59,6 +64,9 @@ raise SystemExit(not value['success'])
             independent=base/'knowledge-only'
             command('knowledge-only-install',[sys.executable,transfer/'install.py','install','--env',independent,'--profile','knowledge'],base)
             command('knowledge-only-smoke',[py_at(independent),'-I','-c','import knowledge,importlib.util;assert knowledge.__version__=='+repr(VERSION)+';assert importlib.util.find_spec("harness") is None;assert importlib.util.find_spec("mcp") is None;print("Independent core works")'],base)
+            if os.name=='nt':
+                command('native-launcher',[py,'-I','-B',ROOT/'scripts/p4_native.py',kit,out/'native'],base)
+                state['platform'].update(json.loads((out/'native/result.json').read_text()))
             command('doctor',[sys.executable,transfer/'install.py','doctor','--env',env],base)
             command('uninstall',[sys.executable,transfer/'install.py','uninstall','--env',env],base)
             command('reinstall',[sys.executable,transfer/'install.py','install','--env',env],base)

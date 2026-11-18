@@ -38,9 +38,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          python scripts/setup_p3.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & .venv/Scripts/python.exe scripts/verify_p4.py
+          & scripts/verify-p4-windows.ps1
           exit $LASTEXITCODE
       - uses: actions/upload-artifact@v4
         if: always()
