@@ -1,27 +1,74 @@
-"""Fresh installed-package regression evidence; never overwrites P3 reports."""
-import hashlib,json,os,subprocess,sys,tempfile,time,uuid,zipfile,shutil
+"""One installed, final-source-bound P4 qualification route on Linux and native Windows."""
+import hashlib,json,os,platform,shutil,subprocess,sys,tempfile,time,uuid
 from pathlib import Path
+from build_p4 import VERSION
 ROOT=Path(__file__).resolve().parents[1]
+FOLDERS=('packages','scripts','tests','docs/P4','release/p4-kit','examples/p4','.github/workflows')
+EXTRA=('requirements-dev.lock','.gitattributes','.gitignore','README.md','START-HERE.md','reports/P4/TASK.md','tasks/Knowledge-Harness-P4-Review-R1.md')
 def source():
- return {p.relative_to(ROOT).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for folder in ('packages','scripts','tests','docs/P4','release/p4-kit','examples/p4') for p in (ROOT/folder).rglob('*') if p.is_file() and not any(x in p.parts for x in ('__pycache__','build')) and not any(x.endswith('.egg-info') for x in p.parts)}
+    paths=[p for folder in FOLDERS for p in (ROOT/folder).rglob('*')]+[ROOT/p for p in EXTRA]
+    return {p.relative_to(ROOT).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(set(paths)) if p.is_file() and not any(x in p.parts for x in ('__pycache__','build','dist')) and not any(x.endswith('.egg-info') for x in p.parts)}
+def py_at(env):return env/('Scripts/python.exe' if os.name=='nt' else 'bin/python')
+def save(p,v):
+    tmp=p.with_suffix('.tmp');tmp.write_text(json.dumps(v,indent=2)+'\n',encoding='utf-8');os.replace(tmp,p)
 def main():
- rid=uuid.uuid4().hex;out=ROOT/'reports/P4/runs'/rid;out.mkdir(parents=True);state=dict(version=1,id=rid,source=source(),checks={},status='running',started=time.time(),native='NOT_RUN' if os.name!='nt' else 'native-runtime');
- def save():(out/'run.json').write_text(json.dumps(state,indent=2)+'\n')
- def command(name,argv,cwd=ROOT):
-  p=subprocess.run([str(x) for x in argv],cwd=cwd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT);(out/(name+'.log')).write_bytes(p.stdout);state['checks'][name]=p.returncode;save();return p
- save()
- build=command('build',[sys.executable,'-B',ROOT/'scripts/build_p4.py','--output',out/'distribution','--source-id',hashlib.sha256(json.dumps(state['source'],sort_keys=True).encode()).hexdigest()]);assert build.returncode==0
- with tempfile.TemporaryDirectory(prefix='p4-installed-') as tmp:
-  base=Path(tmp);kit=base/'kit';shutil.copytree(out/'distribution/knowledge-harness-0.4.0rc1',kit);env=base/'runtime'
-  p=command('install',[sys.executable,kit/'install.py','install','--env',env],base);assert p.returncode==0
-  py=env/('Scripts/python.exe' if os.name=='nt' else 'bin/python')
-  # Development/MCP dependencies are locked; local products remain the installed wheels.
-  assert command('test-dependencies',[py,'-m','pip','install','-r',ROOT/'requirements-dev.lock'],base).returncode==0
-  driver=base/'regressions.py';driver.write_text('import sys,unittest\nsys.path.insert(0,'+repr(str(ROOT/'tests'))+')\nsuite=unittest.defaultTestLoader.discover('+repr(str(ROOT/'tests'))+')\nr=unittest.TextTestRunner(verbosity=2).run(suite)\nraise SystemExit(not r.wasSuccessful())\n')
-  command('regressions',[py,'-I','-B',driver],base)
-  command('doctor',[sys.executable,kit/'install.py','doctor','--env',env],base)
-  command('uninstall',[sys.executable,kit/'install.py','uninstall','--env',env],base)
- state['status']='PASS_PORTABLE' if all(v==0 for v in state['checks'].values()) else 'FAILED';state['finished']=time.time();state['unchanged']=state['source']==source();save()
- (ROOT/'reports/P4/latest.json').write_text(json.dumps({'run':rid,'status':state['status']})+'\n')
- print(json.dumps({'run':rid,'status':state['status']}));return 0 if state['status']=='PASS_PORTABLE' else 1
+    rid=uuid.uuid4().hex;out=ROOT/'reports/P4/runs'/rid;out.mkdir(parents=True)
+    inputs=source();identity=hashlib.sha256(json.dumps(inputs,sort_keys=True).encode()).hexdigest()
+    state=dict(version=2,id=rid,product=VERSION,source=inputs,source_identity=identity,commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),checks={},commands=[],status='RUNNING',started=time.time(),platform=dict(os=platform.system(),python=sys.version,architecture=platform.machine(),shell='Windows PowerShell 5.1' if os.name=='nt' else 'bash'),native='EXECUTED' if os.name=='nt' else 'NOT_RUN')
+    def persist():save(out/'run.json',state)
+    def command(name,argv,cwd=ROOT):
+        began=time.time();argv=[str(x) for x in argv]
+        with (out/(name+'.log')).open('wb') as log:p=subprocess.run(argv,cwd=cwd,stdout=log,stderr=subprocess.STDOUT)
+        state['commands'].append(dict(name=name,argv=argv,cwd=str(cwd),returncode=p.returncode,seconds=time.time()-began,log=name+'.log',sha256=hashlib.sha256((out/(name+'.log')).read_bytes()).hexdigest()));state['checks'][name]='PASS' if p.returncode==0 else 'FAIL';persist()
+        if p.returncode:raise RuntimeError('qualification failed: '+name+'; see '+str(out/(name+'.log')))
+    persist()
+    try:
+        command('distribution',[sys.executable,'-B',ROOT/'scripts/build_p4.py','--output',out/'distribution','--source-id',identity])
+        kit=out/('distribution/knowledge-harness-'+VERSION)
+        with tempfile.TemporaryDirectory(prefix='p4-installed-') as tmp:
+            base=Path(tmp);transfer=base/'transferred-kit';shutil.copytree(kit,transfer);env=base/'runtime';py=py_at(env)
+            command('install',[sys.executable,transfer/'install.py','install','--env',env],base)
+            command('test-dependencies',[py,'-m','pip','install','-r',ROOT/'requirements-dev.lock'],base)
+            driver=base/'regressions.py';driver.write_text('''import sys,unittest,json,os
+from pathlib import Path
+import harness,knowledge
+assert Path(harness.__file__).is_relative_to(Path(sys.prefix)) and Path(knowledge.__file__).is_relative_to(Path(sys.prefix))
+assert harness.__version__==knowledge.__version__==VERSION
+sys.path.insert(0,TESTS)
+suite=unittest.defaultTestLoader.discover(TESTS)
+rows=[]
+class Result(unittest.TextTestResult):
+ def addSuccess(self,t):super().addSuccess(t);rows.append(dict(test=t.id(),status='PASS'))
+ def addFailure(self,t,e):super().addFailure(t,e);rows.append(dict(test=t.id(),status='FAIL'))
+ def addError(self,t,e):super().addError(t,e);rows.append(dict(test=t.id(),status='ERROR'))
+ def addSkip(self,t,reason):super().addSkip(t,reason);rows.append(dict(test=t.id(),status='SKIP',reason=reason))
+r=unittest.TextTestRunner(verbosity=2,resultclass=Result).run(suite)
+valid_skips=all(os.name!='nt' and '.NativeWindowsSafety.' in t.id() for t,reason in r.skipped)
+value=dict(results=rows,run=RUN,tests=r.testsRun,passed=r.testsRun-len(r.failures)-len(r.errors)-len(r.skipped),failed=len(r.failures),errors=len(r.errors),skipped=len(r.skipped),skip_reasons=[dict(test=t.id(),reason=reason) for t,reason in r.skipped],success=r.wasSuccessful() and r.testsRun>=199 and valid_skips)
+Path(RESULT).write_text(json.dumps(value,indent=2)+'\\n',encoding='utf-8')
+raise SystemExit(not value['success'])
+'''.replace('VERSION',repr(VERSION)).replace('TESTS',repr(str(ROOT/'tests'))).replace('RUN',repr(rid)).replace('RESULT',repr(str(out/'tests.json'))),encoding='utf-8')
+            command('regressions',[py,'-I','-B',driver],base)
+            command('accepted-p3-lifecycle-marked',[py,'-I','-B',ROOT/'scripts/p4_lifecycle.py',kit,out/'lifecycle-marked'],base)
+            command('accepted-p3-maintenance-recovery',[py,'-I','-B',ROOT/'scripts/p4_lifecycle.py',kit,out/'lifecycle-pending','pending-marker'],base)
+            command('accepted-p3-lifecycle-unmarked',[py,'-I','-B',ROOT/'scripts/p4_lifecycle.py',kit,out/'lifecycle-unmarked','no-marker'],base)
+            command('comparison',[py,'-I','-B',ROOT/'scripts/p4_evaluate.py',kit,out/'comparison'],base)
+            command('benchmark-setup',[py,'-I','-B',ROOT/'scripts/setup_benchmark.py'],base)
+            command('dotnet-application',[py,'-I','-B',ROOT/'scripts/p4_application.py','--output',out/'application'],base)
+            # Knowledge independence is exercised by this route, with no Harness/MCP install in its venv.
+            independent=base/'knowledge-only'
+            command('knowledge-only-install',[sys.executable,transfer/'install.py','install','--env',independent,'--profile','knowledge'],base)
+            command('knowledge-only-smoke',[py_at(independent),'-I','-c','import knowledge,importlib.util;assert knowledge.__version__=='+repr(VERSION)+';assert importlib.util.find_spec("harness") is None;assert importlib.util.find_spec("mcp") is None;print("Independent core works")'],base)
+            command('doctor',[sys.executable,transfer/'install.py','doctor','--env',env],base)
+            command('uninstall',[sys.executable,transfer/'install.py','uninstall','--env',env],base)
+            command('reinstall',[sys.executable,transfer/'install.py','install','--env',env],base)
+            command('reinstalled-doctor',[sys.executable,transfer/'install.py','doctor','--env',env],base)
+        state['unchanged']=inputs==source()
+        if not state['unchanged']:raise RuntimeError('qualification inputs changed during execution')
+        state['status']='PASS_NATIVE' if os.name=='nt' else 'PASS_PORTABLE'
+    except BaseException as error:
+        state.update(status='FAILED',error=str(error),unchanged=inputs==source());raise
+    finally:
+        state['finished']=time.time();persist();save(ROOT/'reports/P4/latest.json',dict(run=rid,status=state['status'],commit=state['commit'],source_identity=identity));print(json.dumps(dict(run=rid,status=state['status'])),flush=True)
+    return 0
 if __name__=='__main__':raise SystemExit(main())

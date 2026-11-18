@@ -15,6 +15,14 @@ from .execution_lock import ProjectExecutionLock
 from .store import Store
 from .util import loads,read_text,canonical_json,digest,fingerprint,require,KnowledgeError
 MAX_BYTES=128*1024*1024
+SUPPORTED_PRODUCTS=('0.3.0rc1','0.4.0rc1',__version__)
+
+def valid_marker(value):
+    if value is None:return True
+    if not isinstance(value,dict) or type(value.get('version')) is not int or value['version']!=1 or value.get('product') not in SUPPORTED_PRODUCTS:return False
+    formats=value.get('formats')
+    return isinstance(formats,dict) and set(formats)=={'knowledge','extension','harness'} and formats['knowledge'] in (None,'knowledge-sqlite-v1') and formats['extension'] in (None,1) and formats['harness'] in (None,1) and type(value.get('database_rewrite')) is bool and value['database_rewrite'] is False and isinstance(value.get('transaction'),str) and len(value['transaction'])==32
+
 
 def fault(phase):pass
 
@@ -122,7 +130,7 @@ def snapshot(project,allow_absent=False):
     require(first==source_identity(project.root),'source-changed-during-maintenance')
     marker=project.root/'.maintenance/product-state.json';safe_path(marker)
     product_state=loads(read_text(marker)) if marker.exists() else None
-    require(product_state is None or (isinstance(product_state,dict) and type(product_state.get('version')) is int and product_state.get('version')==1 and product_state.get('product')==__version__),'unsupported-maintenance-version')
+    require(valid_marker(product_state),'unsupported-maintenance-version')
     extension=None
     if '.knowledge' in counts:
         with closing(sqlite3.connect((project.root/'.knowledge/store.sqlite3').as_uri()+'?mode=ro',uri=True)) as db:extension=1 if dict(db.execute('SELECT key,value FROM metadata')).get('p1')=='1' else None
@@ -144,6 +152,7 @@ def preview(root,operation,destination=None,archive=None,recovery=None):
         else:
             manifest,_=read_backup(archive,project)
             value.update(archive=str(Path(archive).absolute()),archive_sha256=sha(Path(archive).read_bytes()),manifest=manifest,recovery=str(absent_destination(recovery,project.root)))
+        if operation=='upgrade':value['transition']={'from':state['product_state'].get('product') if state['product_state'] else None,'to':__version__,'formats_unchanged':True}
         return {'ok':True,'preview':value,'fingerprint':fingerprint(value),'quiescence':'execution lease, exclusive gate; ordinary writers/readers refused during apply','relocation':'root-bound state; package transfer and fresh-project initialization supported'}
 
 def create_backup(project,path,state,files):
@@ -177,6 +186,7 @@ def read_backup(archive,project):
             require(type(manifest.get('archive_version')) is int and type(manifest.get('version')) is int,'unsupported-backup-version')
             require(manifest.get('archive_version')==1 and manifest.get('version')==1 and isinstance(manifest.get('formats'),dict) and set(manifest['formats'])=={'knowledge','extension','harness'} and manifest['formats']['knowledge'] in (None,'knowledge-sqlite-v1') and manifest['formats']['extension'] in (None,1) and manifest['formats']['harness'] in (None,1),'unsupported-backup-version')
             require(manifest['project']==project.identity and manifest['root']==str(project.root),'backup-project-mismatch-no-relocation')
+            require(manifest.get('product') in SUPPORTED_PRODUCTS and valid_marker(manifest.get('product_state')),'unsupported-backup-product')
             require(manifest['platform']==profile(),'cross-platform-state-restore-unsupported')
             require(set(names)=={'MANIFEST.json',*manifest['files']},'backup-inventory-mismatch')
             files={name:z.read(name) for name in manifest['files']}
@@ -244,6 +254,7 @@ def _finish(project,journal,base):
     if journal['operation']=='restore':
         require(journal['saved']==value['recovery'] and journal['desired_files']==value['manifest']['files'],'invalid-restore-journal')
         safe_tree(Path(journal['saved']))
+    require(value.get('product') in SUPPORTED_PRODUCTS,'unsupported-maintenance-journal-product')
     require(journal['version']==1 and journal['project']==project.identity and journal['approval']==fingerprint(value),'invalid-maintenance-journal')
     if journal['operation']=='restore':
         for folder in ('.knowledge','.harness'):
@@ -276,6 +287,7 @@ def _finish(project,journal,base):
             write(base/'journal.json',journal)
     else:
         current=snapshot(project)[0];marker=current['product_state']
+        current['product']=value['state']['product'] # Finish an already-approved supported predecessor operation without changing its meaning.
         if marker and marker.get('transaction')==journal['id']:current['product_state']=value['state']['product_state']
         require(current==value['state'],'upgrade-intervening-state-conflict')
     marker_path=project.root/'.maintenance/product-state.json'
@@ -287,7 +299,7 @@ def _finish(project,journal,base):
             if marker_path.exists():marker_path.unlink()
         else:write(marker_path,marker)
     else:
-        marker={'version':1,'product':__version__,'formats':value['state']['formats'],'transaction':journal['id'],'database_rewrite':False}
+        marker={'version':1,'product':value['product'],'formats':value['state']['formats'],'transaction':journal['id'],'database_rewrite':False}
         write(marker_path,marker)
     fault('maintenance-committed')
     journal['status']='COMPLETED';write(base/'journal.json',journal)

@@ -247,7 +247,7 @@ def drive(journal,configuration,run,lease):
             finish_tool(parent,call,answer,limits);journal.save(run)
         raise KnowledgeError('missing-main-completion')
     except KnowledgeError as e:
-        run['error']=e.code;run['status']='cancelled' if e.code=='cancelled' else 'blocked' if e.code in ('provider-outcome-unknown','provider-outcome-unknown-manual-retry-required','edit-recovery-conflict','unrelated-source-conflict','source-conflict','configuration-changed-revalidation-required') else 'failed'
+        run['error']=e.code;run['status']='cancelled' if e.code=='cancelled' else 'blocked' if e.code in ('recipe-outcome-unknown','unverifiable-process-ownership','recipe-still-running','provider-outcome-unknown','provider-outcome-unknown-manual-retry-required','edit-recovery-conflict','unrelated-source-conflict','source-conflict','configuration-changed-revalidation-required') else 'failed'
         if run['execution']!='passed':
             run['execution']='cancelled' if e.code=='cancelled' else 'failed'
             run['capture']={'state':'not-eligible','reason':'execution did not pass mandatory gates'}
@@ -320,7 +320,7 @@ def finish_capture(journal,run,configuration):
 def finish_p4_child(j,c,r,lease,f,limits):
     from . import p4
     final=f['p4_final']
-    i=next(i for i in r['p4']['items'] if i['id']==f['item'])
+    i=next((i for i in r['p4']['items'] if i['id']==f.get('item')),None)
     if f['role']=='Coding':
         require(final['status']=='done','coding-failed')
         # verify owns failure retries and replaces the active child when needed.
@@ -328,10 +328,7 @@ def finish_p4_child(j,c,r,lease,f,limits):
         return
     if f['role']=='Reviewing':require(final['status']=='done','reviewer-reported-failure')
     if f['role']=='Reviewing' and r['gates'].get('review',{}).get('verdict')!='approve':
-        i['status']='failed';i['issues']=r['gates'].get('review',{}).get('findings',['Missing review approval'])
-        r['p4']['failures']+=1
-        require(i['attempts']<3 and r['p4']['failures']<6,'repair-exhausted')
-        i['status']='failed';i['issues']=r['gates'].get('review',{}).get('findings',[])
+        i=p4.route_review_repair(r)
         p4.delegate(r,'Coding');r['frames'].pop();push(r,'Coding',i['objective'],f['parent']);p4.bind(r);j.save(r);return
     if f['role']=='Planning' and i['status']=='failed':
         i['issues'].append('Untrusted diagnosis: '+final['summary'][:500]);p4.delegate(r,'Coding')
