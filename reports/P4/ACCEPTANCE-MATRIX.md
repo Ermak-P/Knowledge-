@@ -18,4 +18,4 @@ PASS means the named fixture or check executed, not production qualification.
 | P4-12 | PASS | checksum-pinned accepted P3 package -> P4 -> same-root restore -> actual old code/data rollback |
 | P4-13 | NOT_RUN | Linux processes/locks executed; native Windows unavailable; no CI run URL |
 
-Release verdict: NO_GO pending missing required coverage and native qualification. Live model/OpenCode validation NOT_RUN. Post-start model replanning is unsupported (new task authorization required). No production readiness claim.
+Release verdict: NO_GO pending native Windows qualification. Live model/OpenCode validation NOT_RUN. Post-start model replanning is unsupported (new task authorization required). No production readiness claim.
