@@ -35,23 +35,26 @@ import harness,knowledge
 assert Path(harness.__file__).is_relative_to(Path(sys.prefix)) and Path(knowledge.__file__).is_relative_to(Path(sys.prefix))
 assert harness.__version__==knowledge.__version__==VERSION
 sys.path.insert(0,TESTS)
-suite=unittest.defaultTestLoader.discover(TESTS)
-rows={}
-class Result(unittest.TextTestResult):
- def startTest(self,t):super().startTest(t);rows[t.id()]=dict(test=t.id(),status='RUNNING')
- def addSuccess(self,t):super().addSuccess(t);rows[t.id()]['status']='PASS'
- def addFailure(self,t,e):super().addFailure(t,e);rows[t.id()]['status']='FAIL'
- def addError(self,t,e):super().addError(t,e);rows[t.id()]['status']='ERROR'
- def addSkip(self,t,reason):super().addSkip(t,reason);rows[t.id()].update(status='SKIP',reason=reason)
- def addSubTest(self,t,sub,e):
-  super().addSubTest(t,sub,e)
-  if e:rows[t.id()]['status']='FAIL' if issubclass(e[0],t.failureException) else 'ERROR'
-r=unittest.TextTestRunner(verbosity=2,resultclass=Result).run(suite)
-rows=list(rows.values())
-valid_skips=all(os.name!='nt' and '.NativeWindowsSafety.' in t.id() for t,reason in r.skipped)
-value=dict(results=rows,run=__RUN_ID__,tests=r.testsRun,passed=sum(x['status']=='PASS' for x in rows),failed=sum(x['status']=='FAIL' for x in rows),errors=sum(x['status']=='ERROR' for x in rows),skipped=len(r.skipped),skip_reasons=[dict(test=t.id(),reason=reason) for t,reason in r.skipped],success=r.wasSuccessful() and r.testsRun>=199 and valid_skips)
-Path(RESULT).write_text(json.dumps(value,indent=2)+'\\n',encoding='utf-8')
-raise SystemExit(not value['success'])
+def main():
+ suite=unittest.defaultTestLoader.discover(TESTS)
+ rows={}
+ class Result(unittest.TextTestResult):
+  def startTest(self,t):super().startTest(t);rows[t.id()]=dict(test=t.id(),status='RUNNING')
+  def addSuccess(self,t):super().addSuccess(t);rows[t.id()]['status']='PASS'
+  def addFailure(self,t,e):super().addFailure(t,e);rows[t.id()]['status']='FAIL'
+  def addError(self,t,e):super().addError(t,e);rows[t.id()]['status']='ERROR'
+  def addSkip(self,t,reason):super().addSkip(t,reason);rows[t.id()].update(status='SKIP',reason=reason)
+  def addSubTest(self,t,sub,e):
+   super().addSubTest(t,sub,e)
+   if e:rows[t.id()]['status']='FAIL' if issubclass(e[0],t.failureException) else 'ERROR'
+ r=unittest.TextTestRunner(verbosity=2,resultclass=Result).run(suite)
+ rows=list(rows.values())
+ valid_skips=all(os.name!='nt' and '.NativeWindowsSafety.' in t.id() for t,reason in r.skipped)
+ value=dict(results=rows,run=__RUN_ID__,tests=r.testsRun,passed=sum(x['status']=='PASS' for x in rows),failed=sum(x['status']=='FAIL' for x in rows),errors=sum(x['status']=='ERROR' for x in rows),skipped=len(r.skipped),skip_reasons=[dict(test=t.id(),reason=reason) for t,reason in r.skipped],success=r.wasSuccessful() and r.testsRun>=199 and valid_skips)
+ Path(RESULT).write_text(json.dumps(value,indent=2)+'\\n',encoding='utf-8')
+ raise SystemExit(not value['success'])
+if __name__=='__main__':main()
+
 '''.replace('VERSION',repr(VERSION)).replace('TESTS',repr(str(ROOT/'tests'))).replace('__RUN_ID__',repr(rid)).replace('RESULT',repr(str(out/'tests.json'))),encoding='utf-8')
             compile(driver.read_text(encoding='utf-8'),str(driver),'exec')
             command('regressions',[py,'-I','-B',driver],base)

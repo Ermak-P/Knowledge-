@@ -7,6 +7,9 @@ from harness.runtime import Journal,configure
 from harness.engine import start,resume,status
 from knowledge.util import digest,KnowledgeError
 
+def spawned_proof(path):
+    Path(path).write_text('spawned child executed once',encoding='utf-8')
+
 class R1Tests(unittest.TestCase):
     def test_discovered_fact_survives_real_rotation_process_death(self):
         with tempfile.TemporaryDirectory() as tmp,http_provider(d:=Discovery()) as endpoint:
@@ -74,3 +77,14 @@ class R1Tests(unittest.TestCase):
                 rejected=broker.execute('Reviewing','forged-target','review',dict(verdict='reject',findings=['Patch outside'],affected=[dict(item='work',paths=['outside.py'])]));self.assertFalse(rejected['ok'])
                 cp=run['p4']['checkpoints'][-1];answer=broker.execute('Coding','read-continuation','continuation',dict(checkpoint=cp['id'],offset=0,limit=300));self.assertTrue(answer['ok']);self.assertLessEqual(len(answer['text'].encode()),302)
                 missing=broker.execute('Coding','missing-continuation','continuation',dict(checkpoint='other-run-checkpoint'));self.assertFalse(missing['ok'])
+
+    def test_spawned_child_does_not_reenter_installed_regression_driver(self):
+        import multiprocessing
+        with tempfile.TemporaryDirectory() as tmp:
+            proof=Path(tmp)/'proof.txt';child=multiprocessing.get_context('spawn').Process(target=spawned_proof,args=(str(proof),))
+            child.start();child.join(20)
+            try:
+                self.assertFalse(child.is_alive(),'spawn reentered the suite or child did not finish')
+                self.assertEqual(child.exitcode,0);self.assertEqual(proof.read_text(),'spawned child executed once')
+            finally:
+                if child.is_alive():child.terminate();child.join(5)
