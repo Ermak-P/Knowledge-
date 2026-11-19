@@ -1,4 +1,4 @@
-# Knowledge + Harness — P4 implementation candidate (0.4.0rc3)
+# Knowledge + Harness — P4 implementation candidate (0.4.0rc4)
 
 New tasks use the task-v2 bounded pipeline in [P4 usage](docs/P4/USAGE.md) and [the P4 example](examples/p4/task.json). Main coordinates sequential Coding items, build/test run as trusted runtime recipes, and independent Reviewing remains mandatory. Task-v1 inputs retain the accepted legacy policy.
 

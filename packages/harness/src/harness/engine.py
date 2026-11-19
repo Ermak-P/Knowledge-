@@ -108,6 +108,25 @@ def resume(root,run_id):
         raise KnowledgeError('project-writer-busy')
 
 
+def capture_retry(root,run_id):
+    """Retry durable candidate delivery only. Execution recovery belongs to resume."""
+    journal=Journal(root)
+    with Lease(journal):
+        run=journal.load(run_id)
+        if run['execution']!='passed' or not all(k in run for k in ('final_source','capture_time','capture_event')):
+            return {**result(run),'ok':False,'error':'capture-retry-ineligible','reason':'Execution has not passed; use resume for execution recovery.'}
+        configuration=config(root)
+        require(digest(configuration)==run['config_hash'],'configuration-changed-revalidation-required')
+        task_shape({k:v for k,v in run['task'].items() if k!='initial_source'},configuration)
+        limit={**DEFAULT_LIMITS,**configuration['limits']}['file_bytes']
+        require(digest(source_snapshot(journal.project,limit))==run['final_source'],'final-source-changed')
+        if run['status']=='completed' and run['capture']['state'] in ('delivered','no-candidate','existing','disabled') and not any(i['state']=='pending' for i in journal.outbox(run_id).values()):
+            return result(run)
+        capture.deliver(journal,run,configuration)
+        finish_capture(journal,run,configuration)
+        return result(run)
+
+
 def result(run):
     return {'ok':run['status'] in ('completed','completed-degraded'),'run_id':run['id'],'status':run['status'],'execution':run['execution'],'capture':run['capture'],'error':run.get('error')}
 
@@ -309,9 +328,10 @@ def completion_gates(run):
 
 
 def finish_capture(journal,run,configuration):
-    if digest(source_snapshot(journal.project))!=run['final_source']:
+    if digest(source_snapshot(journal.project,{**DEFAULT_LIMITS,**configuration['limits']}['file_bytes']))!=run['final_source']:
         run['status']='blocked';run['error']='final-source-changed';journal.save(run);return
     delivered=run['capture']['state'] in ('delivered','no-candidate','existing','disabled')
+    if delivered:run.pop('error',None)
     run['status']='completed' if delivered else 'awaiting-capture' if configuration['capture']=='required' else 'completed-degraded'
     if run['status'] in TERMINAL:run['finished']=stamp()
     journal.save(run);journal.event(run['id'],'capture-status',state=run['capture']['state'],status=run['status'])

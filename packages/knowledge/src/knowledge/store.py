@@ -198,8 +198,8 @@ class Store:
             require(isinstance(loads(payload),dict),'corrupt-history')
 
         if life.enabled(db):
-            from .discovery import validate_capture_receipts
-            validate_capture_receipts(db)
+            from .discovery import validate_capture_receipts,candidate_refreshes
+            validate_capture_receipts(db);candidate_refreshes(db)
             states=life.latest(db)
             rows=list(db.execute('SELECT id,kind,payload FROM records'))
             require(set(states)=={r[0] for r in rows},'revision-identity-mismatch')
@@ -261,6 +261,9 @@ class Store:
                 return {'ok':True,'candidate':row[0],'result':'duplicate','status':row[1]}
             if item['version']==2:
                 db.execute('INSERT INTO queue VALUES (?,?,?,NULL)', (cid,canonical_json(item),'pending'))
+                if item['source'] is not None:
+                    from .discovery import inventory,refresh_pending
+                    if inventory(self.project.root)['identity']==item['source']['identity']:refresh_pending(db,cid,item)
                 return {'ok':True,'candidate':cid,'result':'submitted','status':'pending'}
             known_ids = {r['id'] for v in current.values() for r in v}
             statements = {normalized(c['statement']) for c in current['claims']}
@@ -286,6 +289,10 @@ class Store:
         current = self._records(db)
         pending = {cid:loads(p) for cid,p in db.execute("SELECT id,payload FROM queue WHERE status='pending' ORDER BY id")}
         if life.enabled(db):
+            from .discovery import candidate_refreshes
+            refreshed=candidate_refreshes(db)
+            skipped=[dict(candidate=cid,reason='source-refreshed',replacement=refreshed[cid]['replacement']) for cid in pending if cid in refreshed]
+            pending={cid:item for cid,item in pending.items() if cid not in refreshed}
             blocked=[]
             if db.execute("SELECT 1 FROM plans WHERE status='COMMITTED' LIMIT 1").fetchone():
                 blocked=[{'code':'pending-acknowledgment-recover-first','details':None}]
@@ -293,7 +300,7 @@ class Store:
                 if not blocked:life.simulate(self,db,pending)
             except KnowledgeError as e:blocked=[{'code':e.code,'details':e.details}]
             return {'version':1,'project':self.project.identity,'base':life.state_fingerprint(self,db),
-                    'candidates':pending,'included':list(pending) if not blocked else [],'skipped':[], 'blocked':blocked}
+                    'candidates':pending,'included':list(pending) if not blocked else [],'skipped':skipped, 'blocked':blocked}
         combined = deepcopy(current)
         for item in pending.values():
             for g in GROUPS:
@@ -406,12 +413,14 @@ class Store:
                 'note':'Uncommitted SQLite mutations roll back on reopen; prepared plans remain unapplied.'}
 
     def status(self):
+        from .discovery import candidate_refreshes
         with self.connection() as db:
             self._records(db)
             return {'ok':True,'project':self.project.describe(),
                     'queue':[{'id':i,'status':s,'binding':b} for i,s,b in db.execute('SELECT id,status,binding FROM queue ORDER BY id')],
                     'plans':[{'fingerprint':i,'state':s} for i,s in db.execute('SELECT id,status FROM plans ORDER BY id')],
                     'history':[loads(p) for p, in db.execute('SELECT payload FROM history ORDER BY sequence')],
+                    'candidate_refreshes':list(candidate_refreshes(db).values()) if life.enabled(db) else [],
                     'p1':life.enabled(db),
                     'revisions':life.latest(db) if life.enabled(db) else {},
                     'reviews':[loads(p) for p, in db.execute('SELECT payload FROM reviews ORDER BY sequence')] if life.enabled(db) else []}

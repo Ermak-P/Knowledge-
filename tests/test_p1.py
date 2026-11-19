@@ -208,8 +208,10 @@ class P1Tests(unittest.TestCase):
 
     def test_rejected_proposal_remains_rejected_on_new_snapshot(self):
         self.scan();cid=self.s.status()['queue'][0]['id'];life.dispose(self.s,cid,'rejected','unsupported')
-        n=len(self.s.status()['queue']);(self.root/'README.md').write_text('Unrelated new docs.')
-        self.scan();self.assertEqual(len(self.s.status()['queue']),n)
+        original=next(q for q in self.s.export()['queue'] if q['id']==cid);(self.root/'README.md').write_text('Unrelated new docs.')
+        self.scan();queue=self.s.export()['queue']
+        self.assertEqual(next(q for q in queue if q['id']==cid)['status'],'rejected')
+        self.assertFalse(any(q['id']!=cid and q['payload']['version']==2 and disc.proposal_identity(q['payload'])==disc.proposal_identity(original['payload']) for q in queue))
 
 class P1StdioTests(unittest.IsolatedAsyncioTestCase):
     async def test_active_history_unicode_budgets_and_isolation(self):

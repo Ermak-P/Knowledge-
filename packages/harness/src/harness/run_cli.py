@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from knowledge.util import emit_json, canonical_json,loads,read_text,KnowledgeError
 from .runtime import configure,config,Journal
-from .engine import start,resume,status
+from .engine import start,resume,status,capture_retry
 
 
 def main():
@@ -27,7 +27,8 @@ def main():
             from .comparison import compare
             value=compare(args.root,loads(read_text(args.input)),args.output)
         elif args.command=='run':value=start(args.root,loads(read_text(args.input)),args.mode)
-        elif args.command in ('resume','capture-retry'):value=resume(args.root,args.run_id)
+        elif args.command=='resume':value=resume(args.root,args.run_id)
+        elif args.command=='capture-retry':value=capture_retry(args.root,args.run_id)
         elif args.command=='cancel':Journal(args.root).cancel(args.run_id);value={'ok':True,'run_id':args.run_id,'cancellation_requested':True}
         elif args.command=='status' and not args.run_id:value={'ok':True,'runs':[{'id':r['id'],'status':r['status'],'started':r['started']} for r in Journal(args.root).runs()]}
         else:

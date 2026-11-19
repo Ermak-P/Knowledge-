@@ -2,7 +2,7 @@
 import argparse,hashlib,json,os,shutil,subprocess,sys,zipfile,base64,csv,io,tempfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-VERSION='0.4.0rc3'
+VERSION='0.4.0rc4'
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def normalize_wheel(path):
     with zipfile.ZipFile(path) as z:files={name:z.read(name).replace(b'\r\n',b'\n') for name in z.namelist() if not name.endswith('/RECORD')}
@@ -16,7 +16,7 @@ def normalize_wheel(path):
 
 def main():
     p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('--source-id',default='development-unsealed');a=p.parse_args();out=a.output.absolute();out.mkdir(parents=True,exist_ok=True)
-    kit=out/'knowledge-harness-0.4.0rc3';kit.mkdir(exist_ok=True);wheels=kit/'wheels';wheels.mkdir(exist_ok=True)
+    kit=out/'knowledge-harness-0.4.0rc4';kit.mkdir(exist_ok=True);wheels=kit/'wheels';wheels.mkdir(exist_ok=True)
     env={**os.environ,'SOURCE_DATE_EPOCH':'1735689600','PYTHONHASHSEED':'0'}
     with tempfile.TemporaryDirectory(prefix='p3-clean-build-') as tmp:
         staged=[]
@@ -31,6 +31,7 @@ def main():
         if path.is_file():shutil.copyfile(path,kit/path.name)
     docs=kit/'docs';docs.mkdir(exist_ok=True)
     for path in (ROOT/'docs/P4').glob('*.md'):shutil.copyfile(path,docs/path.name)
+    shutil.copytree(ROOT/'examples/p4',kit/'examples',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__','*.pyc','bin','obj'))
     for package in ('knowledge','harness'):
         license=next((p for p in (ROOT/'packages'/package).glob('*LICENSE*')),None)
         if license:shutil.copyfile(license,kit/(package+'-LICENSE'))
