@@ -1,21 +1,23 @@
-# Acceptance matrix
+# P4 acceptance
 
-PASS means the named fixture or check executed, not production qualification.
+Generated from installed run 718e79cb0dd24bc4a1f240047953dcb5. Verdict: **GO_FOR_REVIEW**. PASS is executed software evidence, not live model or production certification.
 
-| ID | Status | Evidence / limit |
+| ID | Status | Executed evidence |
 |---|---|---|
-| P4-01 | PASS | installed scoped edit, real build/test, independent fixture review; no attendance calls |
-| P4-02 | PASS | two ordered items, separate Coding contexts, final gates |
-| P4-03 | PASS | long fixture rotates, early acceptance retained, serialized cap enforced |
-| P4-04 | PASS | irreducible input stops before HTTP |
-| P4-05 | PASS | pressure fixture and owned real log range/hash retrieval |
-| P4-06 | PASS | reviewer rejection and fake summary; accepted stale/source/parser regressions retained |
-| P4-07 | PASS | three real failed attempts with one diagnosis; global counters retained |
-| P4-08 | NOT_RUN | Edit, checkpoint and verifier-receipt recovery pass; exhaustive interruption qualification remains incomplete. |
-| P4-09 | PASS | unknown request blocked without replay, one accounted attempt |
-| P4-10 | PASS | P4 scope/dependency/fake-summary checks plus retained broker authority/forgery regressions |
-| P4-11 | PASS | P4 enrollment/config/task/identity mutation rejects before effects; P3 MCP/removal corrections retained |
-| P4-12 | PASS | checksum-pinned accepted P3 package -> P4 -> same-root restore -> actual old code/data rollback |
-| P4-13 | NOT_RUN | Linux processes/locks executed; native Windows unavailable; no CI run URL |
+| P4-01 | PASS | test_real_pipeline_and_no_attendance |
+| P4-02 | PASS | test_sequential_fresh_items_final_gates, test_final_review_repairs_first_item_without_last_scope |
+| P4-03 | PASS | test_discovered_fact_survives_real_rotation_process_death |
+| P4-04 | PASS | test_oversized_irreducible_no_call |
+| P4-05 | PASS | test_owned_artifact_range_recovers_real_log |
+| P4-06 | PASS | test_reviewer_rejection_cannot_complete, test_empty_test_report_never_passes |
+| P4-07 | PASS | test_noise_does_not_escape_finite_repair, test_finite_real_failed_checks |
+| P4-08 | PASS | test_discovered_fact_survives_real_rotation_process_death, test_real_process_death_after_edit_and_verifier_receipt, test_checkpoint_and_receipt_recovery |
+| P4-09 | PASS | test_unknown_provider_never_replayed |
+| P4-10 | PASS | test_scope_and_cycle_rejected_before_http, test_fake_summary_and_zero_tests_do_not_pass, test_plan_proposal_is_validated |
+| P4-11 | PASS | test_p4_companion_crossing_rejects_before_effect |
+| P4-12 | PASS | lifecycle-marked/result.json, lifecycle-unmarked/result.json, lifecycle-pending/result.json |
+| P4-13 | PASS | https://github.com/Ermak-P/Knowledge-/actions/runs/44398761177 |
+| P4-14 | PASS | knowledge-only-install.log, knowledge-only-smoke.log |
+| P4-15 | PASS | test_cancellation_and_competing_resume_during_automatic_verification, test_competing_resume_after_rotation_keeps_single_source_effect |
 
-Release verdict: NO_GO pending native Windows qualification. Live model/OpenCode validation NOT_RUN. Post-start model replanning is unsupported (new task authorization required). No production readiness claim.
+The original Windows job had an available runner but failed checkout (filename too long), not missing infrastructure. Active checkout settings now enable process-local long paths. A YAML file alone is not native evidence.

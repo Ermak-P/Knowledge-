@@ -1,0 +1,43 @@
+{
+  "version": 2,
+  "scenarios": [
+    {
+      "name": "simple",
+      "items": 1,
+      "repeat": 3,
+      "expected": true
+    },
+    {
+      "name": "multi-file",
+      "items": 2,
+      "repeat": 3,
+      "expected": true
+    },
+    {
+      "name": "multi-pressure",
+      "items": 2,
+      "repeat": 3,
+      "expected": true
+    },
+    {
+      "name": "persistent-failure",
+      "items": 1,
+      "repeat": 1,
+      "expected": false
+    }
+  ],
+  "defined_before_execution": true,
+  "limits": {
+    "requests": 64,
+    "context_bytes": 24000,
+    "elapsed_seconds": 600,
+    "turns_per_agent": 16
+  },
+  "pressure": {
+    "read_rounds": 8,
+    "discovered_value": 137,
+    "retained_across_items": true
+  },
+  "provider": "same synthetic HTTP policy; actual installed P3/P4; no model efficiency claim",
+  "differences": "P3 has no item policy and delegates all files together; P4 narrows sequential items. Both retain the same final verification oracle and three-attempt bound. P4 explicitly declares build-only intermediate verification before the dependent file exists; the final item and any final repair must run all outer checks."
+}

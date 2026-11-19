@@ -1,14 +1,16 @@
-# Synthetic evaluation
+# Synthetic P3/P4 comparison
 
-Exact accepted P3 archive versus installed P4. Reported tokens are fixture constants, not measured live-model use. Time is local wall time, not a general performance claim. Three repeats per positive scenario; raw rows retained.
+Predeclared manifest: runs/718e79cb0dd24bc4a1f240047953dcb5/comparison/scenario-manifest.json. Exact accepted P3 package; independent source copies and fixed tests; three repeats for positive cases. Provider usage is synthetic, live quality/benefit NOT_ESTABLISHED. Raw failures are retained.
 
-| Policy | Scenario | Correct runs | max Coding/Main bytes | calls | total input bytes | reported tokens | unknown usage | rotations | wall seconds |
+| Policy | Scenario | Successful runs | max Coding/Main bytes | calls | input bytes | reported tokens | unknown | rotations | seconds |
 |---|---|---|---|---|---|---|---|---|---|
-| P3 | simple | 3/3 | 4061/7415 | 13 | 56310 | 234 | 0 | 0 | 0.747 |
-| P3 | pressure | 3/3 | 23668/7414 | 21 | 229174 | 378 | 0 | 0 | 0.968 |
-| P3 | failure | 0/1 | 4059/8168 | 13 | 59255 | 234 | 0 | 0 | 0.705 |
-| P4 | simple | 3/3 | 3925/7461 | 9 | 42765 | 162 | 0 | 0 | 0.555 |
-| P4 | pressure | 3/3 | 13034/7461 | 17 | 106861 | 306 | 0 | 2 | 0.896 |
-| P4 | failure | 0/1 | 4637/3986 | 11 | 44213 | 198 | 0 | 0 | 1.266 |
+| P3 | simple | 3/3 | 4475/7946 | 14 | 57918 | 252 | 0 | 0 | 0.574 |
+| P3 | multi-file | 3/3 | 6248/8234 | 14 | 62003 | 252 | 0 | 0 | 0.595 |
+| P3 | multi-pressure | 3/3 | 23708/8352 | 24 | 279959 | 432 | 0 | 0 | 0.886 |
+| P3 | persistent-failure | 0/1 | 4477/16017 | 34 | 165184 | 612 | 0 | 0 | 1.516 |
+| P4 | simple | 3/3 | 5524/10535 | 10 | 64903 | 180 | 0 | 0 | 0.490 |
+| P4 | multi-file | 3/3 | 7108/17147 | 15 | 119058 | 270 | 0 | 0 | 0.753 |
+| P4 | multi-pressure | 3/3 | 15710/16341 | 25 | 222444 | 450 | 0 | 4 | 1.082 |
+| P4 | persistent-failure | 0/1 | 5747/4940 | 10 | 50945 | 180 | 0 | 0 | 0.902 |
 
-Failure rows must remain non-success. Aggregate input/call values and elapsed time show the first repeat; maxima cover all repeats. Software fixtures establish bounded orchestration, not model quality. Live token/speed benefit NOT_ESTABLISHED.
+Maxima cover all repetitions; other table totals show the first repeat. Persistent failure is expected to remain non-success. Complete per-repeat totals and attempted calls are retained in the raw results.
