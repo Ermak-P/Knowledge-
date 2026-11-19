@@ -14,7 +14,7 @@ Runner **v2** is the normal .NET configuration. Keep provider, limits, capture a
 python -I -m harness.run_cli discover-tests --root /absolute/project
 ```
 
-The resolved root, identity, count, sorted project paths and file hashes, exclusions and errors are returned as JSON. No process, MSBuild evaluation or test code runs during discovery. The MCP companion also exposes `harness_discover_tests`; its registration name remains `harness_companion`.
+The resolved root, identity, count, sorted project paths and file hashes, exclusions and errors are returned as JSON. No process, MSBuild evaluation or test code runs during discovery. On native Windows, owned processes recover missing ProgramFiles/ProgramData directory variables from Windows known-folder APIs when a restricted MCP host omits them; the environment allowlist and explicit approved build values remain in force. The MCP companion also exposes `harness_discover_tests`; its registration name remains `harness_companion`.
 
 Only the **basename** matters: case-insensitive suffix `Tests.csproj`. Both `IpmAzureCommon.UnitTests.csproj` and `IpmAzureAutotests.csproj` match. `FooTests.csproj`, `Foo.Tests.csproj`, `Foo.UnitTests.csproj` and uppercase variants match anywhere inside ordinary project source, even untracked or outside a solution. `TestSupport.csproj`, `FooTests.csproj.bak` and production `tests/App.csproj` do not match. No `IsTestProject`/package precondition hides a suffix match; a match unable to execute actual tests fails verification.
 

@@ -171,3 +171,18 @@ def worker_main():
         for handle in (child.hThread,child.hProcess,read,write,null):
             if handle not in (None,INVALID):k.CloseHandle(handle)
     return 0
+
+
+def system_environment():
+    # MCP stdio clients intentionally omit ProgramFiles variables. NuGet uses
+    # them for machine-wide configuration even with an explicit packages path.
+    # Ask Windows for known folders; never inherit the entire parent environment.
+    shell=c.WinDLL('shell32',use_last_error=True)
+    folder=shell.SHGetFolderPathW;folder.argtypes=[w.HWND,c.c_int,HANDLE,w.DWORD,w.LPWSTR];folder.restype=c.c_long
+    values={}
+    for name,identifier in (('PROGRAMFILES',0x26),('PROGRAMFILES(X86)',0x2A),('PROGRAMDATA',0x23)):
+        buffer=c.create_unicode_buffer(32768)
+        require(folder(None,identifier,None,0,buffer)==0 and Path(buffer.value).is_absolute() and Path(buffer.value).is_dir(),'windows-system-directory-unavailable',name)
+        values[name]=buffer.value
+    values['PROGRAMW6432']=values['PROGRAMFILES']
+    return values

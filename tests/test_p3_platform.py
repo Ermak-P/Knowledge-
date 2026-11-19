@@ -110,6 +110,17 @@ with tempfile.TemporaryDirectory(prefix='protocol-') as tmp:
 
 @unittest.skipUnless(os.name=='nt','native Windows/NTFS validation is not a Linux result')
 class NativeWindowsSafety(unittest.TestCase):
+    def test_restricted_mcp_environment_recovers_only_system_directories(self):
+        from unittest.mock import patch
+        from harness.tools import sanitized_env
+        from harness.platform import system_environment
+        stripped={k:v for k,v in os.environ.items() if k.upper() not in ('PROGRAMFILES','PROGRAMFILES(X86)','PROGRAMW6432','PROGRAMDATA')}
+        with patch.dict(os.environ,stripped,clear=True):
+            directories=system_environment();env=sanitized_env({})
+            for name,path in directories.items():
+                self.assertTrue(Path(path).is_absolute() and Path(path).is_dir());self.assertEqual(env[name],path)
+            self.assertEqual(sanitized_env({'PROGRAMFILES':'explicit-approved-value'})['PROGRAMFILES'],'explicit-approved-value')
+
     def test_external_junction_cannot_hide_project_verifier_input(self):
         with tempfile.TemporaryDirectory() as tmp,http_provider(FixtureProvider(path='verify.py',desired='print("fake success")')) as endpoint:
             base=Path(tmp);root=project(base/'Project');verify=root/'verify.py';verify.write_text('raise RuntimeError("trusted check")\n',encoding='utf-8');before=verify.read_bytes()

@@ -79,6 +79,10 @@ class AutomaticDiscovery(unittest.TestCase):
     with patch.object(Broker,'execute',side_effect=execute):gate=testing.verify(j,c,r,lease,'work',2)
    self.assertTrue(gate['ok']);self.assertEqual(gate['counts']['executed'],23);self.assertEqual(len(seen),69);self.assertEqual(len(set(n for n,p,phase in seen)),69);self.assertEqual(len({p for n,p,phase in seen}),23);self.assertTrue(all(v['status']=='PASS' for v in gate['projects'].values()))
  def test_AT09_project_edit_authority_and_unknown_operation_cannot_expand(self):
+  from harness.tools import sanitized_env
+  with patch('harness.tools.system_environment',return_value={'PROGRAMFILES':'machine-folder'}),patch.dict(os.environ,{'UNRELATED_SECRET':'must-not-leak'},clear=True):
+   env=sanitized_env({'PROGRAMFILES':'approved-folder'});self.assertEqual(env['PROGRAMFILES'],'approved-folder');self.assertNotIn('UNRELATED_SECRET',env)
+
   with tempfile.TemporaryDirectory() as tmp,http_provider(lambda b:final()) as endpoint:
    root=Path(tmp);c,j,r=self.run_state(root,endpoint)
    with runtime.Lease(j) as lease:

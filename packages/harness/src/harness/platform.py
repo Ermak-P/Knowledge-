@@ -70,3 +70,10 @@ def fence_pending(journal):
                 leader=process_info(info['group'])
                 require(not leader or leader['start']==info['start'],'process-identity-conflict')
                 require(not group_members(info['group']),'project-writer-busy')
+
+
+def system_environment():
+    """Non-secret OS directory defaults for restricted MCP host environments."""
+    if os.name!='nt':return {}
+    from .windows import system_environment as native
+    return native()

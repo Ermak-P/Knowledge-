@@ -14,7 +14,7 @@ from knowledge.util import require,KnowledgeError,canonical_json,loads,digest
 from knowledge.project import safe_path
 from . import runtime as rt
 from .runtime import TOOLS,local_path,source_snapshot,blob,stamp,policy_path
-from .platform import process_info,launch_worker,KIND,compatible,stop_owned
+from .platform import process_info,launch_worker,KIND,compatible,stop_owned,system_environment
 
 SCHEMAS={
  'read':{'path':{'type':'string'},'offset':{'type':'integer'},'limit':{'type':'integer'}},
@@ -66,8 +66,8 @@ def patch_path(project,relative,task,protected_paths,protected_executables):
 
 def sanitized_env(extra):
     keep=('PATH','LANG','LC_ALL','TZ','SYSTEMROOT','TMPDIR','HTTPS_PROXY','HTTP_PROXY','ALL_PROXY','NO_PROXY','https_proxy','http_proxy','all_proxy','no_proxy','SSL_CERT_FILE','REQUESTS_CA_BUNDLE')
-    if os.name=='nt':keep+=('TEMP','TMP','LOCALAPPDATA','APPDATA','USERPROFILE','PROGRAMFILES','PROGRAMFILES(X86)','PROGRAMW6432','WINDIR','PROCESSOR_ARCHITECTURE')
-    return {**{k:os.environ[k] for k in keep if k in os.environ},**extra,'PYTHONUNBUFFERED':'1','PYTHONUTF8':'1','PYTHONIOENCODING':'utf-8'}
+    if os.name=='nt':keep+=('TEMP','TMP','LOCALAPPDATA','APPDATA','USERPROFILE','PROGRAMFILES','PROGRAMFILES(X86)','PROGRAMW6432','PROGRAMDATA','WINDIR','PROCESSOR_ARCHITECTURE')
+    return {**system_environment(),**{k:os.environ[k] for k in keep if k in os.environ},**extra,'PYTHONUNBUFFERED':'1','PYTHONUTF8':'1','PYTHONIOENCODING':'utf-8'}
 
 
 class Broker:
