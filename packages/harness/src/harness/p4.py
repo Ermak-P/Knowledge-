@@ -10,7 +10,7 @@ POLICY='bounded-v1'
 def validate(task,c):
     from .engine import task_shape
     require(set(task)=={'version','goal','kind','writable','recipes','existing_test_edits','acceptance','items'},'invalid-p4-task')
-    old={k:v for k,v in task.items() if k not in ('acceptance','items')};old['version']=1;task_shape(old,c)
+    old={k:v for k,v in task.items() if k not in ('acceptance','items')};old['version']=1;task_shape(old,c,p4_base=True)
     require(isinstance(task['acceptance'],list) and 0<len(task['acceptance'])<=20 and all(isinstance(x,str) and 0<len(x.encode())<=1000 for x in task['acceptance']),'invalid-acceptance')
     require(isinstance(task['items'],list) and len(task['items'])<=8,'invalid-work-plan')
     seen=[]
@@ -24,7 +24,7 @@ def validate(task,c):
         seen.append(item['id'])
 
 def initialize(run):
-    run['version']=2
+    run['version']=3 if 'automatic_tests' in run else 2
     task=run['task'];items=task['items'] or [dict(id='work',objective=task['goal'],depends=[],writable=task['writable'])]
     run['p4']=dict(version=1,policy=POLICY,plan_hash=digest(items),items=[dict(**deepcopy(i),status='pending',attempts=0,epochs=[],issues=[],handoff=None) for i in items],failures=0,diagnoses=0,cycles=[],checkpoints=[],verifiers=[],rotations=0)
 
@@ -61,7 +61,12 @@ def context(j,c,r,f,limits):
         assignment=f['assignment'],task_kind=task['kind'],goal=task['goal'],acceptance=task['acceptance'],writable=scope(r,f)['writable'],
         recipes=task['recipes'],ledger=ledger(r),patch_artifacts=[k for k in references if actions[k]['tool']=='patch'][-8:],
         evidence=references[-16:],source=digest(r['source']),config=r['config_hash'],progress={'gates':{n:{k:g.get(k) for k in ('ok','source','config','action','verdict','findings')} for n,g in r['gates'].items()}},epoch=f.get('epoch',0))
+    if 'automatic_tests' in r:
+        from .testing import summary,INSTRUCTIONS
+        system['automatic_tests']=summary(r);system['automatic_test_instructions']=INSTRUCTIONS
     body=dict(model=c['provider']['model'],messages=[{'role':'system','content':canonical_json(system)}]+[m for chunk in f['history'] for m in chunk],tools=schemas(f['role']),max_tokens=limits['output_tokens'],parallel_tool_calls=False,stream=False)
+    if 'automatic_tests' in r and f['role'] in ('Main','Planning','Coding','Reviewing'):
+        body['tools'].append({'type':'function','function':{'name':'test_inventory','description':'Read-only paginated approved test inventory and verification summary.','parameters':{'type':'object','properties':{'offset':{'type':'integer'},'limit':{'type':'integer'}},'additionalProperties':False}}})
     if f['role']=='Reviewing':
         next(t['function']['parameters'] for t in body['tools'] if t['function']['name']=='review')['properties']['affected']=SCHEMAS['review']['affected']
     if f['role'] in ('Main','Planning','Coding'):body['tools'].extend(t for t in schemas('Reviewing') if t['function']['name']=='artifact')
@@ -111,7 +116,11 @@ def verify(j,c,r,lease,frame):
         r['gates'][name]={**receipt,'action':aid}
         if not any(v['action']==aid for v in r['p4']['verifiers']):r['p4']['verifiers'].append(dict(action=aid,item=i['id'],attempt=i['attempts'],deterministic=True,source=digest(r['source']),config=r['config_hash']))
         j.save(r);rt.fault('p4-verifier-receipt')
-    failed=[n for n in recipes if not r['gates'][n].get('ok')]
+    checked=list(recipes)
+    if 'automatic_tests' in r and ('recipes' not in i or all(other['status']=='done' for other in r['p4']['items'] if other['id']!=i['id'])):
+        from .testing import verify as verify_tests,GATE
+        verify_tests(j,c,r,lease,i['id'],i['attempts'],enabled=all(r['gates'][n].get('ok') for n in recipes));checked.append(GATE)
+    failed=[n for n in checked if not r['gates'][n].get('ok')]
     from .engine import push,finish_tool
     if failed:
         text=' '.join(n+':'+r['gates'][n].get('output',r['gates'][n].get('error','failed')) for n in failed)
@@ -127,6 +136,8 @@ def verify(j,c,r,lease,frame):
     cp=continuation_record(j,r,frame);cp['reason']='item-completed'
     r['p4']['checkpoints'].append(cp);frame.setdefault('checkpoints',[]).append(cp['id'])
     i['handoff']=dict(version=1,source=digest(r['source']),config=r['config_hash'],actions=[v['action'] for v in r['p4']['verifiers'] if v['item']==i['id']],narrative=frame['p4_final']['summary'][:500],continuation=continuation_seed(r,frame))
+    if 'automatic_tests' in r:
+        i['handoff']['action_count']=len(i['handoff']['actions']);i['handoff']['actions']=i['handoff']['actions'][-16:]
     r['frames'].pop();parent=r['frames'][-1]
     finish_tool(parent,parent['pending']['tool_calls'][parent['cursor']],{'ok':True,'ledger':ledger(r)},broker.limits);j.save(r)
 
@@ -134,6 +145,8 @@ def verify(j,c,r,lease,frame):
 def final_gates(r):
     if r['task']['kind']=='read-only':return
     require(all(i['status']=='done' for i in r['p4']['items']),'unfinished-items')
+    from .testing import final_gate
+    final_gate(r)
     source=digest(r['source'])
     for name in r['task']['recipes']:
         g=r['gates'].get(name,{})

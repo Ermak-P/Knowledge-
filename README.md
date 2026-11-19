@@ -1,8 +1,10 @@
-# Knowledge + Harness — P4 implementation candidate (0.4.0rc4)
+# Knowledge + Harness — P4 implementation candidate (0.5.0rc1)
 
 New tasks use the task-v2 bounded pipeline in [P4 usage](docs/P4/USAGE.md) and [the P4 example](examples/p4/task.json). Main coordinates sequential Coding items, build/test run as trusted runtime recipes, and independent Reviewing remains mandatory. Task-v1 inputs retain the accepted legacy policy.
 
 Build with Python 3.12: `python scripts/setup_p3.py`, then `.venv/bin/python scripts/build_p4.py --output .local/p4-release`. Verify the installed product with `.venv/bin/python scripts/verify_p4.py`. Read [P4 acceptance](reports/P4/ACCEPTANCE-MATRIX.md) before adoption; native qualification and live-model results remain separate.
+
+Automatic .NET testing (runner v2): [contract](docs/P4/AUTOMATIC-TESTS.md), [machine installation (RU)](docs/P4/INSTALL-RU.md), [project setup (RU)](docs/P4/PROJECT-SETUP-RU.md). The runtime finds every case-insensitive `*Tests.csproj` and verifies the complete suite.
 
 ## Retained P3 and historical documentation
 
@@ -188,3 +190,5 @@ remain reviewable JSON, requiring submit/prepare/exact approval. A filename
 inventory, missing evidence or failed semantic tooling never proves retirement.
 The old P0 sections above describe the accepted historical scope; P1 capability
 and verification claims are defined in the separate P1 contract and run packet.
+
+Automatic .NET testing (runner v2): [contract](docs/P4/AUTOMATIC-TESTS.md), [machine installation (RU)](docs/P4/INSTALL-RU.md), [project setup (RU)](docs/P4/PROJECT-SETUP-RU.md). Normal .NET templates have only trusted build recipes; every case-insensitive `*Tests.csproj` is a mandatory automatic gate.

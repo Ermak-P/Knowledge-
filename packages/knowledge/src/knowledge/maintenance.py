@@ -15,7 +15,7 @@ from .execution_lock import ProjectExecutionLock
 from .store import Store
 from .util import loads,read_text,canonical_json,digest,fingerprint,require,KnowledgeError
 MAX_BYTES=128*1024*1024
-SUPPORTED_PRODUCTS=('0.3.0rc1','0.4.0rc1','0.4.0rc2','0.4.0rc3',__version__)
+SUPPORTED_PRODUCTS=('0.3.0rc1','0.4.0rc1','0.4.0rc2','0.4.0rc3','0.4.0rc4',__version__)
 
 def valid_marker(value):
     if value is None:return True
@@ -98,7 +98,10 @@ def database(path,project):
         else:
             require(dict(db.execute('SELECT key,value FROM meta'))=={'project':project.identity,'version':'1'},'unsupported-harness-state')
             for payload, in db.execute('SELECT payload FROM runs'):
-                r=loads(payload);require(r.get('version') in (1,2) and r.get('project')==project.identity,'unsupported-harness-run')
+                r=loads(payload);require(type(r.get('version')) is int and r.get('version') in (1,2,3) and r.get('project')==project.identity,'unsupported-harness-run')
+                require(('automatic_tests' in r)==(r['version']==3),'unsupported-harness-run')
+                if r['version']==3:
+                    a=r['automatic_tests'];require(isinstance(a,dict) and a.get('version')==1 and a.get('policy')=='dotnet-tests-suffix-v1' and r.get('task',{}).get('version')==2 and r['task'].get('kind')=='coding','unsupported-harness-run')
         tables=[r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")]
         require(all(t.replace('_','').isalnum() for t in tables),'unsafe-database-table')
         counts={t:db.execute('SELECT count(*) FROM "'+t+'"').fetchone()[0] for t in tables}
@@ -124,7 +127,8 @@ def snapshot(project,allow_absent=False):
                 files[rel],counts[folder]=database(path,project)
             else:
                 files[rel]=path.read_bytes()
-                if rel in ('.harness/runner.json','.harness/companion.json'):require(loads(files[rel].decode('utf-8')).get('version')==1,'unsupported-state-configuration')
+                if rel in ('.harness/runner.json','.harness/companion.json'):
+                    version=loads(files[rel].decode('utf-8')).get('version');require(type(version) is int and version in ((1,2) if rel=='.harness/runner.json' else (1,)),'unsupported-state-configuration')
     require(files or allow_absent,'maintenance-state-absent')
     require(sum(map(len,files.values()))<=MAX_BYTES,'backup-too-large')
     require(first==source_identity(project.root),'source-changed-during-maintenance')

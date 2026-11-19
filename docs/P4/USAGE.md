@@ -1,6 +1,6 @@
-# First use from the transferred 0.4.0rc4 ZIP
+# First use from the transferred 0.5.0rc1 ZIP
 
-Extract the ZIP to a normal local path outside the source checkout. Every path below is relative to that extracted kit. Core prerequisites: Python **3.12**; for the C# demo, the **.NET 10.0.404 SDK** on x64 Linux or native Windows/NTFS with PowerShell **5.1**. The demo has no NuGet test-framework dependency: a Python standard-library regression executes the compiled C# assembly. Installation of the two core wheels is offline; SDK acquisition/restore is separate. Use a disposable copy of `examples/demo`, since the task edits its source.
+Extract the ZIP to a normal local path outside the source checkout. Every path below is relative to that extracted kit. Core prerequisites: Python **3.12**; for the C# demo, the **.NET 10.0.404 SDK** on x64 Linux or native Windows/NTFS with PowerShell **5.1**. The demo includes a real xUnit .NET test project; its NuGet dependencies are restored using the normal project package sources. Installation of the two core wheels is offline; SDK acquisition/restore is separate. Use a disposable copy of `examples/demo`, since the task edits its source.
 
 ## Linux
 
@@ -22,7 +22,7 @@ PROJECT=/absolute/disposable-demo
 Leave that terminal running. In a second terminal at the same extracted kit, set `RUNTIME`, `DOTNET`, and `PROJECT` to those same absolute paths, then:
 
 ```sh
-"$RUNTIME" examples/configure.py --python "$RUNTIME" --dotnet "$DOTNET" --output runner.local.json
+"$RUNTIME" examples/configure.py --dotnet "$DOTNET" --output runner.local.json
 "$RUNTIME" -I -m harness.run_cli configure --root "$PROJECT" --input runner.local.json --init-knowledge
 "$RUNTIME" -I -m harness.run_cli run --root "$PROJECT" --input examples/task.json
 "$RUNTIME" -I -m knowledge.cli status --root "$PROJECT"
@@ -53,7 +53,7 @@ Pop-Location
 Leave the fixture running. In another PowerShell window at the kit, set `$Runtime`, `$Dotnet` and `$Project` to the same absolute paths:
 
 ```powershell
-& $Runtime .\examples\configure.py --python $Runtime --dotnet $Dotnet --output .\runner.local.json
+& $Runtime .\examples\configure.py --dotnet $Dotnet --output .\runner.local.json
 & $Runtime -I -m harness.run_cli configure --root $Project --input .\runner.local.json --init-knowledge
 & $Runtime -I -m harness.run_cli run --root $Project --input .\examples\task.json
 & $Runtime -I -m knowledge.cli status --root $Project
@@ -61,13 +61,7 @@ Leave the fixture running. In another PowerShell window at the kit, set `$Runtim
 
 ## Adapt to an actual project/provider
 
-`examples/runner.json` is runner configuration v1. Its two executable placeholders must be replaced by existing absolute trusted paths; `examples/configure.py` does that for the demo. `examples/task.json` is task v2. The project root is the `--root` argument, never a path inside the task. Update the goal, acceptance and writable scope before using a different project. Keep build/test definitions under operator control: the model cannot change the project/recipe policy. Arguments are an argv array, without shell expansion. `{artifacts}` is a broker-owned output directory. Build results use `exit`; real test results use `unittest`, `trx` or the documented JSON format. The demo uses real compiled behavior plus `unittest`; for an existing .NET test project, an alternative trusted test argv is:
-
-```json
-["C:\\Absolute\\dotnet\\dotnet.exe", "test", "tests/Tests.csproj", "--no-restore", "--logger", "trx;LogFileName=tests.trx", "--results-directory", "{artifacts}"]
-```
-
-Pair that with `"result": {"format":"trx","path":"{artifacts}/tests.trx"}`. Restore dependencies explicitly before the run. Do not grant edits to existing tests unless a reviewed task explicitly lists the exception.
+Use runner **v2**, task v2 and only trusted build recipes. The shipped `examples/runner.json` has no test recipe; `examples/configure.py --dotnet ABSOLUTE_DOTNET --output runner.local.json` shares the build executable with automatic testing. Set the project through `--root`. Every case-insensitive `*Tests.csproj` is mandatory, including IpmAzureCommon.UnitTests.csproj and IpmAzureAutotests.csproj outside the solution. Inspect using `python -I -m harness.run_cli discover-tests --root PROJECT`. Tests restore/build automatically through the owned broker and get fresh per-framework TRX. Do not configure project lists, test globs, test executables or TRX paths. No SDK installation or retargeting is performed. See AUTOMATIC-TESTS.md for strict report checks, exclusions, drift, budgets and migration. Runner v1 retains the explicitly approved manual recipes for existing and non-.NET workflows.
 
 For a real compatible HTTP provider, use `examples/configure.py --live --endpoint https://provider.example/v1/chat/completions --model YOUR_MODEL --key-env PROVIDER_API_KEY ...`. Set the named environment variable privately in the invoking shell. Never put credential values in JSON, task text, recipe environment, logs or commits. The provider must support non-streaming OpenAI-compatible tool calls. The shipped loopback provider is a deterministic fixture with synthetic usage; it establishes software execution, not live model quality or pilot correctness.
 

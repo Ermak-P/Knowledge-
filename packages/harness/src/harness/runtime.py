@@ -115,17 +115,19 @@ class Journal:
         except sqlite3.DatabaseError as e:raise KnowledgeError('harness-state-corrupt') from e
         finally:db.close()
     def save(self,run):
-        require(type(run.get('version')) is int and run.get('version') in (1,2) and run['project']==self.project.identity,'harness-run-version-or-project-mismatch')
+        require(type(run.get('version')) is int and run.get('version') in (1,2,3) and run['project']==self.project.identity,'harness-run-version-or-project-mismatch')
         with self.db() as db:db.execute('INSERT OR REPLACE INTO runs VALUES (?,?)',(run['id'],canonical_json(run)))
     def load(self,run_id):
         with self.db() as db:r=db.execute('SELECT payload FROM runs WHERE id=?',(run_id,)).fetchone()
         require(r is not None,'unknown-run');value=loads(r[0])
-        require(isinstance(value,dict) and type(value.get('version')) is int and value.get('version') in (1,2) and value.get('project')==self.project.identity,'harness-run-version-or-project-mismatch')
+        require(isinstance(value,dict) and type(value.get('version')) is int and value.get('version') in (1,2,3) and value.get('project')==self.project.identity,'harness-run-version-or-project-mismatch')
         require(value.get('id')==run_id and value.get('status') in ('running','completed','completed-degraded','failed','cancelled','blocked','awaiting-capture'),'invalid-harness-run-state')
         require(all(isinstance(value.get(k),list) for k in ('agents','frames','requests')) and all(isinstance(value.get(k),dict) for k in ('source','task','gates','capture')) and isinstance(value.get('config_hash'),str),'invalid-harness-run-state')
-        if value['version']==2:
+        if value['version'] in (2,3):
             require(value.get('p4',{}).get('version')==1 and value['p4'].get('policy')=='bounded-v1' and value['task'].get('version')==2,'unsupported-p4-state')
         else:require('p4' not in value and value['task'].get('version')==1,'unsupported-p4-state')
+        require(('automatic_tests' in value)==(value['version']==3),'unsupported-automatic-test-state')
+        if value['version']==3:require(isinstance(value['automatic_tests'],dict) and type(value['automatic_tests'].get('version')) is int and value['automatic_tests'].get('version')==1 and value['automatic_tests'].get('policy')=='dotnet-tests-suffix-v1' and value['task']['kind']=='coding','unsupported-automatic-test-state')
         for frame in value['frames']:
             require(isinstance(frame,dict) and frame.get('role') in ROLES and any(isinstance(a,dict) and a.get('id')==frame.get('id') and a.get('role')==frame['role'] for a in value['agents']),'invalid-harness-role-frame')
         return value
@@ -190,8 +192,9 @@ def config(root):
 
 
 def validate_config(value):
-    require(isinstance(value,dict) and set(value)=={'version','provider','recipes','limits','capture'},'invalid-runner-config')
-    require(type(value['version']) is int and value['version']==1,'unsupported-runner-config')
+    require(isinstance(value,dict) and {'version','provider','recipes','limits','capture'}<=set(value)<=({'version','provider','recipes','limits','capture','dotnet'} if value.get('version')==2 else {'version','provider','recipes','limits','capture'}),'invalid-runner-config')
+    require(type(value['version']) is int and value['version'] in (1,2),'unsupported-runner-config')
+    if 'dotnet' in value:require(isinstance(value['dotnet'],str),'invalid-shared-dotnet-executable')
     provider=value['provider']
     require(isinstance(provider,dict) and set(provider)<= {'endpoint','model','key_env','evidence'} and {'endpoint','model'}<=set(provider),'invalid-provider-config')
     from urllib.parse import urlsplit
@@ -229,6 +232,10 @@ def validate_config(value):
             require(not any(x in result['path'] for x in ('//','\\',':')),'result-path-must-be-owned-artifact')
             tail=Path(result['path'][len('{artifacts}/'):]);require(bool(tail.parts) and not tail.is_absolute() and '..' not in tail.parts and '{' not in str(tail) and '}' not in str(tail),'result-path-must-be-owned-artifact')
         if result['format'] in ('trx','json'):require(bool(result['path']),'test-artifact-path-required')
+    if value['version']==2:
+        require(all(r['kind']=='build' for r in value['recipes'].values()),'automatic-runner-rejects-manual-test-recipes')
+        from .testing import dotnet
+        dotnet(value)
     return value
 
 
@@ -266,6 +273,9 @@ def recipe_inputs(project,configuration,task):
         safe_path(p);safe_path(canonical)
         relative=policy_path(canonical.relative_to(project.root).as_posix());paths.add(relative)
         if executable:executables.add(relative)
+    if configuration['version']==2:
+        from .testing import dotnet
+        include(dotnet(configuration)[0],True)
     for name in task['recipes']:
         argv=configuration['recipes'][name]['argv']
         for index,arg in enumerate(argv):include(arg,index==0)
