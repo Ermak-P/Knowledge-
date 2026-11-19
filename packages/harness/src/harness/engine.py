@@ -113,7 +113,6 @@ def _resume(root,run_id,journal):
             guard(journal.project,config(root),run)
         if run['status'] in TERMINAL:return result(run)
         configuration=config(root)
-        require(digest(configuration)==run['config_hash'],'configuration-changed-revalidation-required')
         task_shape({k:v for k,v in run['task'].items() if k!='initial_source'},configuration)
         run['lease_wait_seconds']=run.get('lease_wait_seconds',0)+time.monotonic()-waiting
         return _drive_with_owner(journal,configuration,run,lease)
