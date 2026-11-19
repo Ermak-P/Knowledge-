@@ -3,16 +3,16 @@ from knowledge.store import Store
 from knowledge.discovery import candidate_observe
 from knowledge.util import KnowledgeError,digest
 from . import runtime as rt
-from .runtime import stamp,source_snapshot
+from .runtime import stamp,source_snapshot,DEFAULT_LIMITS
 
 
 def deliver(journal,run,configuration):
     policy=configuration['capture']
     if policy=='off':run['capture']={'state':'disabled','reason':'explicit task configuration'};return
     try:
+        current=source_snapshot(journal.project,{**DEFAULT_LIMITS,**configuration['limits']}['file_bytes'])
+        if digest(current)!=run['final_source']:raise KnowledgeError('source-changed-before-capture')
         if not run.get('capture_prepared'):
-            current=source_snapshot(journal.project)
-            if digest(current)!=run['final_source']:raise KnowledgeError('source-changed-before-capture')
             changed=[p for p,h in current.items() if run['task']['initial_source'].get(p)!=h]
             if not changed:
                 run['capture_prepared']=True;run['capture']={'state':'no-candidate','reason':'no changed source; no invented reusable facts'};journal.save(run);return

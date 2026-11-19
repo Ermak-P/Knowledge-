@@ -4,7 +4,7 @@ from pathlib import Path
 from build_p4 import VERSION
 ROOT=Path(__file__).resolve().parents[1]
 FOLDERS=('packages','scripts','tests','docs/P4','release/p4-kit','examples/p4','.github/workflows','inputs')
-EXTRA=('requirements-dev.lock','.gitattributes','.gitignore','README.md','START-HERE.md','reports/P4/TASK.md','tasks/Knowledge-Harness-P4-Review-R1.md','tasks/Knowledge-Harness-P4-Review-R2.md','reports/P3/runs/c72e6b4fcb41419cb5ff40a61a506466/distribution/knowledge-harness-0.3.0rc1.zip')
+EXTRA=('requirements-dev.lock','.gitattributes','.gitignore','README.md','START-HERE.md','reports/P4/TASK.md','tasks/Knowledge-Harness-P4-Review-R1.md','tasks/Knowledge-Harness-P4-Review-R2.md','tasks/Knowledge-Harness-Integrated-Fixes-Codex-Task.md','reports/P4/runs/d68c9865460a4fcbab2bdbaaa466f072/distribution/knowledge-harness-0.4.0rc3.zip','reports/P3/runs/c72e6b4fcb41419cb5ff40a61a506466/distribution/knowledge-harness-0.3.0rc1.zip')
 def source():
     paths=[p for folder in FOLDERS for p in (ROOT/folder).rglob('*')]+[ROOT/p for p in EXTRA]
     return {p.relative_to(ROOT).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(set(paths)) if p.is_file() and not any(x in p.parts for x in ('__pycache__','build','dist')) and not any(x.endswith('.egg-info') for x in p.parts)}
@@ -61,8 +61,12 @@ if __name__=='__main__':main()
             command('accepted-p3-lifecycle-marked',[py,'-I','-X','utf8','-B',ROOT/'scripts/p4_lifecycle.py',kit,out/'lifecycle-marked'],base)
             command('accepted-p3-maintenance-recovery',[py,'-I','-X','utf8','-B',ROOT/'scripts/p4_lifecycle.py',kit,out/'lifecycle-pending','pending-marker'],base)
             command('accepted-p3-lifecycle-unmarked',[py,'-I','-X','utf8','-B',ROOT/'scripts/p4_lifecycle.py',kit,out/'lifecycle-unmarked','no-marker'],base)
+            command('accepted-rc3-upgrade',[py,'-I','-X','utf8','-B',ROOT/'scripts/integrated_upgrade.py',kit,out/'rc3-upgrade'],base)
             command('comparison',[py,'-I','-X','utf8','-B',ROOT/'scripts/p4_evaluate.py',kit,out/'comparison'],base)
             command('benchmark-setup',[py,'-B',ROOT/'scripts/setup_benchmark.py'],base)
+            command('reviewed-rc3-baseline',[py,'-I','-X','utf8','-B',ROOT/'scripts/integrated_baseline.py',out/'reviewed-baseline'],base)
+            command('public-init-budget',[py,'-I','-X','utf8','-B',ROOT/'scripts/integrated_budget.py',out/'public-init-budget'],base)
+            command('transferred-kit-first-use',[py,'-I','-X','utf8','-B',ROOT/'scripts/integrated_kit.py',out/('distribution/knowledge-harness-'+VERSION+'.zip'),out/'first-use'],base)
             command('dotnet-application',[py,'-I','-X','utf8','-B',ROOT/'scripts/p4_application.py','--output',out/'application'],base)
             # Knowledge independence is exercised by this route, with no Harness/MCP install in its venv.
             independent=base/'knowledge-only'

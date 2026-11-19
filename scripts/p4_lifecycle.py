@@ -41,12 +41,12 @@ if sys.argv[1]=='seed':
 else:
  assert logical(root)==json.loads(snap.read_text())
  assert knowledge.__version__==harness.__version__==sys.argv[1]
- if sys.argv[1]=='0.4.0rc3':
+ if sys.argv[1]=='0.4.0rc4':
   from knowledge.store import Store
   if not PENDING:assert ((root/'.maintenance/product-state.json').read_bytes() if (root/'.maintenance/product-state.json').exists() else b'')==(root.parent/'prior-marker.bin').read_bytes()
   p=m.preview(root,'backup',root.parent/'p4-backup.zip');m.apply(root,p['preview'],p['fingerprint'])
   p=m.preview(root,'upgrade',root.parent/'p4-upgrade.zip');m.apply(root,p['preview'],p['fingerprint'])
-  assert json.loads((root/'.maintenance/product-state.json').read_text())['product']=='0.4.0rc3'
+  assert json.loads((root/'.maintenance/product-state.json').read_text())['product']=='0.4.0rc4'
   Store(root).recover();(root/'user.txt').write_text('KEEP')
   p=m.preview(root,'restore',archive=backup,recovery=root.parent/'replaced');m.apply(root,p['preview'],p['fingerprint'])
   assert logical(root)==json.loads(snap.read_text())
@@ -55,7 +55,7 @@ else:
   assert ((root/'.maintenance/product-state.json').read_bytes() if (root/'.maintenance/product-state.json').exists() else b'')==(root.parent/'prior-marker.bin').read_bytes()
 print('PASS '+sys.argv[1])
 '''.replace('TESTS',repr(str(ROOT/'tests'))).replace('ROOT',repr(str(root))).replace('SNAPSHOT',repr(str(snapshot))).replace('BACKUP',repr(str(backup))).replace('WITH_MARKER',repr(with_marker)).replace('PENDING',repr(pending)))
-  call('seed',[py,'-I','-X','utf8',script,'seed'],expected=73 if pending else 0);call('p4-upgrade',[sys.executable,kit/'install.py','install','--env',env]);call('preserve-restore',[py,'-I','-X','utf8',script,'0.4.0rc3'])
+  call('seed',[py,'-I','-X','utf8',script,'seed'],expected=73 if pending else 0);call('p4-upgrade',[sys.executable,kit/'install.py','install','--env',env]);call('preserve-restore',[py,'-I','-X','utf8',script,'0.4.0rc4'])
   call('remove-p4',[sys.executable,kit/'install.py','uninstall','--env',env]);(env/'knowledge-release-install.json').rename(base/'retained-p4-marker.json');call('rollback-install',[sys.executable,old,'install','--env',env,'--adopt']);call('rollback-state',[py,'-I','-X','utf8',script,'0.3.0rc1'])
  (out/'result.json').write_text(json.dumps({'status':'PASS','accepted_archive_sha256':hashlib.sha256(OLD.read_bytes()).hexdigest(),'same_root':True,'prior_completed_maintenance':with_marker})+'\n')
 if __name__=='__main__':main()

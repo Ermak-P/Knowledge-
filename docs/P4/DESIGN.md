@@ -1,6 +1,6 @@
 # P4 design: bounded sequential execution
 
-Product 0.4.0rc3. Config v1 and task v1 keep the accepted P3 driver. Task v2 explicitly selects `bounded-v1`; new P4 examples use v2. Knowledge formats and the journal database envelope remain v1; P4 state is a validated extension of a run. Legacy pending runs never enter the new driver.
+Product 0.4.0rc4. Config v1 and task v1 keep the accepted P3 driver. Task v2 explicitly selects `bounded-v1`; new P4 examples use v2. Knowledge formats and the journal database envelope remain v1; P4 state is a validated extension of a run. Legacy pending runs never enter the new driver.
 
 ## Authority and state
 
@@ -22,7 +22,7 @@ At most two failed cycles per normalized diagnostic family, at most one read-onl
 
 New code loads P3 runs using the legacy driver. P4 runs include a non-v1 task, so old P3 runtime validation must refuse pending P4 execution; rollback requires restoring a pre-P4 maintenance snapshot before installing retained accepted P3 wheels. Stop runtime/MCP processes before replacement. No cross-root restore. All new authoritative data is inside existing .harness/runs.sqlite3 and owned artifacts, covered by maintenance snapshots. P4 keeps the platform backends and native path checks; native Windows qualification remains separate evidence.
 
-## R1 corrections (retained in 0.4.0rc3)
+## R1 corrections (retained in 0.4.0rc4)
 
 Continuation v2 carries bounded read/search observations and model-authored decision notes backed by owned action signatures/result hashes. Original authority is rendered independently. `checkpoint` records untrusted decisions/next step and validates action IDs; `continuation` retrieves a checkpoint contract by ID and bounded UTF-8 range. Raw history remains audit-only. Dependent item handoffs carry the same bounded discovered state.
 
@@ -32,8 +32,22 @@ An item may declare `recipes`, a subset of outer authorized recipes. This permit
 
 Known P3/P4 predecessor maintenance markers are read without mutation. An exact-approved transition declares predecessor/current product versions and unchanged data formats; backup and journal retain predecessor state. Recovery of an already-approved supported predecessor operation finishes its original product semantics before a new upgrade. Unknown marker or archive formats still refuse.
 
-## R2 absent-target correction (0.4.0rc3)
+## R2 absent-target correction (0.4.0rc4)
 
 Final review can name a concrete file that is absent but already authorized. Structured targets pass the same non-mutating root, private/protected, link and writable checks as a real patch, under both original outer task and immutable item scope. File existence is not authority. String findings can resolve absent literal item paths when one item owns them; overlapping owners, unknown paths and absent targets inferred only from a glob stop for an explicit validated target. A missing file does not grant a new recipe or test-edit exception.
 
 Only the affected item reopens with its previous attempts and global counters. The corrective patch creates the file with a null before-state; final deterministic gates and independent review bind the resulting source. Installed regressions cover new source and executable regression-test files, both finding formats, unchanged unrelated files and candidate-only capture.
+
+## Integrated rc4 correction
+
+`capture_retry` acquires project ownership before loading eligibility and configuration. It accepts only durable passed execution with original source/event/time and uses the bound file-size policy. It does not enter the execution driver or process recovery. Prepared payloads are retained; every delivery preflight and finalization still checks source/configuration. Optional pending capture is retryable even after a terminal degraded execution status.
+
+Equivalent pending discovery/capture payloads can become stale after a Git commit. Refresh produces a new source-bound payload and an additive validated old-to-new audit link. Preparation skips refreshed old pending entries; queue payloads/statuses, approvals, receipts and human decisions are not rewritten. Deliberate rejected/deferred observations are deduplicated across equivalent rescans. Different operation meaning remains a new review. Exact approval still compares the entire current plan and source binding. A prior-release queue fixture is exercised without granting old approval to new source.
+
+Working-file hashes describe raw bytes; working Git-object hashes and normalized Git blob proof are kept separately. A clean Git status plus an exact independently computed LF normalization can relate a CRLF working file to HEAD. Before/after retirement checks compare source in those respective domains, including provable prior-release raw evidence. Real dirty source, incomplete coverage, ambiguous identities and remaining references still block the corresponding conclusions.
+
+The public initialization command reuses the durable bounded scan scope during reconciliation. No second unbounded extractor pass is allowed. Enumeration, hashes and Git inspection remain whole-snapshot work. First/partial/completing public calls are measured with a counting wrapper forwarding to the actual extractor on the pinned application. A nonempty store and an ambiguity crossing chunk boundaries are separate regressions.
+
+The archive contains its runner/task templates, C# project, compiled-behavior regression, configuration adapter and deterministic loopback provider. Qualification extracts the ZIP outside the checkout, installs both profiles and executes those shipped files. The CI matrix uses read permissions for PR code. Publication and PR orchestration run in separate trusted jobs; token-created correction PRs receive explicit read-only qualification of the exact merge revision because GitHub suppresses their ordinary PR event recursion.
+
+The seven integrated acceptance rows are derived by `scripts/make_review_p4.py` from actual installed test outcomes, extra qualification commands and the exact-source Linux/native Windows PR receipts. Missing PR/native evidence leaves the integrated verdict NO_GO. The original P4 fifteen-row matrix is retained as a compatibility gate, rather than used as a substitute for the new integration boundaries.

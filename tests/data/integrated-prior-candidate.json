@@ -1,0 +1,63 @@
+{
+  "product": "0.4.0rc3",
+  "producer_commit": "4345352cb0fb8c20a19b51f9227fe91424c250de",
+  "payload": {
+    "version": 2,
+    "operation": "batch",
+    "operations": [
+      {
+        "action": "add",
+        "kind": "evidence",
+        "id": "evidence.4dee6584a4b8dadad11dd748b7e72a2d18528eeea660b1580acae73ec7cbe8b3",
+        "expected": 0,
+        "payload": {
+          "id": "evidence.4dee6584a4b8dadad11dd748b7e72a2d18528eeea660b1580acae73ec7cbe8b3",
+          "type": "direct-technical",
+          "status": "active",
+          "source": "Prior.cs",
+          "location": "Prior.cs#L1",
+          "content_hash": "sha256:ba3e8dbc6593822fd85df22cc6e54de4531124b0e7431a8e01de6888eaebbeca",
+          "description": "public class PriorReleaseFact {}",
+          "substantiates": [
+            "scan.db5aa469eb43f497156bc4a5cba5e980"
+          ],
+          "captured_at": "2026-11-19T00:00:00+00:00",
+          "provenance": {
+            "actor": "deterministic-discovery",
+            "method": "dotnet-lexical-v3"
+          }
+        },
+        "successor": null
+      },
+      {
+        "action": "add",
+        "kind": "claims",
+        "id": "scan.db5aa469eb43f497156bc4a5cba5e980",
+        "expected": 0,
+        "payload": {
+          "id": "scan.db5aa469eb43f497156bc4a5cba5e980",
+          "statement": "Project [Project.csproj] declares class PriorReleaseFact.",
+          "type": "technical_fact",
+          "status": "CONFIRMED",
+          "evidence": [
+            "evidence.4dee6584a4b8dadad11dd748b7e72a2d18528eeea660b1580acae73ec7cbe8b3"
+          ],
+          "provenance": {
+            "actor": "deterministic-discovery",
+            "method": "dotnet-lexical-v3"
+          },
+          "last_verified": "2026-11-19",
+          "depends_on": [],
+          "conflicts_with": []
+        },
+        "successor": null
+      }
+    ],
+    "reason": "Source-backed lexical observation; not runtime or business semantics",
+    "source": {
+      "identity": "c46e44f21ae759ca489c8b10258c11a3708fd9a9430ce804aed0cb371dd31f92",
+      "revision": "ac0f48d74f513ee7ca20952211dea7bb69a5626c",
+      "kind": "working-tree-with-hashes"
+    }
+  }
+}

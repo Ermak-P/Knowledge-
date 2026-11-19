@@ -1,7 +1,7 @@
 {
-  "run": "d68c9865460a4fcbab2bdbaaa466f072",
-  "source_identity": "2e7458e395bf84d8c2d2f4e9401d37d3958e591f5377b6788a7cd35f88e1842a",
-  "verdict": "GO_FOR_REVIEW",
+  "run": "df1cbbc388e4417da464fc74fb5ed925",
+  "source_identity": "975e841d9aa7cb1e6d394a5fbba358c773eaf7d980f4254f4c678831a14e5f99",
+  "verdict": "NO_GO",
   "matrix": {
     "P4-01": {
       "status": "PASS",
@@ -108,17 +108,75 @@
     "P4-13": {
       "status": "PASS",
       "evidence": [
-        "https://github.com/Ermak-P/Knowledge-/actions/runs/44466626911"
+        "https://github.com/Ermak-P/Knowledge-/actions/runs/44506706470"
       ]
     }
   },
   "native": {
-    "commit": "e001563b880e19961016e86200cd14f36462a6e0",
+    "commit": "72c46b846086ef9a31275193934b1c25d70f5b6b",
     "platform": "Windows",
-    "run": "dc555fb9dd914f409ef4f6ada50089ae",
-    "source_identity": "2e7458e395bf84d8c2d2f4e9401d37d3958e591f5377b6788a7cd35f88e1842a",
+    "run": "e325b7993c6f464eb5b8c96872296d20",
+    "source_identity": "975e841d9aa7cb1e6d394a5fbba358c773eaf7d980f4254f4c678831a14e5f99",
     "status": "PASS_NATIVE",
-    "url": "https://github.com/Ermak-P/Knowledge-/actions/runs/44466626911",
-    "job": "verify"
-  }
+    "url": "https://github.com/Ermak-P/Knowledge-/actions/runs/44506706470",
+    "job": "publish-evidence",
+    "event": "push",
+    "pull_request": null,
+    "workflow_revision": "72c46b846086ef9a31275193934b1c25d70f5b6b"
+  },
+  "integrated": {
+    "1. Delivery-only capture retry": {
+      "status": "PASS",
+      "evidence": [
+        "test_capture_retry_refuses_execution_without_http_edits_or_processes",
+        "test_required_and_optional_delivery_retry_preserve_original_candidate",
+        "test_delivery_after_acceptance_death_and_competing_cli_retries_converges",
+        "test_delivery_retry_obeys_lease_and_bound_source_configuration"
+      ]
+    },
+    "2. Candidate review after commit": {
+      "status": "PASS",
+      "evidence": [
+        "test_two_harness_tasks_commit_refresh_exact_approval_and_dispositions",
+        "test_prior_candidate_refresh_preserves_manual_dispositions_and_changed_meaning",
+        "test_refresh_links_cannot_hide_unrelated_meaning_or_form_cycles"
+      ]
+    },
+    "3. LF/CRLF retirement": {
+      "status": "PASS",
+      "evidence": [
+        "test_lf_and_crlf_clean_checkout_retirement_with_real_commit_ranges",
+        "test_crlf_prior_release_raw_evidence_can_prove_retirement",
+        "test_partial_or_referenced_removal_still_refuses_retirement"
+      ]
+    },
+    "4. Bound file-size policy": {
+      "status": "PASS",
+      "evidence": [
+        "test_configured_file_limit_applies_through_capture_finalization_and_retry",
+        "test_resume_uses_configured_file_limit_after_saved_response"
+      ]
+    },
+    "5. Public initialization budget": {
+      "status": "PASS",
+      "evidence": [
+        "test_public_init_bounds_real_extraction_first_partial_and_completion",
+        "public-init-budget"
+      ]
+    },
+    "6. Transferred kit first use": {
+      "status": "PASS",
+      "evidence": [
+        "transferred-kit-first-use",
+        "accepted-rc3-upgrade"
+      ]
+    },
+    "7. Development/PR/main qualification": {
+      "status": "NOT_RUN",
+      "evidence": [
+        "PR merge-revision qualification pending; .github/workflows/p4.yml"
+      ]
+    }
+  },
+  "pr": []
 }

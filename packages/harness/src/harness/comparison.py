@@ -1,12 +1,12 @@
 """One shared-history baseline versus isolated role contexts; guarded tools in both."""
 from pathlib import Path
 from knowledge.util import require,canonical_json
-from .runtime import Journal,config,configure,source_snapshot,local_path
+from .runtime import Journal,config,configure,source_snapshot,local_path,DEFAULT_LIMITS
 from .engine import start,status
 
 
 def compare(root,task,destination):
-    original=Journal(root);configuration=config(root);snapshot=source_snapshot(original.project)
+    original=Journal(root);configuration=config(root);snapshot=source_snapshot(original.project,{**DEFAULT_LIMITS,**configuration['limits']}['file_bytes'])
     output=Path(destination).absolute();require(not output.exists(),'comparison-destination-must-be-absent')
     from knowledge.project import safe_path
     safe_path(output);output.mkdir(parents=True)

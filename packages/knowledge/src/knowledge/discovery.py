@@ -49,8 +49,25 @@ def git(root,*args,required=False):
     return p.stdout.decode('utf-8','replace').strip() if p.returncode==0 else None
 
 
+def git_blob(data,algorithm):
+    return hashlib.new(algorithm,b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+
+
+def base_source_matches(data,observation,snapshot):
+    """Compare a Git blob and prior raw evidence without mixing hash domains."""
+    hashed=lambda b:'sha256:'+hashlib.sha256(b).hexdigest()
+    if hashed(data)==observation['content_hash']:return True
+    entry=snapshot['files'].get(observation['path'],{})
+    head=entry.get('head_blob')
+    if entry.get('hash')!=observation['content_hash'] or not head:return False
+    if git_blob(data,'sha256' if len(head)==64 else 'sha1')!=head:return False
+    # This also recovers prior-release CRLF evidence, which retained its raw
+    # digest and HEAD identity but had no explicit normalized working blob.
+    return b'\r' not in data and hashed(data.replace(b'\n',b'\r\n'))==observation['content_hash']
+
+
 def inventory(root,base=None,head=None):
-    root=Path(root); files={}; excluded=[];repo=has_git(root);blobs={}
+    root=Path(root); files={}; excluded=[];repo=has_git(root);blobs={};lf_blobs={}
     object_format=git(root,'rev-parse','--show-object-format',required=True) if repo else 'sha1'
     require(object_format in ('sha1','sha256'),'unsupported-git-object-format')
     for folder,dirs,names in os.walk(root,followlinks=False):
@@ -67,7 +84,9 @@ def inventory(root,base=None,head=None):
             try:
                 safe_path(p)
                 with p.open('rb') as source:data=source.read(LIMIT+1)
-                if repo:blobs[rel]=hashlib.new(object_format,b'blob '+str(len(data)).encode()+b'\0'+data).hexdigest()
+                if repo:
+                    blobs[rel]=git_blob(data,object_format)
+                    lf_blobs[rel]=git_blob(data.replace(b'\r\n',b'\n'),object_format)
                 text=data.decode('utf-8-sig')
                 require(len(data)<=LIMIT,'source-too-large')
                 files[rel]={'hash':'sha256:'+hashlib.sha256(data).hexdigest(),'status':'not-analyzed','partition':'.','bytes':len(data)}
@@ -133,6 +152,12 @@ def inventory(root,base=None,head=None):
         for path,entry in files.items():
             blob=blobs.get(path)
             indexed=index_blobs.get(path,[])
+            entry['working_blob']=blob
+            # Git status compares in Git's attribute/filter domain. Independently
+            # prove the only normalization we use; retain raw evidence hashes.
+            if blob!=head_blobs.get(path) and path not in dirty_paths and lf_blobs.get(path)==head_blobs.get(path):
+                blob=lf_blobs[path]
+            entry['git_blob']=blob
             if entry['hash'] is None:
                 entry.update(git_state='unverifiable',head_blob=head_blobs.get(path));continue
             if path not in head_blobs or blob!=head_blobs[path] or path in dirty_paths:
@@ -314,7 +339,6 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False):
         # Enqueue only at completion: partial scan observations remain durable, no claim of absence.
         if state['complete']:
             records=store._records(db);states=life.latest(db)
-            signatures={proposal_identity(loads(p)) for p, in db.execute('SELECT payload FROM queue') if loads(p)['version']==2}
             state['compatibility']=[]
             state['reintroductions']=[]
             state['review_required']=[]
@@ -333,11 +357,12 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False):
                             'relationships':[r['id'] for r in records['relationships'] if obs['id'] in (r['from'],r['to'])],
                             'policy':'explicit fresh approval required; relationships and superseded successors are not automatically restored'})
                     cid=digest(value)
-                    # Repeated scans retain disposition; compare unchanged operation payloads even if snapshot differs.
-                    if proposal_identity(value) not in signatures:
-                        signatures.add(proposal_identity(value))
+                    # Equivalent decided observations retain their disposition.
+                    # Pending old snapshots get a new, separately approved binding.
+                    if equivalent_candidate(db,value) is None:
                         db.execute('INSERT OR IGNORE INTO queue VALUES (?,?,?,NULL)',(cid,canonical_json(value),'pending'))
-                        state['candidates'].append(cid)
+                        refresh_pending(db,cid,value)
+                        if cid not in state['candidates']:state['candidates'].append(cid)
         require(inventory(store.project.root)['identity']==snap['identity'],'source-changed-during-scan-restart')
         db.execute('INSERT OR REPLACE INTO scans VALUES (?,?)',(scan_id,canonical_json(state)))
     return {'ok':True,**state}
@@ -353,7 +378,8 @@ def reconcile(store,scan_id):
         row=db.execute('SELECT payload FROM scans WHERE id=?',(scan_id,)).fetchone();require(row is not None,'unknown-scan')
         scan=loads(row[0]);require(inventory(store.project.root)['identity']==scan['snapshot']['identity'],'stale-scan-restart-required')
         records=store._records(db);states=life.latest(db);out=[]
-        scope=analysis_scope(store.project.root,snapshot=scan['snapshot'])
+        scope={'snapshot':scan['snapshot'],'observations':scan['observations'],
+               'ambiguous':dict.fromkeys(scan.get('ambiguous',[])),'complete':scan['complete']}
         observed={o['id']:o for o in scan['observations']}
         for c in records['claims']:
             fresh=freshness(store.project.root,c,records,scope)
@@ -373,11 +399,13 @@ def reconcile(store,scan_id):
             for payload, in db.execute('SELECT payload FROM scans'):
                 old=loads(payload)
                 if old['snapshot']['revision']==delta['base'] and old['complete']:
-                    before.update({o['id']:o for o in old['observations']})
+                    before.update({o['id']:(o,old['snapshot']) for o in old['observations']})
             texts='\n'.join((store.project.root/p).read_text(encoding='utf-8-sig') for p,e in scan['coverage'].items() if e['status']!='blocked')
             for row in out:
-                old=before.get(row['id'])
-                if not old or row['id'] in observed or row['lifecycle']!='active':continue
+                prior=before.get(row['id'])
+                if not prior:continue
+                old,old_snapshot=prior
+                if row['id'] in observed or row['lifecycle']!='active':continue
                 claim=current[row['id']]
                 if old.get('method')!=VERSION or claim['provenance']!={'actor':'deterministic-discovery','method':VERSION} or claim['statement']!=old['statement']:
                     row.update(classification='not-verifiable',reason='Current reviewed meaning/ownership does not match the source assertion; manual review required.')
@@ -388,7 +416,7 @@ def reconcile(store,scan_id):
                     continue
                 # Before/after exact source proof + complete lexical inventory + reference/consumer search.
                 raw=subprocess.run(['git','-C',str(store.project.root),'show',delta['base']+':'+old['path']],capture_output=True)
-                if raw.returncode or 'sha256:'+hashlib.sha256(raw.stdout).hexdigest()!=old['content_hash']:continue
+                if raw.returncode or not base_source_matches(raw.stdout,old,old_snapshot):continue
                 if re.search(r'(?<![A-Za-z0-9_])'+re.escape(old['subject'])+r'(?![A-Za-z0-9_])',texts):continue
                 row.update(classification='proposed-retirement',retirement_proposed=True,
                            reason='Verified base source contained this lexical declaration; current full lexical inventory and consumers no longer contain its subject. No claim about external deployment.')
@@ -407,6 +435,57 @@ def status(store,scan_id=None):
         require(life.enabled(db),'upgrade-required')
         rows=[loads(p) for p, in db.execute('SELECT payload FROM scans')]
         return {'ok':True,'scans':[r for r in rows if scan_id is None or r['id']==scan_id]}
+
+
+
+REFRESH_PREFIX='candidate-refresh-v1:'
+
+
+def candidate_refreshes(db):
+    """Additive audit links; original queue payloads and human decisions survive."""
+    links={}
+    for key,payload in db.execute("SELECT key,value FROM metadata WHERE key LIKE 'candidate-refresh-v1:%'"):
+        value=loads(payload)
+        require(isinstance(value,dict) and set(value)=={'version','previous','replacement','at'} and type(value['version']) is int and value['version']==1 and isinstance(value['at'],str),'corrupt-candidate-refresh')
+        old,new=value['previous'],value['replacement']
+        require(isinstance(old,str) and isinstance(new,str) and old!=new and key==REFRESH_PREFIX+old,'corrupt-candidate-refresh')
+        pair=[db.execute('SELECT payload FROM queue WHERE id=?',(cid,)).fetchone() for cid in (old,new)]
+        require(all(pair),'corrupt-candidate-refresh')
+        first,second=(loads(row[0]) for row in pair)
+        require(all(v['version']==2 and v['source'] is not None for v in (first,second)) and proposal_identity(first)==proposal_identity(second) and first['source']['identity']!=second['source']['identity'],'corrupt-candidate-refresh')
+        links[old]=value
+    for old in links:
+        seen=set();current=old
+        while current in links:
+            require(current not in seen,'corrupt-candidate-refresh-cycle');seen.add(current);current=links[current]['replacement']
+    return links
+
+
+def equivalent_candidate(db,value):
+    signature=proposal_identity(value);links=candidate_refreshes(db);matches=[]
+    for cid,payload,status in db.execute('SELECT id,payload,status FROM queue ORDER BY id'):
+        item=loads(payload)
+        if item['version']==2 and proposal_identity(item)==signature:matches.append((cid,item,status))
+    # A deliberate human disposition is not a stale pending source binding.
+    decided=next(((cid,status) for cid,item,status in matches if status in ('rejected','deferred','imported')),None)
+    if decided:return decided
+    return next(((cid,status) for cid,item,status in matches if cid not in links and item['source']==value['source']),None)
+
+
+def refresh_pending(db,cid,value):
+    """Called only after a freshly observed replacement enters the durable queue."""
+    if value['version']!=2 or value['source'] is None:return
+    links=candidate_refreshes(db)
+    require(cid not in links,'historical-candidate-refresh-requires-new-observation')
+    owned={c for payload, in db.execute("SELECT payload FROM plans WHERE status='COMMITTED'") for c in loads(payload)['included']}
+    signature=proposal_identity(value)
+    for old,payload,status in list(db.execute('SELECT id,payload,status FROM queue')):
+        prior=loads(payload)
+        if old==cid or old in links or old in owned or status!='pending' or prior['version']!=2 or prior['source'] is None:continue
+        if prior['source']['identity']==value['source']['identity'] or proposal_identity(prior)!=signature:continue
+        receipt=dict(version=1,previous=old,replacement=cid,at=life.now())
+        db.execute('INSERT INTO metadata VALUES (?,?)',(REFRESH_PREFIX+old,canonical_json(receipt)))
+        db.execute('INSERT INTO history(payload) VALUES (?)',(canonical_json(dict(event='candidate-refreshed',**receipt)),))
 
 
 def proposal_identity(value):
@@ -616,7 +695,6 @@ def _candidate_preview(store,paths,captured_at,record_ownership):
     with store.connection(record_ownership) as db:
         require(life.enabled(db),'upgrade-required')
         records=store._records(db);states=life.latest(db)
-        known_candidates=[(cid,loads(payload),status) for cid,payload,status in db.execute('SELECT id,payload,status FROM queue')]
         current={c['id']:c for c in records['claims']}
         for obs in scope['observations']:
             if obs['path'] not in paths:continue
@@ -628,7 +706,7 @@ def _candidate_preview(store,paths,captured_at,record_ownership):
                 decisions.append({'observation':obs['id'],'decision':'manual-review','reason':'positive observation ownership or successor requires explicit review; no automatic overwrite/reactivation','current_revision':states[obs['id']]['revision']});continue
             value=proposal(store,db,obs,snapshot,captured_at or life.now(),records,states,scope)
             if value is None:continue
-            equivalent=next(((cid,status) for cid,item,status in known_candidates if item['version']==2 and proposal_identity(item)==proposal_identity(value)),None)
+            equivalent=equivalent_candidate(db,value)
             if equivalent:decisions.append({'observation':obs['id'],'decision':'existing','candidate':equivalent[0],'status':equivalent[1]})
             else:
                 decisions.append({'observation':obs['id'],'decision':'submit','payload':value})

@@ -1,6 +1,6 @@
 # P4 acceptance
 
-Generated from installed run d68c9865460a4fcbab2bdbaaa466f072. Verdict: **GO_FOR_REVIEW**. PASS is executed software evidence, not live model or production certification.
+Generated from installed run df1cbbc388e4417da464fc74fb5ed925. Verdict: **NO_GO**. PASS is executed software evidence, not live model or production certification.
 
 | ID | Status | Executed evidence |
 |---|---|---|
@@ -16,7 +16,7 @@ Generated from installed run d68c9865460a4fcbab2bdbaaa466f072. Verdict: **GO_FOR
 | P4-10 | PASS | test_scope_and_cycle_rejected_before_http, test_fake_summary_and_zero_tests_do_not_pass, test_plan_proposal_is_validated, test_absent_reference_uses_patch_guards_without_new_authority, test_string_omission_refuses_ambiguous_pattern_and_outside_targets, test_literal_finding_does_not_match_traversal_or_name_suffix |
 | P4-11 | PASS | test_p4_companion_crossing_rejects_before_effect |
 | P4-12 | PASS | lifecycle-marked/result.json, lifecycle-unmarked/result.json, lifecycle-pending/result.json |
-| P4-13 | PASS | https://github.com/Ermak-P/Knowledge-/actions/runs/44466626911 |
+| P4-13 | PASS | https://github.com/Ermak-P/Knowledge-/actions/runs/44506706470 |
 | P4-14 | PASS | knowledge-only-install.log, knowledge-only-smoke.log |
 | P4-15 | PASS | test_cancellation_and_competing_resume_during_automatic_verification, test_competing_resume_after_rotation_keeps_single_source_effect |
 

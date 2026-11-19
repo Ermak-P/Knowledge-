@@ -1,13 +1,55 @@
 name: P4 installed verification
 on:
+  pull_request:
+    branches: [main]
+    paths-ignore: ['reports/**']
   push:
-    branches: [p4]
+    branches: [main, 'codex/**']
     paths-ignore: ['reports/**']
   workflow_dispatch:
+    inputs:
+      pull_request:
+        description: 'Optional correction PR number: qualify its merge revision with read permissions'
+        required: false
+        type: string
 permissions:
-  contents: write
+  contents: read
 jobs:
+  revision:
+    permissions:
+      contents: read
+      pull-requests: read
+    runs-on: ubuntu-24.04
+    outputs:
+      ref: ${{ steps.revision.outputs.ref }}
+      commit: ${{ steps.revision.outputs.commit }}
+    steps:
+      - uses: actions/github-script@v7
+        id: revision
+        env:
+          REVIEW_PR: ${{ inputs.pull_request }}
+        with:
+          script: |
+            if (process.env.REVIEW_PR) {
+              if (context.eventName !== 'workflow_dispatch' || !/^[1-9][0-9]*$/.test(process.env.REVIEW_PR)) throw new Error('Invalid PR qualification input');
+              let pr;
+              for (let attempt = 0; attempt < 12; attempt++) {
+                pr = (await github.rest.pulls.get({...context.repo, pull_number: Number(process.env.REVIEW_PR)})).data;
+                if (pr.merge_commit_sha) break;
+                await new Promise(resolve => setTimeout(resolve, 5000));
+              }
+              if (pr.base.ref !== 'main' || pr.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}` || pr.head.sha !== context.sha) throw new Error('Dispatch must bind this exact repository/head and main target');
+              if (!pr.merge_commit_sha) throw new Error('PR merge revision not yet available; retry dispatch');
+              core.setOutput('ref', `refs/pull/${pr.number}/merge`);
+              core.setOutput('commit', pr.merge_commit_sha);
+            } else {
+              core.setOutput('ref', context.sha);
+              core.setOutput('commit', context.sha);
+            }
   verify:
+    needs: revision
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -21,7 +63,9 @@ jobs:
           GIT_CONFIG_KEY_0: core.longpaths
           GIT_CONFIG_VALUE_0: 'true'
         with:
+          ref: ${{ needs.revision.outputs.commit }}
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -45,9 +89,53 @@ jobs:
         with:
           name: p4-${{ matrix.os }}
           path: reports/P4/
-      - name: Retain exact-source native receipt for Git-only clients
-        if: always()
-        shell: bash
+  publish-evidence:
+    needs: [revision, verify]
+    if: >-
+      always() && needs.revision.result == 'success' &&
+      github.event_name != 'pull_request' && github.repository == 'Ermak-P/Knowledge-' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/integrated-fixes')
+    permissions:
+      contents: write
+      actions: read
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [Linux, Windows]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: p4-${{ matrix.platform == 'Linux' && 'ubuntu-24.04' || 'windows-2022' }}
+          path: reports/P4/
+      - name: Retain exact-source results without executing artifact contents
         env:
-          P4_CI_PLATFORM: ${{ runner.os }}
+          P4_CI_PLATFORM: ${{ matrix.platform }}
+          P4_CI_EXPECTED_COMMIT: ${{ needs.revision.outputs.commit }}
+          P4_CI_PR: ${{ inputs.pull_request }}
         run: python scripts/p4_ci_receipt.py
+  open-review:
+    needs: [verify, publish-evidence]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/integrated-fixes'
+    permissions:
+      contents: read
+      pull-requests: write
+      actions: write
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const head = 'codex/integrated-fixes';
+            const {data: prs} = await github.rest.pulls.list({...context.repo, state: 'open', base: 'main', head: `${context.repo.owner}:${head}`});
+            const pr = prs[0] || (await github.rest.pulls.create({...context.repo, base: 'main', head,
+              title: 'Fix integrated Knowledge and Harness delivery, discovery, kit and qualification',
+              body: 'Correct the seven integrated failures before the pilot: delivery-only capture retries, post-commit candidate refresh, LF/CRLF retirement, configured file limits, public initialization extraction budgets, complete first-use kit and read-only PR qualification.\n\nThe branch retains installed Linux/native Windows results and a source/package-bound seven-outcome review packet under reports/P4. No merge or production deployment is included.\n\nBase: 4345352cb0fb8c20a19b51f9227fe91424c250de. See tasks/Knowledge-Harness-Integrated-Fixes-Codex-Task.md for acceptance requirements.'})).data;
+            core.notice(`Correction PR: ${pr.html_url}`);
+            // GITHUB_TOKEN-created PRs do not trigger pull_request events. Explicitly
+            // qualify that merge revision with the same read-only matrix instead.
+            await github.rest.actions.createWorkflowDispatch({...context.repo, workflow_id: 'p4.yml', ref: head, inputs: {pull_request: String(pr.number)}});
