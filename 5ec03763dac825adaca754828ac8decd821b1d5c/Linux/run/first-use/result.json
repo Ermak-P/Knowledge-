@@ -1,0 +1,188 @@
+{
+  "status": "PASS",
+  "source_identity": "975e841d9aa7cb1e6d394a5fbba358c773eaf7d980f4254f4c678831a14e5f99",
+  "product": "0.4.0rc4",
+  "zip_sha256": "601b69dd90d7f274ce9c1eccdd6f2239d5c11364e33506d65640efe838cdd1fb",
+  "outside_checkout": true,
+  "profiles": [
+    "knowledge",
+    "full"
+  ],
+  "files_resolved": [
+    "docs/USAGE.md",
+    "examples/runner.json",
+    "examples/task.json",
+    "examples/configure.py",
+    "examples/controlled_provider.py",
+    "examples/demo/Feature.cs",
+    "examples/demo/Program.cs",
+    "examples/demo/Project.csproj",
+    "examples/demo/global.json",
+    "examples/demo/test_feature.py",
+    "install.py",
+    "optional-mcp.lock"
+  ],
+  "http_requests": 9,
+  "process_attempts": 2,
+  "compiled_regression_passed": 1,
+  "independent_review": "approve",
+  "capture": {
+    "outbox": [
+      "598eb9aa2c11ea5d49b786df02183d53441fedfe4b61cb190cee8f48b8a1e090"
+    ],
+    "state": "delivered"
+  },
+  "canonical_claims": 0,
+  "commands": [
+    {
+      "label": "install-knowledge",
+      "argv": [
+        "/tmp/p4-installed-15r9tjqw/runtime/bin/python",
+        "/tmp/integrated-first-use-t_tl575o/transferred/install.py",
+        "install",
+        "--env",
+        "/tmp/integrated-first-use-t_tl575o/knowledge-only",
+        "--profile",
+        "knowledge"
+      ],
+      "returncode": 0,
+      "log": "install-knowledge.log"
+    },
+    {
+      "label": "independent",
+      "argv": [
+        "/tmp/integrated-first-use-t_tl575o/knowledge-only/bin/python",
+        "-I",
+        "-c",
+        "import knowledge,importlib.util;assert importlib.util.find_spec(\"harness\") is None;assert importlib.util.find_spec(\"mcp\") is None;print(knowledge.__version__)"
+      ],
+      "returncode": 0,
+      "log": "independent.log"
+    },
+    {
+      "label": "install-full",
+      "argv": [
+        "/tmp/p4-installed-15r9tjqw/runtime/bin/python",
+        "/tmp/integrated-first-use-t_tl575o/transferred/install.py",
+        "install",
+        "--env",
+        "/tmp/integrated-first-use-t_tl575o/full",
+        "--profile",
+        "full"
+      ],
+      "returncode": 0,
+      "log": "install-full.log"
+    },
+    {
+      "label": "installed-imports",
+      "argv": [
+        "/tmp/integrated-first-use-t_tl575o/full/bin/python",
+        "-I",
+        "-c",
+        "import harness,knowledge,sys;from pathlib import Path;assert all(Path(m.__file__).is_relative_to(Path(sys.prefix)) for m in (harness,knowledge));print(harness.__file__,knowledge.__file__)"
+      ],
+      "returncode": 0,
+      "log": "installed-imports.log"
+    },
+    {
+      "label": "sdk-version",
+      "argv": [
+        "/usr/share/dotnet/dotnet",
+        "--version"
+      ],
+      "returncode": 0,
+      "log": "sdk-version.log"
+    },
+    {
+      "label": "restore",
+      "argv": [
+        "/usr/share/dotnet/dotnet",
+        "restore",
+        "/tmp/integrated-first-use-t_tl575o/disposable-demo/Project.csproj",
+        "--disable-parallel"
+      ],
+      "returncode": 0,
+      "log": "restore.log"
+    },
+    {
+      "label": "adapt-template",
+      "argv": [
+        "/tmp/integrated-first-use-t_tl575o/full/bin/python",
+        "/tmp/integrated-first-use-t_tl575o/transferred/examples/configure.py",
+        "--python",
+        "/tmp/integrated-first-use-t_tl575o/full/bin/python",
+        "--dotnet",
+        "/usr/share/dotnet/dotnet",
+        "--endpoint",
+        "http://127.0.0.1:39423/v1/chat/completions",
+        "--output",
+        "/tmp/integrated-first-use-t_tl575o/runner.json"
+      ],
+      "returncode": 0,
+      "log": "adapt-template.log"
+    },
+    {
+      "label": "configure",
+      "argv": [
+        "/tmp/integrated-first-use-t_tl575o/full/bin/python",
+        "-I",
+        "-m",
+        "harness.run_cli",
+        "configure",
+        "--root",
+        "/tmp/integrated-first-use-t_tl575o/disposable-demo",
+        "--input",
+        "/tmp/integrated-first-use-t_tl575o/runner.json",
+        "--init-knowledge"
+      ],
+      "returncode": 0,
+      "log": "configure.log"
+    },
+    {
+      "label": "run",
+      "argv": [
+        "/tmp/integrated-first-use-t_tl575o/full/bin/python",
+        "-I",
+        "-m",
+        "harness.run_cli",
+        "run",
+        "--root",
+        "/tmp/integrated-first-use-t_tl575o/disposable-demo",
+        "--input",
+        "/tmp/integrated-first-use-t_tl575o/transferred/examples/task.json"
+      ],
+      "returncode": 0,
+      "log": "run.log"
+    },
+    {
+      "label": "status",
+      "argv": [
+        "/tmp/integrated-first-use-t_tl575o/full/bin/python",
+        "-I",
+        "-m",
+        "harness.run_cli",
+        "status",
+        "--root",
+        "/tmp/integrated-first-use-t_tl575o/disposable-demo",
+        "--run-id",
+        "0fc929ed01ff45c0b0b48b0e40eee6a2"
+      ],
+      "returncode": 0,
+      "log": "status.log"
+    },
+    {
+      "label": "candidates",
+      "argv": [
+        "/tmp/integrated-first-use-t_tl575o/full/bin/python",
+        "-I",
+        "-m",
+        "knowledge.cli",
+        "export",
+        "--root",
+        "/tmp/integrated-first-use-t_tl575o/disposable-demo"
+      ],
+      "returncode": 0,
+      "log": "candidates.log"
+    }
+  ]
+}
