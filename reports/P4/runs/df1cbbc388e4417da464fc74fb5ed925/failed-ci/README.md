@@ -1,0 +1,1 @@
+The first CI attempt f495dc5 omitted the installer-version change and failed installation on both platforms. These original receipts/logs are historical failed results, never promoted into current acceptance. The corrected committed implementation is 72c46b8. Failed run: https://github.com/Ermak-P/Knowledge-/actions/runs/44506499410
