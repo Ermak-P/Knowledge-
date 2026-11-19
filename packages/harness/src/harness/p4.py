@@ -204,26 +204,46 @@ def continuation_seed(r,f):
         unresolved=cp['unresolved'],next_step_untrusted=cp['next_step_untrusted'],evidence_count=len(cp['evidence']),
         retrieval='continuation(checkpoint,offset,limit); artifact(action,offset,limit) for full owned read/search/recipe receipts')
 
-def validate_affected(r,affected):
-    import fnmatch
+def validate_affected(r,affected,project):
+    from glob import has_magic
+    from .tools import patch_path
     require(isinstance(affected,list) and len(affected)<=8,'invalid-review-targets')
     items={i['id']:i for i in r['p4']['items']}
     for target in affected:
         require(isinstance(target,dict) and set(target)=={'item','paths'} and target['item'] in items,'invalid-review-target')
-        paths=target['paths'];require(isinstance(paths,list) and 0<len(paths)<=20 and all(isinstance(p,str) and p in r['source'] for p in paths),'invalid-review-paths')
-        require(all(any(fnmatch.fnmatchcase(p,pattern) for pattern in items[target['item']]['writable']) for p in paths),'review-target-outside-item')
+        paths=target['paths']
+        require(isinstance(paths,list) and 0<len(paths)<=20 and all(isinstance(p,str) and p and not has_magic(p) for p in paths),'invalid-review-paths')
+        task={**r['task'],'writable':items[target['item']]['writable']}
+        for path in paths:
+            # Existence does not confer authority. Both original and immutable item
+            # authority must permit the same safe, concrete patch target.
+            patch_path(project,path,r['task'],r['protected_paths'],r.get('protected_executables',[]))
+            patch_path(project,path,task,r['protected_paths'],r.get('protected_executables',[]))
 
-def route_review_repair(r):
+def finding_names_path(text,path):
+    # Do not turn "../Missing.cs", "NotMissing.cs" or "Missing.cs.extra"
+    # into permission to repair an unrelated literal Missing.cs.
+    return re.search(r'(?<![\w/\\.:])'+re.escape(path)+r'(?![\w/\\]|\.[\w])',text) is not None
+
+def route_review_repair(r,project):
     import fnmatch
+    from glob import has_magic
     review=r['gates'].get('review',{});findings=review.get('findings',[]);targets=deepcopy(review.get('affected',[]))
-    validate_affected(r,targets)
+    validate_affected(r,targets,project)
     if not targets:
-        paths=[p for p in r['source'] if any(p in text for text in findings)]
+        known=set(r['source'])|{p for i in r['p4']['items'] for p in i['writable'] if not has_magic(p)}
+        paths=sorted(p for p in known if any(finding_names_path(text,p) for text in findings))
         for path in paths:
             owners=[i for i in r['p4']['items'] if any(fnmatch.fnmatchcase(path,pattern) for pattern in i['writable'])]
             require(bool(owners),'review-repair-requires-new-authority')
+            require(len(owners)==1,'review-repair-target-required')
             targets.append(dict(item=owners[0]['id'],paths=[path]))
-        if not targets and len(r['p4']['items'])==1:targets=[dict(item=r['p4']['items'][0]['id'],paths=[])]
+        path_hint=any(re.search(r'[\w/\\:*?-]+\.[A-Za-z][\w-]*',text) for text in findings)
+        if not targets and len(r['p4']['items'])==1 and not path_hint:
+            targets=[dict(item=r['p4']['items'][0]['id'],paths=[])]
+        # A string can resolve existing or absent literals, not invent a concrete
+        # target from a glob. The model must supply validated affected references.
+        if paths:validate_affected(r,targets,project)
     require(bool(targets),'review-repair-target-required')
     ids={t['item'] for t in targets};r['p4']['failures']+=1
     require(r['p4']['failures']<6,'repair-exhausted')

@@ -1,6 +1,6 @@
 # Compatibility and recovery
 
-Product: 0.4.0rc2. Runner configuration: v1 unchanged. Task v1: legacy mandatory five-role policy. Task v2: bounded-v1 policy. P3 run state remains v1; P4 run state is v2 with p4 extension v1. Unknown versions refuse. SQLite container and Knowledge schemas remain unchanged. No silent conversion or canonical approval.
+Product: 0.4.0rc3. Runner configuration: v1 unchanged. Task v1: legacy mandatory five-role policy. Task v2: bounded-v1 policy. P3 run state remains v1; P4 run state is v2 with p4 extension v1. Unknown versions refuse. SQLite container and Knowledge schemas remain unchanged. No silent conversion or canonical approval.
 
 P3 binaries reject P4 run state v2. For rollback, stop all runtime/MCP processes, restore the pre-P4 maintenance backup in the same root, uninstall the P4 owned distributions, preserve the P4 installation marker outside the environment, then use the checksum-verified accepted P3 installer with --adopt. No project source/user bytes are removed. Do not resume P4 pending work under P3. Restart installed processes after replacement. scripts/p4_lifecycle.py executes this sequence against the pinned accepted P3 archive, nonempty canonical state, pending requests and capture outbox.
 

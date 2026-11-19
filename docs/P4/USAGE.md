@@ -1,6 +1,6 @@
 # P4 usage
 
-Python 3.12. Install the transferred 0.4.0rc2 kit outside this checkout:
+Python 3.12. Install the transferred 0.4.0rc3 kit outside this checkout:
 
 ```sh
 python install.py install --env /absolute/runtime --profile full

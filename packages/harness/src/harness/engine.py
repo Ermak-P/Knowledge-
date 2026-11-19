@@ -328,7 +328,7 @@ def finish_p4_child(j,c,r,lease,f,limits):
         return
     if f['role']=='Reviewing':require(final['status']=='done','reviewer-reported-failure')
     if f['role']=='Reviewing' and r['gates'].get('review',{}).get('verdict')!='approve':
-        i=p4.route_review_repair(r)
+        i=p4.route_review_repair(r,j.project)
         p4.delegate(r,'Coding');r['frames'].pop();push(r,'Coding',i['objective'],f['parent']);p4.bind(r);j.save(r);return
     if f['role']=='Planning' and i['status']=='failed':
         i['issues'].append('Untrusted diagnosis: '+final['summary'][:500]);p4.delegate(r,'Coding')

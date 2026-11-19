@@ -15,7 +15,7 @@ from .execution_lock import ProjectExecutionLock
 from .store import Store
 from .util import loads,read_text,canonical_json,digest,fingerprint,require,KnowledgeError
 MAX_BYTES=128*1024*1024
-SUPPORTED_PRODUCTS=('0.3.0rc1','0.4.0rc1',__version__)
+SUPPORTED_PRODUCTS=('0.3.0rc1','0.4.0rc1','0.4.0rc2',__version__)
 
 def valid_marker(value):
     if value is None:return True

@@ -2,7 +2,7 @@
 import argparse,hashlib,json,os,shutil,subprocess,sys,zipfile,base64,csv,io,tempfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-VERSION='0.4.0rc2'
+VERSION='0.4.0rc3'
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def normalize_wheel(path):
     with zipfile.ZipFile(path) as z:files={name:z.read(name).replace(b'\r\n',b'\n') for name in z.namelist() if not name.endswith('/RECORD')}
@@ -16,7 +16,7 @@ def normalize_wheel(path):
 
 def main():
     p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('--source-id',default='development-unsealed');a=p.parse_args();out=a.output.absolute();out.mkdir(parents=True,exist_ok=True)
-    kit=out/'knowledge-harness-0.4.0rc2';kit.mkdir(exist_ok=True);wheels=kit/'wheels';wheels.mkdir(exist_ok=True)
+    kit=out/'knowledge-harness-0.4.0rc3';kit.mkdir(exist_ok=True);wheels=kit/'wheels';wheels.mkdir(exist_ok=True)
     env={**os.environ,'SOURCE_DATE_EPOCH':'1735689600','PYTHONHASHSEED':'0'}
     with tempfile.TemporaryDirectory(prefix='p3-clean-build-') as tmp:
         staged=[]

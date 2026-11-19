@@ -55,6 +55,15 @@ def writable(path,task):
         require(path in task['existing_test_edits'],'existing-test-edit-denied')
 
 
+def patch_path(project,relative,task,protected_paths,protected_executables):
+    """The same non-mutating target guard for patch application and review repair."""
+    path=local_path(project,relative,True)
+    writable(relative,task)
+    require(policy_path(relative) not in protected_executables and (policy_path(relative) not in protected_paths or relative in task['existing_test_edits']),'recipe-input-edit-denied')
+    require(not path.exists() or path.is_file(),'patch-target-not-file')
+    return path
+
+
 def sanitized_env(extra):
     keep=('PATH','LANG','LC_ALL','TZ','SYSTEMROOT','TMPDIR','HTTPS_PROXY','HTTP_PROXY','ALL_PROXY','NO_PROXY','https_proxy','http_proxy','all_proxy','no_proxy','SSL_CERT_FILE','REQUESTS_CA_BUNDLE')
     if os.name=='nt':keep+=('TEMP','TMP','LOCALAPPDATA','APPDATA','USERPROFILE','PROGRAMFILES','PROGRAMFILES(X86)','PROGRAMW6432','WINDIR','PROCESSOR_ARCHITECTURE')
@@ -120,7 +129,7 @@ class Broker:
                 require(self.r.get('p4') or 'affected' not in args,'legacy-review-fields')
                 if self.r.get('p4'):
                     from .p4 import validate_affected
-                    validate_affected(self.r,args.get('affected',[]))
+                    validate_affected(self.r,args.get('affected',[]),self.j.project)
                 require(args['verdict'] in ('approve','reject') and isinstance(args['findings'],list) and len(args['findings'])<=20 and all(isinstance(f,str) and len(f)<=1000 for f in args['findings']),'invalid-review')
                 result={'ok':True,**args,'source':digest(source_snapshot(self.j.project,self.limits['file_bytes'])),'config':self.r['config_hash']}
             else:raise KnowledgeError('coordinator-tool-requires-runtime-dispatch')
@@ -139,8 +148,7 @@ class Broker:
             seen=set()
             for f in files:
                 require(isinstance(f,dict) and set(f)=={'path','before','after'} and isinstance(f['path'],str) and f['path'] not in seen,'invalid-patch-fields');seen.add(f['path'])
-                path=local_path(self.j.project,f['path'],True);writable(f['path'],self.r['task'])
-                require(policy_path(f['path']) not in self.r.get('protected_executables',[]) and (policy_path(f['path']) not in self.r['protected_paths'] or f['path'] in self.r['task']['existing_test_edits']),'recipe-input-edit-denied')
+                path=patch_path(self.j.project,f['path'],self.r['task'],self.r['protected_paths'],self.r.get('protected_executables',[]))
                 require(isinstance(f['after'],str) and len(f['after'].encode())<=self.limits['file_bytes'],'patch-too-large')
                 require(before.get(f['path'])==f['before'],'edit-before-state-mismatch')
             exceptions=[f['path'] for f in files if f['path'] in self.r['task']['existing_test_edits']]
@@ -153,8 +161,7 @@ class Broker:
         rt.fault('edit-intent')
         written=[];reconciled=[]
         for f in files:
-            path=local_path(self.j.project,f['path'],True);writable(f['path'],self.r['task'])
-            require(policy_path(f['path']) not in self.r.get('protected_executables',[]) and (policy_path(f['path']) not in self.r['protected_paths'] or f['path'] in self.r['task']['existing_test_edits']),'recipe-input-edit-denied')
+            path=patch_path(self.j.project,f['path'],self.r['task'],self.r['protected_paths'],self.r.get('protected_executables',[]))
             actual=blob(path.read_bytes()) if path.exists() else None;after=blob(f['after'].encode())
             if actual==after:reconciled.append(f['path']);continue
             require(actual==f['before'],'edit-recovery-conflict',f['path'])
