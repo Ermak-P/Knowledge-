@@ -1,0 +1,53 @@
+name: P4 installed verification
+on:
+  push:
+    branches: [p4]
+    paths-ignore: ['reports/**']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    timeout-minutes: 45
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.longpaths
+          GIT_CONFIG_VALUE_0: 'true'
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.404'
+      - name: Linux installed tests
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          python scripts/setup_p3.py
+          .venv/bin/python scripts/verify_p4.py
+      - name: Native Windows installed tests
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          & scripts/verify-p4-windows.ps1
+          exit $LASTEXITCODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p4-${{ matrix.os }}
+          path: reports/P4/
+      - name: Retain exact-source native receipt for Git-only clients
+        if: always()
+        shell: bash
+        env:
+          P4_CI_PLATFORM: ${{ runner.os }}
+        run: python scripts/p4_ci_receipt.py

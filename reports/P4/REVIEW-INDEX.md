@@ -1,0 +1,3 @@
+# P4 R2 review index
+
+Current source-bound run: runs/d68c9865460a4fcbab2bdbaaa466f072/run.json. Package: runs/d68c9865460a4fcbab2bdbaaa466f072/distribution/. Tests: tests.json and regressions.log. Real pinned eShop behavior/failed-before-fix TRX and review inputs: application/. Marked/unmarked prior package round trips: lifecycle-marked/, lifecycle-unmarked/. Full four-scenario comparison: comparison/. Native receipt and acceptance: acceptance.json. Source inventory includes active workflows, locked dependencies, SDK pin, review task and every executed helper. Historical runs are historical only.

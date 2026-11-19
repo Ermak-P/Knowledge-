@@ -1,0 +1,1323 @@
+{
+  "result": {
+    "ok": false,
+    "run_id": "9932bedf83d24b7b9b6c6a50a7cae595",
+    "status": "failed",
+    "execution": "failed",
+    "capture": {
+      "state": "not-eligible",
+      "reason": "execution did not pass mandatory gates"
+    },
+    "error": "required-check-missing-failed-or-stale"
+  },
+  "run": {
+    "agents": [
+      {
+        "finished": 1795030067.6297038,
+        "id": "e08acb3dd7854f7483af474cfbde1f67",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": null,
+        "provider_requests": 2,
+        "role": "Main",
+        "started": 1795030066.820342,
+        "status": "done"
+      },
+      {
+        "finished": 1795030066.8891852,
+        "id": "355056008666433ea81adab9cabc0358",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "e08acb3dd7854f7483af474cfbde1f67",
+        "provider_requests": 1,
+        "role": "Planning",
+        "started": 1795030066.8656895,
+        "status": "done"
+      },
+      {
+        "finished": 1795030066.9967203,
+        "id": "bbfc820f23634a578ab4f5556464db3a",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "e08acb3dd7854f7483af474cfbde1f67",
+        "provider_requests": 3,
+        "role": "Coding",
+        "started": 1795030066.8938506,
+        "status": "done"
+      },
+      {
+        "finished": 1795030067.173783,
+        "id": "ea2e73414e374de682256e2b8cbafc7c",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "e08acb3dd7854f7483af474cfbde1f67",
+        "provider_requests": 2,
+        "role": "Building",
+        "started": 1795030067.0010421,
+        "status": "done"
+      },
+      {
+        "finished": 1795030067.4046082,
+        "id": "d63bf98154b641fe843a7b2a6ea44e0b",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "e08acb3dd7854f7483af474cfbde1f67",
+        "provider_requests": 2,
+        "role": "Testing",
+        "started": 1795030067.1807203,
+        "status": "done"
+      },
+      {
+        "finished": 1795030067.5916486,
+        "id": "2798979fa6814d7e8ee06f00882f762f",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "e08acb3dd7854f7483af474cfbde1f67",
+        "provider_requests": 3,
+        "role": "Reviewing",
+        "started": 1795030067.410932,
+        "status": "done"
+      }
+    ],
+    "capture": {
+      "reason": "execution did not pass mandatory gates",
+      "state": "not-eligible"
+    },
+    "capture_prepared": false,
+    "config_hash": "d8cf6c05dd4d7c8abc4263a9a2d37ae961cc424de8cb393ab58716a9f1532708",
+    "delegations": 5,
+    "error": "required-check-missing-failed-or-stale",
+    "execution": "failed",
+    "finished": 1795030067.6335642,
+    "frames": [
+      {
+        "assignment": "Synthetic controlled source change and verification.",
+        "cursor": 0,
+        "history": [
+          [
+            {
+              "content": "MAIN_PRIVATE_MARKER",
+              "role": "assistant",
+              "tool_calls": [
+                {
+                  "function": {
+                    "arguments": "{\"role\": \"Planning\", \"assignment\": \"Perform Planning for Feature.cs\"}",
+                    "name": "delegate"
+                  },
+                  "id": "call0",
+                  "type": "function"
+                },
+                {
+                  "function": {
+                    "arguments": "{\"role\": \"Coding\", \"assignment\": \"Perform Coding for Feature.cs\"}",
+                    "name": "delegate"
+                  },
+                  "id": "call1",
+                  "type": "function"
+                },
+                {
+                  "function": {
+                    "arguments": "{\"role\": \"Building\", \"assignment\": \"Perform Building for Feature.cs\"}",
+                    "name": "delegate"
+                  },
+                  "id": "call2",
+                  "type": "function"
+                },
+                {
+                  "function": {
+                    "arguments": "{\"role\": \"Testing\", \"assignment\": \"Perform Testing for Feature.cs\"}",
+                    "name": "delegate"
+                  },
+                  "id": "call3",
+                  "type": "function"
+                },
+                {
+                  "function": {
+                    "arguments": "{\"role\": \"Reviewing\", \"assignment\": \"Perform Reviewing for Feature.cs\"}",
+                    "name": "delegate"
+                  },
+                  "id": "call4",
+                  "type": "function"
+                }
+              ]
+            },
+            {
+              "content": "{\"agent\":\"355056008666433ea81adab9cabc0358\",\"last_result\":null,\"ok\":true,\"role\":\"Planning\",\"summary\":\"Bounded plan: inspect, edit the declared file, run configured checks, review diff.\"}",
+              "role": "tool",
+              "tool_call_id": "call0"
+            },
+            {
+              "content": "{\"agent\":\"bbfc820f23634a578ab4f5556464db3a\",\"last_result\":{\"ok\":true,\"reconciled\":[],\"written\":[\"Feature.cs\"]},\"ok\":true,\"role\":\"Coding\",\"summary\":\"synthetic role completed\"}",
+              "role": "tool",
+              "tool_call_id": "call1"
+            },
+            {
+              "content": "{\"agent\":\"ea2e73414e374de682256e2b8cbafc7c\",\"last_result\":{\"artifact\":null,\"config\":\"d8cf6c05dd4d7c8abc4263a9a2d37ae961cc424de8cb393ab58716a9f1532708\",\"counts\":null,\"descendants_stopped\":true,\"duration\":0.03422853500001111,\"kind\":\"build\",\"log\":\".harness/artifacts/9932bedf83d24b7b9b6c6a50a7cae595/3c8e23ddf9347108853a5db6c823d82955f595266ce87f8272c4310b9ea74ecd/0/process.log\",\"log_bytes\":30,\"observed_log_bytes\":30,\"ok\":true,\"output\":\"synthetic lexical build check\\n\",\"reason\":null,\"recipe\":\"build\",\"returncode\":0,\"source\":\"5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed\",\"truncated\":false},\"ok\":true,\"role\":\"Building\",\"summary\":\"synthetic role completed\"}",
+              "role": "tool",
+              "tool_call_id": "call2"
+            },
+            {
+              "content": "{\"agent\":\"d63bf98154b641fe843a7b2a6ea44e0b\",\"last_result\":{\"artifact\":null,\"config\":\"d8cf6c05dd4d7c8abc4263a9a2d37ae961cc424de8cb393ab58716a9f1532708\",\"counts\":null,\"descendants_stopped\":true,\"duration\":0.08204183199995896,\"kind\":\"test\",\"log\":\".harness/artifacts/9932bedf83d24b7b9b6c6a50a7cae595/78d26f3940fd8569cf56543ecd893f3524a6715f9d1269affaf3746f40d08db6/0/process.log\",\"log_bytes\":749,\"observed_log_bytes\":749,\"ok\":false,\"output\":\"F\\n======================================================================\\nFAIL: test_expected_source (__main__.Behavior.test_expected_source)\\n----------------------------------------------------------------------\\nTraceback (most recent call last):\\n  File \\\"/tmp/p4-evaluation-s7l19hpm/P3failure0/test_feature.py\\\", line 5, in test_expected_source\\n    self.assertEqual(Path(\\\"Feature.cs\\\").read_text(),'public class ImprovedFeature {}\\\\n')\\nAssertionError: 'public class BrokenFeature {}\\\\n' != 'public class ImprovedFeature {}\\\\n'\\n- public class BrokenFeature {}\\n?              ^  ^ ^\\n+ public class ImprovedFeature {}\\n?              ^^^  ^ ^\\n\\n\\n----------------------------------------------------------------------\\nRan 1 test in 0.001s\\n\\nFAILED (failures=1)\\n\",\"reason\":null,\"recipe\":\"test\",\"returncode\":1,\"source\":\"5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed\",\"truncated\":false},\"ok\":true,\"role\":\"Testing\",\"summary\":\"synthetic role completed\"}",
+              "role": "tool",
+              "tool_call_id": "call3"
+            },
+            {
+              "content": "{\"agent\":\"2798979fa6814d7e8ee06f00882f762f\",\"last_result\":{\"config\":\"d8cf6c05dd4d7c8abc4263a9a2d37ae961cc424de8cb393ab58716a9f1532708\",\"findings\":[\"Source/receipt does not meet independent fixture expectation.\"],\"ok\":true,\"source\":\"5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed\",\"verdict\":\"reject\"},\"ok\":true,\"role\":\"Reviewing\",\"summary\":\"synthetic role completed\"}",
+              "role": "tool",
+              "tool_call_id": "call4"
+            }
+          ]
+        ],
+        "id": "e08acb3dd7854f7483af474cfbde1f67",
+        "inflight": null,
+        "last_result": {
+          "agent": "2798979fa6814d7e8ee06f00882f762f",
+          "last_result": {
+            "config": "d8cf6c05dd4d7c8abc4263a9a2d37ae961cc424de8cb393ab58716a9f1532708",
+            "findings": [
+              "Source/receipt does not meet independent fixture expectation."
+            ],
+            "ok": true,
+            "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed",
+            "verdict": "reject"
+          },
+          "ok": true,
+          "role": "Reviewing",
+          "summary": "synthetic role completed"
+        },
+        "parent": null,
+        "pending": null,
+        "request_id": "4788cffc59e54870956bb21b92d8f5c7",
+        "results": [],
+        "role": "Main",
+        "started": 1795030066.82034,
+        "status": "running",
+        "turns": 2,
+        "waiting": "af62458a53994ebbc406bd6c1d1faaed2d82a29719825be10ede2a6333d18e73"
+      }
+    ],
+    "gates": {
+      "build": {
+        "action": "3c8e23ddf9347108853a5db6c823d82955f595266ce87f8272c4310b9ea74ecd",
+        "artifact": null,
+        "config": "d8cf6c05dd4d7c8abc4263a9a2d37ae961cc424de8cb393ab58716a9f1532708",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.03422853500001111,
+        "kind": "build",
+        "log": ".harness/artifacts/9932bedf83d24b7b9b6c6a50a7cae595/3c8e23ddf9347108853a5db6c823d82955f595266ce87f8272c4310b9ea74ecd/0/process.log",
+        "log_bytes": 30,
+        "observed_log_bytes": 30,
+        "ok": true,
+        "output": "synthetic lexical build check\n",
+        "reason": null,
+        "recipe": "build",
+        "returncode": 0,
+        "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed",
+        "truncated": false
+      },
+      "review": {
+        "action": "77e591b296df47ad0a830699badb24aa822d1911205d7dae866320af5dc59128",
+        "config": "d8cf6c05dd4d7c8abc4263a9a2d37ae961cc424de8cb393ab58716a9f1532708",
+        "findings": [
+          "Source/receipt does not meet independent fixture expectation."
+        ],
+        "ok": true,
+        "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed",
+        "verdict": "reject"
+      },
+      "test": {
+        "action": "78d26f3940fd8569cf56543ecd893f3524a6715f9d1269affaf3746f40d08db6",
+        "artifact": null,
+        "config": "d8cf6c05dd4d7c8abc4263a9a2d37ae961cc424de8cb393ab58716a9f1532708",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.08204183199995896,
+        "kind": "test",
+        "log": ".harness/artifacts/9932bedf83d24b7b9b6c6a50a7cae595/78d26f3940fd8569cf56543ecd893f3524a6715f9d1269affaf3746f40d08db6/0/process.log",
+        "log_bytes": 749,
+        "observed_log_bytes": 749,
+        "ok": false,
+        "output": "F\n======================================================================\nFAIL: test_expected_source (__main__.Behavior.test_expected_source)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/p4-evaluation-s7l19hpm/P3failure0/test_feature.py\", line 5, in test_expected_source\n    self.assertEqual(Path(\"Feature.cs\").read_text(),'public class ImprovedFeature {}\\n')\nAssertionError: 'public class BrokenFeature {}\\n' != 'public class ImprovedFeature {}\\n'\n- public class BrokenFeature {}\n?              ^  ^ ^\n+ public class ImprovedFeature {}\n?              ^^^  ^ ^\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n",
+        "reason": null,
+        "recipe": "test",
+        "returncode": 1,
+        "source": "5f9c0c5160f4a1be25b77704adf66300d1256b70fb58ec901dd54d7ed05f6bed",
+        "truncated": false
+      }
+    },
+    "id": "9932bedf83d24b7b9b6c6a50a7cae595",
+    "lease_wait_seconds": 0.0017119149999871297,
+    "mode": "multi",
+    "project": "5b7c8249050d8a8027a545c6038ce9ceb01488461b90c6b47cf54a895f2f8f24",
+    "protected_executables": [],
+    "protected_paths": [
+      "build.py",
+      "test_feature.py"
+    ],
+    "requests": [
+      {
+        "agent": "e08acb3dd7854f7483af474cfbde1f67",
+        "at": 1795030066.837554,
+        "duration": 0.014073456000005535,
+        "id": "da18aec632c04db38d9cb5a0116919d8",
+        "input_bytes": 3322,
+        "input_hash": "760168d2ae7ba7e4a989d0888c83cf7b21195616d71f80bfbc09a697e1d05ebe",
+        "response_bytes": 1156,
+        "role": "Main",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "355056008666433ea81adab9cabc0358",
+        "at": 1795030066.872656,
+        "duration": 0.008963821999941501,
+        "id": "f994f1ac120a42f585dee14c712d843c",
+        "input_bytes": 2748,
+        "input_hash": "de92109e87615b355589a399282915b38bae1aa67343f9601d739efb35184fef",
+        "response_bytes": 433,
+        "role": "Planning",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "bbfc820f23634a578ab4f5556464db3a",
+        "at": 1795030066.9003413,
+        "duration": 0.0075176489999648766,
+        "id": "55233b93f4414165bf0a67124eaee8cc",
+        "input_bytes": 3194,
+        "input_hash": "9b5271c36bf449b8cf4f4448b2070b3b629cff7e5a3391f82110c229544a9cf1",
+        "response_bytes": 428,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "bbfc820f23634a578ab4f5556464db3a",
+        "at": 1795030066.9408526,
+        "duration": 0.00757799099994827,
+        "id": "49831f7c761f47dc89c366efc7c7b502",
+        "input_bytes": 3580,
+        "input_hash": "b046682b1aa4cb1be7f5c232ff32669463cecc1bc34840965e0deafde16fce65",
+        "response_bytes": 575,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "bbfc820f23634a578ab4f5556464db3a",
+        "at": 1795030066.9808538,
+        "duration": 0.008378177999929903,
+        "id": "686e502b64b04064a81afa9f854ea22e",
+        "input_bytes": 4059,
+        "input_hash": "bc5179b075d6c05db121280a11562f6cf84bc2c34f572f7409181cf729ab9e62",
+        "response_bytes": 375,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "ea2e73414e374de682256e2b8cbafc7c",
+        "at": 1795030067.0084903,
+        "duration": 0.007821088000014242,
+        "id": "43bb1ba456404846a47aed4c58a897f0",
+        "input_bytes": 2816,
+        "input_hash": "e0dfdfbbb8791151e0cbafb8ec1ab72abc97396b7b9e76ed426433e06f7b1ab2",
+        "response_bytes": 425,
+        "role": "Building",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "ea2e73414e374de682256e2b8cbafc7c",
+        "at": 1795030067.1534457,
+        "duration": 0.007797020999987581,
+        "id": "9d3a7d2055fc43f3ab98e0e8c2cb14ea",
+        "input_bytes": 3813,
+        "input_hash": "771959f6b6703361fa0964ebdbd578105243f9fcdfebe3743271ebb9c6897483",
+        "response_bytes": 375,
+        "role": "Building",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "d63bf98154b641fe843a7b2a6ea44e0b",
+        "at": 1795030067.1927054,
+        "duration": 0.011061860000040724,
+        "id": "5ac99f0741e949e7857b919974623fa7",
+        "input_bytes": 3013,
+        "input_hash": "cdcede60cc95831c5249099a31ad158e920ca7f85fbc60c46ceee1004064f3ab",
+        "response_bytes": 424,
+        "role": "Testing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "d63bf98154b641fe843a7b2a6ea44e0b",
+        "at": 1795030067.3838437,
+        "duration": 0.010982795000018086,
+        "id": "2900c66858214a2ba182626bd67f384a",
+        "input_bytes": 4785,
+        "input_hash": "810650bf009cc813e8bd226277d0274a1e25e359b04ede484393296e72b2cb08",
+        "response_bytes": 375,
+        "role": "Testing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "2798979fa6814d7e8ee06f00882f762f",
+        "at": 1795030067.4175813,
+        "duration": 0.008740899000031277,
+        "id": "226d76390b3d4b499262592bbe0e4e67",
+        "input_bytes": 3829,
+        "input_hash": "323475f388b87ded832f9722d864291f7f5e0e6eace2324bac851f0904cdf167",
+        "response_bytes": 938,
+        "role": "Reviewing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "2798979fa6814d7e8ee06f00882f762f",
+        "at": 1795030067.532658,
+        "duration": 0.009745006000002832,
+        "id": "a4eb975e00064ddd970ac257aafa8cc7",
+        "input_bytes": 7576,
+        "input_hash": "e0625986d0ba726c68ac37d9b44c8162e0248442975acad89ba60838ccbe7f86",
+        "response_bytes": 512,
+        "role": "Reviewing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "2798979fa6814d7e8ee06f00882f762f",
+        "at": 1795030067.5754707,
+        "duration": 0.009172581000029822,
+        "id": "9356056a7e04428ca04d0791f804dde8",
+        "input_bytes": 8349,
+        "input_hash": "4533b9677e0a97f3c489178eca92912c3f892761f48b3ea0308788322530d01a",
+        "response_bytes": 375,
+        "role": "Reviewing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "e08acb3dd7854f7483af474cfbde1f67",
+        "at": 1795030067.6018107,
+        "duration": 0.00997640399998545,
+        "id": "4788cffc59e54870956bb21b92d8f5c7",
+        "input_bytes": 8167,
+        "input_hash": "fc828142559cfb1f106efa309b7ea19e15bd9c1d3b74073b4292aa1c6a3c3c6f",
+        "response_bytes": 375,
+        "role": "Main",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      }
+    ],
+    "shared_history": [],
+    "source": {
+      "Feature.cs": "dfe3c0c3baa5940daa02cd9871322e2fce6610693b6789cf564efc8b9d696e8f",
+      "Large.cs": "690d2b3e29a0f655a5f05ee4d4e2322e2b0d2763108161ff99f96fe018088ad1",
+      "Project.csproj": "1760dd450403df3d97942fe570a81c71ea2a934018dae57cbf52bbcafa484601",
+      "build.py": "17055a15028e2d594ca39972059fd69e7d07510e28d01869f142846b3cda501c",
+      "test_feature.py": "f078edafa87034de45e527364c5569a1d39fa22c1c08abcc5ae6734e9bdaf210"
+    },
+    "started": 1795030066.8198667,
+    "status": "failed",
+    "task": {
+      "existing_test_edits": [],
+      "goal": "Synthetic controlled source change and verification.",
+      "initial_source": {
+        "Feature.cs": "b1a9c3c8b9bf903ae0ee0a104e31616619eae02d85355cf81e4e4c8052043da7",
+        "Large.cs": "690d2b3e29a0f655a5f05ee4d4e2322e2b0d2763108161ff99f96fe018088ad1",
+        "Project.csproj": "1760dd450403df3d97942fe570a81c71ea2a934018dae57cbf52bbcafa484601",
+        "build.py": "17055a15028e2d594ca39972059fd69e7d07510e28d01869f142846b3cda501c",
+        "test_feature.py": "f078edafa87034de45e527364c5569a1d39fa22c1c08abcc5ae6734e9bdaf210"
+      },
+      "kind": "coding",
+      "recipes": [
+        "build",
+        "test"
+      ],
+      "version": 1,
+      "writable": [
+        "Feature.cs"
+      ]
+    },
+    "tool_calls": 14,
+    "usage_evidence": "test-double",
+    "version": 1
+  },
+  "metrics": {
+    "version": 1,
+    "mode": "multi",
+    "process_attempt_details": [
+      {
+        "action": "3c8e23ddf9347108853a5db6c823d82955f595266ce87f8272c4310b9ea74ecd",
+        "role": "Building",
+        "prior_unknown": [],
+        "current": {
+          "descendants_stopped": true,
+          "duration": 0.03422853500001111,
+          "log_bytes": 30,
+          "observed_log_bytes": 30,
+          "reason": null,
+          "returncode": 0,
+          "truncated": false
+        },
+        "spec": {
+          "argv": [
+            "/workspace/Knowledge-/.venv/bin/python",
+            "build.py"
+          ],
+          "cwd": "/tmp/p4-evaluation-s7l19hpm/P3failure0",
+          "log": "/tmp/p4-evaluation-s7l19hpm/P3failure0/.harness/artifacts/9932bedf83d24b7b9b6c6a50a7cae595/3c8e23ddf9347108853a5db6c823d82955f595266ce87f8272c4310b9ea74ecd/0/process.log",
+          "log_bytes": 20000,
+          "timeout": 60
+        }
+      },
+      {
+        "action": "78d26f3940fd8569cf56543ecd893f3524a6715f9d1269affaf3746f40d08db6",
+        "role": "Testing",
+        "prior_unknown": [],
+        "current": {
+          "descendants_stopped": true,
+          "duration": 0.08204183199995896,
+          "log_bytes": 749,
+          "observed_log_bytes": 749,
+          "reason": null,
+          "returncode": 1,
+          "truncated": false
+        },
+        "spec": {
+          "argv": [
+            "/workspace/Knowledge-/.venv/bin/python",
+            "test_feature.py"
+          ],
+          "cwd": "/tmp/p4-evaluation-s7l19hpm/P3failure0",
+          "log": "/tmp/p4-evaluation-s7l19hpm/P3failure0/.harness/artifacts/9932bedf83d24b7b9b6c6a50a7cae595/78d26f3940fd8569cf56543ecd893f3524a6715f9d1269affaf3746f40d08db6/0/process.log",
+          "log_bytes": 20000,
+          "timeout": 60
+        }
+      }
+    ],
+    "unknown_process_attempts": 0,
+    "attempts": [
+      {
+        "agent": "e08acb3dd7854f7483af474cfbde1f67",
+        "at": 1795030066.837554,
+        "duration": 0.014073456000005535,
+        "id": "da18aec632c04db38d9cb5a0116919d8",
+        "input_bytes": 3322,
+        "input_hash": "760168d2ae7ba7e4a989d0888c83cf7b21195616d71f80bfbc09a697e1d05ebe",
+        "response_bytes": 1156,
+        "role": "Main",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "355056008666433ea81adab9cabc0358",
+        "at": 1795030066.872656,
+        "duration": 0.008963821999941501,
+        "id": "f994f1ac120a42f585dee14c712d843c",
+        "input_bytes": 2748,
+        "input_hash": "de92109e87615b355589a399282915b38bae1aa67343f9601d739efb35184fef",
+        "response_bytes": 433,
+        "role": "Planning",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "bbfc820f23634a578ab4f5556464db3a",
+        "at": 1795030066.9003413,
+        "duration": 0.0075176489999648766,
+        "id": "55233b93f4414165bf0a67124eaee8cc",
+        "input_bytes": 3194,
+        "input_hash": "9b5271c36bf449b8cf4f4448b2070b3b629cff7e5a3391f82110c229544a9cf1",
+        "response_bytes": 428,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "bbfc820f23634a578ab4f5556464db3a",
+        "at": 1795030066.9408526,
+        "duration": 0.00757799099994827,
+        "id": "49831f7c761f47dc89c366efc7c7b502",
+        "input_bytes": 3580,
+        "input_hash": "b046682b1aa4cb1be7f5c232ff32669463cecc1bc34840965e0deafde16fce65",
+        "response_bytes": 575,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "bbfc820f23634a578ab4f5556464db3a",
+        "at": 1795030066.9808538,
+        "duration": 0.008378177999929903,
+        "id": "686e502b64b04064a81afa9f854ea22e",
+        "input_bytes": 4059,
+        "input_hash": "bc5179b075d6c05db121280a11562f6cf84bc2c34f572f7409181cf729ab9e62",
+        "response_bytes": 375,
+        "role": "Coding",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "ea2e73414e374de682256e2b8cbafc7c",
+        "at": 1795030067.0084903,
+        "duration": 0.007821088000014242,
+        "id": "43bb1ba456404846a47aed4c58a897f0",
+        "input_bytes": 2816,
+        "input_hash": "e0dfdfbbb8791151e0cbafb8ec1ab72abc97396b7b9e76ed426433e06f7b1ab2",
+        "response_bytes": 425,
+        "role": "Building",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "ea2e73414e374de682256e2b8cbafc7c",
+        "at": 1795030067.1534457,
+        "duration": 0.007797020999987581,
+        "id": "9d3a7d2055fc43f3ab98e0e8c2cb14ea",
+        "input_bytes": 3813,
+        "input_hash": "771959f6b6703361fa0964ebdbd578105243f9fcdfebe3743271ebb9c6897483",
+        "response_bytes": 375,
+        "role": "Building",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "d63bf98154b641fe843a7b2a6ea44e0b",
+        "at": 1795030067.1927054,
+        "duration": 0.011061860000040724,
+        "id": "5ac99f0741e949e7857b919974623fa7",
+        "input_bytes": 3013,
+        "input_hash": "cdcede60cc95831c5249099a31ad158e920ca7f85fbc60c46ceee1004064f3ab",
+        "response_bytes": 424,
+        "role": "Testing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "d63bf98154b641fe843a7b2a6ea44e0b",
+        "at": 1795030067.3838437,
+        "duration": 0.010982795000018086,
+        "id": "2900c66858214a2ba182626bd67f384a",
+        "input_bytes": 4785,
+        "input_hash": "810650bf009cc813e8bd226277d0274a1e25e359b04ede484393296e72b2cb08",
+        "response_bytes": 375,
+        "role": "Testing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "2798979fa6814d7e8ee06f00882f762f",
+        "at": 1795030067.4175813,
+        "duration": 0.008740899000031277,
+        "id": "226d76390b3d4b499262592bbe0e4e67",
+        "input_bytes": 3829,
+        "input_hash": "323475f388b87ded832f9722d864291f7f5e0e6eace2324bac851f0904cdf167",
+        "response_bytes": 938,
+        "role": "Reviewing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "2798979fa6814d7e8ee06f00882f762f",
+        "at": 1795030067.532658,
+        "duration": 0.009745006000002832,
+        "id": "a4eb975e00064ddd970ac257aafa8cc7",
+        "input_bytes": 7576,
+        "input_hash": "e0625986d0ba726c68ac37d9b44c8162e0248442975acad89ba60838ccbe7f86",
+        "response_bytes": 512,
+        "role": "Reviewing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "2798979fa6814d7e8ee06f00882f762f",
+        "at": 1795030067.5754707,
+        "duration": 0.009172581000029822,
+        "id": "9356056a7e04428ca04d0791f804dde8",
+        "input_bytes": 8349,
+        "input_hash": "4533b9677e0a97f3c489178eca92912c3f892761f48b3ea0308788322530d01a",
+        "response_bytes": 375,
+        "role": "Reviewing",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      },
+      {
+        "agent": "e08acb3dd7854f7483af474cfbde1f67",
+        "at": 1795030067.6018107,
+        "duration": 0.00997640399998545,
+        "id": "4788cffc59e54870956bb21b92d8f5c7",
+        "input_bytes": 8167,
+        "input_hash": "fc828142559cfb1f106efa309b7ea19e15bd9c1d3b74073b4292aa1c6a3c3c6f",
+        "response_bytes": 375,
+        "role": "Main",
+        "state": "responded",
+        "usage": {
+          "cached_input": 3,
+          "coverage": "reported",
+          "input": 11,
+          "output": 7,
+          "raw": {
+            "completion_tokens": 7,
+            "completion_tokens_details": {
+              "reasoning_tokens": 2
+            },
+            "prompt_tokens": 11,
+            "prompt_tokens_details": {
+              "cached_tokens": 3
+            },
+            "total_tokens": 18
+          },
+          "reasoning_output": 2,
+          "total": 18
+        }
+      }
+    ],
+    "tool_durations": [
+      {
+        "action": "039764df8740ba31e4a09a5719643baa638747ee48600ac3798ed9d5358ce95b",
+        "role": "Coding",
+        "seconds": 0.0026357173919677734,
+        "state": "FINISHED"
+      },
+      {
+        "action": "0cddf14c934c1f0a2d94cb7991786895ed88846af7dba2a1d235c8b1f28e990b",
+        "role": "Reviewing",
+        "seconds": 0.0030646324157714844,
+        "state": "FINISHED"
+      },
+      {
+        "action": "2a3c8ad79cb7482595999f2ca9b643606b4ecbf92454c33381b843b262a72c75",
+        "role": "Coding",
+        "seconds": 0.007834911346435547,
+        "state": "FINISHED"
+      },
+      {
+        "action": "3c8e23ddf9347108853a5db6c823d82955f595266ce87f8272c4310b9ea74ecd",
+        "role": "Building",
+        "seconds": 0.10764670372009277,
+        "state": "FINISHED"
+      },
+      {
+        "action": "77e591b296df47ad0a830699badb24aa822d1911205d7dae866320af5dc59128",
+        "role": "Reviewing",
+        "seconds": 0.00526738166809082,
+        "state": "FINISHED"
+      },
+      {
+        "action": "78d26f3940fd8569cf56543ecd893f3524a6715f9d1269affaf3746f40d08db6",
+        "role": "Testing",
+        "seconds": 0.15715456008911133,
+        "state": "FINISHED"
+      },
+      {
+        "action": "b2c8e53ba6d65ed4e3c1d0949d7b442c6c6dbda85922290dc9e14f2a67186145",
+        "role": "Reviewing",
+        "seconds": 0.027921438217163086,
+        "state": "FINISHED"
+      },
+      {
+        "action": "fcad7fc12c72b499fb5b998ebaee8198cc789b8000cfc2ef45515e727461756b",
+        "role": "Reviewing",
+        "seconds": 0.004461765289306641,
+        "state": "FINISHED"
+      },
+      {
+        "action": "fee42cbd79d89f02a640c883ce2dea77ad04a1a44322a6ac3f8a658f8e0e3351",
+        "role": "Reviewing",
+        "seconds": 0.00632166862487793,
+        "state": "FINISHED"
+      }
+    ],
+    "lease_wait_seconds": 0.0017119149999871297,
+    "roles": [
+      {
+        "finished": 1795030067.6297038,
+        "id": "e08acb3dd7854f7483af474cfbde1f67",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": null,
+        "provider_requests": 2,
+        "role": "Main",
+        "started": 1795030066.820342,
+        "status": "done",
+        "requests": 2,
+        "reported_tokens": 36,
+        "unknown_usage_requests": 0,
+        "input_tokens": 22,
+        "output_tokens": 14,
+        "provider_seconds": 0.024049859999990986,
+        "tool_actions": 0,
+        "process_seconds": 0,
+        "input_bytes": 11489
+      },
+      {
+        "finished": 1795030066.8891852,
+        "id": "355056008666433ea81adab9cabc0358",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "e08acb3dd7854f7483af474cfbde1f67",
+        "provider_requests": 1,
+        "role": "Planning",
+        "started": 1795030066.8656895,
+        "status": "done",
+        "requests": 1,
+        "reported_tokens": 18,
+        "unknown_usage_requests": 0,
+        "input_tokens": 11,
+        "output_tokens": 7,
+        "provider_seconds": 0.008963821999941501,
+        "tool_actions": 0,
+        "process_seconds": 0,
+        "input_bytes": 2748
+      },
+      {
+        "finished": 1795030066.9967203,
+        "id": "bbfc820f23634a578ab4f5556464db3a",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "e08acb3dd7854f7483af474cfbde1f67",
+        "provider_requests": 3,
+        "role": "Coding",
+        "started": 1795030066.8938506,
+        "status": "done",
+        "requests": 3,
+        "reported_tokens": 54,
+        "unknown_usage_requests": 0,
+        "input_tokens": 33,
+        "output_tokens": 21,
+        "provider_seconds": 0.02347381799984305,
+        "tool_actions": 2,
+        "process_seconds": 0,
+        "input_bytes": 10833
+      },
+      {
+        "finished": 1795030067.173783,
+        "id": "ea2e73414e374de682256e2b8cbafc7c",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "e08acb3dd7854f7483af474cfbde1f67",
+        "provider_requests": 2,
+        "role": "Building",
+        "started": 1795030067.0010421,
+        "status": "done",
+        "requests": 2,
+        "reported_tokens": 36,
+        "unknown_usage_requests": 0,
+        "input_tokens": 22,
+        "output_tokens": 14,
+        "provider_seconds": 0.015618109000001823,
+        "tool_actions": 1,
+        "process_seconds": 0.03422853500001111,
+        "input_bytes": 6629
+      },
+      {
+        "finished": 1795030067.4046082,
+        "id": "d63bf98154b641fe843a7b2a6ea44e0b",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "e08acb3dd7854f7483af474cfbde1f67",
+        "provider_requests": 2,
+        "role": "Testing",
+        "started": 1795030067.1807203,
+        "status": "done",
+        "requests": 2,
+        "reported_tokens": 36,
+        "unknown_usage_requests": 0,
+        "input_tokens": 22,
+        "output_tokens": 14,
+        "provider_seconds": 0.02204465500005881,
+        "tool_actions": 1,
+        "process_seconds": 0.08204183199995896,
+        "input_bytes": 7798
+      },
+      {
+        "finished": 1795030067.5916486,
+        "id": "2798979fa6814d7e8ee06f00882f762f",
+        "knowledge_available": true,
+        "knowledge_reason": null,
+        "parent": "e08acb3dd7854f7483af474cfbde1f67",
+        "provider_requests": 3,
+        "role": "Reviewing",
+        "started": 1795030067.410932,
+        "status": "done",
+        "requests": 3,
+        "reported_tokens": 54,
+        "unknown_usage_requests": 0,
+        "input_tokens": 33,
+        "output_tokens": 21,
+        "provider_seconds": 0.02765848600006393,
+        "tool_actions": 5,
+        "process_seconds": 0,
+        "input_bytes": 19754
+      }
+    ],
+    "requests": 13,
+    "reported_tokens": 234,
+    "unknown_usage_requests": 0,
+    "usage_evidence": "test-double",
+    "wall_seconds": 0.8136975765228271,
+    "provider_seconds": 0.1218087499999001,
+    "process_seconds": 0.11627036699997007,
+    "tool_attempts": 14,
+    "process_attempts": 2,
+    "cost": null,
+    "cost_reason": "no configured monetary rate; no invented zero cost",
+    "performance_benefit": "NOT_ESTABLISHED",
+    "timing_policy": "sequential execution; summed components are not wall elapsed time"
+  }
+}

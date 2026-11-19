@@ -1,3 +1,11 @@
+# Knowledge + Harness — P4 implementation candidate (0.4.0rc3)
+
+New tasks use the task-v2 bounded pipeline in [P4 usage](docs/P4/USAGE.md) and [the P4 example](examples/p4/task.json). Main coordinates sequential Coding items, build/test run as trusted runtime recipes, and independent Reviewing remains mandatory. Task-v1 inputs retain the accepted legacy policy.
+
+Build with Python 3.12: `python scripts/setup_p3.py`, then `.venv/bin/python scripts/build_p4.py --output .local/p4-release`. Verify the installed product with `.venv/bin/python scripts/verify_p4.py`. Read [P4 acceptance](reports/P4/ACCEPTANCE-MATRIX.md) before adoption; native qualification and live-model results remain separate.
+
+## Retained P3 and historical documentation
+
 # Knowledge + Harness — P3 release candidate
 
 Version 0.3.0rc1 provides independent Knowledge, controlled Harness execution, a portable offline core install kit, native Windows backend, exact-approved lifecycle tooling and a project-local OpenCode v2 companion. Start with [START-HERE](START-HERE.md), [operational docs](docs/P3/INSTALL.md) and current [qualification evidence](reports/P3/QUALIFICATION.json). Native Windows requires actual matched CI/NTFS/PowerShell evidence; a source workflow does not qualify it. Publication and production migration remain user-controlled.
