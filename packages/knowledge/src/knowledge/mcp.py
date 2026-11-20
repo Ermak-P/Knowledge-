@@ -5,7 +5,7 @@ from .util import KnowledgeError, canonical_json
 from mcp.types import CallToolResult, TextContent
 
 
-def create_server(root):
+def create_server(root,shared_root=None):
     from mcp.server.fastmcp import FastMCP
     server=FastMCP('knowledge')
     store=Store(root)
@@ -13,8 +13,16 @@ def create_server(root):
     def call(fn, *args, **kwargs):
         try:
             return fn(*args,**kwargs)
-        except KnowledgeError as e:
-            return {'ok':False,'error':e.code,'details':e.details}
+        except (KnowledgeError,OSError,ValueError,TypeError) as e:
+            return {'ok':False,'error':getattr(e,'code','memory-or-filesystem-error'),'details':getattr(e,'details',None)}
+
+    @server.tool()
+    def knowledge_instructions(tool:str,name:str,max_bytes:int=12000,environment:dict|None=None)->CallToolResult:
+        """Read applicable operational instructions; never creates user authority."""
+        from .operations import lookup
+        import platform
+        value=call(lookup,root,{'tool':tool,'name':name},{'machine':platform.node(),'os':__import__('sys').platform,**(environment or {})},shared=shared_root,max_bytes=max_bytes)
+        return CallToolResult(content=[TextContent(type='text',text=canonical_json(value))])
 
     @server.tool()
     def knowledge_context(task:str,max_bytes:int=16000,max_items:int=10,include_unconfirmed:bool=False)->CallToolResult:
@@ -49,8 +57,9 @@ def create_server(root):
 def main():
     p=argparse.ArgumentParser()
     p.add_argument('--root',required=True)
+    p.add_argument('--shared-root')
     args=p.parse_args()
-    create_server(args.root).run(transport='stdio')
+    create_server(args.root,args.shared_root).run(transport='stdio')
 
 
 if __name__=='__main__':

@@ -33,7 +33,7 @@ def task_shape(task,configuration,*,p4_base=False):
     else:require(not task['writable'] and not task['recipes'],'read-only-task-has-write-authority')
 
 
-def start(root,task,mode='multi',*,entry_authority=None):
+def start(root,task,mode='multi',*,entry_authority=None,current_restrictions=None,host_session=None):
     task=deepcopy(task);entry_authority=deepcopy(entry_authority)
     journal=Journal(root)
     require(mode in ('multi','single'),'invalid-execution-mode')
@@ -46,6 +46,12 @@ def start(root,task,mode='multi',*,entry_authority=None):
         task=deepcopy(task);task['initial_source']=source
         run=dict(version=1,id=uuid.uuid4().hex,project=journal.project.identity,started=stamp(),status='running',execution='pending',capture={'state':'not-started'},
                  task=task,config_hash=digest(configuration),mode=mode,source=source,gates={},agents=[],frames=[],shared_history=[],requests=[],delegations=0,tool_calls=0,protected_paths=[],capture_prepared=False)
+        if current_restrictions:
+            require(isinstance(current_restrictions,list) and set(current_restrictions)<={'no-service-start'},'invalid-current-restriction')
+            run['current_restrictions']=deepcopy(current_restrictions)
+        if host_session:
+            from .host_ingress import read_session
+            read_session(root,host_session);run['host_session']=host_session
         from .testing import initialize as initialize_tests
         initialize_tests(journal.project,configuration,run)
         run['protected_paths'],run['protected_executables']=recipe_inputs(journal.project,configuration,task)

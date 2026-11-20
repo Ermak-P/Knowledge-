@@ -11,6 +11,7 @@ def main():
     parser=argparse.ArgumentParser(description='Controlled Harness execution')
     parser.add_argument('command',choices=['version','doctor','discover-tests','configure','validate-config','run','status','resume','cancel','capture-status','capture-retry','metrics','compare'])
     parser.add_argument('--output',type=Path);parser.add_argument('--root',required=True);parser.add_argument('--input',type=Path);parser.add_argument('--run-id');parser.add_argument('--mode',choices=['multi','single'],default='multi');parser.add_argument('--init-knowledge',action='store_true')
+    parser.add_argument('--no-service-start',action='store_true',help='Current-run restriction; memory cannot override it')
     args=parser.parse_args()
     try:
         if args.command=='version':
@@ -29,7 +30,7 @@ def main():
         elif args.command=='compare':
             from .comparison import compare
             value=compare(args.root,loads(read_text(args.input)),args.output)
-        elif args.command=='run':value=start(args.root,loads(read_text(args.input)),args.mode)
+        elif args.command=='run':value=start(args.root,loads(read_text(args.input)),args.mode,current_restrictions=['no-service-start'] if args.no_service_start else None)
         elif args.command=='resume':value=resume(args.root,args.run_id)
         elif args.command=='capture-retry':value=capture_retry(args.root,args.run_id)
         elif args.command=='cancel':Journal(args.root).cancel(args.run_id);value={'ok':True,'run_id':args.run_id,'cancellation_requested':True}

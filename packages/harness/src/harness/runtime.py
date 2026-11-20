@@ -192,7 +192,10 @@ def config(root):
 
 
 def validate_config(value):
-    require(isinstance(value,dict) and {'version','provider','recipes','limits','capture'}<=set(value)<=({'version','provider','recipes','limits','capture','dotnet'} if value.get('version')==2 else {'version','provider','recipes','limits','capture'}),'invalid-runner-config')
+    require(isinstance(value,dict) and {'version','provider','recipes','limits','capture'}<=set(value)<=({'version','provider','recipes','limits','capture','dotnet','memory'} if value.get('version')==2 else {'version','provider','recipes','limits','capture','memory'}),'invalid-runner-config')
+    if 'memory' in value:
+        from .instructions import validate_policy
+        validate_policy(value['memory'])
     require(type(value['version']) is int and value['version'] in (1,2),'unsupported-runner-config')
     if 'dotnet' in value:require(isinstance(value['dotnet'],str),'invalid-shared-dotnet-executable')
     provider=value['provider']
@@ -289,4 +292,17 @@ def recipe_inputs(project,configuration,task):
                     module='/'.join(parts)
                     include(module+'.py');include(module+'/__main__.py')
                     for i in range(1,len(parts)+1):include('/'.join(parts[:i])+'/__init__.py')
+    for procedure in configuration.get('memory',{}).get('allowed_procedures',[]):
+        argv=procedure['check']['argv']
+        for index,arg in enumerate(argv):include(arg,index==0)
+        if '-m' in argv:
+            index=argv.index('-m')
+            if index+1<len(argv):
+                parts=argv[index+1].split('.')
+                if all(part.isidentifier() for part in parts):
+                    module='/'.join(parts);include(module+'.py');include(module+'/__main__.py')
+                    for i in range(1,len(parts)+1):include('/'.join(parts[:i])+'/__init__.py')
+        if 'docker' in procedure:
+            include(procedure['docker']['executable'],True)
+            if 'compose_file' in procedure['docker']:include(procedure['docker']['compose_file'])
     return sorted(paths),sorted(executables)

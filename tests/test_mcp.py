@@ -25,7 +25,7 @@ class McpTests(unittest.IsolatedAsyncioTestCase):
                     async with ClientSession(reader,writer,read_timeout_seconds=timedelta(seconds=120)) as session:
                         await session.initialize()
                         tools=await session.list_tools()
-                        self.assertEqual({t.name for t in tools.tools},{'knowledge_context','knowledge_get_claim','knowledge_get_evidence'})
+                        self.assertEqual({t.name for t in tools.tools},{'knowledge_context','knowledge_get_claim','knowledge_get_evidence','knowledge_instructions'})
                         for tool,kind,identifier in [('knowledge_get_claim','claims',f'synthetic.root{i}'),('knowledge_get_evidence','evidence',f'evidence.synthetic.root{i}')]:
                             r=await session.call_tool(tool,{'identifier':identifier})
                             self.assertFalse(r.isError);self.assertEqual(loads(r.content[0].text),Store(root).lookup(kind,identifier))
