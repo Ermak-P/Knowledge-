@@ -101,12 +101,27 @@ def inventory(root,base=None,head=None):
 
             except (OSError,UnicodeError,ValueError):
                 files[rel]={'hash':None,'status':'blocked','partition':'.','reason':'unreadable, non-UTF8 or oversized source'}
-    projects=[p for p in files if p.endswith('.csproj')]
+    # Resolve nearest projects by lexical directory ancestry. The old nested
+    # scan compared every source with every project, repeatedly constructing
+    # Paths, which becomes quadratic in large multi-project repositories.
+    projects_by_directory={}
+    for path in files:
+        if path.endswith('.csproj'):
+            projects_by_directory.setdefault(Path(path).parent,[]).append(path)
+    for projects in projects_by_directory.values():
+        projects.sort()
+    nearest_by_directory={}
     for p,item in files.items():
-        ancestors=[proj for proj in projects if Path(proj).parent==Path(p).parent or Path(proj).parent in Path(p).parents]
-        if ancestors:
-            depth=max(len(Path(proj).parent.parts) for proj in ancestors)
-            nearest=sorted(proj for proj in ancestors if len(Path(proj).parent.parts)==depth)
+        directory=Path(p).parent
+        if directory not in nearest_by_directory:
+            nearest=[]
+            for parent in (directory,*directory.parents):
+                if parent in projects_by_directory:
+                    nearest=projects_by_directory[parent]
+                    break
+            nearest_by_directory[directory]=nearest
+        nearest=nearest_by_directory[directory]
+        if nearest:
             item['partition']=p if p.endswith('.csproj') else nearest[0]
             item['partition_ambiguous']=not p.endswith('.csproj') and len(nearest)>1
     revision=git(root,'rev-parse','--verify','HEAD')
