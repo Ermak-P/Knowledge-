@@ -1,0 +1,202 @@
+{
+  "status": "PASS",
+  "source_identity": "21d019dd709528da0dbc0ff18e215c93cd741287d26d4f54f214aba77dd68d67",
+  "product": "0.5.0rc1",
+  "zip_sha256": "654060c2bffb3741e8a27acc9e8aa8c7069b06421d38a0e5b7bd9f4f7a63d45f",
+  "outside_checkout": true,
+  "staging_removed": true,
+  "profiles": [
+    "knowledge",
+    "full"
+  ],
+  "files_resolved": [
+    "docs/USAGE.md",
+    "examples/runner.json",
+    "examples/task.json",
+    "examples/configure.py",
+    "examples/controlled_provider.py",
+    "examples/demo/Feature.cs",
+    "examples/demo/Program.cs",
+    "examples/demo/Project.csproj",
+    "examples/demo/global.json",
+    "examples/demo/tests/DemoTests.csproj",
+    "examples/demo/tests/Behavior.cs",
+    "install.py",
+    "optional-mcp.lock"
+  ],
+  "http_requests": 9,
+  "process_attempts": 4,
+  "compiled_regression_passed": 1,
+  "independent_review": "approve",
+  "capture": {
+    "outbox": [
+      "100b83876f9a7a8b8ec8ca30386e6608945f3aa47e8101bc4f22f08d0d2f9b12"
+    ],
+    "state": "delivered"
+  },
+  "canonical_claims": 0,
+  "commands": [
+    {
+      "label": "install-knowledge",
+      "argv": [
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\p4-installed-fcbonnm6\\runtime\\Scripts\\python.exe",
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\transferred\\install.py",
+        "install",
+        "--env",
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\knowledge-only",
+        "--profile",
+        "knowledge"
+      ],
+      "returncode": 0,
+      "log": "install-knowledge.log"
+    },
+    {
+      "label": "independent",
+      "argv": [
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\knowledge-only\\Scripts\\python.exe",
+        "-I",
+        "-c",
+        "import knowledge,importlib.util;assert importlib.util.find_spec(\"harness\") is None;assert importlib.util.find_spec(\"mcp\") is None;print(knowledge.__version__)"
+      ],
+      "returncode": 0,
+      "log": "independent.log"
+    },
+    {
+      "label": "install-full",
+      "argv": [
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\p4-installed-fcbonnm6\\runtime\\Scripts\\python.exe",
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\transferred\\install.py",
+        "install",
+        "--env",
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\full",
+        "--profile",
+        "full"
+      ],
+      "returncode": 0,
+      "log": "install-full.log"
+    },
+    {
+      "label": "installed-imports",
+      "argv": [
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\full\\Scripts\\python.exe",
+        "-I",
+        "-c",
+        "import harness,knowledge,sys;from pathlib import Path;assert all(Path(m.__file__).is_relative_to(Path(sys.prefix)) for m in (harness,knowledge));print(harness.__file__,knowledge.__file__)"
+      ],
+      "returncode": 0,
+      "log": "installed-imports.log"
+    },
+    {
+      "label": "after-staging-removal",
+      "argv": [
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\full\\Scripts\\python.exe",
+        "-I",
+        "-m",
+        "harness.run_cli",
+        "version",
+        "--root",
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\disposable-demo"
+      ],
+      "returncode": 0,
+      "log": "after-staging-removal.log"
+    },
+    {
+      "label": "sdk-version",
+      "argv": [
+        "C:\\Program Files\\dotnet\\dotnet.EXE",
+        "--version"
+      ],
+      "returncode": 0,
+      "log": "sdk-version.log"
+    },
+    {
+      "label": "restore",
+      "argv": [
+        "C:\\Program Files\\dotnet\\dotnet.EXE",
+        "restore",
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\disposable-demo\\Project.csproj",
+        "--disable-parallel"
+      ],
+      "returncode": 0,
+      "log": "restore.log"
+    },
+    {
+      "label": "adapt-template",
+      "argv": [
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\full\\Scripts\\python.exe",
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\shipped-examples\\configure.py",
+        "--dotnet",
+        "C:\\Program Files\\dotnet\\dotnet.EXE",
+        "--endpoint",
+        "http://127.0.0.1:50295/v1/chat/completions",
+        "--output",
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\runner.json"
+      ],
+      "returncode": 0,
+      "log": "adapt-template.log"
+    },
+    {
+      "label": "configure",
+      "argv": [
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\full\\Scripts\\python.exe",
+        "-I",
+        "-m",
+        "harness.run_cli",
+        "configure",
+        "--root",
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\disposable-demo",
+        "--input",
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\runner.json",
+        "--init-knowledge"
+      ],
+      "returncode": 0,
+      "log": "configure.log"
+    },
+    {
+      "label": "run",
+      "argv": [
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\full\\Scripts\\python.exe",
+        "-I",
+        "-m",
+        "harness.run_cli",
+        "run",
+        "--root",
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\disposable-demo",
+        "--input",
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\shipped-examples\\task.json"
+      ],
+      "returncode": 0,
+      "log": "run.log"
+    },
+    {
+      "label": "status",
+      "argv": [
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\full\\Scripts\\python.exe",
+        "-I",
+        "-m",
+        "harness.run_cli",
+        "status",
+        "--root",
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\disposable-demo",
+        "--run-id",
+        "5d4ef0f1c27241fb8c796c593ff8f182"
+      ],
+      "returncode": 0,
+      "log": "status.log"
+    },
+    {
+      "label": "candidates",
+      "argv": [
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\full\\Scripts\\python.exe",
+        "-I",
+        "-m",
+        "knowledge.cli",
+        "export",
+        "--root",
+        "D:\\a\\_temp\\knowledge-p4-native-fixtures\\integrated-first-use-705qrosg\\disposable-demo"
+      ],
+      "returncode": 0,
+      "log": "candidates.log"
+    }
+  ]
+}
