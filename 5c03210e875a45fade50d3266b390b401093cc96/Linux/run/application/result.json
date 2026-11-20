@@ -1,0 +1,61 @@
+{
+  "status": "PASS",
+  "product": "0.5.0rc1",
+  "pin": "0c2c95d9d450d07fcd4e96e95e1cd48c20834e99",
+  "baseline_tests": 49,
+  "final_tests": 50,
+  "regression_failed_before_repair": true,
+  "existing_tests_preserved": true,
+  "canonical_claims": 0,
+  "capture": {
+    "outbox": [
+      "d96cb03634c52316b0e7e362548617c707ef3bec1b761afa54be317578d414be",
+      "4f6d5a59c0324906fddd362d7ae9e2863e18b92fed60c010f93bb4c542b93c32"
+    ],
+    "state": "delivered"
+  },
+  "source": "25abbbc18318f7bc46149d915ef271113c6b18163a18aa2b97df619ff7a0a4c8",
+  "commands": [
+    {
+      "label": "restore",
+      "argv": [
+        "/usr/share/dotnet/dotnet",
+        "restore",
+        "tests/UnitTests/UnitTests.csproj",
+        "--disable-parallel",
+        "-m:1"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "baseline-build",
+      "argv": [
+        "/usr/share/dotnet/dotnet",
+        "build",
+        "tests/UnitTests/UnitTests.csproj",
+        "--no-restore",
+        "-m:1",
+        "-p:UseSharedCompilation=false",
+        "-p:LibraryRestore=false"
+      ],
+      "returncode": 0
+    },
+    {
+      "label": "baseline-test",
+      "argv": [
+        "/usr/share/dotnet/dotnet",
+        "test",
+        "tests/UnitTests/UnitTests.csproj",
+        "--no-build",
+        "--no-restore",
+        "-m:1",
+        "--logger",
+        "trx;LogFileName=baseline.trx",
+        "--results-directory",
+        "/home/runner/work/Knowledge-/Knowledge-/reports/P4/runs/40f27a0f02ab4dc7a49eafa1a83244fc/application"
+      ],
+      "returncode": 0
+    }
+  ],
+  "provider": "synthetic HTTP decisions; real SDK, source, TRX and capture"
+}
