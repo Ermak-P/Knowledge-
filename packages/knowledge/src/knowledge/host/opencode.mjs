@@ -11,6 +11,7 @@ export default async function KnowledgeInstructions({ directory, client }, optio
   const toast = async body => { try { await client.tui.showToast({ body }); } catch { /* CLI may have no TUI; the durable receipt remains in parts. */ } };
   const call = (module, args, value) => new Promise((resolve, reject) => {
     const proc = spawn(settings.python, ["-I", "-m", module, ...args, "--root", directory], { shell: false, windowsHide: true });
+    proc.stdout.setEncoding("utf8");proc.stderr.setEncoding("utf8");
     let out = "", err = "";
     const timer = setTimeout(() => { proc.kill(); reject(new Error("Knowledge ingress deadline; save outcome unknown, inspect before retry")); }, 15000);
     proc.stdout.on("data", b => { out += b; if (out.length > 65536) proc.kill(); });

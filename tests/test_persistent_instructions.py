@@ -36,7 +36,7 @@ def worker(root,**request):
 
 
 def ingress(root,text,message_id='m1',session='teaching'):
-    p=subprocess.run([sys.executable,'-I','-m','harness.host_ingress','--root',str(root)],input=json.dumps({'text':text,'message_id':message_id,'session_id':session}),text=True,capture_output=True,timeout=10)
+    p=subprocess.run([sys.executable,'-I','-m','harness.host_ingress','--root',str(root)],input=json.dumps({'text':text,'message_id':message_id,'session_id':session},ensure_ascii=False),encoding='utf-8',capture_output=True,timeout=10)
     return json.loads(p.stdout)
 
 

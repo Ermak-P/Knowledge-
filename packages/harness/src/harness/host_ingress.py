@@ -56,7 +56,7 @@ def message(root,text,session_id,message_id):
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--root',required=True);a=parser.parse_args()
     try:
-        raw=sys.stdin.read(65537);require(len(raw)<=65536,'host-message-too-large');value=loads(raw)
+        raw=sys.stdin.buffer.read(65537).decode('utf-8');require(len(raw.encode('utf-8'))<=65536,'host-message-too-large');value=loads(raw)
         result=message(a.root,value['text'],value['session_id'],value['message_id'])
     except (KnowledgeError,OSError,ValueError,KeyError,TypeError) as error:
         result={'ok':False,'saved':False,'error':getattr(error,'code','host-ingress-error')}

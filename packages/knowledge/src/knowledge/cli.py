@@ -39,7 +39,7 @@ def execute(a):
         if a.command=='memory-inspect':return {'ok':True,**op.OperationalStore(a.root,a.scope,a.shared_root).records()}
         if a.command=='memory-history':return {'ok':True,'history':op.OperationalStore(a.root,a.scope,a.shared_root).history(a.id)}
         if a.command=='memory-retire':return op.retire(a.root,a.id,scope=a.scope,shared=a.shared_root,expected_revision=a.expected_revision)
-        raw=read_text(a.input) if a.input else sys.stdin.read(65537)
+        raw=read_text(a.input) if a.input else sys.stdin.buffer.read(65537).decode('utf-8')
         if len(raw)>65536:raise KnowledgeError('memory-input-too-large')
         value=loads(raw)
         if a.command=='memory-ingest':return op.ingest(a.root,value['text'],value['message_id'],{**value.get('policy',{}),**({'shared_root':a.shared_root} if a.shared_root else {})})
