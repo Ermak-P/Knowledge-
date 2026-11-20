@@ -1,0 +1,369 @@
+{
+  "status": "PASS",
+  "product": "0.5.0rc1",
+  "platform": "win32",
+  "rows": [
+    {
+      "case": "cli",
+      "status": "PASS",
+      "run_id": "7ecd804331c34d9a8e18d53d4ead4319",
+      "source": "216ef6b483e129678c71dba416f997a380f7af1e0832bf42f51fe166e562d7b7",
+      "inventory": "ba3cff8e93c024f29887795bb0f0a68392a0976a9dfd7b619aa775c7b56467e3",
+      "projects": [
+        {
+          "path": "integration/IpmAzureAutotests.csproj",
+          "sha256": "e6bb54ebbbe0bb59c91831bec59354bbea903f931bcaef3f02678aca44556cc1"
+        },
+        {
+          "path": "unconventional/IpmAzureCommon.UnitTests.csproj",
+          "sha256": "095f03eb8f855e0d6a8cf65d41f48f7bb442d6458906ed8bd3a5047682e8c1c9"
+        },
+        {
+          "path": "zz outside solution/\u0422\u0435\u0441\u0442\u044b \u03a9/ZZZTests.csproj",
+          "sha256": "e8c4b1253e9e8fe5e2d73e20cc286708b10e46c8239551a9c26ec7bc1e24f58f"
+        }
+      ],
+      "test_counts": {
+        "executed": 4,
+        "failed": 0,
+        "passed": 4,
+        "skipped": 0
+      },
+      "generations": 2,
+      "unique_trx": 8,
+      "requests": 12,
+      "commands": [
+        {
+          "label": "new-solution",
+          "argv": [
+            "C:\\Program Files\\dotnet\\dotnet.EXE",
+            "new",
+            "sln",
+            "--format",
+            "sln",
+            "--name",
+            "Suite"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "solution-projects",
+          "argv": [
+            "C:\\Program Files\\dotnet\\dotnet.EXE",
+            "sln",
+            "Suite.sln",
+            "add",
+            "src/App/App.csproj",
+            "unconventional/IpmAzureCommon.UnitTests.csproj",
+            "integration/IpmAzureAutotests.csproj"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "configure",
+          "argv": [
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\p4-installed-g1c7iqd8\\runtime\\Scripts\\python.exe",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "configure",
+            "--root",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\auto tests \u03a9 crp4eft6\\project",
+            "--input",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\auto tests \u03a9 crp4eft6\\runner.json",
+            "--init-knowledge"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "inspect",
+          "argv": [
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\p4-installed-g1c7iqd8\\runtime\\Scripts\\python.exe",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "discover-tests",
+            "--root",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\auto tests \u03a9 crp4eft6\\project"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "run",
+          "argv": [
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\p4-installed-g1c7iqd8\\runtime\\Scripts\\python.exe",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "run",
+            "--root",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\auto tests \u03a9 crp4eft6\\project",
+            "--input",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\auto tests \u03a9 crp4eft6\\project\\task.json"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "completed-inventory-drift",
+          "argv": [
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\p4-installed-g1c7iqd8\\runtime\\Scripts\\python.exe",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "resume",
+            "--root",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\auto tests \u03a9 crp4eft6\\project",
+            "--run-id",
+            "7ecd804331c34d9a8e18d53d4ead4319"
+          ],
+          "returncode": 1
+        },
+        {
+          "label": "empty-project-run",
+          "argv": [
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\p4-installed-g1c7iqd8\\runtime\\Scripts\\python.exe",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "run",
+            "--root",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\auto tests \u03a9 crp4eft6\\project",
+            "--input",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\auto tests \u03a9 crp4eft6\\project\\task.json"
+          ],
+          "returncode": 1
+        }
+      ]
+    },
+    {
+      "case": "mcp",
+      "status": "PASS",
+      "run_id": "5b9aa962fcce41cd89e98ef2fa665485",
+      "source": "ff6167afdca81ddb2d0f45fb7becf554dedc68b5a4baad4f62d48482deac543e",
+      "inventory": "c5a14a885780d2188877e2c3885b2de42cbdb5a4c96931268ccaaed150fe436a",
+      "projects": [
+        {
+          "path": "integration/IpmAzureAutotests.csproj",
+          "sha256": "e6bb54ebbbe0bb59c91831bec59354bbea903f931bcaef3f02678aca44556cc1"
+        },
+        {
+          "path": "unconventional/IpmAzureCommon.UnitTests.csproj",
+          "sha256": "e6bb54ebbbe0bb59c91831bec59354bbea903f931bcaef3f02678aca44556cc1"
+        },
+        {
+          "path": "zz outside solution/\u0422\u0435\u0441\u0442\u044b \u03a9/ZZZTests.csproj",
+          "sha256": "e8c4b1253e9e8fe5e2d73e20cc286708b10e46c8239551a9c26ec7bc1e24f58f"
+        }
+      ],
+      "test_counts": {
+        "executed": 3,
+        "failed": 0,
+        "passed": 3,
+        "skipped": 0
+      },
+      "generations": 1,
+      "unique_trx": 3,
+      "requests": 9,
+      "commands": [
+        {
+          "label": "new-solution",
+          "argv": [
+            "C:\\Program Files\\dotnet\\dotnet.EXE",
+            "new",
+            "sln",
+            "--format",
+            "sln",
+            "--name",
+            "Suite"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "solution-projects",
+          "argv": [
+            "C:\\Program Files\\dotnet\\dotnet.EXE",
+            "sln",
+            "Suite.sln",
+            "add",
+            "src/App/App.csproj",
+            "unconventional/IpmAzureCommon.UnitTests.csproj",
+            "integration/IpmAzureAutotests.csproj"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "configure",
+          "argv": [
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\p4-installed-g1c7iqd8\\runtime\\Scripts\\python.exe",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "configure",
+            "--root",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\auto tests \u03a9 mvcofb68\\project",
+            "--input",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\auto tests \u03a9 mvcofb68\\runner.json",
+            "--init-knowledge"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "inspect",
+          "argv": [
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\p4-installed-g1c7iqd8\\runtime\\Scripts\\python.exe",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "discover-tests",
+            "--root",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\auto tests \u03a9 mvcofb68\\project"
+          ],
+          "returncode": 0
+        }
+      ]
+    },
+    {
+      "case": "recovery",
+      "status": "PASS",
+      "run_id": "c00335f95ffb4a238f961a226488bbaa",
+      "source": "0c4f59c627aabbaef2adba57a780f0169fde26e6ad54820a450c9cfe41251f42",
+      "inventory": "8a92696e87d4c7c1c623e99fce73ec23e9289d068b346a44cc2a73333ca033e1",
+      "projects": [
+        {
+          "path": "integration/IpmAzureAutotests.csproj",
+          "sha256": "e6bb54ebbbe0bb59c91831bec59354bbea903f931bcaef3f02678aca44556cc1"
+        },
+        {
+          "path": "unconventional/IpmAzureCommon.UnitTests.csproj",
+          "sha256": "e6bb54ebbbe0bb59c91831bec59354bbea903f931bcaef3f02678aca44556cc1"
+        },
+        {
+          "path": "zz outside solution/\u0422\u0435\u0441\u0442\u044b \u03a9/ZZZTests.csproj",
+          "sha256": "e8c4b1253e9e8fe5e2d73e20cc286708b10e46c8239551a9c26ec7bc1e24f58f"
+        }
+      ],
+      "test_counts": {
+        "executed": 3,
+        "failed": 0,
+        "passed": 3,
+        "skipped": 0
+      },
+      "generations": 1,
+      "unique_trx": 3,
+      "requests": 9,
+      "commands": [
+        {
+          "label": "new-solution",
+          "argv": [
+            "C:\\Program Files\\dotnet\\dotnet.EXE",
+            "new",
+            "sln",
+            "--format",
+            "sln",
+            "--name",
+            "Suite"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "solution-projects",
+          "argv": [
+            "C:\\Program Files\\dotnet\\dotnet.EXE",
+            "sln",
+            "Suite.sln",
+            "add",
+            "src/App/App.csproj",
+            "unconventional/IpmAzureCommon.UnitTests.csproj",
+            "integration/IpmAzureAutotests.csproj"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "configure",
+          "argv": [
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\p4-installed-g1c7iqd8\\runtime\\Scripts\\python.exe",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "configure",
+            "--root",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\auto tests \u03a9 no9ig5bg\\project",
+            "--input",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\auto tests \u03a9 no9ig5bg\\runner.json",
+            "--init-knowledge"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "inspect",
+          "argv": [
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\p4-installed-g1c7iqd8\\runtime\\Scripts\\python.exe",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "discover-tests",
+            "--root",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\auto tests \u03a9 no9ig5bg\\project"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "interrupted",
+          "argv": [
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\p4-installed-g1c7iqd8\\runtime\\Scripts\\python.exe",
+            "-I",
+            "-X",
+            "utf8",
+            "-B",
+            "D:\\a\\Knowledge-\\Knowledge-\\tests\\integrated_cli_worker.py",
+            "--die",
+            "automatic-verifier-receipt",
+            "--",
+            "run",
+            "--root",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\auto tests \u03a9 no9ig5bg\\project",
+            "--input",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\auto tests \u03a9 no9ig5bg\\project\\task.json"
+          ],
+          "returncode": 73
+        },
+        {
+          "label": "drift-resume",
+          "argv": [
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\p4-installed-g1c7iqd8\\runtime\\Scripts\\python.exe",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "resume",
+            "--root",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\auto tests \u03a9 no9ig5bg\\project",
+            "--run-id",
+            "c00335f95ffb4a238f961a226488bbaa"
+          ],
+          "returncode": 1
+        },
+        {
+          "label": "resume-completed",
+          "argv": [
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\p4-installed-g1c7iqd8\\runtime\\Scripts\\python.exe",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "resume",
+            "--root",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\auto tests \u03a9 no9ig5bg\\project",
+            "--run-id",
+            "c00335f95ffb4a238f961a226488bbaa"
+          ],
+          "returncode": 0
+        }
+      ]
+    },
+    {
+      "case": "tamper",
+      "status": "PASS",
+      "error": "automatic-test-artifact-changed",
+      "false_success": false
+    }
+  ]
+}

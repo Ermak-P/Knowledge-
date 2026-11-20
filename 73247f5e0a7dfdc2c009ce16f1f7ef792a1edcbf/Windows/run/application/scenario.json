@@ -1,0 +1,9 @@
+{
+  "pin": "0c2c95d9d450d07fcd4e96e95e1cd48c20834e99",
+  "sdk": "10.0.404",
+  "source": "src/ApplicationCore/Entities/BasketAggregate/BasketItem.cs",
+  "new_test": "tests/UnitTests/ApplicationCore/Entities/BasketItemOverflow.cs",
+  "oracle": "using System;\nusing Microsoft.eShopWeb.ApplicationCore.Entities.BasketAggregate;\nusing Xunit;\nnamespace UnitTests.ApplicationCore.Entities;\npublic class BasketItemOverflow\n{\n    [Fact]\n    public void AddQuantityRejectsOverflowAndPreservesQuantity()\n    {\n        var item = new BasketItem(1, int.MaxValue, 1m);\n        Assert.Throws<OverflowException>(() => item.AddQuantity(1));\n        Assert.Equal(int.MaxValue, item.Quantity);\n    }\n}\n",
+  "expected": "Overflow throws and preserves int.MaxValue; original implementation must fail the added regression.",
+  "defined_before_execution": true
+}
