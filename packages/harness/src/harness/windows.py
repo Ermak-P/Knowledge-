@@ -171,3 +171,32 @@ def worker_main():
         for handle in (child.hThread,child.hProcess,read,write,null):
             if handle not in (None,INVALID):k.CloseHandle(handle)
     return 0
+
+
+def system_environment():
+    # MCP stdio clients intentionally omit ProgramFiles variables. NuGet uses
+    # them for machine-wide configuration even with an explicit packages path.
+    # Ask Windows for known folders; never inherit the entire parent environment.
+    shell=c.WinDLL('shell32',use_last_error=True)
+    folder=shell.SHGetFolderPathW;folder.argtypes=[w.HWND,c.c_int,HANDLE,w.DWORD,w.LPWSTR];folder.restype=c.c_long
+    values={}
+    for name,identifier in (('PROGRAMFILES',0x26),('PROGRAMFILES(X86)',0x2A),('PROGRAMDATA',0x23)):
+        buffer=c.create_unicode_buffer(32768)
+        require(folder(None,identifier,None,0,buffer)==0 and Path(buffer.value).is_absolute() and Path(buffer.value).is_dir(),'windows-system-directory-unavailable',name)
+        values[name]=buffer.value
+    values['PROGRAMW6432']=values['PROGRAMFILES']
+    return values
+
+
+def require_framework_runtime(version):
+    import winreg
+    releases={'v4.0':0,'v4.5':378389,'v4.5.1':378675,'v4.5.2':379893,'v4.6':393295,'v4.6.1':394254,'v4.6.2':394802,'v4.7':460798,'v4.7.1':461308,'v4.7.2':461808,'v4.8':528040,'v4.8.1':533320}
+    require(version in releases,'unsupported-legacy-test-framework-version',version)
+    try:
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full',0,winreg.KEY_READ|winreg.KEY_WOW64_32KEY) as key:
+            installed=winreg.QueryValueEx(key,'Install')[0]
+            try:release=winreg.QueryValueEx(key,'Release')[0]
+            except FileNotFoundError:release=0
+    except FileNotFoundError:installed=0;release=0
+    require(installed==1 and release>=releases[version],'legacy-dotnet-framework-runtime-missing',dict(requested=version,release=release))
+    return dict(requested=version,release=release)

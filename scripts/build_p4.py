@@ -2,7 +2,7 @@
 import argparse,hashlib,json,os,shutil,subprocess,sys,zipfile,base64,csv,io,tempfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-VERSION='0.4.0rc4'
+VERSION='0.5.0rc1'
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def normalize_wheel(path):
     with zipfile.ZipFile(path) as z:files={name:z.read(name).replace(b'\r\n',b'\n') for name in z.namelist() if not name.endswith('/RECORD')}
@@ -16,7 +16,7 @@ def normalize_wheel(path):
 
 def main():
     p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('--source-id',default='development-unsealed');a=p.parse_args();out=a.output.absolute();out.mkdir(parents=True,exist_ok=True)
-    kit=out/'knowledge-harness-0.4.0rc4';kit.mkdir(exist_ok=True);wheels=kit/'wheels';wheels.mkdir(exist_ok=True)
+    kit=out/'knowledge-harness-0.5.0rc1';kit.mkdir(exist_ok=True);wheels=kit/'wheels';wheels.mkdir(exist_ok=True)
     env={**os.environ,'SOURCE_DATE_EPOCH':'1735689600','PYTHONHASHSEED':'0'}
     with tempfile.TemporaryDirectory(prefix='p3-clean-build-') as tmp:
         staged=[]
@@ -37,7 +37,7 @@ def main():
         if license:shutil.copyfile(license,kit/(package+'-LICENSE'))
     shutil.copyfile(ROOT/'inputs/README.md',kit/'UPSTREAM-NOTICE.md')
     files={p.relative_to(kit).as_posix():sha(p) for p in sorted(kit.rglob('*')) if p.is_file() and p.name!='RELEASE.json'}
-    manifest=dict(version=1,source_identity=a.source_id,product=VERSION,python='3.12',architectures=['x64'],os_profiles=['linux','windows-native-pending-qualification'],distribution_names=['knowledge-p0','harness-p0'],record_versions=[1,2],knowledge_format='knowledge-sqlite-v1',extension=1,harness_state=1,run_states=[1,2],task_schemas=[1,2],continuation_formats=[1,2],core_offline=True,optional_mcp='pinned online install; no complete offline MCP wheelhouse claim',files=files)
+    manifest=dict(version=1,source_identity=a.source_id,product=VERSION,python='3.12',architectures=['x64'],os_profiles=['linux','windows-native-pending-qualification'],distribution_names=['knowledge-p0','harness-p0'],record_versions=[1,2],knowledge_format='knowledge-sqlite-v1',extension=1,harness_state=1,run_states=[1,2,3],task_schemas=[1,2],runner_configs=[1,2],automatic_tests='dotnet-tests-suffix-v1',continuation_formats=[1,2],core_offline=True,optional_mcp='pinned online install; no complete offline MCP wheelhouse claim',files=files)
     (kit/'RELEASE.json').write_bytes((json.dumps(manifest,indent=2,ensure_ascii=False)+'\n').encode())
     archive=out/(kit.name+'.zip')
     with zipfile.ZipFile(archive,'w',zipfile.ZIP_STORED) as z:

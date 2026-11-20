@@ -3,20 +3,23 @@ import argparse
 import sys
 from pathlib import Path
 from knowledge.util import emit_json, canonical_json,loads,read_text,KnowledgeError
-from .runtime import configure,config,Journal
+from .runtime import configure,config,Journal,DEFAULT_LIMITS
 from .engine import start,resume,status,capture_retry
 
 
 def main():
     parser=argparse.ArgumentParser(description='Controlled Harness execution')
-    parser.add_argument('command',choices=['version','doctor','configure','validate-config','run','status','resume','cancel','capture-status','capture-retry','metrics','compare'])
+    parser.add_argument('command',choices=['version','doctor','discover-tests','configure','validate-config','run','status','resume','cancel','capture-status','capture-retry','metrics','compare'])
     parser.add_argument('--output',type=Path);parser.add_argument('--root',required=True);parser.add_argument('--input',type=Path);parser.add_argument('--run-id');parser.add_argument('--mode',choices=['multi','single'],default='multi');parser.add_argument('--init-knowledge',action='store_true')
     args=parser.parse_args()
     try:
         if args.command=='version':
             from . import __version__
             from .platform import KIND
-            value={'ok':True,'version':__version__,'execution_policies':['legacy-v1','bounded-v1'],'run_state_versions':[1,2],'checkpoint_versions':[1,2],'task_versions':[1,2],'runner_config':1,'run_state':1,'execution_backend':KIND,'provider':'OpenAI-compatible HTTP','qualification':'separate exact-profile evidence required'}
+            value={'ok':True,'version':__version__,'execution_policies':['legacy-v1','bounded-v1'],'run_state_versions':[1,2,3],'checkpoint_versions':[1,2],'task_versions':[1,2],'runner_config':2,'runner_configs':[1,2],'run_state':1,'execution_backend':KIND,'provider':'OpenAI-compatible HTTP','qualification':'separate exact-profile evidence required'}
+        elif args.command=='discover-tests':
+            from .testing import inspect
+            value=inspect(args.root)
         elif args.command=='doctor':
             from knowledge.project import Project
             project=Project(args.root);path=project.root/'.harness/runner.json'

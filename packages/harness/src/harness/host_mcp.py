@@ -15,6 +15,10 @@ def create_server(root):
         if len(text.encode())>20000:text=canonical_json({'ok':True,'result':'artifact-too-large-use-local-status-cli'})
         return CallToolResult(content=[TextContent(type='text',text=text)])
     @server.tool()
+    def harness_discover_tests()->CallToolResult:
+        from .testing import inspect
+        return call(inspect,root)
+    @server.tool()
     def harness_doctor()->CallToolResult:return call(doctor,root)
     @server.tool()
     def harness_status(run_id:str)->CallToolResult:return call(status,root,run_id)

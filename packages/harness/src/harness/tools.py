@@ -14,7 +14,7 @@ from knowledge.util import require,KnowledgeError,canonical_json,loads,digest
 from knowledge.project import safe_path
 from . import runtime as rt
 from .runtime import TOOLS,local_path,source_snapshot,blob,stamp,policy_path
-from .platform import process_info,launch_worker,KIND,compatible,stop_owned
+from .platform import process_info,launch_worker,KIND,compatible,stop_owned,system_environment
 
 SCHEMAS={
  'read':{'path':{'type':'string'},'offset':{'type':'integer'},'limit':{'type':'integer'}},
@@ -66,14 +66,18 @@ def patch_path(project,relative,task,protected_paths,protected_executables):
 
 def sanitized_env(extra):
     keep=('PATH','LANG','LC_ALL','TZ','SYSTEMROOT','TMPDIR','HTTPS_PROXY','HTTP_PROXY','ALL_PROXY','NO_PROXY','https_proxy','http_proxy','all_proxy','no_proxy','SSL_CERT_FILE','REQUESTS_CA_BUNDLE')
-    if os.name=='nt':keep+=('TEMP','TMP','LOCALAPPDATA','APPDATA','USERPROFILE','PROGRAMFILES','PROGRAMFILES(X86)','PROGRAMW6432','WINDIR','PROCESSOR_ARCHITECTURE')
-    return {**{k:os.environ[k] for k in keep if k in os.environ},**extra,'PYTHONUNBUFFERED':'1','PYTHONUTF8':'1','PYTHONIOENCODING':'utf-8'}
+    if os.name=='nt':keep+=('TEMP','TMP','LOCALAPPDATA','APPDATA','USERPROFILE','PROGRAMFILES','PROGRAMFILES(X86)','PROGRAMW6432','PROGRAMDATA','WINDIR','PROCESSOR_ARCHITECTURE')
+    return {**system_environment(),**{k:os.environ[k] for k in keep if k in os.environ},**extra,'PYTHONUNBUFFERED':'1','PYTHONUTF8':'1','PYTHONIOENCODING':'utf-8'}
 
 
 class Broker:
     def __init__(self,journal,configuration,run,lease):self.j=journal;self.c=configuration;self.r=run;self.lease=lease;self.limits={**rt.DEFAULT_LIMITS,**configuration['limits']}
     def execute(self,role,action_id,name,args):
-        if self.r.get('p4') and name in ('checkpoint','continuation'):
+        if 'automatic_tests' in self.r and name=='test_inventory':
+            require(role in ('Main','Planning','Coding','Reviewing','Testing') and isinstance(args,dict) and set(args)<={'offset','limit'},'role-tool-denied')
+            from .testing import summary
+            summary(self.r,**args)
+        elif self.r.get('p4') and name in ('checkpoint','continuation'):
             from .p4 import authorize_memory
             authorize_memory(role,name,args,self.limits)
         elif self.r.get('p4') and role in ('Main','Planning','Coding') and name=='artifact':authorize('Reviewing',name,args)
@@ -82,7 +86,11 @@ class Broker:
         signature=digest({'role':role,'tool':name,'args':args})
         if previous:
             require(previous['signature']==signature,'tool-action-identity-conflict')
-            if previous['status']=='FINISHED':return previous['result']
+            if previous['status']=='FINISHED':
+                if name=='recipe' and args['name'].startswith('@automatic-tests/'):
+                    from .testing import validate_cached
+                    validate_cached(self,previous)
+                return previous['result']
         else:
             previous={'version':1,'status':'INTENT','role':role,'tool':name,'args':deepcopy(args),'signature':signature,'at':stamp(),'agent':getattr(self,'agent_id',None),'request':getattr(self,'request_id',None)}
             self.j.action(self.r['id'],action_id,previous)
@@ -123,7 +131,14 @@ class Broker:
                     result['receipt']={k:v for k,v in result['receipt'].items() if k!='after_source'}
                     import difflib
                     result['diff']=''.join(''.join(difflib.unified_diff(action['edit_intent']['before_text'][f['path']].splitlines(True),f['after'].splitlines(True),fromfile=f['path'],tofile=f['path'])) for f in action['args']['files'])[:self.limits['tool_bytes']//2]
-            elif name=='status':result={'ok':True,'gates':self.r['gates'],'agents':[{'id':a['id'],'role':a['role'],'status':a['status']} for a in self.r['agents']]}
+            elif name=='test_inventory':
+                from .testing import summary
+                result=summary(self.r,**args)
+            elif name=='status':
+                result={'ok':True,'gates':deepcopy(self.r['gates']),'agents':[{'id':a['id'],'role':a['role'],'status':a['status']} for a in self.r['agents']]}
+                if 'automatic_tests' in self.r:
+                    from .testing import GATE,summary
+                    result['gates'][GATE]=summary(self.r)
             elif name=='capability':result={'ok':True,'name':args['name'],'available':False,'reason':'optional specialist/host adapter not installed; no permission expansion'}
             elif name=='review':
                 require(self.r.get('p4') or 'affected' not in args,'legacy-review-fields')
@@ -175,9 +190,14 @@ class Broker:
             written.append(f['path']);rt.fault('edit-file-written')
         return {'ok':True,'written':written,'reconciled':reconciled,'after_source':source_snapshot(self.j.project,self.limits['file_bytes'])}
     def recipe(self,role,action_id,action):
-        name=action['args']['name'];require(name in self.c['recipes'],'unknown-recipe')
-        recipe=self.c['recipes'][name];require(role==('Building' if recipe['kind']=='build' else 'Testing'),'recipe-role-denied')
-        require(name in self.r['task']['recipes'],'recipe-not-in-task')
+        name=action['args']['name']
+        if name.startswith('@automatic-tests/'):
+            from .testing import recipe_for
+            recipe=recipe_for(self,name)
+        else:
+            require(name in self.c['recipes'],'unknown-recipe');recipe=self.c['recipes'][name]
+        require(role==('Building' if recipe['kind']=='build' else 'Testing'),'recipe-role-denied')
+        require('automatic' in recipe or name in self.r['task']['recipes'],'recipe-not-in-task')
         source=source_snapshot(self.j.project,self.limits['file_bytes']);require(source==self.r['source'],'source-conflict')
         attempt=action.get('process_attempt',0)
         if action.get('process_spec') and not action.get('process_result'):
@@ -208,7 +228,11 @@ class Broker:
         result_path=recipe['result']['path'].replace('{artifacts}',str(log_path.parent))
         success=process['returncode']==0 and process['reason'] is None
         counts=None;artifact=None
-        if success and recipe['kind']=='test':
+        automatic={}
+        if 'automatic' in recipe:
+            from .testing import parse_result
+            automatic=parse_result(self,recipe,action,log,log_path,success);success=success and automatic.pop('ok',True);counts=automatic.pop('counts',None);artifact=automatic.pop('artifact',None)
+        elif success and recipe['kind']=='test':
             fmt=recipe['result']['format']
             if fmt=='unittest':
                 match=re.search(r'Ran (\d+) tests?',log);success=bool(match and int(match[1])>0 and log.rstrip().endswith('OK') and 'skipped=' not in log)
@@ -229,7 +253,7 @@ class Broker:
                     counts={'executed':data.get('executed',0),'failed':data.get('failed',0)};success=data.get('skipped',0)==0 and type(counts['executed']) is int and counts['executed']>0 and type(counts['failed']) is int and counts['failed']==0
         after=source_snapshot(self.j.project,self.limits['file_bytes'])
         require(after==action['source_before'],'source-changed-during-gate')
-        return {'ok':bool(success),'recipe':name,'kind':recipe['kind'],'source':digest(after),'config':self.r['config_hash'],'counts':counts,'artifact':artifact,'output':log[-min(self.limits['tool_bytes']//2,4000):],'log':str(log_path.relative_to(self.j.project.root)),**process}
+        return {'ok':bool(success),'recipe':name,'kind':recipe['kind'],'source':digest(after),'config':self.r['config_hash'],'counts':counts,'artifact':artifact,'output':log[-min(self.limits['tool_bytes']//2,4000):],'log':str(log_path.relative_to(self.j.project.root)),**process,**automatic}
 
 
 def knowledge(root,task,limit):

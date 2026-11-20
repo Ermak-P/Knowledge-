@@ -2,7 +2,7 @@
 import argparse,hashlib,json,os,platform,subprocess,sys,venv,zipfile
 from pathlib import Path
 
-VERSION='0.4.0rc4'
+VERSION='0.5.0rc1'
 def python_at(env):return env/('Scripts/python.exe' if os.name=='nt' else 'bin/python')
 def require(value,reason):
     if not value:raise RuntimeError(reason)
@@ -25,7 +25,7 @@ def main():
     require(not marker.is_symlink(),'linked installation marker')
     previous=json.loads(marker.read_text(encoding='utf-8')) if marker.exists() else None
     if previous is not None:
-        require(previous.get('version')==1 and previous.get('product') in ('0.3.0rc1','0.4.0rc1','0.4.0rc2','0.4.0rc3',VERSION) and os.path.normcase(previous.get('environment',''))==os.path.normcase(str(env)),'unsupported or mismatched installation marker')
+        require(previous.get('version')==1 and previous.get('product') in ('0.3.0rc1','0.4.0rc1','0.4.0rc2','0.4.0rc3','0.4.0rc4',VERSION) and os.path.normcase(previous.get('environment',''))==os.path.normcase(str(env)),'unsupported or mismatched installation marker')
         require(isinstance(previous.get('owned_packages'),list) and set(previous['owned_packages'])<={'knowledge-p0','harness-p0'},'invalid installation ownership')
     if a.command=='install':
         if env.exists():
@@ -35,7 +35,7 @@ def main():
         versions=json.loads(subprocess.check_output([str(python),'-I','-c','import sys,json;print(json.dumps(list(sys.version_info[:2])))'],text=True));require(versions==[3,12],'incompatible existing Python')
         installed=json.loads(subprocess.check_output([str(python),'-I','-c','import importlib.metadata as m,json;names=("knowledge-p0","harness-p0");p=m.packages_distributions();print(json.dumps({"imports":{n:p.get(n,[]) for n in ("knowledge","harness")},"versions":{n:m.version(n) for n in names if any(d.metadata["Name"]==n for d in m.distributions())}}))'],text=True))
         require(set(installed['imports']['knowledge'])<={'knowledge-p0'} and set(installed['imports']['harness'])<={'harness-p0'},'competing import distribution; preserve environment and resolve explicitly')
-        require(installed['versions'].get('knowledge-p0') in (None,'0.1.0','0.3.0rc1','0.4.0rc1','0.4.0rc2','0.4.0rc3',VERSION) and installed['versions'].get('harness-p0') in (None,'0.2.0','0.3.0rc1','0.4.0rc1','0.4.0rc2','0.4.0rc3',VERSION),'unsupported installed product version')
+        require(installed['versions'].get('knowledge-p0') in (None,'0.1.0','0.3.0rc1','0.4.0rc1','0.4.0rc2','0.4.0rc3','0.4.0rc4',VERSION) and installed['versions'].get('harness-p0') in (None,'0.2.0','0.3.0rc1','0.4.0rc1','0.4.0rc2','0.4.0rc3','0.4.0rc4',VERSION),'unsupported installed product version')
         require(a.profile!='knowledge' or not installed['imports']['harness'],'profile downgrade requires product uninstall or a fresh environment')
         wheels=[base/name for name in m['files'] if name.endswith('.whl') and (a.profile=='full' or Path(name).name.startswith('knowledge_p0-'))]
         require(len(wheels)==(2 if a.profile=='full' else 1),'incomplete core wheel set')

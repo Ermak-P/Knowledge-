@@ -14,6 +14,9 @@ def main():
   if a.die=='before-first-patch' and phase=='provider-response':
    for r in runtime.Journal(root).runs():
     if r['frames'] and any(c['function']['name']=='patch' for c in (r['frames'][-1].get('pending') or {}).get('tool_calls',[])):os._exit(73)
+  if a.die=='legacy-build-receipt' and phase=='automatic-verifier-receipt':
+   for r in runtime.Journal(root).runs():
+    if r.get('p4',{}).get('verifiers') and r['p4']['verifiers'][-1].get('phase')=='legacy-build':os._exit(73)
   if phase==a.die:os._exit(73)
  runtime.fault=fault;sys.argv=['harness-run',*argv];return run_cli.main()
 if __name__=='__main__':raise SystemExit(main())

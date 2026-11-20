@@ -1,4 +1,4 @@
-# Knowledge + Harness — P4 implementation candidate (0.4.0rc4)
+# Knowledge + Harness — P4 implementation candidate (0.5.0rc1)
 
 New tasks use the task-v2 bounded pipeline in [P4 usage](docs/P4/USAGE.md) and [the P4 example](examples/p4/task.json). Main coordinates sequential Coding items, build/test run as trusted runtime recipes, and independent Reviewing remains mandatory. Task-v1 inputs retain the accepted legacy policy.
 
@@ -28,3 +28,5 @@ Installed commands: `knowledge --root ROOT` plus its existing subcommands; `harn
 Run the full verification on Linux with `.venv/bin/python -B scripts/setup_benchmark.py` then `.venv/bin/python -B scripts/verify_p3.py`. Native Windows uses `powershell -NoProfile -File scripts/verify-windows.ps1` and native .NET 10.0.404. Standard task-branch Actions jobs exercise both profiles and retain raw evidence even on failure. Generate the final review packet with `scripts/make_review_p3.py`; missing/mismatched native evidence keeps Windows NO_GO.
 
 Read [install](docs/P3/INSTALL.md), [upgrade](docs/P3/UPGRADE.md), [backup/restore/rollback](docs/P3/BACKUP-RESTORE-ROLLBACK.md), [uninstall](docs/P3/UNINSTALL.md), [Windows](docs/P3/WINDOWS-VALIDATION.md), [companion](docs/P3/OPENCODE-INTEGRATION.md), [rehearsal](docs/P3/UMUH-ONBOARDING-REHEARSAL.md) and [adoption runbook](docs/P3/ADOPTION-RUNBOOK.md). Existing root-bound stores are not relocated by copying directories; new projects get fresh identities. Canonical knowledge is never silently applied by Harness or maintenance. P0/P1/P2 reports remain historical evidence. No production cutover, merge or publication is performed automatically.
+
+Automatic .NET testing (runner v2): [contract](docs/P4/AUTOMATIC-TESTS.md), [machine installation (RU)](docs/P4/INSTALL-RU.md), [project setup (RU)](docs/P4/PROJECT-SETUP-RU.md). Normal .NET templates have only trusted build recipes; every case-insensitive `*Tests.csproj` is a mandatory automatic gate.

@@ -1,6 +1,6 @@
 # P4 design: bounded sequential execution
 
-Product 0.4.0rc4. Config v1 and task v1 keep the accepted P3 driver. Task v2 explicitly selects `bounded-v1`; new P4 examples use v2. Knowledge formats and the journal database envelope remain v1; P4 state is a validated extension of a run. Legacy pending runs never enter the new driver.
+Product 0.5.0rc1. Config v1 and task v1 keep the accepted P3 driver. Task v2 explicitly selects `bounded-v1`. Normal .NET templates use runner v2 and its mandatory [automatic suite](AUTOMATIC-TESTS.md), persisted in run format v3; legacy formats v1/v2 keep their original meaning. Knowledge formats and the journal database envelope remain v1; P4 state is a validated extension of a run. Legacy pending runs never enter the new driver.
 
 ## Authority and state
 

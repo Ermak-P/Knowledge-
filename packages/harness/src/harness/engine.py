@@ -13,7 +13,9 @@ from .tools import Broker,schemas,bounded,knowledge,stop_owned
 TERMINAL=('completed','completed-degraded','failed','cancelled')
 
 
-def task_shape(task,configuration):
+def task_shape(task,configuration,*,p4_base=False):
+    if configuration['version']==2 and isinstance(task,dict) and task.get('kind')=='coding':
+        require(task.get('version')==2 or p4_base,'automatic-tests-require-task-v2')
     if isinstance(task,dict) and type(task.get('version')) is int and task['version']==2:
         from .p4 import validate
         return validate(task,configuration)
@@ -26,7 +28,8 @@ def task_shape(task,configuration):
         require(path and not Path(path).is_absolute() and '..' not in Path(path).parts and not any(p.startswith('.') for p in Path(path).parts),'invalid-task-path')
     require(set(task['recipes'])<=set(configuration['recipes']),'unknown-task-recipe')
     if task['kind']=='coding':
-        require(task['writable'] and {'build','test'}<={configuration['recipes'][r]['kind'] for r in task['recipes']},'coding-task-requires-build-and-test')
+        required={'build'} if configuration['version']==2 else {'build','test'}
+        require(task['writable'] and required<={configuration['recipes'][r]['kind'] for r in task['recipes']},'coding-task-requires-build' if configuration['version']==2 else 'coding-task-requires-build-and-test')
     else:require(not task['writable'] and not task['recipes'],'read-only-task-has-write-authority')
 
 
@@ -43,6 +46,8 @@ def start(root,task,mode='multi',*,entry_authority=None):
         task=deepcopy(task);task['initial_source']=source
         run=dict(version=1,id=uuid.uuid4().hex,project=journal.project.identity,started=stamp(),status='running',execution='pending',capture={'state':'not-started'},
                  task=task,config_hash=digest(configuration),mode=mode,source=source,gates={},agents=[],frames=[],shared_history=[],requests=[],delegations=0,tool_calls=0,protected_paths=[],capture_prepared=False)
+        from .testing import initialize as initialize_tests
+        initialize_tests(journal.project,configuration,run)
         run['protected_paths'],run['protected_executables']=recipe_inputs(journal.project,configuration,task)
         if entry_authority is not None:run['entry_authority']=entry_authority
 
@@ -51,7 +56,12 @@ def start(root,task,mode='multi',*,entry_authority=None):
             initialize(run)
         push(run,'Main',task['goal'],None);journal.save(run);journal.event(run['id'],'run-started',mode=mode,task_hash=digest(task),config=run['config_hash'])
         # Companion authorization and its first effects share one ownership span.
-        if entry_authority is not None:return drive(journal,configuration,run,lease)
+        if entry_authority is not None:
+            if 'automatic_tests' not in run:return drive(journal,configuration,run,lease)
+            from knowledge.execution_lock import ExecutionLock
+            controller=ExecutionLock(journal.base/'automatic-driver.lock').acquire()
+            try:return _drive_with_owner(journal,configuration,run,lease)
+            finally:controller.close()
     return resume(root,run['id'])
 
 
@@ -78,23 +88,41 @@ def metrics(run,actions):
 
 def status(root,run_id):
     journal=Journal(root);run=journal.load(run_id)
-    return {'ok':True,'run':run,'events':journal.events(run_id),'actions':journal.actions(run_id),'outbox':journal.outbox(run_id),'metrics':metrics(run,journal.actions(run_id))}
+    from .testing import summary
+    return {'ok':True,'automatic_tests':summary(run),'run':run,'events':journal.events(run_id),'actions':journal.actions(run_id),'outbox':journal.outbox(run_id),'metrics':metrics(run,journal.actions(run_id))}
 
 
 def resume(root,run_id):
-    journal=Journal(root);waiting=time.monotonic()
+    journal=Journal(root)
+    if 'automatic_tests' not in journal.load(run_id):return _resume(root,run_id,journal)
+    # Controller ownership is intentionally not inherited by process supervisors.
+    # Serialize recovery before examining stale PID state or stopping an orphan.
+    from knowledge.execution_lock import ExecutionLock
+    controller=ExecutionLock(journal.base/'automatic-driver.lock').acquire()
+    try:return _resume(root,run_id,journal)
+    finally:controller.close()
+
+
+def _resume(root,run_id,journal):
+    waiting=time.monotonic()
     def owned(lease):
         # Never retain mutable state/config across a scheduling/ownership boundary.
         run=journal.load(run_id)
+        if 'automatic_tests' in run:
+            from .testing import guard
+            guard(journal.project,config(root),run)
         if run['status'] in TERMINAL:return result(run)
         configuration=config(root)
         task_shape({k:v for k,v in run['task'].items() if k!='initial_source'},configuration)
         run['lease_wait_seconds']=run.get('lease_wait_seconds',0)+time.monotonic()-waiting
-        return drive(journal,configuration,run,lease)
+        return _drive_with_owner(journal,configuration,run,lease)
     try:
         with Lease(journal) as lease:return owned(lease)
     except KnowledgeError as e:
         if e.code!='project-writer-busy':raise
+        if 'automatic_tests' in journal.load(run_id):
+            from .testing import driver_alive
+            require(not driver_alive(journal,run_id),'project-writer-busy')
         # Supervisor ownership is retained after worker death. Stop only matching
         # PID/start/group processes, then reload everything after obtaining lease.
         stop_owned(journal,run_id)
@@ -108,6 +136,15 @@ def resume(root,run_id):
         raise KnowledgeError('project-writer-busy')
 
 
+def _drive_with_owner(journal,configuration,run,lease):
+    if 'automatic_tests' not in run:return drive(journal,configuration,run,lease)
+    from .platform import process_info
+    run['automatic_tests']['driver_owner']=process_info(os.getpid());require(run['automatic_tests']['driver_owner'] is not None,'unverifiable-process-ownership');journal.save(run)
+    try:return drive(journal,configuration,run,lease)
+    finally:
+        run['automatic_tests'].pop('driver_owner',None);journal.save(run)
+
+
 def capture_retry(root,run_id):
     """Retry durable candidate delivery only. Execution recovery belongs to resume."""
     journal=Journal(root)
@@ -117,6 +154,9 @@ def capture_retry(root,run_id):
             return {**result(run),'ok':False,'error':'capture-retry-ineligible','reason':'Execution has not passed; use resume for execution recovery.'}
         configuration=config(root)
         require(digest(configuration)==run['config_hash'],'configuration-changed-revalidation-required')
+        if 'automatic_tests' in run:
+            from .testing import guard
+            guard(journal.project,configuration,run)
         task_shape({k:v for k,v in run['task'].items() if k!='initial_source'},configuration)
         limit={**DEFAULT_LIMITS,**configuration['limits']}['file_bytes']
         require(digest(source_snapshot(journal.project,limit))==run['final_source'],'final-source-changed')
@@ -135,6 +175,9 @@ def drive(journal,configuration,run,lease):
     limits={**DEFAULT_LIMITS,**configuration['limits']};broker=Broker(journal,configuration,run,lease)
     try:
         require(digest(configuration)==run['config_hash'],'configuration-changed-revalidation-required')
+        if 'automatic_tests' in run:
+            from .testing import guard
+            guard(journal.project,configuration,run)
         if 'entry_authority' in run:
             from .companion import validate_entry
             validate_entry(journal.project.root,run['entry_authority'],{k:v for k,v in run['task'].items() if k!='initial_source'},configuration)
@@ -159,6 +202,9 @@ def drive(journal,configuration,run,lease):
             require(not journal.cancelled(run['id']),'cancelled')
             require(stamp()-run['started']<=limits['elapsed_seconds'],'elapsed-budget-exhausted')
             require(digest(config(journal.project.root))==run['config_hash'],'configuration-changed-revalidation-required')
+            if 'automatic_tests' in run:
+                from .testing import guard
+                guard(journal.project,configuration,run)
             frame=run['frames'][-1]
             require(source_snapshot(journal.project,limits['file_bytes'])==run['source'] or bool(frame.get('pending')),'source-conflict')
             if 'entry_authority' in run:
@@ -254,6 +300,11 @@ def drive(journal,configuration,run,lease):
                 require(source_snapshot(journal.project,limits['file_bytes'])==run['source'],'source-conflict')
                 from .platform import fence_pending
                 fence_pending(journal)
+                if 'automatic_tests' in run:
+                    from .testing import guard
+                    guard(journal.project,configuration,run)
+                    from .testing import validate_final_evidence
+                    validate_final_evidence(journal,configuration,run,lease)
                 completion_gates(run)
                 run['frames'].pop();run['execution']='passed';run['final_source']=digest(run['source']);run['capture_time']=datetime.now(timezone.utc).isoformat();run['capture_event']=journal.event(run['id'],'execution-passed')['sequence']
                 journal.save(run);rt.fault('execution-passed')
@@ -266,7 +317,7 @@ def drive(journal,configuration,run,lease):
             finish_tool(parent,call,answer,limits);journal.save(run)
         raise KnowledgeError('missing-main-completion')
     except KnowledgeError as e:
-        run['error']=e.code;run['status']='cancelled' if e.code=='cancelled' else 'blocked' if e.code in ('recipe-outcome-unknown','unverifiable-process-ownership','recipe-still-running','provider-outcome-unknown','provider-outcome-unknown-manual-retry-required','edit-recovery-conflict','unrelated-source-conflict','source-conflict','configuration-changed-revalidation-required') else 'failed'
+        run['error']=e.code;run['status']='cancelled' if e.code=='cancelled' else 'blocked' if e.code in ('recipe-outcome-unknown','unverifiable-process-ownership','recipe-still-running','provider-outcome-unknown','provider-outcome-unknown-manual-retry-required','edit-recovery-conflict','unrelated-source-conflict','source-conflict','configuration-changed-revalidation-required','test-inventory-changed-revalidation-required','automatic-test-artifact-changed') else 'failed'
         if run['execution']!='passed':
             run['execution']='cancelled' if e.code=='cancelled' else 'failed'
             run['capture']={'state':'not-eligible','reason':'execution did not pass mandatory gates'}
@@ -328,6 +379,9 @@ def completion_gates(run):
 
 
 def finish_capture(journal,run,configuration):
+    if 'automatic_tests' in run:
+        from .testing import guard
+        guard(journal.project,configuration,run)
     if digest(source_snapshot(journal.project,{**DEFAULT_LIMITS,**configuration['limits']}['file_bytes']))!=run['final_source']:
         run['status']='blocked';run['error']='final-source-changed';journal.save(run);return
     delivered=run['capture']['state'] in ('delivered','no-candidate','existing','disabled')
