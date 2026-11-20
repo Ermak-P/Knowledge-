@@ -174,8 +174,15 @@ def history(store,identifier):
 def active(store,db,records):
     if not enabled(db):return records
     states=latest(db)
-    from .discovery import freshness,analysis_scope
-    scope=analysis_scope(store.project.root)
+    from .discovery import freshness,analysis_scope,DISCOVERY_METHODS
+    # Only syntax-discovered evidence needs global ambiguity analysis. Reviewed
+    # and migrated evidence is validated directly against its supporting file;
+    # unrelated repository contents cannot strengthen or invalidate that proof.
+    evidence={e['id']:e for e in records['evidence']}
+    needs_scope=any(evidence[i].get('provenance',{}).get('method') in DISCOVERY_METHODS
+                    for c in records['claims'] if states[c['id']]['lifecycle']=='active'
+                    for i in c['evidence'] if i in evidence)
+    scope=analysis_scope(store.project.root) if needs_scope else None
     allowed={c['id'] for c in records['claims'] if states[c['id']]['lifecycle']=='active' and freshness(store.project.root,c,records,scope)['trusted']}
     while True:
         filtered={c['id'] for c in records['claims'] if c['id'] in allowed and all(d in allowed for d in c['depends_on'])}
