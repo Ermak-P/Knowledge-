@@ -77,3 +77,9 @@ def system_environment():
     if os.name!='nt':return {}
     from .windows import system_environment as native
     return native()
+
+
+def require_framework_runtime(version):
+    require(os.name=='nt','legacy-dotnet-framework-requires-native-windows')
+    from .windows import require_framework_runtime as native
+    return native(version)

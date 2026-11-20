@@ -186,3 +186,17 @@ def system_environment():
         values[name]=buffer.value
     values['PROGRAMW6432']=values['PROGRAMFILES']
     return values
+
+
+def require_framework_runtime(version):
+    import winreg
+    releases={'v4.0':0,'v4.5':378389,'v4.5.1':378675,'v4.5.2':379893,'v4.6':393295,'v4.6.1':394254,'v4.6.2':394802,'v4.7':460798,'v4.7.1':461308,'v4.7.2':461808,'v4.8':528040,'v4.8.1':533320}
+    require(version in releases,'unsupported-legacy-test-framework-version',version)
+    try:
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,r'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full',0,winreg.KEY_READ|winreg.KEY_WOW64_32KEY) as key:
+            installed=winreg.QueryValueEx(key,'Install')[0]
+            try:release=winreg.QueryValueEx(key,'Release')[0]
+            except FileNotFoundError:release=0
+    except FileNotFoundError:installed=0;release=0
+    require(installed==1 and release>=releases[version],'legacy-dotnet-framework-runtime-missing',dict(requested=version,release=release))
+    return dict(requested=version,release=release)

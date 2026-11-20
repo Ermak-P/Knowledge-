@@ -11,6 +11,8 @@ from . import runtime as rt
 POLICY='dotnet-tests-suffix-v1'
 PREFIX='@automatic-tests/'
 GATE='@automatic-tests'
+SDK_PROPERTIES={'TargetFramework','TargetFrameworks','AssemblyName','TargetPath'}
+PROPERTIES=SDK_PROPERTIES|{'TargetFrameworkIdentifier','TargetFrameworkVersion','TargetFrameworkProfile','UsingMicrosoftNETSdk'}
 EXCLUDED={'bin','obj','.git','.harness','.knowledge','.ai','.maintenance','.venv','.local','.vs','testresults','__pycache__','node_modules'}
 INSTRUCTIONS='Automatically test every eligible filename ending Tests.csproj, ignoring case, including IpmAzureCommon.UnitTests.csproj and IpmAzureAutotests.csproj, in any ordinary source directory and outside the solution. Runtime owns restore/build/test/TRX verification. No model recipe selection or omitted Testing delegation can disable the final complete suite. Inventory drift requires a newly validated run; project-file write permissions do not expand. Use test_inventory(offset,limit) or the local discover-tests/status CLI for bounded evidence.'
 
@@ -57,6 +59,33 @@ def dotnet(c):
     require(envs and all(e==envs[0] for e in envs),'ambiguous-dotnet-build-environment')
     return chosen,{**envs[0],'DOTNET_NOLOGO':'1','DOTNET_CLI_TELEMETRY_OPTOUT':'1','MSBUILDDISABLENODEREUSE':'1'}
 
+def native_msbuild(c,authorized=None):
+    """Only an already trusted build executable may provide full MSBuild."""
+    builds=[r for n,r in c['recipes'].items() if (authorized is None or n in authorized) and r['kind']=='build' and Path(r['argv'][0]).name.casefold() in ('msbuild','msbuild.exe')]
+    if not builds:return None
+    require(len({os.path.normcase(os.path.abspath(r['argv'][0])) for r in builds})==1 and all(r['env']==builds[0]['env'] for r in builds),'ambiguous-native-msbuild-toolchain')
+    return builds[0]['argv'][0],builds[0]['env']
+
+def resolve_frameworks(props,host=None):
+    frameworks=[v.strip() for v in (props.get('TargetFrameworks') or props.get('TargetFramework') or '').split(';') if v.strip()]
+    if frameworks and not (set(props)==PROPERTIES and props['TargetFrameworkIdentifier']=='.NETFramework' and props['UsingMicrosoftNETSdk'].casefold()!='true'):
+        require(len(frameworks)<=32 and len(set(frameworks))==len(frameworks) and all(re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*',v) for v in frameworks),'invalid-or-unresolved-test-frameworks')
+        if props.get('TargetFrameworkIdentifier')=='.NETFramework':require((host or os.name)=='nt','legacy-dotnet-framework-requires-native-windows')
+        return [(fw,dict(kind='sdk')) for fw in frameworks]
+    # Four-property receipts from already-started SDK runs retain their meaning.
+    require(set(props)==PROPERTIES,'legacy-framework-metadata-revalidation-required')
+    identifier=props['TargetFrameworkIdentifier'];version=props['TargetFrameworkVersion'];profile=props['TargetFrameworkProfile']
+    require(identifier=='.NETFramework' and re.fullmatch(r'v4(?:\.\d{1,2}){1,2}',version) and (not profile or re.fullmatch(r'[A-Za-z0-9_.-]+',profile)) and props['UsingMicrosoftNETSdk'].casefold()!='true','unsupported-legacy-test-framework',dict(identifier=identifier,version=version,profile=profile))
+    require((host or os.name)=='nt','legacy-dotnet-framework-requires-native-windows',dict(identifier=identifier,version=version,profile=profile))
+    moniker=identifier+',Version='+version+(',Profile='+profile if profile else '')
+    return [(moniker,dict(kind='net-framework',identifier=identifier,version=version,profile=profile))]
+
+def assembly_target(project,path,props):
+    require(props.get('AssemblyName') and props.get('TargetPath'),'unresolved-test-assembly')
+    target=Path(props['TargetPath']);target=target if target.is_absolute() else project.root/Path(path).parent/target
+    safe_path(target);target=Path(os.path.abspath(target));safe_path(target);require(target.is_relative_to(project.root),'test-assembly-outside-project-root')
+    return str(target)
+
 def initialize(project,c,r):
     if c['version']!=2 or r['task']['kind']!='coding':return
     inventory=discover(project,{**rt.DEFAULT_LIMITS,**c['limits']}['file_bytes'])
@@ -87,14 +116,39 @@ def recipe_for(broker,name):
     require(gen['source']==digest(r['source']) and path in [p['path'] for p in state['inventory']['projects']],'automatic-recipe-stale')
     require(name==PREFIX+digest([state['inventory']['identity'],op['generation'],path,phase,framework]),'automatic-recipe-identity-mismatch')
     rt.local_path(broker.j.project,path);exe,env=dotnet(c)
+    metadata_version=gen.get('metadata_version',1)
+    inspect_fields=','.join(sorted(PROPERTIES)) if metadata_version>=2 else 'TargetFramework,TargetFrameworks,AssemblyName,TargetPath'
     if phase=='restore':argv=[exe,'restore',path,'--disable-parallel','-m:1']
-    elif phase=='inspect':
+    elif phase in ('inspect','inspect-native'):
         require(framework is None or framework in gen['projects'][path]['frameworks'],'unknown-test-framework')
-        argv=[exe,'msbuild',path,'-nologo','-getProperty:TargetFramework,TargetFrameworks,AssemblyName,TargetPath']
+        native=native_msbuild(c,r['task']['recipes']) if phase=='inspect-native' else None
+        require(phase!='inspect-native' or native is not None,'native-msbuild-not-configured')
+        if native:exe,env=native
+        argv=[exe,*([] if native else ['msbuild']),path,'-nologo','-getProperty:'+inspect_fields]
         if framework:argv+=['-p:TargetFramework='+framework]
+    elif phase in ('legacy-restore','legacy-build'):
+        sub=gen['projects'][path]['frameworks'].get(framework,{})
+        require(sub.get('kind')=='net-framework' and os.name=='nt','legacy-operation-not-authorized')
+        native=native_msbuild(c,r['task']['recipes'])
+        if phase=='legacy-restore':
+            from .platform import require_framework_runtime
+            require_framework_runtime(sub['version'])
+            # dotnet restore does not restore packages.config. Full MSBuild must
+            # already be present in the approved build toolchain for that style.
+            packages=broker.j.project.root/Path(path).parent/'packages.config';safe_path(packages)
+            require(not packages.is_file() or native is not None,'legacy-packages-config-requires-trusted-native-msbuild')
+        require(native is not None,'legacy-full-msbuild-required')
+        exe,env=native
+        argv=[exe,path,'-nologo','-m:1','-t:'+('Restore' if phase=='legacy-restore' else 'Build'),'-p:UseSharedCompilation=false']
+        if phase=='legacy-restore' and native:argv+=['-p:RestorePackagesConfig=true']
     else:
         require(phase=='test' and framework in gen['projects'][path]['frameworks'],'unknown-automatic-operation')
-        argv=[exe,'test',path,'--framework',framework,'--logger','trx;LogFilePrefix=harness','--results-directory','{artifacts}/trx','-m:1','-p:UseSharedCompilation=false','-p:TestTfmsInParallel=false']
+        sub=gen['projects'][path]['frameworks'][framework]
+        if sub.get('kind')=='net-framework':
+            require(os.name=='nt' and framework==sub['identifier']+',Version='+sub['version']+(',Profile='+sub['profile'] if sub['profile'] else ''),'legacy-operation-not-authorized')
+            target=assembly_target(broker.j.project,path,dict(AssemblyName=Path(sub['target']).stem,TargetPath=sub['target']));safe_path(Path(target));require(Path(target).is_file(),'legacy-test-assembly-missing')
+            argv=[exe,'vstest',target,'/Framework:'+framework,'/TestAdapterPath:'+str(Path(target).parent),'/Logger:trx;LogFileName=harness.trx','/ResultsDirectory:{artifacts}/trx']
+        else:argv=[exe,'test',path,'--framework',framework,'--logger','trx;LogFilePrefix=harness','--results-directory','{artifacts}/trx','-m:1','-p:UseSharedCompilation=false','-p:TestTfmsInParallel=false']
     return dict(kind='test' if phase=='test' else 'build',argv=argv,result=dict(format='trx' if phase=='test' else 'exit',path=''),rerun_safe=False,env=env,automatic=op)
 
 def properties(log):
@@ -103,7 +157,7 @@ def properties(log):
         try:value,end=decoder.raw_decode(log[match.start():])
         except ValueError:continue
         if isinstance(value,dict) and set(value)=={'Properties'} and isinstance(value['Properties'],dict) and not log[match.start()+end:].strip():
-            props=value['Properties'];require(set(props)=={'TargetFramework','TargetFrameworks','AssemblyName','TargetPath'} and all(isinstance(v,str) for v in props.values()),'invalid-msbuild-test-properties');return props
+            props=value['Properties'];require(set(props) in (SDK_PROPERTIES,PROPERTIES) and all(isinstance(v,str) for v in props.values()),'invalid-msbuild-test-properties');return props
     raise KnowledgeError('invalid-msbuild-test-properties')
 
 def trx_result(path,action,target,root):
@@ -140,8 +194,8 @@ def trx_result(path,action,target,root):
 def parse_result(broker,recipe,action,log,log_path,success):
     op=recipe['automatic'];result=dict(automatic=op,inventory=broker.r['automatic_tests']['inventory']['identity'],log_sha256=rt.blob(log_path.read_bytes()))
     if not success and op['phase']!='test':return dict(**result,counts=None,artifact=None)
-    if op['phase']=='inspect':return dict(**result,properties=properties(log),counts=None,artifact=None)
-    if op['phase']=='restore':return dict(**result,counts=None,artifact=None)
+    if op['phase'] in ('inspect','inspect-native'):return dict(**result,properties=properties(log),counts=None,artifact=None)
+    if op['phase'] in ('restore','legacy-restore','legacy-build'):return dict(**result,counts=None,artifact=None)
     folder=log_path.parent/'trx';safe_path(folder);paths=list(folder.rglob('*.trx')) if folder.is_dir() else []
     require(len(paths)==1,'missing-or-ambiguous-trx-reports')
     gen=broker.r['automatic_tests']['generations'][op['generation']];target=gen['projects'][op['project']]['frameworks'][op['framework']]['target']
@@ -151,7 +205,7 @@ def parse_result(broker,recipe,action,log,log_path,success):
 def verify(j,c,r,lease,item,attempt,enabled=True):
     from .tools import Broker
     state=r['automatic_tests'];guard(j.project,c,r);gid=digest([state['inventory']['identity'],digest(r['source']),item,attempt]);state['active']=gid
-    gen=state['generations'].setdefault(gid,dict(source=digest(r['source']),status='RUNNING',projects={p['path']:dict(status='NOT_RUN',frameworks={},actions=[]) for p in state['inventory']['projects']}))
+    gen=state['generations'].setdefault(gid,dict(source=digest(r['source']),metadata_version=2,status='RUNNING',projects={p['path']:dict(status='NOT_RUN',frameworks={},actions=[]) for p in state['inventory']['projects']}))
     broker=Broker(j,c,r,lease)
     def persist(status=None):
         if status:gen['status']=status
@@ -180,25 +234,35 @@ def verify(j,c,r,lease,item,attempt,enabled=True):
             row['status']='RUNNING';persist()
             answer=command(path,'restore')
             if answer.get('ok'):answer=command(path,'inspect')
+            if not answer.get('ok') and native_msbuild(c,r['task']['recipes']) is not None:answer=command(path,'inspect-native')
             if not answer.get('ok'):row.update(status='FAIL',error=answer.get('error',answer.get('output','restore-or-inspect-failed')));gen['error']=path+': '+row['error'];persist('FAIL');return r['gates'][GATE]
-            props=answer['properties'];frameworks=[x.strip() for x in (props.get('TargetFrameworks') or props.get('TargetFramework') or '').split(';') if x.strip()]
-            require(0<len(frameworks)<=32 and len(set(frameworks))==len(frameworks) and all(re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*',x) for x in frameworks),'invalid-or-unresolved-test-frameworks')
-            for fw in frameworks:row['frameworks'].setdefault(fw,dict(status='NOT_RUN'))
+            props=answer['properties'];resolved=resolve_frameworks(props)
+            for fw,descriptor in resolved:row['frameworks'].setdefault(fw,dict(status='NOT_RUN',**descriptor))
             persist()
             for fw,sub in row['frameworks'].items():
                 info=props
-                if props.get('TargetFramework')!=fw:
+                if sub.get('kind')=='net-framework':
+                    sub['target']=assembly_target(j.project,path,props)
+                    answer=command(path,'legacy-restore',fw)
+                    if answer.get('ok'):answer=command(path,'legacy-build',fw)
+                    if not answer.get('ok'):
+                        code='legacy-reference-assemblies-missing' if 'MSB3644' in answer.get('output','') else answer.get('error','legacy-build-or-restore-prerequisite-failed')
+                        sub.update(status='FAIL',error=code,receipt=answer);break
+                    # Re-evaluate the built target without synthesizing a TFM.
+                    answer=command(path,'inspect-native' if native_msbuild(c,r['task']['recipes']) else 'inspect')
+                    require(answer.get('ok') and resolve_frameworks(answer['properties'])==resolved,'legacy-framework-or-target-changed')
+                    info=answer['properties']
+                elif props.get('TargetFramework')!=fw:
                     answer=command(path,'inspect',fw)
                     if not answer.get('ok'):sub.update(status='FAIL',error=answer.get('error','test-target-inspection-failed'));break
                     info=answer['properties']
-                require(info.get('TargetFramework')==fw and info.get('TargetPath') and info.get('AssemblyName'),'unresolved-test-assembly')
-                target=Path(info['TargetPath']);target=target if target.is_absolute() else j.project.root/Path(path).parent/target
-                safe_path(target);target=Path(os.path.abspath(target));safe_path(target);require(target.is_relative_to(j.project.root),'test-assembly-outside-project-root')
+                require(sub.get('kind')=='net-framework' or info.get('TargetFramework')==fw,'unresolved-test-assembly')
+                target=assembly_target(j.project,path,info)
                 sub['target']=str(target);sub['status']='RUNNING';persist();answer=command(path,'test',fw);sub.update(status='PASS' if answer.get('ok') else 'FAIL',receipt=answer)
                 persist()
                 if not answer.get('ok'):break
             if any(v['status']!='PASS' for v in row['frameworks'].values()):
-                row['status']='FAIL';gen['error']=path+': test-project-failed';persist('FAIL');return r['gates'][GATE]
+                row['status']='FAIL';gen['error']=path+': '+next((v['error'] for v in row['frameworks'].values() if v.get('error')),'test-project-failed');persist('FAIL');return r['gates'][GATE]
             row['status']='PASS';persist()
         guard(j.project,c,r);persist('PASS');return r['gates'][GATE]
     except KnowledgeError as e:

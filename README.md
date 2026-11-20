@@ -192,3 +192,5 @@ The old P0 sections above describe the accepted historical scope; P1 capability
 and verification claims are defined in the separate P1 contract and run packet.
 
 Automatic .NET testing (runner v2): [contract](docs/P4/AUTOMATIC-TESTS.md), [machine installation (RU)](docs/P4/INSTALL-RU.md), [project setup (RU)](docs/P4/PROJECT-SETUP-RU.md). Normal .NET templates have only trusted build recipes; every case-insensitive `*Tests.csproj` is a mandatory automatic gate.
+
+Non-SDK .NET Framework compatibility correction: [R1 qualification](reports/AutomaticTests/R1/ACCEPTANCE.md), [toolchain and prerequisites](docs/P4/AUTOMATIC-TESTS.md#legacy-net-framework-projects-r1).

@@ -274,8 +274,10 @@ def recipe_inputs(project,configuration,task):
         relative=policy_path(canonical.relative_to(project.root).as_posix());paths.add(relative)
         if executable:executables.add(relative)
     if configuration['version']==2:
-        from .testing import dotnet
+        from .testing import dotnet,native_msbuild
         include(dotnet(configuration)[0],True)
+        native=native_msbuild(configuration,task['recipes'])
+        if native:include(native[0],True)
     for name in task['recipes']:
         argv=configuration['recipes'][name]['argv']
         for index,arg in enumerate(argv):include(arg,index==0)

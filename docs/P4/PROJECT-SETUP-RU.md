@@ -19,3 +19,8 @@ Harness рекурсивно находит **каждый basename с суфф�
 Для MCP/OpenCode сохранён `harness_companion`: используйте существующие `harness-host preview/apply` с точным fingerprint и task v2. MCP-команды `harness_discover_tests`, `harness_run` и `harness_status` работают с теми же authority checks. Credentials задаются через provider `key_env`, не в JSON.
 
 Runner v1 и старые task/run сохраняют явные recipes. Завершите старые pending runs под исходной конфигурацией; мигрируйте на runner v2 и запускайте новый task v2. Не меняйте конфигурацию активного run в попытке заменить его авторизацию.
+
+
+Старые non-SDK проекты .NET Framework также входят в набор по имени файла. Для них нужны native Windows, установленный CLR 4.x, соответствующий Developer/Targeting Pack и совместимые NuGet test host/adapter. Harness читает `TargetFrameworkVersion`/identifier/profile, собирает проект и запускает фактическую сборку через `dotnet vstest`, без подстановки выдуманного TFM и изменения `.csproj`. SDK-проекты продолжают запускаться через `dotnet test`.
+
+Для legacy-проектов нужен полный Visual Studio MSBuild, включая resolver NuGet и необходимые workloads; его абсолютный `MSBuild.exe` должен уже присутствовать в доверенных build recipes; Harness использует этот общий build toolchain. Если build не указывает dotnet напрямую, задайте один общий абсолютный `dotnet` для SDK/VSTest. Списка тестовых проектов и `recipes.test` не требуется. Отсутствие native Windows, runtime, reference assemblies или требуемого MSBuild даёт явный отказ, не успешный gate. Автоматической установки/retargeting нет. Подробности и коды ошибок: `AUTOMATIC-TESTS.md`, раздел Legacy .NET Framework.
