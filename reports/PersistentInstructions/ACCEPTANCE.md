@@ -36,8 +36,6 @@ intent. Неудача/неизвестный исход startup не повто
 operator rebind. CAS-перепривязка сохраняет ID, normalized intent, original и audit. Повторное
 обучение после уточнения/коррекции сопоставляется по представленному поведению,
 не по первоначальному способу формирования ID; новая duplicate не создаётся.
-Повтор после clarification/correction сопоставляется по представленному поведению,
-а не по предположению, что stable ID всегда равен текущему semantic fingerprint.
 Unbound правило с известным trigger не активируется по случайному слову в тексте.
 Startup grant для новой привязки задаётся явно; allowlist остаётся независимым.
 
@@ -132,6 +130,13 @@ memory-rebind с expected revision. Ни одна дата проверки са
 reminder; Kafka trial описан в отдельном гайде. До реальных A01/A02/A05/A17 и
 применимых negatives итог остаётся IMPLEMENTED / HOST VALIDATION PENDING.
 
+Для encoding trial предусмотрена [обёртка с временным профилем](5dfc4c52/real-host-isolated.py):
+запускайте её Python из установленного runtime, передав `--model`, `--endpoint`
+и `--output`, как в live-host гайде. HOME/USERPROFILE, XDG и AppData направлены
+во временные каталоги; OpenCode config overrides очищены. Проверка этой обёртки
+в данной среде также дала [BLOCKED](5dfc4c52/real-host-isolated.json), поскольку
+исполняемый файл OpenCode отсутствует. Это не свидетельство успешного host trial.
+
 ## Квалификация пакета
 
 Финальный пакет установлен вне checkout. 38 профильных tests, 18 Docker/CLI
@@ -139,9 +144,19 @@ scenarios, реальный automatic suite/SDK/TRX trial, standalone/rollback,
 fault/concurrency и byte-level encoding comparison — PASS.
 Локальная installed qualification: **PASS_PORTABLE**, все 22 команды, 287 tests
 (276 PASS, 11 native-only SKIP, 0 FAIL/ERROR), source unchanged.
-[Ledger/logs](5dfc4c52/local-qualified/). Linux job CI
-[44900474104](https://github.com/Ermak-P/Knowledge-/actions/runs/44900474104) — success;
-native Windows и проверка retained receipts выполняются.
+[Ledger/logs](5dfc4c52/local-qualified/). Финальный CI
+[44900474104](https://github.com/Ermak-P/Knowledge-/actions/runs/44900474104) завершён:
+
+| Платформа | Вердикт | Команды | Tests | PASS | SKIP | FAIL/ERROR |
+|---|---|---:|---:|---:|---:|---:|
+| Linux | PASS_PORTABLE | 22/22 | 287 | 276 | 11 native-only | 0 |
+| Native Windows | PASS_NATIVE | 23/23 | 287 | 287 | 0 | 0 |
+
+[Retained receipts и логи](5dfc4c52/ci/) прочитаны из Git evidence branch как данные;
+код артефактов не исполнялся. [Проверка](5dfc4c52/ci/validation.json) подтверждает
+exact code commit/source map, unchanged source, SHA-256 всех command logs и
+совпадение каждого файла обоих CI kits с переданным offline kit.
+Последующие commits отчёта не меняют product source identity, указанную выше.
 
 Предыдущий `90d3db8a` прошёл локальный route, но CI обнаружил выбор candidate по
 позиции списка и одинаковые wall-clock timestamps у attempted/verified на Windows.
