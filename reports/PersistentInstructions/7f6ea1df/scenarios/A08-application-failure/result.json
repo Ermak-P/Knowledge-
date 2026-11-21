@@ -1,0 +1,346 @@
+{
+  "result": {
+    "ok": false,
+    "recipe": "test",
+    "kind": "test",
+    "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+    "config": "da00f5a84def6326c8e18b8d019e2b715455736a1a45bbb0ce3ffca010dd097c",
+    "counts": null,
+    "artifact": null,
+    "output": "F\n======================================================================\nFAIL: unittest.case.FunctionTestCase (<lambda>)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <lambda>\nAssertionError: 1 != 2\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n",
+    "log": ".harness/artifacts/b5882809c6af476ba8edfa1f88686ec9/operation/0/process.log",
+    "descendants_stopped": true,
+    "duration": 0.06050312600018515,
+    "log_bytes": 403,
+    "observed_log_bytes": 403,
+    "reason": null,
+    "returncode": 1,
+    "truncated": false
+  },
+  "actions": {
+    "memory-6516b569b1297b280ac6a093-1-probe0": {
+      "args": {
+        "name": "@memory/memory-6516b569b1297b280ac6a093-1-probe0"
+      },
+      "at": 1795244278.5758076,
+      "finished": 1795244278.6820745,
+      "memory_parent": "operation",
+      "memory_record": "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788",
+      "process": {
+        "group": 16070,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 16070,
+        "platform": "linux-pgroup-v1",
+        "start": "408442",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795244278.650204,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.03552621199969508,
+        "log_bytes": 97,
+        "observed_log_bytes": 97,
+        "reason": null,
+        "returncode": 0,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/tmp/persistent-semantic-runtime/bin/python",
+          "-I",
+          "-m",
+          "knowledge.probes",
+          "kafka",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "53975",
+          "--timeout",
+          "1"
+        ],
+        "cwd": "/tmp/persistent-acceptance-xnc5gt9k/project",
+        "log": "/tmp/persistent-acceptance-xnc5gt9k/project/.harness/artifacts/b5882809c6af476ba8edfa1f88686ec9/memory-6516b569b1297b280ac6a093-1-probe0/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 4
+      },
+      "process_started": 1795244278.6116376,
+      "result": {
+        "artifact": null,
+        "config": "da00f5a84def6326c8e18b8d019e2b715455736a1a45bbb0ce3ffca010dd097c",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.03552621199969508,
+        "kind": "build",
+        "log": ".harness/artifacts/b5882809c6af476ba8edfa1f88686ec9/memory-6516b569b1297b280ac6a093-1-probe0/0/process.log",
+        "log_bytes": 97,
+        "observed_log_bytes": 97,
+        "ok": true,
+        "output": "{\"ready\": true, \"protocol\": \"Kafka ApiVersions v0 + Metadata v1\", \"brokers\": 1, \"controller\": 1}\n",
+        "reason": null,
+        "recipe": "@memory/memory-6516b569b1297b280ac6a093-1-probe0",
+        "returncode": 0,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "73d0ef5e5254810b4bd3ce214db45ee75a1d7fc2608a0632b0fd6c740129cde1",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "operation": {
+      "agent": null,
+      "args": {
+        "name": "test"
+      },
+      "at": 1795244278.561385,
+      "finished": 1795244278.8509743,
+      "memory_generation": 1,
+      "memory_traces": [
+        {
+          "lookup_bytes": 2419,
+          "lookup_seconds": 0.006836622999799147,
+          "lookups": [
+            {
+              "action": {
+                "name": "test",
+                "tool": "recipe"
+              },
+              "conflicts": [],
+              "decisions": [],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 176,
+              "signals": {},
+              "state": "no-match",
+              "stores": {
+                "project": "available",
+                "shared": "available"
+              }
+            },
+            {
+              "action": {
+                "name": "local_broker",
+                "tool": "dependency"
+              },
+              "conflicts": [],
+              "decisions": [
+                {
+                  "applicable": true,
+                  "id": "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788",
+                  "reason": "match",
+                  "revision": 1
+                }
+              ],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 2243,
+              "signals": {
+                "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788": {
+                  "at": 1795244278.333859,
+                  "evidence": [
+                    {
+                      "action": "operation",
+                      "run": "1dd9f73e3a6b43088f7586cd47ad6b91"
+                    }
+                  ],
+                  "outcome": {
+                    "error": null,
+                    "ok": true,
+                    "phase": "before-action"
+                  },
+                  "root_cause": "not-established",
+                  "technical": "preconditions-satisfied"
+                }
+              },
+              "state": "matched",
+              "stores": {
+                "project": "available",
+                "shared": "available"
+              }
+            }
+          ],
+          "ok": true,
+          "outcomes": [
+            {
+              "id": "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788",
+              "result": "ready",
+              "seconds": 0.11222636599995894,
+              "started": false,
+              "steps": [
+                {
+                  "action": "memory-6516b569b1297b280ac6a093-1-probe0",
+                  "log": ".harness/artifacts/b5882809c6af476ba8edfa1f88686ec9/memory-6516b569b1297b280ac6a093-1-probe0/0/process.log",
+                  "ok": true,
+                  "reason": null,
+                  "returncode": 0
+                }
+              ]
+            }
+          ],
+          "phase": "before-action",
+          "selected": [
+            {
+              "id": "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788",
+              "revision": 1,
+              "scope": "shared"
+            }
+          ],
+          "selected_bytes": 1652,
+          "total_seconds": 0.12156386399965413
+        },
+        {
+          "candidate_ids": [
+            "c168ec13e5f128a36fa144c6abfe9648d687c3a7095a6676fe4cadfab0cd4b94"
+          ],
+          "lookup_bytes": 7600,
+          "lookups": [
+            {
+              "action": {
+                "name": "test",
+                "tool": "recipe"
+              },
+              "conflicts": [],
+              "decisions": [],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 176,
+              "signals": {},
+              "state": "no-match",
+              "stores": {
+                "project": "available",
+                "shared": "available"
+              }
+            },
+            {
+              "action": {
+                "name": "local_broker",
+                "tool": "dependency"
+              },
+              "conflicts": [],
+              "decisions": [
+                {
+                  "applicable": true,
+                  "id": "c168ec13e5f128a36fa144c6abfe9648d687c3a7095a6676fe4cadfab0cd4b94",
+                  "reason": "match",
+                  "revision": 1
+                },
+                {
+                  "applicable": true,
+                  "id": "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788",
+                  "reason": "match",
+                  "revision": 1
+                }
+              ],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 7424,
+              "signals": {
+                "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788": {
+                  "at": 1795244278.6868658,
+                  "evidence": [
+                    {
+                      "action": "operation",
+                      "run": "b5882809c6af476ba8edfa1f88686ec9"
+                    }
+                  ],
+                  "outcome": {
+                    "error": null,
+                    "ok": true,
+                    "phase": "before-action"
+                  },
+                  "root_cause": "not-established",
+                  "technical": "preconditions-satisfied"
+                }
+              },
+              "state": "matched",
+              "stores": {
+                "project": "available",
+                "shared": "available"
+              }
+            }
+          ],
+          "phase": "after-error",
+          "selected": [
+            {
+              "id": "c168ec13e5f128a36fa144c6abfe9648d687c3a7095a6676fe4cadfab0cd4b94",
+              "revision": 1,
+              "scope": "project"
+            },
+            {
+              "id": "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788",
+              "revision": 1,
+              "scope": "shared"
+            }
+          ],
+          "selected_bytes": 6710
+        }
+      ],
+      "process": {
+        "group": 16079,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 16079,
+        "platform": "linux-pgroup-v1",
+        "start": "408453",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795244278.7864954,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.06050312600018515,
+        "log_bytes": 403,
+        "observed_log_bytes": 403,
+        "reason": null,
+        "returncode": 1,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/tmp/persistent-semantic-runtime/bin/python",
+          "-c",
+          "import unittest,sys; r=unittest.TextTestRunner().run(unittest.FunctionTestCase(lambda:unittest.TestCase().assertEqual(1,2))); sys.exit(not r.wasSuccessful())"
+        ],
+        "cwd": "/tmp/persistent-acceptance-xnc5gt9k/project",
+        "log": "/tmp/persistent-acceptance-xnc5gt9k/project/.harness/artifacts/b5882809c6af476ba8edfa1f88686ec9/operation/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 60
+      },
+      "process_started": 1795244278.7237763,
+      "request": null,
+      "result": {
+        "artifact": null,
+        "config": "da00f5a84def6326c8e18b8d019e2b715455736a1a45bbb0ce3ffca010dd097c",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.06050312600018515,
+        "kind": "test",
+        "log": ".harness/artifacts/b5882809c6af476ba8edfa1f88686ec9/operation/0/process.log",
+        "log_bytes": 403,
+        "observed_log_bytes": 403,
+        "ok": false,
+        "output": "F\n======================================================================\nFAIL: unittest.case.FunctionTestCase (<lambda>)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <lambda>\nAssertionError: 1 != 2\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n",
+        "reason": null,
+        "recipe": "test",
+        "returncode": 1,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Testing",
+      "signature": "a470e8febdfe6a992d12e490d43cd27e1017517982360bb607ad4b50e83245d1",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    }
+  },
+  "run_id": "b5882809c6af476ba8edfa1f88686ec9"
+}

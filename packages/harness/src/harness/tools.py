@@ -106,7 +106,8 @@ class Broker:
                 offset=args.get('offset',0);limit=args.get('limit',self.limits['tool_bytes']//2)
                 require(type(offset) is int and offset>=0 and type(limit) is int and 0<limit<=self.limits['tool_bytes']//2,'invalid-read-bound')
                 require(path.stat().st_size<=self.limits['file_bytes'],'read-file-too-large')
-                text=path.read_text(encoding='utf-8-sig');result={'ok':True,'path':args['path'],'sha256':blob(path.read_bytes()),'text':text[offset:offset+limit],'partial':len(text)>offset+limit}
+                from .instructions import decode_edit
+                raw=path.read_bytes();text=decode_edit(raw);result={'ok':True,'path':args['path'],'sha256':blob(raw),'text':text[offset:offset+limit],'partial':len(text)>offset+limit}
             elif name=='search':
                 require(isinstance(args['query'],str) and 0<len(args['query'])<=200,'invalid-search')
                 matches=[]
@@ -150,6 +151,9 @@ class Broker:
             else:raise KnowledgeError('coordinator-tool-requires-runtime-dispatch')
         except (KnowledgeError,OSError,UnicodeError,ValueError,TypeError,KeyError,ET.ParseError) as e:
             result={'ok':False,'error':getattr(e,'code','tool-filesystem-error'),'details':getattr(e,'details',None)}
+        if not result['ok'] and name in ('patch','recipe'):
+            from .instructions import after_error
+            after_error(self,action_id,name,args)
         previous=self.j.action(self.r['id'],action_id) or previous
         previous.update(status='FINISHED',result=result,finished=stamp());self.j.action(self.r['id'],action_id,previous)
         self.j.event(self.r['id'],'tool-finished',action=action_id,role=role,tool=name,ok=result['ok'])
@@ -166,38 +170,68 @@ class Broker:
                 path=patch_path(self.j.project,f['path'],self.r['task'],self.r['protected_paths'],self.r.get('protected_executables',[]))
                 require(isinstance(f['after'],str) and len(f['after'].encode())<=self.limits['file_bytes'],'patch-too-large')
                 require(before.get(f['path'])==f['before'],'edit-before-state-mismatch')
+            from .instructions import preflight,encode_edit,decode_edit,current_formats
+            preflight(self,action_id,'patch',action['args'])
             exceptions=[f['path'] for f in files if f['path'] in self.r['task']['existing_test_edits']]
             if exceptions:self.j.event(self.r['id'],'explicit-test-edit-authorized',action=action_id,paths=exceptions)
-            action['edit_intent']={'before_source':before,'files':files,'before_text':{f['path']:local_path(self.j.project,f['path']).read_text(encoding='utf-8') if local_path(self.j.project,f['path']).exists() else '' for f in files}};self.j.action(self.r['id'],action_id,action)
+            # Refresh after the gateway persisted its trace. Intended bytes are
+            # journaled before any write, so recovery cannot re-encode an edit.
+            action=self.j.action(self.r['id'],action_id)
+            raw_before={f['path']:local_path(self.j.project,f['path']).read_bytes() if local_path(self.j.project,f['path']).exists() else b'' for f in files}
+            formats=current_formats(self)
+            raw_after={f['path']:(encode_edit(raw_before[f['path']],f['after'],formats.get(policy_path(f['path'])),f['before'] is not None) if (f['path'] in self._preserve_paths and f['before'] is not None) or policy_path(f['path']) in formats else f['after'].encode()).hex() for f in files}
+            if action.get('memory_traces'):action['memory_traces'][-1]['current_format_overrides']=[{'path':f['path'],**formats[policy_path(f['path'])]} for f in files if policy_path(f['path']) in formats]
+            action['edit_intent']={'before_source':before,'files':files,'before_text':{p:decode_edit(raw) for p,raw in raw_before.items()},'after_bytes':raw_after};self.j.action(self.r['id'],action_id,action)
         intent=action['edit_intent'];current=source_snapshot(self.j.project,self.limits['file_bytes']);paths={f['path'] for f in files}
+        intended={f['path']:bytes.fromhex(intent['after_bytes'][f['path']]) if 'after_bytes' in intent else f['after'].encode() for f in files}
         require({k:v for k,v in current.items() if k not in paths}=={k:v for k,v in intent['before_source'].items() if k not in paths},'unrelated-source-conflict')
         for f in files:
-            require(current.get(f['path']) in (f['before'],blob(f['after'].encode())),'edit-recovery-conflict',f['path'])
+            require(current.get(f['path']) in (f['before'],blob(intended[f['path']])),'edit-recovery-conflict',f['path'])
         rt.fault('edit-intent')
         written=[];reconciled=[]
         for f in files:
             path=patch_path(self.j.project,f['path'],self.r['task'],self.r['protected_paths'],self.r.get('protected_executables',[]))
-            actual=blob(path.read_bytes()) if path.exists() else None;after=blob(f['after'].encode())
+            actual=blob(path.read_bytes()) if path.exists() else None;after=blob(intended[f['path']])
             if actual==after:reconciled.append(f['path']);continue
             require(actual==f['before'],'edit-recovery-conflict',f['path'])
             path.parent.mkdir(parents=True,exist_ok=True);safe_path(path.parent)
             fd,tmp=tempfile.mkstemp(prefix='.harness-edit-',dir=path.parent)
             try:
-                with os.fdopen(fd,'wb') as out:out.write(f['after'].encode());out.flush();os.fsync(out.fileno())
+                with os.fdopen(fd,'wb') as out:out.write(intended[f['path']]);out.flush();os.fsync(out.fileno())
                 os.replace(tmp,path)
             finally:
                 if os.path.exists(tmp):os.unlink(tmp)
             written.append(f['path']);rt.fault('edit-file-written')
         return {'ok':True,'written':written,'reconciled':reconciled,'after_source':source_snapshot(self.j.project,self.limits['file_bytes'])}
-    def recipe(self,role,action_id,action):
+    def memory_command(self,action_id,argv,timeout,rerun_safe,parent_id,record_id):
+        """Private policy-checked handoff to the existing owned supervisor."""
+        action=self.j.action(self.r['id'],action_id)
+        recipe={'kind':'build','argv':argv,'result':{'format':'exit','path':''},'rerun_safe':rerun_safe,'env':{}}
+        signature=digest(recipe)
+        if action:
+            require(action['signature']==signature,'memory-action-identity-conflict')
+            if action['status']=='FINISHED':return action['result']
+        else:
+            action={'version':1,'status':'INTENT','role':'Building','tool':'recipe','args':{'name':'@memory/'+action_id},'signature':signature,'at':stamp(),'memory_parent':parent_id,'memory_record':record_id}
+            self.j.action(self.r['id'],action_id,action)
+        result=self.recipe('Building',action_id,action,_owned_recipe=recipe,_timeout=timeout)
+        action=self.j.action(self.r['id'],action_id);action.update(status='FINISHED',result=result,finished=stamp());self.j.action(self.r['id'],action_id,action)
+        self.j.event(self.r['id'],'memory-command-finished',action=action_id,parent=parent_id,ok=result['ok'])
+        return result
+    def recipe(self,role,action_id,action,*,_owned_recipe=None,_timeout=None):
         name=action['args']['name']
-        if name.startswith('@automatic-tests/'):
+        if _owned_recipe is not None:recipe=_owned_recipe
+        elif name.startswith('@automatic-tests/'):
             from .testing import recipe_for
             recipe=recipe_for(self,name)
         else:
             require(name in self.c['recipes'],'unknown-recipe');recipe=self.c['recipes'][name]
         require(role==('Building' if recipe['kind']=='build' else 'Testing'),'recipe-role-denied')
-        require('automatic' in recipe or name in self.r['task']['recipes'],'recipe-not-in-task')
+        require(_owned_recipe is not None or 'automatic' in recipe or name in self.r['task']['recipes'],'recipe-not-in-task')
+        if _owned_recipe is None and 'process_result' not in action:
+            from .instructions import preflight
+            preflight(self,action_id,'recipe',action['args'])
+            action=self.j.action(self.r['id'],action_id)
         source=source_snapshot(self.j.project,self.limits['file_bytes']);require(source==self.r['source'],'source-conflict')
         attempt=action.get('process_attempt',0)
         if action.get('process_spec') and not action.get('process_result'):
@@ -210,9 +244,10 @@ class Broker:
         if 'process_result' not in action:
             for field in ('process','child_process','process_started','process_finished','recovery_stop'):action.pop(field,None)
             artifacts=self.j.base/'artifacts'/self.r['id']/action_id/str(attempt);safe_path(artifacts);artifacts.mkdir(parents=True,exist_ok=True)
-            argv=[a.replace('{artifacts}',str(artifacts)) for a in recipe['argv']]
-            require(not any('{' in a or '}' in a for a in argv),'unknown-recipe-placeholder')
+            argv=list(recipe['argv']) if _owned_recipe is not None else [a.replace('{artifacts}',str(artifacts)) for a in recipe['argv']]
+            require(_owned_recipe is not None or not any('{' in a or '}' in a for a in argv),'unknown-recipe-placeholder')
             action.update(process_attempt=attempt,process_spec={'argv':argv,'cwd':str(self.j.project.root),'log':str(artifacts/'process.log'),'timeout':min(self.limits['recipe_seconds'],max(.1,self.limits['elapsed_seconds']-(stamp()-self.r['started']))),'log_bytes':self.limits['log_bytes']},source_before=source)
+            if _timeout is not None:action['process_spec']['timeout']=min(action['process_spec']['timeout'],_timeout)
             action['process_platform']=KIND
             if os.name=='nt':
                 import uuid

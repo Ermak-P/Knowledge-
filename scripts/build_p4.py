@@ -30,8 +30,11 @@ def main():
     for path in (ROOT/'release/p4-kit').iterdir():
         if path.is_file():shutil.copyfile(path,kit/path.name)
     docs=kit/'docs';docs.mkdir(exist_ok=True)
-    for path in (ROOT/'docs/P4').glob('*.md'):shutil.copyfile(path,docs/path.name)
+    for path in (ROOT/'docs/P4').iterdir():
+        if path.is_file() and path.suffix in ('.md','.json'):shutil.copyfile(path,docs/path.name)
     shutil.copytree(ROOT/'examples/p4',kit/'examples',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__','*.pyc','bin','obj'))
+    host=kit/'host';host.mkdir(exist_ok=True)
+    shutil.copyfile(ROOT/'packages/knowledge/src/knowledge/host/opencode.mjs',host/'opencode.mjs')
     for package in ('knowledge','harness'):
         license=next((p for p in (ROOT/'packages'/package).glob('*LICENSE*')),None)
         if license:shutil.copyfile(license,kit/(package+'-LICENSE'))

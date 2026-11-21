@@ -94,7 +94,9 @@ class ContextPathPerformanceTests(unittest.TestCase):
         text='Synthetic basket preserves quantities.\n'
         (root/'Fixture.cs').write_text(text)
         s=upgraded(root);value=addition()
-        value['records']['evidence'][0]['content_hash']='sha256:'+hashlib.sha256(text.encode()).hexdigest()
+        # Evidence binds the persisted bytes (write_text uses CRLF on Windows),
+        # not the logical string before platform newline translation.
+        value['records']['evidence'][0]['content_hash']='sha256:'+hashlib.sha256((root/'Fixture.cs').read_bytes()).hexdigest()
         s.submit(value);approve(s);return s
 
     def test_reviewed_context_checks_supporting_files_without_full_source_analysis(self):

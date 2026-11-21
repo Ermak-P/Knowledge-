@@ -1,0 +1,198 @@
+{
+  "result": {
+    "ok": false,
+    "error": "instruction-binding-unavailable",
+    "details": "binding-input-unavailable"
+  },
+  "actions": {
+    "operation": {
+      "agent": null,
+      "args": {
+        "name": "test"
+      },
+      "at": 1795259986.9837284,
+      "finished": 1795259987.0221272,
+      "memory_traces": [
+        {
+          "binding_states": {},
+          "dependency_links": [
+            {
+              "dependency": "local_broker",
+              "source": "runner-requirement",
+              "suite": null
+            }
+          ],
+          "error": "instruction-binding-unavailable",
+          "lookup_bytes": 2330,
+          "lookup_seconds": 0.002883601999201346,
+          "lookups": [
+            {
+              "action": {
+                "name": "test",
+                "tool": "recipe"
+              },
+              "bindings": {},
+              "conflicts": [],
+              "decisions": [],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 187,
+              "signals": {},
+              "state": "no-match",
+              "stores": {
+                "project": "absent",
+                "shared": "available"
+              }
+            },
+            {
+              "action": {
+                "name": "local_broker",
+                "tool": "dependency"
+              },
+              "bindings": {},
+              "conflicts": [],
+              "decisions": [
+                {
+                  "applicable": true,
+                  "id": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+                  "reason": "match",
+                  "revision": 1
+                }
+              ],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 2143,
+              "signals": {},
+              "state": "matched",
+              "stores": {
+                "project": "absent",
+                "shared": "available"
+              }
+            }
+          ],
+          "ok": false,
+          "outcomes": [],
+          "phase": "before-action",
+          "selected": [
+            {
+              "id": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+              "revision": 1,
+              "scope": "shared"
+            }
+          ],
+          "selected_bytes": 1837,
+          "total_seconds": 0.02916795900091529
+        },
+        {
+          "binding_states": {
+            "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1": {
+              "at": 1795259987.0125942,
+              "reason": "instruction-binding-unavailable",
+              "sequence": 1,
+              "state": "blocked"
+            }
+          },
+          "candidate_ids": [],
+          "dependency_links": [
+            {
+              "dependency": "local_broker",
+              "source": "runner-requirement",
+              "suite": null
+            }
+          ],
+          "lookup_bytes": 2817,
+          "lookups": [
+            {
+              "action": {
+                "name": "test",
+                "tool": "recipe"
+              },
+              "bindings": {},
+              "conflicts": [],
+              "decisions": [],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 187,
+              "signals": {},
+              "state": "no-match",
+              "stores": {
+                "project": "absent",
+                "shared": "available"
+              }
+            },
+            {
+              "action": {
+                "name": "local_broker",
+                "tool": "dependency"
+              },
+              "bindings": {
+                "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1": {
+                  "at": 1795259987.0125942,
+                  "reason": "instruction-binding-unavailable",
+                  "sequence": 1,
+                  "state": "blocked"
+                }
+              },
+              "conflicts": [],
+              "decisions": [
+                {
+                  "applicable": true,
+                  "id": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+                  "reason": "match",
+                  "revision": 1
+                }
+              ],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 2630,
+              "signals": {
+                "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1": {
+                  "at": 1795259987.0158045,
+                  "evidence": [
+                    {
+                      "action": "operation",
+                      "run": "34b8556756d84dde9509de85fb7c90d9"
+                    }
+                  ],
+                  "outcome": {
+                    "error": "instruction-binding-unavailable",
+                    "ok": false,
+                    "phase": "before-action"
+                  },
+                  "root_cause": "not-established",
+                  "technical": "blocked-or-failed"
+                }
+              },
+              "state": "matched",
+              "stores": {
+                "project": "absent",
+                "shared": "available"
+              }
+            }
+          ],
+          "phase": "after-error",
+          "selected": [
+            {
+              "id": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+              "revision": 1,
+              "scope": "shared"
+            }
+          ],
+          "selected_bytes": 1837
+        }
+      ],
+      "request": null,
+      "result": {
+        "details": "binding-input-unavailable",
+        "error": "instruction-binding-unavailable",
+        "ok": false
+      },
+      "role": "Testing",
+      "signature": "a470e8febdfe6a992d12e490d43cd27e1017517982360bb607ad4b50e83245d1",
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    }
+  },
+  "run_id": "34b8556756d84dde9509de85fb7c90d9"
+}

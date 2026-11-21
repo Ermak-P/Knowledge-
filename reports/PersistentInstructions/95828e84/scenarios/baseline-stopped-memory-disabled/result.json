@@ -1,0 +1,91 @@
+{
+  "result": {
+    "ok": false,
+    "recipe": "test",
+    "kind": "test",
+    "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+    "config": "e4e479b536f08c0c2404da67906f7ad552d0621432e8b96642936bcf76650ecd",
+    "counts": null,
+    "artifact": null,
+    "output": "E\n======================================================================\nERROR: unittest.case.FunctionTestCase (<lambda>)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <lambda>\n  File \"/tmp/persistent-pinned-runtime/lib/python3.12/site-packages/knowledge/probes.py\", line 30, in kafka\n    versions=request(host,port,18,0,b'',timeout)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/persistent-pinned-runtime/lib/python3.12/site-packages/knowledge/probes.py\", line 20, in request\n    with socket.create_connection((host,port),timeout=timeout) as sock:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/socket.py\", line 865, in create_connection\n    raise exceptions[0]\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/socket.py\", line 850, in create_connection\n    sock.connect(sa)\nConnectionRefusedError: [Errno 111] Connection refused\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (errors=1)\n",
+    "log": ".harness/artifacts/589bc644a3834f61839805da321905c2/operation/0/process.log",
+    "descendants_stopped": true,
+    "duration": 0.07410631500533782,
+    "log_bytes": 1186,
+    "observed_log_bytes": 1186,
+    "reason": null,
+    "returncode": 1,
+    "truncated": false
+  },
+  "actions": {
+    "operation": {
+      "agent": null,
+      "args": {
+        "name": "test"
+      },
+      "at": 1795210756.4008625,
+      "finished": 1795210756.5573127,
+      "process": {
+        "group": 282934,
+        "host": "2a3f06c4193bd441c4b659601fcb2de03e038cffdb80108d4228133bdbe37649",
+        "pid": 282934,
+        "platform": "linux-pgroup-v1",
+        "start": "14686547",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795210756.5223217,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.07410631500533782,
+        "log_bytes": 1186,
+        "observed_log_bytes": 1186,
+        "reason": null,
+        "returncode": 1,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/tmp/persistent-pinned-runtime/bin/python",
+          "-I",
+          "-c",
+          "import unittest,sys; from knowledge.probes import kafka; r=unittest.TextTestRunner().run(unittest.FunctionTestCase(lambda:kafka(\"127.0.0.1\",34961,1))); sys.exit(not r.wasSuccessful())"
+        ],
+        "cwd": "/tmp/persistent-acceptance-lhlox947/project",
+        "log": "/tmp/persistent-acceptance-lhlox947/project/.harness/artifacts/589bc644a3834f61839805da321905c2/operation/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 60
+      },
+      "process_started": 1795210756.446381,
+      "request": null,
+      "result": {
+        "artifact": null,
+        "config": "e4e479b536f08c0c2404da67906f7ad552d0621432e8b96642936bcf76650ecd",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.07410631500533782,
+        "kind": "test",
+        "log": ".harness/artifacts/589bc644a3834f61839805da321905c2/operation/0/process.log",
+        "log_bytes": 1186,
+        "observed_log_bytes": 1186,
+        "ok": false,
+        "output": "E\n======================================================================\nERROR: unittest.case.FunctionTestCase (<lambda>)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <lambda>\n  File \"/tmp/persistent-pinned-runtime/lib/python3.12/site-packages/knowledge/probes.py\", line 30, in kafka\n    versions=request(host,port,18,0,b'',timeout)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/persistent-pinned-runtime/lib/python3.12/site-packages/knowledge/probes.py\", line 20, in request\n    with socket.create_connection((host,port),timeout=timeout) as sock:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/socket.py\", line 865, in create_connection\n    raise exceptions[0]\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/socket.py\", line 850, in create_connection\n    sock.connect(sa)\nConnectionRefusedError: [Errno 111] Connection refused\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (errors=1)\n",
+        "reason": null,
+        "recipe": "test",
+        "returncode": 1,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Testing",
+      "signature": "a470e8febdfe6a992d12e490d43cd27e1017517982360bb607ad4b50e83245d1",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    }
+  },
+  "run_id": "589bc644a3834f61839805da321905c2"
+}

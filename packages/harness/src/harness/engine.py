@@ -33,7 +33,7 @@ def task_shape(task,configuration,*,p4_base=False):
     else:require(not task['writable'] and not task['recipes'],'read-only-task-has-write-authority')
 
 
-def start(root,task,mode='multi',*,entry_authority=None):
+def start(root,task,mode='multi',*,entry_authority=None,current_restrictions=None,host_session=None,format_changes=None):
     task=deepcopy(task);entry_authority=deepcopy(entry_authority)
     journal=Journal(root)
     require(mode in ('multi','single'),'invalid-execution-mode')
@@ -46,6 +46,15 @@ def start(root,task,mode='multi',*,entry_authority=None):
         task=deepcopy(task);task['initial_source']=source
         run=dict(version=1,id=uuid.uuid4().hex,project=journal.project.identity,started=stamp(),status='running',execution='pending',capture={'state':'not-started'},
                  task=task,config_hash=digest(configuration),mode=mode,source=source,gates={},agents=[],frames=[],shared_history=[],requests=[],delegations=0,tool_calls=0,protected_paths=[],capture_prepared=False)
+        if current_restrictions:
+            require(isinstance(current_restrictions,list) and set(current_restrictions)<={'no-service-start'},'invalid-current-restriction')
+            run['current_restrictions']=deepcopy(current_restrictions)
+        if format_changes:
+            from knowledge.text_format import validate_changes
+            run['current_format_changes']=deepcopy(validate_changes(format_changes))
+        if host_session:
+            from .host_ingress import read_session
+            read_session(root,host_session);run['host_session']=host_session
         from .testing import initialize as initialize_tests
         initialize_tests(journal.project,configuration,run)
         run['protected_paths'],run['protected_executables']=recipe_inputs(journal.project,configuration,task)
@@ -92,18 +101,19 @@ def status(root,run_id):
     return {'ok':True,'automatic_tests':summary(run),'run':run,'events':journal.events(run_id),'actions':journal.actions(run_id),'outbox':journal.outbox(run_id),'metrics':metrics(run,journal.actions(run_id))}
 
 
-def resume(root,run_id):
+def resume(root,run_id,*,current_restrictions=None,format_changes=None):
     journal=Journal(root)
-    if 'automatic_tests' not in journal.load(run_id):return _resume(root,run_id,journal)
+    controls={'current_restrictions':current_restrictions,'format_changes':format_changes}
+    if 'automatic_tests' not in journal.load(run_id):return _resume(root,run_id,journal,**controls)
     # Controller ownership is intentionally not inherited by process supervisors.
     # Serialize recovery before examining stale PID state or stopping an orphan.
     from knowledge.execution_lock import ExecutionLock
     controller=ExecutionLock(journal.base/'automatic-driver.lock').acquire()
-    try:return _resume(root,run_id,journal)
+    try:return _resume(root,run_id,journal,**controls)
     finally:controller.close()
 
 
-def _resume(root,run_id,journal):
+def _resume(root,run_id,journal,*,current_restrictions=None,format_changes=None):
     waiting=time.monotonic()
     def owned(lease):
         # Never retain mutable state/config across a scheduling/ownership boundary.
@@ -111,9 +121,44 @@ def _resume(root,run_id,journal):
         if 'automatic_tests' in run:
             from .testing import guard
             guard(journal.project,config(root),run)
-        if run['status'] in TERMINAL:return result(run)
+        if run['status'] in TERMINAL:
+            require(current_restrictions is None and format_changes is None,'resume-controls-require-active-run')
+            return result(run)
         configuration=config(root)
         task_shape({k:v for k,v in run['task'].items() if k!='initial_source'},configuration)
+        # Current controls are merged and committed under the execution lease,
+        # before any broker, recovery, or provider continuation can run.
+        if current_restrictions is not None or format_changes is not None:
+            require(digest(configuration)==run['config_hash'],'configuration-changed-revalidation-required')
+            restrictions=run.get('current_restrictions',[])
+            if current_restrictions is not None:
+                require(isinstance(current_restrictions,list) and set(current_restrictions)<={'no-service-start'},'invalid-current-restriction')
+                restrictions=sorted(set(restrictions)|set(current_restrictions))
+            changes=run.get('current_format_changes',[])
+            if format_changes is not None:
+                from knowledge.text_format import validate_changes,encode,decode
+                from .runtime import policy_path
+                validate_changes(format_changes)
+                # A journaled edit is an immutable byte intent, including after
+                # a partial commit. Only byte-compatible overrides may proceed.
+                for change in format_changes:
+                    path=policy_path(change['path'].replace('\\','/'))
+                    for action in journal.actions(run_id).values():
+                        intent=action.get('edit_intent')
+                        if not intent:continue
+                        for file in intent['files']:
+                            if policy_path(file['path'])!=path:continue
+                            require(not change.get('reset'),'resume-format-conflicts-with-edit-intent',file['path'])
+                            raw=bytes.fromhex(intent['after_bytes'][file['path']]) if 'after_bytes' in intent else file['after'].encode()
+                            requested={k:v for k,v in change.items() if k!='path'}
+                            require(encode(raw,decode(raw),requested)==raw,'resume-format-conflicts-with-edit-intent',file['path'])
+                # Keep reset markers: they override any prior CLI setting.
+                merged={policy_path(c['path'].replace('\\','/')):c for c in changes}
+                merged.update({policy_path(c['path'].replace('\\','/')):c for c in format_changes})
+                changes=deepcopy(list(merged.values()));validate_changes(changes)
+            run['current_restrictions']=deepcopy(restrictions)
+            run['current_format_changes']=changes
+            journal.save(run);journal.event(run_id,'resume-current-controls',restrictions=restrictions,format_changes=format_changes)
         run['lease_wait_seconds']=run.get('lease_wait_seconds',0)+time.monotonic()-waiting
         return _drive_with_owner(journal,configuration,run,lease)
     try:

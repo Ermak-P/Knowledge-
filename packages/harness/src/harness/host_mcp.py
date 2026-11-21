@@ -23,7 +23,7 @@ def create_server(root):
     @server.tool()
     def harness_status(run_id:str)->CallToolResult:return call(status,root,run_id)
     @server.tool()
-    def harness_run(task_name:str)->CallToolResult:return call(run_task,root,task_name)
+    def harness_run(task_name:str,host_session_id:str|None=None)->CallToolResult:return call(run_task,root,task_name,host_session_id)
     return server
 
 def main():

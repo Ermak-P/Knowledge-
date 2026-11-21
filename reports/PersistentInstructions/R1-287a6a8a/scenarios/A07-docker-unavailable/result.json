@@ -1,0 +1,198 @@
+{
+  "result": {
+    "ok": false,
+    "error": "instruction-binding-unavailable",
+    "details": "binding-input-unavailable"
+  },
+  "actions": {
+    "operation": {
+      "agent": null,
+      "args": {
+        "name": "test"
+      },
+      "at": 1795265545.664556,
+      "finished": 1795265545.7092519,
+      "memory_traces": [
+        {
+          "binding_states": {},
+          "dependency_links": [
+            {
+              "dependency": "local_broker",
+              "source": "runner-requirement",
+              "suite": null
+            }
+          ],
+          "error": "instruction-binding-unavailable",
+          "lookup_bytes": 2320,
+          "lookup_seconds": 0.0030768039978283923,
+          "lookups": [
+            {
+              "action": {
+                "name": "test",
+                "tool": "recipe"
+              },
+              "bindings": {},
+              "conflicts": [],
+              "decisions": [],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 187,
+              "signals": {},
+              "state": "no-match",
+              "stores": {
+                "project": "absent",
+                "shared": "available"
+              }
+            },
+            {
+              "action": {
+                "name": "local_broker",
+                "tool": "dependency"
+              },
+              "bindings": {},
+              "conflicts": [],
+              "decisions": [
+                {
+                  "applicable": true,
+                  "id": "40256724d3751c469de46330967d6d83039e35b73b90d55ee0ad48fa6959dc82",
+                  "reason": "match",
+                  "revision": 1
+                }
+              ],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 2133,
+              "signals": {},
+              "state": "matched",
+              "stores": {
+                "project": "absent",
+                "shared": "available"
+              }
+            }
+          ],
+          "ok": false,
+          "outcomes": [],
+          "phase": "before-action",
+          "selected": [
+            {
+              "id": "40256724d3751c469de46330967d6d83039e35b73b90d55ee0ad48fa6959dc82",
+              "revision": 1,
+              "scope": "shared"
+            }
+          ],
+          "selected_bytes": 1827,
+          "total_seconds": 0.0307860629982315
+        },
+        {
+          "binding_states": {
+            "40256724d3751c469de46330967d6d83039e35b73b90d55ee0ad48fa6959dc82": {
+              "at": 1795265545.695079,
+              "reason": "instruction-binding-unavailable",
+              "sequence": 1,
+              "state": "blocked"
+            }
+          },
+          "candidate_ids": [],
+          "dependency_links": [
+            {
+              "dependency": "local_broker",
+              "source": "runner-requirement",
+              "suite": null
+            }
+          ],
+          "lookup_bytes": 2806,
+          "lookups": [
+            {
+              "action": {
+                "name": "test",
+                "tool": "recipe"
+              },
+              "bindings": {},
+              "conflicts": [],
+              "decisions": [],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 187,
+              "signals": {},
+              "state": "no-match",
+              "stores": {
+                "project": "absent",
+                "shared": "available"
+              }
+            },
+            {
+              "action": {
+                "name": "local_broker",
+                "tool": "dependency"
+              },
+              "bindings": {
+                "40256724d3751c469de46330967d6d83039e35b73b90d55ee0ad48fa6959dc82": {
+                  "at": 1795265545.695079,
+                  "reason": "instruction-binding-unavailable",
+                  "sequence": 1,
+                  "state": "blocked"
+                }
+              },
+              "conflicts": [],
+              "decisions": [
+                {
+                  "applicable": true,
+                  "id": "40256724d3751c469de46330967d6d83039e35b73b90d55ee0ad48fa6959dc82",
+                  "reason": "match",
+                  "revision": 1
+                }
+              ],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 2619,
+              "signals": {
+                "40256724d3751c469de46330967d6d83039e35b73b90d55ee0ad48fa6959dc82": {
+                  "at": 1795265545.6993897,
+                  "evidence": [
+                    {
+                      "action": "operation",
+                      "run": "04d433a95fdd4012858a23dbb6a427c4"
+                    }
+                  ],
+                  "outcome": {
+                    "error": "instruction-binding-unavailable",
+                    "ok": false,
+                    "phase": "before-action"
+                  },
+                  "root_cause": "not-established",
+                  "technical": "blocked-or-failed"
+                }
+              },
+              "state": "matched",
+              "stores": {
+                "project": "absent",
+                "shared": "available"
+              }
+            }
+          ],
+          "phase": "after-error",
+          "selected": [
+            {
+              "id": "40256724d3751c469de46330967d6d83039e35b73b90d55ee0ad48fa6959dc82",
+              "revision": 1,
+              "scope": "shared"
+            }
+          ],
+          "selected_bytes": 1827
+        }
+      ],
+      "request": null,
+      "result": {
+        "details": "binding-input-unavailable",
+        "error": "instruction-binding-unavailable",
+        "ok": false
+      },
+      "role": "Testing",
+      "signature": "a470e8febdfe6a992d12e490d43cd27e1017517982360bb607ad4b50e83245d1",
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    }
+  },
+  "run_id": "04d433a95fdd4012858a23dbb6a427c4"
+}

@@ -1,0 +1,319 @@
+{
+  "result": {
+    "ok": false,
+    "error": "memory-remedy-blocked",
+    "details": "dependency-readiness-timeout"
+  },
+  "actions": {
+    "memory-ae3510f5be1b92a851ea7392-1-probe0": {
+      "args": {
+        "name": "@memory/memory-ae3510f5be1b92a851ea7392-1-probe0"
+      },
+      "at": 1795261978.4519408,
+      "finished": 1795261978.5625443,
+      "memory_parent": "operation",
+      "memory_record": "c15938cf0c5cd02b24ea5514a7023fbef20e30d1e396dd410481743782f7ebb6",
+      "process": {
+        "group": 154061,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 154061,
+        "platform": "linux-pgroup-v1",
+        "start": "2178429",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795261978.5171463,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.027222251999774016,
+        "log_bytes": 0,
+        "observed_log_bytes": 0,
+        "reason": null,
+        "returncode": 1,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/tmp/persistent-final-reviewed-runtime/bin/python",
+          "-I",
+          "-c",
+          "raise SystemExit(1)"
+        ],
+        "cwd": "/tmp/persistent-acceptance-bba6w76i/blocked/project",
+        "log": "/tmp/persistent-acceptance-bba6w76i/blocked/project/.harness/artifacts/7bff5ee9a2bc458b85c6ffe7e6641115/memory-ae3510f5be1b92a851ea7392-1-probe0/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 1
+      },
+      "process_started": 1795261978.4878535,
+      "result": {
+        "artifact": null,
+        "config": "da6ab6549b5f1d616e0ff7b08358cd49a5637a109cf524ad3c92fbc69a5fbcf3",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.027222251999774016,
+        "kind": "build",
+        "log": ".harness/artifacts/7bff5ee9a2bc458b85c6ffe7e6641115/memory-ae3510f5be1b92a851ea7392-1-probe0/0/process.log",
+        "log_bytes": 0,
+        "observed_log_bytes": 0,
+        "ok": false,
+        "output": "",
+        "reason": null,
+        "recipe": "@memory/memory-ae3510f5be1b92a851ea7392-1-probe0",
+        "returncode": 1,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "6e9aaabdce3d2388d192998f1b378e5be09156b64a14aa9a5df21dcb2e63874f",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "operation": {
+      "agent": null,
+      "args": {
+        "name": "test"
+      },
+      "at": 1795261978.3849425,
+      "finished": 1795261978.5889904,
+      "memory_generation": 1,
+      "memory_traces": [
+        {
+          "binding_states": {
+            "c15938cf0c5cd02b24ea5514a7023fbef20e30d1e396dd410481743782f7ebb6": {
+              "at": 1795261978.2966075,
+              "daemon": "f61e3048c7e9ca392727561012e47395b00ae458ea261e83104cc400571b9392",
+              "reason": "dependency-readiness-timeout",
+              "resource": "7fca6a5e8817d67e00c34ca42d4d26dca009d0026c417204e08804e8e266cdda",
+              "sequence": 2,
+              "state": "blocked"
+            }
+          },
+          "dependency_links": [
+            {
+              "dependency": "local_broker",
+              "source": "runner-requirement",
+              "suite": null
+            }
+          ],
+          "error": "memory-remedy-blocked",
+          "lookup_bytes": 3427,
+          "lookup_seconds": 0.005507414000021527,
+          "lookups": [
+            {
+              "action": {
+                "name": "test",
+                "tool": "recipe"
+              },
+              "bindings": {},
+              "conflicts": [],
+              "decisions": [],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 190,
+              "signals": {},
+              "state": "no-match",
+              "stores": {
+                "project": "available",
+                "shared": "available"
+              }
+            },
+            {
+              "action": {
+                "name": "local_broker",
+                "tool": "dependency"
+              },
+              "bindings": {
+                "c15938cf0c5cd02b24ea5514a7023fbef20e30d1e396dd410481743782f7ebb6": {
+                  "at": 1795261978.2966075,
+                  "daemon": "f61e3048c7e9ca392727561012e47395b00ae458ea261e83104cc400571b9392",
+                  "reason": "dependency-readiness-timeout",
+                  "resource": "7fca6a5e8817d67e00c34ca42d4d26dca009d0026c417204e08804e8e266cdda",
+                  "sequence": 2,
+                  "state": "blocked"
+                }
+              },
+              "conflicts": [],
+              "decisions": [
+                {
+                  "applicable": true,
+                  "id": "c15938cf0c5cd02b24ea5514a7023fbef20e30d1e396dd410481743782f7ebb6",
+                  "reason": "match",
+                  "revision": 1
+                }
+              ],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 3237,
+              "signals": {
+                "c15938cf0c5cd02b24ea5514a7023fbef20e30d1e396dd410481743782f7ebb6": {
+                  "at": 1795261978.3147812,
+                  "evidence": [
+                    {
+                      "action": "operation",
+                      "run": "253eb0a8ab2c4be19baef47884bd87ef"
+                    }
+                  ],
+                  "outcome": {
+                    "error": "dependency-readiness-timeout",
+                    "ok": false,
+                    "phase": "before-action"
+                  },
+                  "root_cause": "not-established",
+                  "technical": "blocked-or-failed"
+                }
+              },
+              "state": "matched",
+              "stores": {
+                "project": "available",
+                "shared": "available"
+              }
+            }
+          ],
+          "ok": false,
+          "outcomes": [],
+          "phase": "before-action",
+          "selected": [
+            {
+              "id": "c15938cf0c5cd02b24ea5514a7023fbef20e30d1e396dd410481743782f7ebb6",
+              "revision": 1,
+              "scope": "shared"
+            }
+          ],
+          "selected_bytes": 2293,
+          "total_seconds": 0.1803498569970543
+        },
+        {
+          "binding_states": {
+            "c15938cf0c5cd02b24ea5514a7023fbef20e30d1e396dd410481743782f7ebb6": {
+              "at": 1795261978.2966075,
+              "daemon": "f61e3048c7e9ca392727561012e47395b00ae458ea261e83104cc400571b9392",
+              "reason": "dependency-readiness-timeout",
+              "resource": "7fca6a5e8817d67e00c34ca42d4d26dca009d0026c417204e08804e8e266cdda",
+              "sequence": 2,
+              "state": "blocked"
+            }
+          },
+          "candidate_ids": [
+            "6d68e7d6957bdadb650448db7f955527179b8ceb1c1198710eec84cc25bcfb9c"
+          ],
+          "dependency_links": [
+            {
+              "dependency": "local_broker",
+              "source": "runner-requirement",
+              "suite": null
+            }
+          ],
+          "lookup_bytes": 8598,
+          "lookups": [
+            {
+              "action": {
+                "name": "test",
+                "tool": "recipe"
+              },
+              "bindings": {},
+              "conflicts": [],
+              "decisions": [],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 190,
+              "signals": {},
+              "state": "no-match",
+              "stores": {
+                "project": "available",
+                "shared": "available"
+              }
+            },
+            {
+              "action": {
+                "name": "local_broker",
+                "tool": "dependency"
+              },
+              "bindings": {
+                "c15938cf0c5cd02b24ea5514a7023fbef20e30d1e396dd410481743782f7ebb6": {
+                  "at": 1795261978.2966075,
+                  "daemon": "f61e3048c7e9ca392727561012e47395b00ae458ea261e83104cc400571b9392",
+                  "reason": "dependency-readiness-timeout",
+                  "resource": "7fca6a5e8817d67e00c34ca42d4d26dca009d0026c417204e08804e8e266cdda",
+                  "sequence": 2,
+                  "state": "blocked"
+                }
+              },
+              "conflicts": [],
+              "decisions": [
+                {
+                  "applicable": true,
+                  "id": "6d68e7d6957bdadb650448db7f955527179b8ceb1c1198710eec84cc25bcfb9c",
+                  "reason": "match",
+                  "revision": 1
+                },
+                {
+                  "applicable": true,
+                  "id": "c15938cf0c5cd02b24ea5514a7023fbef20e30d1e396dd410481743782f7ebb6",
+                  "reason": "match",
+                  "revision": 1
+                }
+              ],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 8408,
+              "signals": {
+                "c15938cf0c5cd02b24ea5514a7023fbef20e30d1e396dd410481743782f7ebb6": {
+                  "at": 1795261978.5712218,
+                  "evidence": [
+                    {
+                      "action": "operation",
+                      "run": "7bff5ee9a2bc458b85c6ffe7e6641115"
+                    }
+                  ],
+                  "outcome": {
+                    "error": "memory-remedy-blocked",
+                    "ok": false,
+                    "phase": "before-action"
+                  },
+                  "root_cause": "not-established",
+                  "technical": "blocked-or-failed"
+                }
+              },
+              "state": "matched",
+              "stores": {
+                "project": "available",
+                "shared": "available"
+              }
+            }
+          ],
+          "phase": "after-error",
+          "selected": [
+            {
+              "id": "6d68e7d6957bdadb650448db7f955527179b8ceb1c1198710eec84cc25bcfb9c",
+              "revision": 1,
+              "scope": "project"
+            },
+            {
+              "id": "c15938cf0c5cd02b24ea5514a7023fbef20e30d1e396dd410481743782f7ebb6",
+              "revision": 1,
+              "scope": "shared"
+            }
+          ],
+          "selected_bytes": 7349
+        }
+      ],
+      "request": null,
+      "result": {
+        "details": "dependency-readiness-timeout",
+        "error": "memory-remedy-blocked",
+        "ok": false
+      },
+      "role": "Testing",
+      "signature": "a470e8febdfe6a992d12e490d43cd27e1017517982360bb607ad4b50e83245d1",
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    }
+  },
+  "run_id": "7bff5ee9a2bc458b85c6ffe7e6641115"
+}

@@ -105,6 +105,10 @@ def preview(root,task_path=None,remove=False):
         require(set(mcp)<={'servers'},'host-v1-config-requires-explicit-migration')
         servers=mcp.setdefault('servers',{});require(isinstance(servers,dict) and not {'knowledge_local','harness_companion'}&set(servers),'host-server-name-conflict')
         servers['knowledge_local']={'type':'local','command':[sys.executable,'-I','-m','knowledge.mcp','--root',str(project.root)]}
+        shared=config(root).get('memory',{}).get('shared_root')
+        if shared:servers['knowledge_local']['command']+=['--shared-root',shared]
+        memory=config(root).get('memory',{})
+        if memory.get('shared_root'):servers['knowledge_local']['command']+=['--shared-root',memory['shared_root']]
         servers['harness_companion']={'type':'local','command':[sys.executable,'-I','-m','harness.host_mcp','--root',str(project.root)]}
         tasks={}
         if task_path:
@@ -143,10 +147,10 @@ def doctor(root):
     snapshot,_=_snapshot(root)
     return {'ok':True,'project':Project(root).describe(),'mode':'OpenCode v2 companion','mcp_available':importlib.util.find_spec('mcp') is not None,'native_host':'NOT_RUN','tasks':list(snapshot['tasks'])}
 
-def run_task(root,name):
+def run_task(root,name,host_session_id=None):
     authority,payloads=_snapshot(root);require(name in payloads,'host-task-not-enrolled');authority['task_name']=name
     from .engine import start
-    return start(root,payloads[name],entry_authority=authority)
+    return start(root,payloads[name],entry_authority=authority,host_session=host_session_id)
 
 def main():
     p=argparse.ArgumentParser();p.add_argument('command',choices=['preview','apply','remove-preview','doctor','run']);p.add_argument('--root',required=True);p.add_argument('--task');p.add_argument('--input',type=Path);p.add_argument('--approve');a=p.parse_args()
