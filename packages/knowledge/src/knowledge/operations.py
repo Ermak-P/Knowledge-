@@ -392,7 +392,8 @@ def lookup(root, action, environment, *, shared=None, max_items=8, max_bytes=120
             if r['status']=='unbound':
                 # Surface missing binding without pretending an absent trigger
                 # can authorize execution. Kept bounded like other selections.
-                if applicable(r,environment) and ((r['trigger'] and matches(r['trigger'],action)) or any(word in normalized(r['normalized']) for word in normalized(action['name']).split() if len(word)>3)):
+                triggered=matches(r['trigger'],action) if r['trigger'] else any(word in normalized(r['normalized']) for word in normalized(action['name']).split() if len(word)>3)
+                if applicable(r,environment) and triggered:
                     selected.append(r)
                 continue
             if r['status']!='active' and not (include_candidates and r['status']=='candidate'):continue

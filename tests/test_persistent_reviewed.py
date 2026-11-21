@@ -45,6 +45,16 @@ class DockerContract:
 
 
 class ReviewedInstructions(unittest.TestCase):
+    def test_unbound_known_dependency_blocks_only_the_declared_suite(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root,shared,cfg=setup_fixture(tmp)
+            op.teach(root,'Remember Kafka only for its declared test suites.',{'type':'user-message','id':'scope'},
+                scope='shared',shared=shared,intent_trigger={'tool':'dependency','name':'local_broker'},missing=['Which configured Kafka resource?'])
+            unrelated=worker(root);self.assertTrue(unrelated['result']['ok'],unrelated)
+            cfg['memory']['requirements']=[{'trigger':{'tool':'recipe','name':'test'},'dependency':'local_broker'}];configure(root,cfg)
+            affected=worker(root);self.assertEqual(affected['result'].get('error'),'instruction-binding-required',affected)
+            self.assertFalse(any(a.get('memory_parent') for a in affected['actions'].values()))
+
     def test_unlinked_dependency_ack_does_not_promise_current_host_activation(self):
         with tempfile.TemporaryDirectory() as tmp:
             root,shared,cfg=setup_fixture(tmp);p=procedure()
