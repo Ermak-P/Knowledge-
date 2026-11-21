@@ -1,0 +1,283 @@
+{
+  "status": "PASS_NATIVE",
+  "product": "0.5.0rc1",
+  "prerequisites": {
+    "runtime": {
+      "requested": "v4.8",
+      "release": 533509
+    },
+    "reference_assemblies": "C:\\Program Files (x86)\\Reference Assemblies\\Microsoft\\Framework\\.NETFramework\\v4.8",
+    "msbuild": "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\MSBuild\\Current\\Bin\\MSBuild.exe",
+    "sdk": "8.0.408",
+    "legacy_framework": "v4.8"
+  },
+  "rows": [
+    {
+      "case": "cli-recovery-repair",
+      "status": "PASS",
+      "counts": {
+        "executed": 3,
+        "failed": 0,
+        "passed": 3,
+        "skipped": 0
+      },
+      "generations": 2,
+      "unique_trx": 6,
+      "processes": 26,
+      "commands": [
+        {
+          "label": "solution",
+          "argv": [
+            "C:\\Program Files\\dotnet\\dotnet.EXE",
+            "new",
+            "sln",
+            "--name",
+            "Suite"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "mixed-projects",
+          "argv": [
+            "C:\\Program Files\\dotnet\\dotnet.EXE",
+            "sln",
+            "Suite.sln",
+            "add",
+            "src/App/App.csproj",
+            "unconventional/IpmAzureCommon.UnitTests.csproj",
+            "integration/IpmAzureAutotests.csproj",
+            "zz outside solution/\u0422\u0435\u0441\u0442\u044b \u03a9/ZZZTests.csproj"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "configure",
+          "argv": [
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\p4-installed-240ndn0b\\runtime\\Scripts\\python.exe",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "configure",
+            "--root",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\mixed legacy \u03a9 erdfmi4a\\project",
+            "--input",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\mixed legacy \u03a9 erdfmi4a\\runner.json",
+            "--init-knowledge"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "inspect",
+          "argv": [
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\p4-installed-240ndn0b\\runtime\\Scripts\\python.exe",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "discover-tests",
+            "--root",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\mixed legacy \u03a9 erdfmi4a\\project"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "interrupted",
+          "argv": [
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\p4-installed-240ndn0b\\runtime\\Scripts\\python.exe",
+            "-I",
+            "-X",
+            "utf8",
+            "-B",
+            "D:\\a\\Knowledge-\\Knowledge-\\tests\\integrated_cli_worker.py",
+            "--die",
+            "legacy-build-receipt",
+            "--",
+            "run",
+            "--root",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\mixed legacy \u03a9 erdfmi4a\\project",
+            "--input",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\mixed legacy \u03a9 erdfmi4a\\project\\task.json"
+          ],
+          "returncode": 73
+        },
+        {
+          "label": "resume",
+          "argv": [
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\p4-installed-240ndn0b\\runtime\\Scripts\\python.exe",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "resume",
+            "--root",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\mixed legacy \u03a9 erdfmi4a\\project",
+            "--run-id",
+            "30606390cfb8428fb514aeec8bb8b2f3"
+          ],
+          "returncode": 0
+        }
+      ],
+      "legacy": {
+        ".NETFramework,Version=v4.8": {
+          "identifier": ".NETFramework",
+          "kind": "net-framework",
+          "profile": "",
+          "receipt": {
+            "artifact": {
+              "path": ".harness\\artifacts\\30606390cfb8428fb514aeec8bb8b2f3\\60dba0f597d65556e6ee3dda966a5668ba21057226acfd225aee81ab84ea6997\\0\\trx\\harness.trx",
+              "sha256": "1f4d6bc947f955905fee9e9781f608914a79d51e82cc1aad43a1215befa7125b"
+            },
+            "assembly_sha256": "c541f4c51544e7d21fb15939a8dbba37c6b71674d8a94310c8f17d7a9ed3d673",
+            "automatic": {
+              "framework": ".NETFramework,Version=v4.8",
+              "generation": "7a5012164a01e6f294335a1620a8e13b521a3f37e0dc8183c74895cd464bd3ad",
+              "phase": "test",
+              "project": "zz outside solution/\u0422\u0435\u0441\u0442\u044b \u03a9/ZZZTests.csproj"
+            },
+            "config": "342171f3b1093be9724731706b53e3f3af0237050d592bc9c8a9852854b984b6",
+            "counts": {
+              "executed": 1,
+              "failed": 0,
+              "passed": 1,
+              "skipped": 0
+            },
+            "descendants_stopped": true,
+            "duration": 1.781000000000006,
+            "inventory": "b06d0f42a38f902ef45c4aea575fad023c42a8d6d2d7fb04d0500eb7b243f288",
+            "kind": "test",
+            "log": ".harness\\artifacts\\30606390cfb8428fb514aeec8bb8b2f3\\60dba0f597d65556e6ee3dda966a5668ba21057226acfd225aee81ab84ea6997\\0\\process.log",
+            "log_bytes": 465,
+            "log_sha256": "75fba6bae65685068ef8c7543b4db0b8a0fde613f319acc635995b9ead007a19",
+            "observed_log_bytes": 465,
+            "ok": true,
+            "output": "VSTest version 17.11.1 (x64)\n\nStarting test execution, please wait...\nA total of 1 test files matched the specified pattern.\nResults File: D:\\a\\_temp\\knowledge-p4-native-fixtures\\mixed legacy \u03a9 erdfmi4a\\project\\.harness\\artifacts\\30606390cfb8428fb514aeec8bb8b2f3\\60dba0f597d65556e6ee3dda966a5668ba21057226acfd225aee81ab84ea6997\\0/trx\\harness.trx\n\nPassed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 31 ms - ZZZTests.dll (net48)\n",
+            "platform": "windows-job-v1",
+            "reason": null,
+            "recipe": "@automatic-tests/5ef312ddf11e89a1d0a89bb15f31a6ae89ed74aa51b9833f5156b45bce1c7c53",
+            "returncode": 0,
+            "run_id": "2d85417d-3295-42ef-983e-4b7a30e74cab",
+            "source": "576f64106310537b58c82023bdd1c9ed379d4d540f38845b487e68e70948fdd6",
+            "truncated": false
+          },
+          "status": "PASS",
+          "target": "D:\\a\\_temp\\knowledge-p4-native-fixtures\\mixed legacy \u03a9 erdfmi4a\\project\\zz outside solution\\\u0422\u0435\u0441\u0442\u044b \u03a9\\bin\\Debug\\ZZZTests.dll",
+          "version": "v4.8"
+        }
+      }
+    },
+    {
+      "case": "mcp",
+      "status": "PASS",
+      "counts": {
+        "executed": 3,
+        "failed": 0,
+        "passed": 3,
+        "skipped": 0
+      },
+      "generations": 1,
+      "unique_trx": 3,
+      "processes": 13,
+      "commands": [
+        {
+          "label": "solution",
+          "argv": [
+            "C:\\Program Files\\dotnet\\dotnet.EXE",
+            "new",
+            "sln",
+            "--name",
+            "Suite"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "mixed-projects",
+          "argv": [
+            "C:\\Program Files\\dotnet\\dotnet.EXE",
+            "sln",
+            "Suite.sln",
+            "add",
+            "src/App/App.csproj",
+            "unconventional/IpmAzureCommon.UnitTests.csproj",
+            "integration/IpmAzureAutotests.csproj",
+            "zz outside solution/\u0422\u0435\u0441\u0442\u044b \u03a9/ZZZTests.csproj"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "configure",
+          "argv": [
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\p4-installed-240ndn0b\\runtime\\Scripts\\python.exe",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "configure",
+            "--root",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\mixed legacy \u03a9 jm9f_ugn\\project",
+            "--input",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\mixed legacy \u03a9 jm9f_ugn\\runner.json",
+            "--init-knowledge"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "inspect",
+          "argv": [
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\p4-installed-240ndn0b\\runtime\\Scripts\\python.exe",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "discover-tests",
+            "--root",
+            "D:\\a\\_temp\\knowledge-p4-native-fixtures\\mixed legacy \u03a9 jm9f_ugn\\project"
+          ],
+          "returncode": 0
+        }
+      ],
+      "legacy": {
+        ".NETFramework,Version=v4.8": {
+          "identifier": ".NETFramework",
+          "kind": "net-framework",
+          "profile": "",
+          "receipt": {
+            "artifact": {
+              "path": ".harness\\artifacts\\4ab153652bb0452090c9137d14e86c08\\2e93973d502315b03b5a0cf3f4bc27d32d45638ceaae252a512895064f363841\\0\\trx\\harness.trx",
+              "sha256": "f4f5a8a947786d3951fe1f18cdbf71afc6c79704b695cdb15e2406962b052fac"
+            },
+            "assembly_sha256": "c75b6127e1134c0c2094a2c1fe2c846a0c77e2f7c0018c528c2b25ac060e3635",
+            "automatic": {
+              "framework": ".NETFramework,Version=v4.8",
+              "generation": "b83fe0422bc196440351bdb3627bd7f899fd519fbfba7df086d81f05e537993d",
+              "phase": "test",
+              "project": "zz outside solution/\u0422\u0435\u0441\u0442\u044b \u03a9/ZZZTests.csproj"
+            },
+            "config": "e87002825475a0b27d43f85e7805cedf2d4c0e8a878520af7de0012e7d67a884",
+            "counts": {
+              "executed": 1,
+              "failed": 0,
+              "passed": 1,
+              "skipped": 0
+            },
+            "descendants_stopped": true,
+            "duration": 1.781000000000006,
+            "inventory": "e726d7ce94408245ca2bea54621cc9da59595c3f0023d2b982fff7a327928ba8",
+            "kind": "test",
+            "log": ".harness\\artifacts\\4ab153652bb0452090c9137d14e86c08\\2e93973d502315b03b5a0cf3f4bc27d32d45638ceaae252a512895064f363841\\0\\process.log",
+            "log_bytes": 465,
+            "log_sha256": "2227ee1b2301530485ac9ba3a7fc6c4ae21e2f6fa5c26f5f506bfe31175621c1",
+            "observed_log_bytes": 465,
+            "ok": true,
+            "output": "VSTest version 17.11.1 (x64)\n\nStarting test execution, please wait...\nA total of 1 test files matched the specified pattern.\nResults File: D:\\a\\_temp\\knowledge-p4-native-fixtures\\mixed legacy \u03a9 jm9f_ugn\\project\\.harness\\artifacts\\4ab153652bb0452090c9137d14e86c08\\2e93973d502315b03b5a0cf3f4bc27d32d45638ceaae252a512895064f363841\\0/trx\\harness.trx\n\nPassed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 31 ms - ZZZTests.dll (net48)\n",
+            "platform": "windows-job-v1",
+            "reason": null,
+            "recipe": "@automatic-tests/9e23a8c6966f7c38a80ea793be936781fecf87474a09fac4b02030840f3406c2",
+            "returncode": 0,
+            "run_id": "adb4475a-12d2-4e80-a221-269e1bc8e696",
+            "source": "487523276dece2cbcacec1b585028054eefe8dacb202e572d3d4707a3ee903f9",
+            "truncated": false
+          },
+          "status": "PASS",
+          "target": "D:\\a\\_temp\\knowledge-p4-native-fixtures\\mixed legacy \u03a9 jm9f_ugn\\project\\zz outside solution\\\u0422\u0435\u0441\u0442\u044b \u03a9\\bin\\Debug\\ZZZTests.dll",
+          "version": "v4.8"
+        }
+      }
+    }
+  ]
+}
