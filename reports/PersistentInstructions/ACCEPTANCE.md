@@ -93,6 +93,12 @@ fixtures — 0. Это отдельные измеренные trial, не ст�
 Real-model token usage/latency недоступны; выигрыша по скорости/токенам не заявлено.
 Числа test-double token usage не считаются метриками модели.
 
+Отдельное [сравнение кодировки](7f6ea1df/encoding-comparison.json) выполнено на
+одинаковом сброшенном BOM/CRLF fixture. Baseline broker завершает правку, но
+байтовое требование нарушено (`6368616e6765640a`); с памятью новый процесс получает
+`efbbbf6368616e6765640d0a`, ID/rev1 и 1399 context bytes. Wall baseline/enabled:
+0.072/0.116 s. Normalizer — protocol double, модельные метрики недоступны.
+
 ## Совместимость и границы
 
 Final kit установлен в `/tmp/persistent-semantic-runtime`, standalone — в
@@ -116,13 +122,26 @@ input не сохраняется и не отправляется normalizer; �
 проверенное задание, установить прежние wheels. Обе SQLite сохранить. Подробная
 инструкция и runnable real-host trial — в docs/P4/PERSISTENT-INSTRUCTIONS.md.
 
-## Полная квалификация
+## Финальная квалификация
 
-Для финального source запущены Linux installed route и native Windows CI
-[44877877238](https://github.com/Ermak-P/Knowledge-/actions/runs/44877877238).
-Окончательные receipts добавляются после проверки их commit/source identity и
-хешей logs. До получения receipts текущий native результат не считается PASS.
-Предыдущий `95828e84` прошёл PASS_PORTABLE/PASS_NATIVE в CI 44821592828; это
-доказательство совместимости предшественника, а не квалификация нового source.
-Сохранённый `e603c584` содержит известный Windows fixture failure: ожидание LF hash
-при фактическом CRLF; исправлено в 95828e84 по persisted bytes.
+Код `7f6ea1df` получил **PASS_PORTABLE / PASS_NATIVE** в
+[CI 44877877238](https://github.com/Ermak-P/Knowledge-/actions/runs/44877877238).
+[Retained receipts, ledgers и command logs](7f6ea1df/ci/) прочитаны как данные:
+код из artifacts не исполнялся. Проверены точный commit, source identity и вся
+карта исходников, неизменность source, SHA-256 каждого command log и каждого файла
+kit. Доставленный offline-kit совпадает с content map обеих CI-платформ.
+
+| Контур | Результат | Tests | PASS | SKIP | Команды |
+|---|---|---:|---:|---:|---:|
+| GitHub Linux | PASS_PORTABLE | 273 | 262 | 11 | 22 PASS |
+| GitHub native Windows | PASS_NATIVE | 273 | 273 | 0 | 23 PASS |
+| Локальный installed route | PASS_PORTABLE | 273 | 262 | 11 | 22 PASS |
+
+Linux skips относятся только к NativeWindowsSafety. Failures/errors — 0.
+[Результат проверки retained evidence](7f6ea1df/ci/validation.json).
+Последующие report-only commits не меняют проверяемый source identity.
+Полный реальный OpenCode/local-model A02 по-прежнему **BLOCKED**, независимо от CI.
+
+Каталоги `e603c584` и `95828e84` — свидетельства предшественников, а не финальная
+квалификация. Старый Windows fixture failure в e603c584 исправлен в 95828e84;
+финальный код 7f6ea1df прошёл все 273 native tests без skips.
