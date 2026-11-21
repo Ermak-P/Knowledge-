@@ -1,0 +1,369 @@
+{
+  "status": "PASS",
+  "product": "0.5.0rc1",
+  "platform": "linux",
+  "rows": [
+    {
+      "case": "cli",
+      "status": "PASS",
+      "run_id": "3bd80138c2204c74b665889719561325",
+      "source": "2395f86f832fc572614841e9c74f19eb09da6260a3e74e87fe6136830b1904b9",
+      "inventory": "19daee1270082a622a4b6c1979e37e623e75962f40a0c0cc352d1d20b0422a72",
+      "projects": [
+        {
+          "path": "integration/IpmAzureAutotests.csproj",
+          "sha256": "e6bb54ebbbe0bb59c91831bec59354bbea903f931bcaef3f02678aca44556cc1"
+        },
+        {
+          "path": "unconventional/IpmAzureCommon.UnitTests.csproj",
+          "sha256": "095f03eb8f855e0d6a8cf65d41f48f7bb442d6458906ed8bd3a5047682e8c1c9"
+        },
+        {
+          "path": "zz outside solution/\u0422\u0435\u0441\u0442\u044b \u03a9/ZZZTests.csproj",
+          "sha256": "e8c4b1253e9e8fe5e2d73e20cc286708b10e46c8239551a9c26ec7bc1e24f58f"
+        }
+      ],
+      "test_counts": {
+        "executed": 4,
+        "failed": 0,
+        "passed": 4,
+        "skipped": 0
+      },
+      "generations": 2,
+      "unique_trx": 8,
+      "requests": 12,
+      "commands": [
+        {
+          "label": "new-solution",
+          "argv": [
+            "/usr/share/dotnet/dotnet",
+            "new",
+            "sln",
+            "--format",
+            "sln",
+            "--name",
+            "Suite"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "solution-projects",
+          "argv": [
+            "/usr/share/dotnet/dotnet",
+            "sln",
+            "Suite.sln",
+            "add",
+            "src/App/App.csproj",
+            "unconventional/IpmAzureCommon.UnitTests.csproj",
+            "integration/IpmAzureAutotests.csproj"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "configure",
+          "argv": [
+            "/tmp/p4-installed-ks970g5_/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "configure",
+            "--root",
+            "/tmp/auto tests \u03a9 0cd70rgl/project",
+            "--input",
+            "/tmp/auto tests \u03a9 0cd70rgl/runner.json",
+            "--init-knowledge"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "inspect",
+          "argv": [
+            "/tmp/p4-installed-ks970g5_/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "discover-tests",
+            "--root",
+            "/tmp/auto tests \u03a9 0cd70rgl/project"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "run",
+          "argv": [
+            "/tmp/p4-installed-ks970g5_/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "run",
+            "--root",
+            "/tmp/auto tests \u03a9 0cd70rgl/project",
+            "--input",
+            "/tmp/auto tests \u03a9 0cd70rgl/project/task.json"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "completed-inventory-drift",
+          "argv": [
+            "/tmp/p4-installed-ks970g5_/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "resume",
+            "--root",
+            "/tmp/auto tests \u03a9 0cd70rgl/project",
+            "--run-id",
+            "3bd80138c2204c74b665889719561325"
+          ],
+          "returncode": 1
+        },
+        {
+          "label": "empty-project-run",
+          "argv": [
+            "/tmp/p4-installed-ks970g5_/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "run",
+            "--root",
+            "/tmp/auto tests \u03a9 0cd70rgl/project",
+            "--input",
+            "/tmp/auto tests \u03a9 0cd70rgl/project/task.json"
+          ],
+          "returncode": 1
+        }
+      ]
+    },
+    {
+      "case": "mcp",
+      "status": "PASS",
+      "run_id": "9fe059c38fbd49b7a2755099dfaae74e",
+      "source": "90b7cff53debd162856ef8365b0ccd131da4d72a4e60302edc43995f3469c065",
+      "inventory": "5f1ed227a4e1f21a5ae2915e8dabf4d27278f6f1f3b6a9c12bfedf160fbb7c43",
+      "projects": [
+        {
+          "path": "integration/IpmAzureAutotests.csproj",
+          "sha256": "e6bb54ebbbe0bb59c91831bec59354bbea903f931bcaef3f02678aca44556cc1"
+        },
+        {
+          "path": "unconventional/IpmAzureCommon.UnitTests.csproj",
+          "sha256": "e6bb54ebbbe0bb59c91831bec59354bbea903f931bcaef3f02678aca44556cc1"
+        },
+        {
+          "path": "zz outside solution/\u0422\u0435\u0441\u0442\u044b \u03a9/ZZZTests.csproj",
+          "sha256": "e8c4b1253e9e8fe5e2d73e20cc286708b10e46c8239551a9c26ec7bc1e24f58f"
+        }
+      ],
+      "test_counts": {
+        "executed": 3,
+        "failed": 0,
+        "passed": 3,
+        "skipped": 0
+      },
+      "generations": 1,
+      "unique_trx": 3,
+      "requests": 9,
+      "commands": [
+        {
+          "label": "new-solution",
+          "argv": [
+            "/usr/share/dotnet/dotnet",
+            "new",
+            "sln",
+            "--format",
+            "sln",
+            "--name",
+            "Suite"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "solution-projects",
+          "argv": [
+            "/usr/share/dotnet/dotnet",
+            "sln",
+            "Suite.sln",
+            "add",
+            "src/App/App.csproj",
+            "unconventional/IpmAzureCommon.UnitTests.csproj",
+            "integration/IpmAzureAutotests.csproj"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "configure",
+          "argv": [
+            "/tmp/p4-installed-ks970g5_/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "configure",
+            "--root",
+            "/tmp/auto tests \u03a9 7qnvtoav/project",
+            "--input",
+            "/tmp/auto tests \u03a9 7qnvtoav/runner.json",
+            "--init-knowledge"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "inspect",
+          "argv": [
+            "/tmp/p4-installed-ks970g5_/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "discover-tests",
+            "--root",
+            "/tmp/auto tests \u03a9 7qnvtoav/project"
+          ],
+          "returncode": 0
+        }
+      ]
+    },
+    {
+      "case": "recovery",
+      "status": "PASS",
+      "run_id": "58ea424809de4b0b81457f2f094d60c9",
+      "source": "8f574c2d03161d5bb93a85f0979a85d256a84416c92d449f90d8ec832082f680",
+      "inventory": "cfde1bd8a013b03522d1fbae062281d6381339245a8f3c95638e9d21fb21c710",
+      "projects": [
+        {
+          "path": "integration/IpmAzureAutotests.csproj",
+          "sha256": "e6bb54ebbbe0bb59c91831bec59354bbea903f931bcaef3f02678aca44556cc1"
+        },
+        {
+          "path": "unconventional/IpmAzureCommon.UnitTests.csproj",
+          "sha256": "e6bb54ebbbe0bb59c91831bec59354bbea903f931bcaef3f02678aca44556cc1"
+        },
+        {
+          "path": "zz outside solution/\u0422\u0435\u0441\u0442\u044b \u03a9/ZZZTests.csproj",
+          "sha256": "e8c4b1253e9e8fe5e2d73e20cc286708b10e46c8239551a9c26ec7bc1e24f58f"
+        }
+      ],
+      "test_counts": {
+        "executed": 3,
+        "failed": 0,
+        "passed": 3,
+        "skipped": 0
+      },
+      "generations": 1,
+      "unique_trx": 3,
+      "requests": 9,
+      "commands": [
+        {
+          "label": "new-solution",
+          "argv": [
+            "/usr/share/dotnet/dotnet",
+            "new",
+            "sln",
+            "--format",
+            "sln",
+            "--name",
+            "Suite"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "solution-projects",
+          "argv": [
+            "/usr/share/dotnet/dotnet",
+            "sln",
+            "Suite.sln",
+            "add",
+            "src/App/App.csproj",
+            "unconventional/IpmAzureCommon.UnitTests.csproj",
+            "integration/IpmAzureAutotests.csproj"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "configure",
+          "argv": [
+            "/tmp/p4-installed-ks970g5_/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "configure",
+            "--root",
+            "/tmp/auto tests \u03a9 ztzwf6wu/project",
+            "--input",
+            "/tmp/auto tests \u03a9 ztzwf6wu/runner.json",
+            "--init-knowledge"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "inspect",
+          "argv": [
+            "/tmp/p4-installed-ks970g5_/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "discover-tests",
+            "--root",
+            "/tmp/auto tests \u03a9 ztzwf6wu/project"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "interrupted",
+          "argv": [
+            "/tmp/p4-installed-ks970g5_/runtime/bin/python",
+            "-I",
+            "-X",
+            "utf8",
+            "-B",
+            "/home/runner/work/Knowledge-/Knowledge-/tests/integrated_cli_worker.py",
+            "--die",
+            "automatic-verifier-receipt",
+            "--",
+            "run",
+            "--root",
+            "/tmp/auto tests \u03a9 ztzwf6wu/project",
+            "--input",
+            "/tmp/auto tests \u03a9 ztzwf6wu/project/task.json"
+          ],
+          "returncode": 73
+        },
+        {
+          "label": "drift-resume",
+          "argv": [
+            "/tmp/p4-installed-ks970g5_/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "resume",
+            "--root",
+            "/tmp/auto tests \u03a9 ztzwf6wu/project",
+            "--run-id",
+            "58ea424809de4b0b81457f2f094d60c9"
+          ],
+          "returncode": 1
+        },
+        {
+          "label": "resume-completed",
+          "argv": [
+            "/tmp/p4-installed-ks970g5_/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "resume",
+            "--root",
+            "/tmp/auto tests \u03a9 ztzwf6wu/project",
+            "--run-id",
+            "58ea424809de4b0b81457f2f094d60c9"
+          ],
+          "returncode": 0
+        }
+      ]
+    },
+    {
+      "case": "tamper",
+      "status": "PASS",
+      "error": "automatic-test-artifact-changed",
+      "false_success": false
+    }
+  ]
+}
