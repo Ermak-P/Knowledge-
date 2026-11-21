@@ -5,6 +5,8 @@
 Изолированные PASS ниже не означают ACCEPTED. Это внешняя память, не обучение модели.
 
 Актуальное R2: **parser fix IMPLEMENTED**, **real-host validation PENDING**.
+55/55 профильных PASS; новый CI: Linux 293 PASS / 11 native-only SKIP,
+Windows 304/304 PASS. [Окончательный отчёт и receipts R2](R2-1d57654f/REVIEW.md).
 Исходники [`1d57654f3`](https://github.com/Ermak-P/Knowledge-/commit/1d57654f385594bbab03178ecc510cace534c51b).
 [Отчёт R2 и новые source-bound проверки](R2-1d57654f/REVIEW.md).
 Запрет перед teaching colon сохраняется; EN/RU conflicting-prefix regressions

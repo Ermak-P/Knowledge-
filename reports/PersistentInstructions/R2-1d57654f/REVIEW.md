@@ -71,10 +71,20 @@ python -m unittest discover -s <repo>/tests -p "test_persistent*.py" -v
 **PASS_PORTABLE**, 22/22 commands, 304 tests — 293 PASS, 11 native-only SKIP,
 0 FAIL/ERROR, source unchanged=true. [Ledger и command logs](local-qualified/)
 сверены с exact source map/commit и SHA-256 каждого лога.
-Новый [CI run 44923713836](https://github.com/Ermak-P/Knowledge-/actions/runs/44923713836):
-Linux job 136905134748 завершён success; native Windows job 136905134709 ещё
-выполняется. Windows command: `scripts/verify-p4-windows.ps1`.
-Окончательные retained receipts будут добавлены сюда. R1 CI не переиспользуются.
+Новый [CI run 44923713836](https://github.com/Ermak-P/Knowledge-/actions/runs/44923713836)
+завершён на exact product source:
+
+| Платформа | Qualification | Commands | Tests | PASS | SKIP | FAIL/ERROR |
+|---|---|---:|---:|---:|---:|---:|
+| Linux | PASS_PORTABLE | 22/22 | 304 | 293 | 11 native-only | 0 |
+| Native Windows | PASS_NATIVE | 23/23 | 304 | 304 | 0 | 0 |
+
+[Retained receipts, ledger и command logs](ci/), [сверка](ci/validation.json).
+Git evidence commit: `b665e13214f3768e197746e9e6a410bde947e500`.
+Данные прочитаны как данные, artifact code не исполнялся. Exact commit/source map,
+unchanged source, SHA-256 каждого command log и всех файлов обоих CI kits сверены
+с переданным local kit. R1 CI не переиспользуются. Windows command:
+`scripts/verify-p4-windows.ps1`. Эти результаты не являются real OpenCode trial.
 
 ## Real-host validation
 
