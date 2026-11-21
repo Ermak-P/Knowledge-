@@ -1,0 +1,22 @@
+E
+======================================================================
+ERROR: unittest.case.FunctionTestCase (<lambda>)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<string>", line 1, in <lambda>
+  File "/tmp/persistent-semantic-runtime/lib/python3.12/site-packages/knowledge/probes.py", line 30, in kafka
+    versions=request(host,port,18,0,b'',timeout)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/persistent-semantic-runtime/lib/python3.12/site-packages/knowledge/probes.py", line 20, in request
+    with socket.create_connection((host,port),timeout=timeout) as sock:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/socket.py", line 865, in create_connection
+    raise exceptions[0]
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/socket.py", line 850, in create_connection
+    sock.connect(sa)
+ConnectionRefusedError: [Errno 111] Connection refused
+
+----------------------------------------------------------------------
+Ran 1 test in 0.002s
+
+FAILED (errors=1)

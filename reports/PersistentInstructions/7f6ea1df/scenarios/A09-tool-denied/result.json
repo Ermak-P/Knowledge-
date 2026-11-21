@@ -1,0 +1,194 @@
+{
+  "result": {
+    "ok": false,
+    "error": "memory-procedure-tool-denied",
+    "details": null
+  },
+  "actions": {
+    "operation": {
+      "agent": null,
+      "args": {
+        "name": "test"
+      },
+      "at": 1795244280.3277788,
+      "finished": 1795244280.353427,
+      "memory_traces": [
+        {
+          "error": "memory-procedure-tool-denied",
+          "lookup_bytes": 2441,
+          "lookup_seconds": 0.006226657000297564,
+          "lookups": [
+            {
+              "action": {
+                "name": "test",
+                "tool": "recipe"
+              },
+              "conflicts": [],
+              "decisions": [],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 176,
+              "signals": {},
+              "state": "no-match",
+              "stores": {
+                "project": "available",
+                "shared": "available"
+              }
+            },
+            {
+              "action": {
+                "name": "local_broker",
+                "tool": "dependency"
+              },
+              "conflicts": [],
+              "decisions": [
+                {
+                  "applicable": true,
+                  "id": "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788",
+                  "reason": "match",
+                  "revision": 1
+                }
+              ],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 2265,
+              "signals": {
+                "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788": {
+                  "at": 1795244280.1788402,
+                  "evidence": [
+                    {
+                      "action": "operation",
+                      "run": "b8baeda751c7479ab125f0719fd83918"
+                    }
+                  ],
+                  "outcome": {
+                    "error": "current-service-start-denied",
+                    "ok": false,
+                    "phase": "before-action"
+                  },
+                  "root_cause": "not-established",
+                  "technical": "blocked-or-failed"
+                }
+              },
+              "state": "matched",
+              "stores": {
+                "project": "available",
+                "shared": "available"
+              }
+            }
+          ],
+          "ok": false,
+          "outcomes": [],
+          "phase": "before-action",
+          "selected": [
+            {
+              "id": "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788",
+              "revision": 1,
+              "scope": "shared"
+            }
+          ],
+          "selected_bytes": 1652,
+          "total_seconds": 0.010353305000080582
+        },
+        {
+          "candidate_ids": [
+            "c168ec13e5f128a36fa144c6abfe9648d687c3a7095a6676fe4cadfab0cd4b94"
+          ],
+          "lookup_bytes": 7621,
+          "lookups": [
+            {
+              "action": {
+                "name": "test",
+                "tool": "recipe"
+              },
+              "conflicts": [],
+              "decisions": [],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 176,
+              "signals": {},
+              "state": "no-match",
+              "stores": {
+                "project": "available",
+                "shared": "available"
+              }
+            },
+            {
+              "action": {
+                "name": "local_broker",
+                "tool": "dependency"
+              },
+              "conflicts": [],
+              "decisions": [
+                {
+                  "applicable": true,
+                  "id": "c168ec13e5f128a36fa144c6abfe9648d687c3a7095a6676fe4cadfab0cd4b94",
+                  "reason": "match",
+                  "revision": 1
+                },
+                {
+                  "applicable": true,
+                  "id": "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788",
+                  "reason": "match",
+                  "revision": 1
+                }
+              ],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 7445,
+              "signals": {
+                "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788": {
+                  "at": 1795244280.3425734,
+                  "evidence": [
+                    {
+                      "action": "operation",
+                      "run": "191112fa24b643e59f818e1a2351394f"
+                    }
+                  ],
+                  "outcome": {
+                    "error": "memory-procedure-tool-denied",
+                    "ok": false,
+                    "phase": "before-action"
+                  },
+                  "root_cause": "not-established",
+                  "technical": "blocked-or-failed"
+                }
+              },
+              "state": "matched",
+              "stores": {
+                "project": "available",
+                "shared": "available"
+              }
+            }
+          ],
+          "phase": "after-error",
+          "selected": [
+            {
+              "id": "c168ec13e5f128a36fa144c6abfe9648d687c3a7095a6676fe4cadfab0cd4b94",
+              "revision": 1,
+              "scope": "project"
+            },
+            {
+              "id": "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788",
+              "revision": 1,
+              "scope": "shared"
+            }
+          ],
+          "selected_bytes": 6710
+        }
+      ],
+      "request": null,
+      "result": {
+        "details": null,
+        "error": "memory-procedure-tool-denied",
+        "ok": false
+      },
+      "role": "Testing",
+      "signature": "a470e8febdfe6a992d12e490d43cd27e1017517982360bb607ad4b50e83245d1",
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    }
+  },
+  "run_id": "191112fa24b643e59f818e1a2351394f"
+}

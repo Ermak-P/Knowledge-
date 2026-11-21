@@ -1,0 +1,423 @@
+{
+  "result": {
+    "ok": false,
+    "error": "dependency-running-not-ready",
+    "details": [
+      {
+        "action": "memory-6516b569b1297b280ac6a093-1-probe0",
+        "ok": false,
+        "returncode": 1,
+        "reason": null,
+        "log": ".harness/artifacts/aa39657529014da599c267fa0dd1904c/memory-6516b569b1297b280ac6a093-1-probe0/0/process.log"
+      },
+      {
+        "action": "memory-6516b569b1297b280ac6a093-1-docker-info",
+        "ok": true,
+        "returncode": 0,
+        "reason": null,
+        "log": ".harness/artifacts/aa39657529014da599c267fa0dd1904c/memory-6516b569b1297b280ac6a093-1-docker-info/0/process.log"
+      },
+      {
+        "action": "memory-6516b569b1297b280ac6a093-1-docker-inspect",
+        "ok": true,
+        "returncode": 0,
+        "reason": null,
+        "log": ".harness/artifacts/aa39657529014da599c267fa0dd1904c/memory-6516b569b1297b280ac6a093-1-docker-inspect/0/process.log"
+      }
+    ]
+  },
+  "actions": {
+    "memory-6516b569b1297b280ac6a093-1-docker-info": {
+      "args": {
+        "name": "@memory/memory-6516b569b1297b280ac6a093-1-docker-info"
+      },
+      "at": 1795244281.9196732,
+      "finished": 1795244282.0778627,
+      "memory_parent": "operation",
+      "memory_record": "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788",
+      "process": {
+        "group": 16358,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 16358,
+        "platform": "linux-pgroup-v1",
+        "start": "408776",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795244282.0602589,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.10533855999983643,
+        "log_bytes": 9,
+        "observed_log_bytes": 9,
+        "reason": null,
+        "returncode": 0,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/usr/local/bin/docker",
+          "info",
+          "--format",
+          "{{json .ServerVersion}}"
+        ],
+        "cwd": "/tmp/persistent-acceptance-xnc5gt9k/unhealthy/project",
+        "log": "/tmp/persistent-acceptance-xnc5gt9k/unhealthy/project/.harness/artifacts/aa39657529014da599c267fa0dd1904c/memory-6516b569b1297b280ac6a093-1-docker-info/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 3
+      },
+      "process_started": 1795244281.953263,
+      "result": {
+        "artifact": null,
+        "config": "ea2ddd2b338ab0a84058a93595edfead232f90bf9d541939a49151aa772a83d4",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.10533855999983643,
+        "kind": "build",
+        "log": ".harness/artifacts/aa39657529014da599c267fa0dd1904c/memory-6516b569b1297b280ac6a093-1-docker-info/0/process.log",
+        "log_bytes": 9,
+        "observed_log_bytes": 9,
+        "ok": true,
+        "output": "\"29.9.2\"\n",
+        "reason": null,
+        "recipe": "@memory/memory-6516b569b1297b280ac6a093-1-docker-info",
+        "returncode": 0,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "cb4145b653c65f9c63caeba6635407187ff93a3e23f81055042565dd1f3d7f11",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "memory-6516b569b1297b280ac6a093-1-docker-inspect": {
+      "args": {
+        "name": "@memory/memory-6516b569b1297b280ac6a093-1-docker-inspect"
+      },
+      "at": 1795244282.0821319,
+      "finished": 1795244282.1875293,
+      "memory_parent": "operation",
+      "memory_record": "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788",
+      "process": {
+        "group": 16391,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 16391,
+        "platform": "linux-pgroup-v1",
+        "start": "408792",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795244282.13499,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.020558627000355045,
+        "log_bytes": 36,
+        "observed_log_bytes": 36,
+        "reason": null,
+        "returncode": 0,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/usr/local/bin/docker",
+          "inspect",
+          "--type",
+          "container",
+          "--format",
+          "{\"Status\":{{json .State.Status}},\"Running\":{{json .State.Running}}}",
+          "knowledge-unhealthy-3154ac6cf121"
+        ],
+        "cwd": "/tmp/persistent-acceptance-xnc5gt9k/unhealthy/project",
+        "log": "/tmp/persistent-acceptance-xnc5gt9k/unhealthy/project/.harness/artifacts/aa39657529014da599c267fa0dd1904c/memory-6516b569b1297b280ac6a093-1-docker-inspect/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 3
+      },
+      "process_started": 1795244282.1129296,
+      "result": {
+        "artifact": null,
+        "config": "ea2ddd2b338ab0a84058a93595edfead232f90bf9d541939a49151aa772a83d4",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.020558627000355045,
+        "kind": "build",
+        "log": ".harness/artifacts/aa39657529014da599c267fa0dd1904c/memory-6516b569b1297b280ac6a093-1-docker-inspect/0/process.log",
+        "log_bytes": 36,
+        "observed_log_bytes": 36,
+        "ok": true,
+        "output": "{\"Status\":\"running\",\"Running\":true}\n",
+        "reason": null,
+        "recipe": "@memory/memory-6516b569b1297b280ac6a093-1-docker-inspect",
+        "returncode": 0,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "cd97763e7d547a50c40f727b707c6a4cd7fe21f1aa9b7781b80fc476c143f33f",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "memory-6516b569b1297b280ac6a093-1-probe0": {
+      "args": {
+        "name": "@memory/memory-6516b569b1297b280ac6a093-1-probe0"
+      },
+      "at": 1795244281.811022,
+      "finished": 1795244281.9162967,
+      "memory_parent": "operation",
+      "memory_record": "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788",
+      "process": {
+        "group": 16352,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 16352,
+        "platform": "linux-pgroup-v1",
+        "start": "408765",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795244281.8741875,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.031353267000213236,
+        "log_bytes": 52,
+        "observed_log_bytes": 52,
+        "reason": null,
+        "returncode": 1,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/tmp/persistent-semantic-runtime/bin/python",
+          "-I",
+          "-m",
+          "knowledge.probes",
+          "kafka",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "53975",
+          "--timeout",
+          "1"
+        ],
+        "cwd": "/tmp/persistent-acceptance-xnc5gt9k/unhealthy/project",
+        "log": "/tmp/persistent-acceptance-xnc5gt9k/unhealthy/project/.harness/artifacts/aa39657529014da599c267fa0dd1904c/memory-6516b569b1297b280ac6a093-1-probe0/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 3
+      },
+      "process_started": 1795244281.8414764,
+      "result": {
+        "artifact": null,
+        "config": "ea2ddd2b338ab0a84058a93595edfead232f90bf9d541939a49151aa772a83d4",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.031353267000213236,
+        "kind": "build",
+        "log": ".harness/artifacts/aa39657529014da599c267fa0dd1904c/memory-6516b569b1297b280ac6a093-1-probe0/0/process.log",
+        "log_bytes": 52,
+        "observed_log_bytes": 52,
+        "ok": false,
+        "output": "{\"ready\": false, \"error\": \"ConnectionRefusedError\"}\n",
+        "reason": null,
+        "recipe": "@memory/memory-6516b569b1297b280ac6a093-1-probe0",
+        "returncode": 1,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "73d0ef5e5254810b4bd3ce214db45ee75a1d7fc2608a0632b0fd6c740129cde1",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "operation": {
+      "agent": null,
+      "args": {
+        "name": "test"
+      },
+      "at": 1795244281.802593,
+      "finished": 1795244282.1992826,
+      "memory_generation": 1,
+      "memory_traces": [
+        {
+          "error": "dependency-running-not-ready",
+          "lookup_bytes": 2120,
+          "lookup_seconds": 0.0031041150000419293,
+          "lookups": [
+            {
+              "action": {
+                "name": "test",
+                "tool": "recipe"
+              },
+              "conflicts": [],
+              "decisions": [],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 173,
+              "signals": {},
+              "state": "no-match",
+              "stores": {
+                "project": "absent",
+                "shared": "available"
+              }
+            },
+            {
+              "action": {
+                "name": "local_broker",
+                "tool": "dependency"
+              },
+              "conflicts": [],
+              "decisions": [
+                {
+                  "applicable": true,
+                  "id": "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788",
+                  "reason": "match",
+                  "revision": 1
+                }
+              ],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 1947,
+              "signals": {},
+              "state": "matched",
+              "stores": {
+                "project": "absent",
+                "shared": "available"
+              }
+            }
+          ],
+          "ok": false,
+          "outcomes": [],
+          "phase": "before-action",
+          "selected": [
+            {
+              "id": "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788",
+              "revision": 1,
+              "scope": "shared"
+            }
+          ],
+          "selected_bytes": 1655,
+          "total_seconds": 0.3866293549999682
+        },
+        {
+          "candidate_ids": [],
+          "lookup_bytes": 2438,
+          "lookups": [
+            {
+              "action": {
+                "name": "test",
+                "tool": "recipe"
+              },
+              "conflicts": [],
+              "decisions": [],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 173,
+              "signals": {},
+              "state": "no-match",
+              "stores": {
+                "project": "absent",
+                "shared": "available"
+              }
+            },
+            {
+              "action": {
+                "name": "local_broker",
+                "tool": "dependency"
+              },
+              "conflicts": [],
+              "decisions": [
+                {
+                  "applicable": true,
+                  "id": "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788",
+                  "reason": "match",
+                  "revision": 1
+                }
+              ],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 2265,
+              "signals": {
+                "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788": {
+                  "at": 1795244282.1923695,
+                  "evidence": [
+                    {
+                      "action": "operation",
+                      "run": "aa39657529014da599c267fa0dd1904c"
+                    }
+                  ],
+                  "outcome": {
+                    "error": "dependency-running-not-ready",
+                    "ok": false,
+                    "phase": "before-action"
+                  },
+                  "root_cause": "not-established",
+                  "technical": "blocked-or-failed"
+                }
+              },
+              "state": "matched",
+              "stores": {
+                "project": "absent",
+                "shared": "available"
+              }
+            }
+          ],
+          "phase": "after-error",
+          "selected": [
+            {
+              "id": "a58cd40b3174d05edab737000672d52ab21aded8e425b5049afa6aa5f2623788",
+              "revision": 1,
+              "scope": "shared"
+            }
+          ],
+          "selected_bytes": 1655
+        }
+      ],
+      "request": null,
+      "result": {
+        "details": [
+          {
+            "action": "memory-6516b569b1297b280ac6a093-1-probe0",
+            "log": ".harness/artifacts/aa39657529014da599c267fa0dd1904c/memory-6516b569b1297b280ac6a093-1-probe0/0/process.log",
+            "ok": false,
+            "reason": null,
+            "returncode": 1
+          },
+          {
+            "action": "memory-6516b569b1297b280ac6a093-1-docker-info",
+            "log": ".harness/artifacts/aa39657529014da599c267fa0dd1904c/memory-6516b569b1297b280ac6a093-1-docker-info/0/process.log",
+            "ok": true,
+            "reason": null,
+            "returncode": 0
+          },
+          {
+            "action": "memory-6516b569b1297b280ac6a093-1-docker-inspect",
+            "log": ".harness/artifacts/aa39657529014da599c267fa0dd1904c/memory-6516b569b1297b280ac6a093-1-docker-inspect/0/process.log",
+            "ok": true,
+            "reason": null,
+            "returncode": 0
+          }
+        ],
+        "error": "dependency-running-not-ready",
+        "ok": false
+      },
+      "role": "Testing",
+      "signature": "a470e8febdfe6a992d12e490d43cd27e1017517982360bb607ad4b50e83245d1",
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    }
+  },
+  "run_id": "aa39657529014da599c267fa0dd1904c"
+}
