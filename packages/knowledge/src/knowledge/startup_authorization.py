@@ -14,7 +14,29 @@ def clauses(text):
     result=[]
     for part in parts:
         part=part.strip(' \t.,')
-        part=re.sub(r'^(?:remember|запомни)(?:\s+[^:]{0,180})?:\s*','',part,flags=re.I)
+        if part:result.append(part)
+    return result
+
+
+def permission_clauses(text,aliases=()):
+    """Unwrap only bounded topic/scope headers, never authorization prose.
+
+    Denial checks use clauses() BEFORE this view. Unknown teaching headers
+    invalidate the affirmative view of the entire message, including later
+    sentences. Topic names are literal single-word catalog aliases, not regexes.
+    """
+    reserved={'no','not','never','only','unless','if','не','нет','нельзя','только','если'}
+    labels=[re.escape(a.replace('ё','е').replace('Ё','Е')) for a in aliases
+        if re.fullmatch(r'\w{1,64}',a) and a.casefold() not in reserved]
+    topic='(?:'+'|'.join(labels)+')' if labels else r'(?!)'
+    english=r'remember(?: '+topic+r'| for (?:(?:all|my|this) )?projects?(?: using (?:my )?(?:local )?'+topic+r'(?: environment)?)?)?'
+    russian=r'запомни(?: '+topic+r'| для (?:(?:всех|моих) проектов|этого проекта|проектов)(?: (?:с|использующих) (?:(?:моей|этой) )?(?:локальной )?'+topic+r')?)?'
+    result=[]
+    for part in clauses(text):
+        header,colon,body=part.partition(':')
+        if colon and re.match(r'^(?:remember|запомни)\b',header,re.I):
+            if not re.fullmatch('(?:'+english+'|'+russian+')',' '.join(header.split()),re.I):return []
+            part=body.strip()
         if part:result.append(part)
     return result
 
@@ -40,7 +62,7 @@ def restriction(text,proposed):
     parts=clauses(text)
     if any(DENIAL.search(c) for c in parts):return 'deny'
     if proposed=='clear-denial':
-        return 'clear-denial' if not CONTEXT.search(text) and any(CLEAR.fullmatch(c) for c in parts) else 'unchanged'
+        return 'clear-denial' if not CONTEXT.search(text) and any(CLEAR.fullmatch(c) for c in permission_clauses(text)) else 'unchanged'
     return proposed
 
 
@@ -62,11 +84,11 @@ def startup(text,binding,proposed,quote,resource_count=1):
     # execution still needs validated resource parameters and current allowlist.
     if not docker and not binding.get('template'):return result
     resource=docker.get('container') or docker.get('service')
-    for clause in parts:
+    for clause in permission_clauses(text,binding.get('aliases',[])):
         match=EN_GRANT.fullmatch(clause) or RU_GRANT.fullmatch(clause)
         if not match:continue
         # Quote must identify this complete permission clause, not another sentence.
-        if clause not in clauses(quote):continue
+        if clause not in permission_clauses(quote,binding.get('aliases',[])):continue
         target=match['target'];named=re.fullmatch(r'(?:container|контейнера) ([a-z0-9][a-z0-9_.-]*)',target,re.I)
         if named and (not resource or named[1]!=resource):continue
         if not named and resource_count!=1:continue

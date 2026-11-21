@@ -258,6 +258,22 @@ parameters ранее проверенный intent переносится то�
 container` разрешает только start остановленного объекта. Restart не реализуется
 адаптером. Не требуется отсутствие любого `not`/`only`/`не` во всём сообщении.
 
+R2: denial checks читают clause view **без удаления teaching prefix**: весь текст
+перед `:` остаётся видимым. Поэтому `Remember you may not start the container:
+You may start it` и `Запомни не запускай контейнер: Разрешаю запуск этого
+контейнера` дают deny независимо от модельного предложения. Original сохраняется
+дословно; clause view нормализует только разделители и `ё/е`.
+Для affirmative view отдельно разрешены только `Remember:`/`Запомни:`, topic из
+single-word catalog alias (1–64 word characters, без reserved negative/conditional
+слов), и перечисленная в `permission_clauses()` EN/RU project-scope grammar.
+Например: `Remember Kafka:`, `Запомни Kafka:`, `Remember for all projects using
+my local Kafka environment:`, `Запомни для всех проектов с этой локальной Kafka:`.
+Alias сопоставляется буквально, а не как regex; arbitrary prose не удаляется.
+Неизвестный teaching header с двоеточием запрещает affirmative grant для всего
+сообщения, включая последующие предложения. Для clear-denial без каталога topic
+headers не распознаются: используйте самостоятельную current clear phrase ниже.
+Это ограниченная грамматика wrappers, а не универсальное понимание условий.
+
 Неподтверждённое разрешение оставляет сохранённое правило доступным для readiness;
 receipt сообщает эффективный `recovery_authorized:false`. Если автоматический
 старт нужен, задаётся один вопрос о разрешении. Текущая отрицательная фраза также
