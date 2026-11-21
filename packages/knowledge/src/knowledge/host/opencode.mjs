@@ -42,13 +42,14 @@ export default async function KnowledgeInstructions({ directory, client }, optio
         if (r.notice) output.parts.push({ type: "text", id: "prt_" + randomUUID().replaceAll("-", ""), sessionID: input.sessionID, messageID: output.message.id, synthetic: true, text: r.notice });
         if (r.integration_enabled === false) output.parts.push({ type: "text", id: "prt_" + randomUUID().replaceAll("-", ""), sessionID: input.sessionID, messageID: output.message.id, synthetic: true, text: "Knowledge integration is disabled. Nothing was saved as persistent memory." });
         if (r.saved) {
-          const detail = r.status === "unbound" ? (r.question ? " " + r.question : " Привязка ещё не задана.") : ` Триггер: ${r.trigger.tool}/${r.trigger.name}; восстановление: ${r.recovery_authorized}.`;
+          const detail = r.status === "unbound" ? (r.question ? " " + r.question : " Привязка ещё не задана.") : !r.executable ? ` Намерение сохранено; исполнение недоступно: ${r.binding_reason || r.execution_state}.` : ` Привязка настроена: ${r.trigger.tool}/${r.trigger.name}; восстановление: ${r.recovery_authorized}. Исполнение зависит от текущих прав и проверок.`;
           // CLI hosts may have no visible toast. Supply a receipt to the current
           // reply too; synthetic parts are excluded from subsequent capture.
           output.parts.push({ type: "text", id: "prt_" + randomUUID().replaceAll("-", ""), sessionID: input.sessionID,
             messageID: output.message.id, synthetic: true,
             text: "Knowledge durable receipt (external memory, not model training): " + JSON.stringify({ id: r.id, revision: r.revision,
               scope: r.scope, status: r.status, behavior: r.behavior, trigger: r.trigger, recovery_authorized: r.recovery_authorized,
+              executable: r.executable, execution_state: r.execution_state, binding_reason: r.binding_reason,
               question: r.question, action: r.action }) + ". Report this saved scope and behavior briefly; configured does not mean technically verified." });
           await toast({ title: "Knowledge", message: r.message + detail, variant: "success", duration: 12000 });
         }

@@ -67,7 +67,7 @@ def main():
         configure(root,cfg)
         return p,b
     def teach(root):
-        value=ingress(root,'Remember for all projects using my local Kafka environment: check readiness before required integration tests. You may start that specific local container for this purpose.')
+        value=ingress(root,'Remember for all projects using my local Kafka environment: check readiness before required integration tests. You may start that specific local container for this purpose. Only if stopped; never restart a running service.')
         assert value['ok'] and value['status']=='active' and value['recovery_authorized'],value
         return value
     try:
@@ -120,7 +120,7 @@ def main():
                     proc['docker']['executable']=str(base/'no-docker-executable');configure(r,c)
                 teach(r)
                 negative=run('A07-'+kind,r);assert not negative['result']['ok'];assert rows['A07-'+kind]['starts']==0
-                expected={'missing':'docker-resource-missing','unhealthy':'dependency-running-not-ready','docker-unavailable':'memory-executable-unavailable'}[kind]
+                expected={'missing':'docker-resource-missing','unhealthy':'dependency-running-not-ready','docker-unavailable':'instruction-binding-unavailable'}[kind]
                 assert negative['result'].get('error')==expected,negative['result']
             # Semantic bridge: real isolated resource; local-model protocol double.
             # Missing resource details arrive once in a second genuine user event.
@@ -154,6 +154,59 @@ def main():
                 'record_id':bound['id'],'revision':bound['revision'],'normalizer_requests':len(semantic_requests),
                 'user_teaching':first_text,'user_details':details,'retained_original':op.OperationalStore(sr,'shared',ss).records()['records'][0]['original'],
                 'model_usage_evidence':'test-double only; no real model usage claim'}
+            # Ordinary goal through the full CLI/role flow. The model protocol
+            # is a double; dependency lookup/recovery/tests are production paths.
+            from p2_fixtures import project,configuration,task,http_provider,FixtureProvider
+            from harness.runtime import Journal
+            command('stop',kafka)
+            with http_provider(FixtureProvider()) as endpoint:
+                fr=project(base/'ordinary-task');fc=configuration(endpoint);fc['capture']='off'
+                fc['memory']=deepcopy(sc['memory']);configure(fr,fc)
+                tf=fr/'test_feature.py';tf.write_text(tf.read_text().replace('  self.assertEqual(',
+                    f'  from knowledge.probes import kafka\n  kafka("127.0.0.1",{port},1)\n  self.assertEqual('),encoding='utf-8')
+                ft=task();ft['goal']='Implement the requested feature change and run the configured checks.'
+                taskfile=fr/'.harness/task.json';taskfile.write_text(json.dumps(ft),encoding='utf-8')
+                began=time.monotonic()
+                cli=subprocess.run([sys.executable,'-I','-m','harness.run_cli','run','--root',str(fr),'--input',str(taskfile)],capture_output=True,text=True,encoding='utf-8',timeout=90)
+                assert cli.returncode==0,cli.stdout+cli.stderr
+                answer=json.loads(cli.stdout);journal=Journal(fr)
+                with journal.db() as db:actions={i:json.loads(p) for i,p in db.execute('SELECT id,payload FROM actions WHERE run=?',(answer['run_id'],))}
+                traces=[t for action in actions.values() for t in action.get('memory_traces',[])]
+                starts=sum(action.get('memory_parent') is not None and action['args']['name'].endswith('-start') for action in actions.values())
+                assert starts==1 and any(t['dependency_links'] for t in traces)
+                assert all(not action.get('memory_traces') for action in actions.values() if action.get('memory_parent')),'recursive memory lookup'
+                target=out/'A17-full-cli';target.mkdir()
+                (target/'result.json').write_text(json.dumps({'result':answer,'actions':actions,'goal':ft['goal'],'type':'model protocol double; actual full CLI/role/broker/Docker integration'},indent=2)+'\n')
+                rows['A17-full-cli']={'ok':True,'error':None,'elapsed_seconds':time.monotonic()-began,'starts':starts,'failed_test_attempts':0,
+                    'selected_records':sum(len(t['selected']) for t in traces),'selected_bytes':sum(t['selected_bytes'] for t in traces),'dependency_links':[link for t in traces for link in t['dependency_links']],
+                    'normalizer_requests_in_fresh_run':0,'model_evidence':'test-double'}
+            # A19: same configured name now identifies a different owned object.
+            # A ready dependency was previously pinned by the real A16 recovery.
+            command('stop',kafka)
+            retired_name='knowledge-retired-'+tag;command('rename',kafka,retired_name)
+            own(kafka,a.image)  # Never started: its differing ID must be rejected.
+            changed=run('A19-resource-changed',sr)
+            assert changed['result'].get('error')=='docker-resource-changed',changed['result']
+            assert rows['A19-resource-changed']['starts']==0
+            # A20: a real start with a failing check must not be replayed by a
+            # new worker. This fixture has its own rule/store and exact resource.
+            blocked_base=base/'blocked';blocked_base.mkdir();br,bs,bc=setup_fixture(blocked_base)
+            bp,bb=configure_dependency(br,bs,bc,retired_name,port,deadline=1,interval=.1,
+                check={'argv':[sys.executable,'-I','-c','raise SystemExit(1)'],'timeout':1})
+            remembered=teach(br)
+            original=next(r['original'] for r in op.OperationalStore(br,'shared',bs).records()['records'] if r['id']==remembered['id'])
+            failed=run('A20-readiness-failed',br)
+            assert failed['result'].get('error')=='dependency-readiness-timeout',failed['result']
+            assert rows['A20-readiness-failed']['starts']==1
+            repeated=run('A20-fresh-no-replay',br)
+            assert repeated['result'].get('error')=='memory-remedy-blocked',repeated['result']
+            assert rows['A20-fresh-no-replay']['starts']==0
+            state=op.OperationalStore(br,'shared',bs).records()
+            intent=next(r for r in state['records'] if r['id']==remembered['id'])
+            assert intent['original']==original
+            assert intent['status']=='active' and state['bindings'][intent['id']]['state']=='blocked'
+            report['stale_binding']={'record_id':intent['id'],'revision':intent['revision'],'user_intent_retained':True,
+                'binding_state':state['bindings'][intent['id']]}
             # Published hook contract; UI is a fixture, ingress/storage are real.
             cfg['memory']['bindings']=[binding()];configure(root,cfg)
             plugin=importlib.resources.files('knowledge').joinpath('host/opencode.mjs')
@@ -161,7 +214,7 @@ def main():
             contract=subprocess.run([node,str(ROOT/'tests/persistent_host_contract.mjs'),str(plugin),sys.executable,str(root)],capture_output=True,text=True,timeout=30)
             (out/'host-contract.log').write_text(contract.stdout+contract.stderr,encoding='utf-8');assert contract.returncode==0,contract.stderr
             report['host_contract']='PASS (UI fixture; not real OpenCode)'
-            logs=command('logs',kafka);(out/'kafka.log').write_text(logs,encoding='utf-8')
+            logs=command('logs',created[0]);(out/'kafka.log').write_text(logs,encoding='utf-8')
         report['status']='PASS';report['incorrect_remedies']=0
     finally:
         for identifier in created:

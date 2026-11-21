@@ -21,7 +21,9 @@ def main():
     parser.add_argument('--endpoint',default='http://127.0.0.1:11434/v1/chat/completions')
     parser.add_argument('--model',required=True);parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args();out=args.output.absolute();out.mkdir(parents=True,exist_ok=True)
-    result={'status':'BLOCKED','kind':'real OpenCode + local model','reason':'not run'}
+    result={'status':'BLOCKED','kind':'real OpenCode + local model','scenario':'encoding','reason':'not run',
+        'verdict':'IMPLEMENTED / HOST VALIDATION PENDING',
+        'real_host_checks':{'A01':'BLOCKED','A02':'BLOCKED','A05':'NOT RUN: follow Kafka host guide','A17':'NOT RUN: follow Kafka host guide'}}
     executable=shutil.which(args.opencode)
     if not executable:
         result['reason']='OpenCode executable unavailable; no host session was simulated'
@@ -59,7 +61,7 @@ def main():
             remembered=records[0];teaching_session=remembered['provenance']['id'].split('/')[0]
             assert (root/'Feature.cs').read_bytes()==b'\xef\xbb\xbfpublic class InitialFeature {}\r\n','teaching session unexpectedly edited the fixture'
             # First process has terminated. This prompt contains no encoding rule.
-            host_run('fresh-session','Execute the enrolled approved_task through harness_run and report the verified result.')
+            host_run('fresh-session','Change Feature.cs to public class ImprovedFeature {} and run the configured checks.')
             runs=Journal(root).runs();assert runs and any(run.get('status')=='completed' for run in runs),'fresh host did not execute the guarded task'
             run=next(r for r in runs if r.get('status')=='completed')
             assert run.get('host_session') and run['host_session']!=teaching_session,'independent host session not established'
@@ -68,6 +70,7 @@ def main():
             assert (root/'Feature.cs').read_bytes()==b'\xef\xbb\xbfpublic class ImprovedFeature {}\r\n','byte preservation failed'
             (out/'run.json').write_text(json.dumps({'run':run,'actions':actions},indent=2,ensure_ascii=False)+'\n',encoding='utf-8')
             result.update(status='PASS',reason=None,teaching_session=teaching_session,fresh_session=run['host_session'],record={'id':remembered['id'],'revision':remembered['revision']},model=args.model)
+            result['real_host_checks'].update(A01='PASS: encoding host trial',A02='PASS: encoding host trial')
     except (AssertionError,OSError,ValueError,subprocess.SubprocessError) as error:
         result.update(status='FAIL',reason=str(error))
     (out/'host-validation.json').write_text(json.dumps(result,indent=2,ensure_ascii=False)+'\n',encoding='utf-8');print(json.dumps(result));return 0 if result['status']=='PASS' else 1

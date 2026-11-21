@@ -8,7 +8,7 @@ import sys
 import tempfile
 from knowledge.coordination import gate
 from knowledge.project import Project,safe_tree,safe_path
-from knowledge.operations import ingest,RESTRICT
+from knowledge.operations import ingest,RESTRICT,matches
 from knowledge.util import loads,canonical_json,emit_json,require,digest,KnowledgeError
 
 
@@ -44,6 +44,8 @@ def message(root,text,session_id,message_id):
     if 'memory' not in configuration or not configuration['memory'].get('enabled',True):
         return {'ok':True,'saved':False,'integration_enabled':False,'reason':'memory-integration-not-enabled'}
     policy=deepcopy(configuration['memory'])
+    policy['activation_paths']={'patch':['preserve-format','check','dependency'],
+        'recipe':['check','dependency'],'dependency':['check','dependency']}
     if policy.get('teaching_mode','local-model')!='catalog' and not policy.get('normalizer'):
         provider=configuration['provider']
         policy['normalizer']={k:provider[k] for k in ('endpoint','model','key_env','evidence') if k in provider}
@@ -56,6 +58,13 @@ def message(root,text,session_id,message_id):
         write_session(path,value)
         pending=value.get('pending_instruction')
     result=ingest(root,text,session_id+'/'+message_id,policy,reply_to=pending)
+    action=result.get('action')
+    if result.get('executable') and action and action['adapter']!='preserve-format':
+        from knowledge.procedure_templates import permitted
+        if not permitted(policy,action):result.update(executable=False,execution_state='tool-denied',binding_reason='Procedure/template is not allowed by current host policy.')
+    if result.get('saved') and (result.get('trigger') or {}).get('tool')=='dependency' and not any(
+        matches(result['trigger'],{'tool':'dependency','name':requirement['dependency']}) for requirement in policy.get('requirements',[])):
+        result.update(executable=False,execution_state='unlinked',binding_reason='No declared suite/recipe requirement activates this dependency in the current project.')
     with gate(Project(root).root,exclusive=True):
         value=read_session(root,session_id)
         if value.get('sequence')!=sequence:return {**result,'integration_enabled':True}

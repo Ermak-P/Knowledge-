@@ -79,14 +79,19 @@ class OperationalStore(Store):
             return {'state': 'absent', 'records': []}
         with self.connection() as db:
             records=current(db)
-            signals={}
+            signals={};bindings={}
             if enabled(db):
                 for payload, in db.execute('SELECT payload FROM operational_events'):
                     result=loads(payload)['result']
+                    record=next((r for r in records if r['id']==result.get('id')),None)
+                    if record is None or record['revision']!=result.get('revision'):continue
+                    if 'binding_state' in result:
+                        old=bindings.get(result['id'])
+                        if old is None or old['at']<result['binding_state']['at']:bindings[result['id']]=result['binding_state']
                     if 'application' in result:
                         old=signals.get(result['id'])
                         if old is None or old['at']<result['application']['at']:signals[result['id']]=result['application']
-            return {'state': 'available', 'records': records, 'signals':signals}
+            return {'state': 'available', 'records': records, 'signals':signals,'bindings':bindings}
 
     def history(self, identifier):
         with self.connection() as db:
@@ -159,10 +164,15 @@ def validate_procedure(p):
         type(p['interval']) in (int,float) and .05<=p['interval']<=10 and type(p['attempts']) is int and p['attempts'] in (0,1), 'invalid-recovery-bounds')
     if 'docker' in p:
         d=p['docker'];require(isinstance(d,dict) and 'executable' in d and Path(d['executable']).is_absolute(), 'invalid-docker-binding')
-        require(set(d) in ({'executable','container'},{'executable','compose_file','service'}), 'ambiguous-docker-binding')
+        keys=set(d)-{'context','project_name','env_file'}
+        require(keys in ({'executable','container'},{'executable','compose_file','service'}), 'ambiguous-docker-binding')
+        if 'context' in d:require(isinstance(d['context'],str) and re.fullmatch('[A-Za-z0-9][A-Za-z0-9_.-]{0,127}',d['context']),'invalid-docker-context')
         if 'container' in d: require(isinstance(d['container'],str) and re.fullmatch('[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}',d['container']), 'invalid-container-binding')
         else:
             require(Path(d['compose_file']).is_absolute() and isinstance(d['service'],str) and re.fullmatch('[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}',d['service']), 'invalid-compose-binding')
+        if 'project_name' in d:require(isinstance(d['project_name'],str) and re.fullmatch('[a-z0-9][a-z0-9_-]{0,127}',d['project_name']),'invalid-compose-project')
+        if 'env_file' in d:require(isinstance(d['env_file'],str) and Path(d['env_file']).is_absolute(),'invalid-compose-env-file')
+        require('compose_file' in d or not ({'project_name','env_file'}&set(d)),'invalid-container-compose-fields')
 
 
 def validate_applicability(value):
@@ -193,7 +203,7 @@ def _teach(root, text, source, *, scope='project', shared=None, binding=None,
           applicability=None, identifier=None, expected_revision=None, recovery_authorized=False,
           summary=None, missing=None, normalization=None, original=None, predecessor=None,
           semantic=False, receipt_stage=None, intent_trigger=None, authorization_intent=None,
-          binding_template=None, binding_parameters=None, authorization_revoked=None, authorization_resource=None):
+          binding_template=None, binding_parameters=None, authorization_revoked=None, authorization_resource=None, receipt_controls=None):
     """Trusted *local user ingress*. Never exposed as a writable MCP tool.
 
     OS callers are trusted like the existing Knowledge operator CLI. A model
@@ -209,6 +219,9 @@ def _teach(root, text, source, *, scope='project', shared=None, binding=None,
     applicability=deepcopy(applicability or {});validate_applicability(applicability)
     if binding:
         validate_binding(binding['trigger'],binding['behavior']);reject_secrets(canonical_json(binding))
+    # Read installation inputs before taking any store write lock.
+    from .bindings import snapshot
+    execution=snapshot(binding['behavior'],root) if binding else None
     store=OperationalStore(root,scope,shared);store.ensure()
     event_key={'source':source['id'],'scope':scope}
     if receipt_stage:event_key['phase']=receipt_stage
@@ -248,16 +261,21 @@ def _teach(root, text, source, *, scope='project', shared=None, binding=None,
                     authorization_revoked=bool(authorization_revoked) if authorization_revoked is not None else bool(old and old.get('authorization_intent',old['recovery_authorized']) and not recovery_authorized),
                     authorization_resource=authorization_resource,
                     binding_template=binding_template,binding_parameters=deepcopy(binding_parameters or {}),
+                    execution_binding=execution,
                     technical={'state':'configured' if binding else 'unverified','evidence':[],
                         'normalization':deepcopy(normalization)},
                     created=old['created'] if old else now,updated=now,last_verified=None,
                     supersedes={'id':old['id'],'revision':old['revision']} if old else predecessor,
                     stale=None,evidence=[])
                 append(db,value);result=ack(value)
-            db.execute('INSERT INTO operational_events VALUES (?,?)',(event_id,canonical_json({'request':request,'result':result})))
+            db.execute('INSERT INTO operational_events VALUES (?,?)',(event_id,canonical_json({'request':request,'result':result,
+                'source_hash':digest(text),'controls':deepcopy(receipt_controls or {})})))
     # Acknowledgement is returned ONLY after the context commits and a fresh
     # transaction validates durable bytes. No in-memory cache is authoritative.
     with store.connection() as db: current(db)
+    state=store.records().get('bindings',{}).get(result['id'])
+    if state and state['state'] in ('blocked','attempted'):
+        result.update(executable=False,execution_state=state['state'],binding_reason=state.get('reason'))
     return result
 
 
@@ -270,9 +288,12 @@ def teach(*args,**kwargs):
 
 
 def ack(r,duplicate=False):
+    execution=r.get('execution_binding') or {}
     return {'ok':True,'saved':True,'duplicate':duplicate,'id':r['id'],'revision':r['revision'],
         'scope':r['scope'],'status':r['status'],'behavior':r['normalized'],
         'trigger':r['trigger'],'action':r['behavior'],'recovery_authorized':r['recovery_authorized'],
+        'execution_state':execution.get('state','unbound'),'executable':r['status']=='active' and execution.get('state') in ('bound','portable'),
+        'binding_reason':execution.get('reason'),
         'message':f"Сохранено ({r['scope']}, {r['status']}): {r['normalized']}",
         'missing':(r.get('missing') or ['action/procedure binding and applicability; no resource guessed']) if r['status']=='unbound' else [],
         'question':None if duplicate or r['status']!='unbound' else (r.get('missing') or ['К какой настроенной операции или процедуре относится правило? Укажите её имя; ресурс и параметры не выбраны.'])[0]}
@@ -299,6 +320,34 @@ def application(root, scope, shared, identifier, revision, event_id, outcome, ev
         require(any(r['id']==identifier and r['revision']>=revision for r in current(db)),'unknown-instruction')
         db.execute('INSERT OR IGNORE INTO operational_events VALUES (?,?)',(digest({'application':event_id,'id':identifier}),canonical_json(event)))
     return {'ok':True}
+
+
+def binding_event(root,record,shared,state,reason=None,**observed):
+    """Durable installation signal, separate from immutable teaching revisions."""
+    require(state in ('observed','attempted','verified','blocked'),'invalid-binding-state')
+    store=OperationalStore(root,record['scope'],shared)
+    with store.connection(True) as db:
+        require(any(r['id']==record['id'] and r['revision']==record['revision'] for r in current(db)),'instruction-revision-conflict')
+        previous={}
+        for payload, in db.execute('SELECT payload FROM operational_events'):
+            result=loads(payload)['result'];value=result.get('binding_state')
+            if result.get('id')==record['id'] and result.get('revision')==record['revision'] and value and value['at']>previous.get('at',0):previous=value
+        value={**previous,**observed,'at':time.time(),'state':state,'reason':reason}
+        reject_secrets(canonical_json(value))
+        event={'request':digest(value),'result':{'id':record['id'],'revision':record['revision'],'binding_state':value}}
+        db.execute('INSERT INTO operational_events VALUES (?,?)',(digest(event),canonical_json(event)))
+    return value
+
+
+def rebind(root,identifier,text,source,*,scope='project',shared=None,expected_revision=None,recovery_authorized=False):
+    old=next((r for r in OperationalStore(root,scope,shared).records()['records'] if r['id']==identifier),None)
+    require(old and old['kind']=='instruction' and old['status']=='active','executable-instruction-required')
+    require(type(expected_revision) is int and old['revision']==expected_revision,'instruction-revision-conflict')
+    return teach(root,text,source,scope=scope,shared=shared,identifier=identifier,expected_revision=expected_revision,
+        binding={'trigger':old['trigger'],'behavior':old['behavior']},applicability=old['applicability'],
+        summary=old['normalized'],original=old['original'],recovery_authorized=recovery_authorized,
+        binding_template=old.get('binding_template'),binding_parameters=old.get('binding_parameters'),
+        authorization_intent=recovery_authorized,authorization_resource=old.get('authorization_resource'))
 
 
 def matches(trigger, action):
@@ -332,11 +381,12 @@ def lookup(root, action, environment, *, shared=None, max_items=8, max_bytes=120
     require(isinstance(action,dict) and set(action)=={'tool','name'} and all(isinstance(v,str) for v in action.values()),'invalid-memory-action')
     require(type(max_items) is int and 1<=max_items<=32 and type(max_bytes) is int and 512<=max_bytes<=64000,'invalid-memory-budget')
     validate_applicability(environment)
-    selected=[];decisions=[];states={};signals={}
+    selected=[];decisions=[];states={};signals={};bindings={}
     for scope in SCOPES:
         store=OperationalStore(root,scope,shared)
         result=store.records();states[scope]=result['state']
         signals.update(result.get('signals',{}))
+        bindings.update(result.get('bindings',{}))
         for r in result['records']:
             if r['status']=='unbound':
                 # Surface missing binding without pretending an absent trigger
@@ -370,6 +420,7 @@ def lookup(root, action, environment, *, shared=None, max_items=8, max_bytes=120
     result={'ok':True,'state':'conflict' if conflicts else 'matched' if resolved else 'no-match',
         'stores':states,'records':[context_view(r) for r in resolved],'decisions':decisions,'conflicts':conflicts,'partial':False,
         'signals':{r['id']:signals[r['id']] for r in resolved if r['id'] in signals}}
+    result['bindings']={r['id']:bindings[r['id']] for r in resolved if r['id'] in bindings}
     require(len(resolved)<=max_items, 'memory-context-item-limit')
     result['payload_bytes']=0
     for _ in range(3):result['payload_bytes']=len(canonical_json(result).encode())
@@ -402,6 +453,31 @@ ALLOW = re.compile(r'(?i)\b(?:you may start (?:that |the |this |specific |local 
 RESTRICT = re.compile(r'(?i)(?:do not start services|don.t start services|не запускай сервис|не запускать сервис|запрещаю запуск сервис)')
 
 
+def supported_binding(policy,binding):
+    paths=policy.get('activation_paths')
+    return paths is None or binding.get('behavior',{}).get('adapter','dependency' if binding.get('template') else None) in paths.get(binding['trigger']['tool'],[])
+
+
+def binding_receipt(root,text,message_id,shared=None):
+    """Replay a completed trusted source without reclassifying it or revising it."""
+    for scope in SCOPES:
+        store=OperationalStore(root,scope,shared);state=store.records()
+        if state['state']=='absent':continue
+        with store.connection() as db:
+            if not enabled(db):continue
+            key=digest({'source':message_id,'scope':scope,'phase':'binding'})
+            row=db.execute('SELECT payload FROM operational_events WHERE id=?',(key,)).fetchone()
+            if not row:continue
+            event=loads(row[0])
+            if 'source_hash' not in event:continue  # Compatible legacy receipt path.
+            require(event['source_hash']==digest(text),'teaching-source-reused')
+            record=next(r for r in state['records'] if r['id']==event['result']['id'])
+            result=ack(record,duplicate=True);binding=state.get('bindings',{}).get(record['id'])
+            if binding and binding['state'] in ('blocked','attempted'):
+                result.update(executable=False,execution_state=binding['state'],binding_reason=binding.get('reason'))
+            return {**result,**event.get('controls',{}),'normalization':{'method':'durable-source-replay'}}
+
+
 def ingest(root, text, message_id, policy, reply_to=None):
     """Small transparent local normalizer for explicit teaching + named bindings.
 
@@ -424,7 +500,10 @@ def ingest(root, text, message_id, policy, reply_to=None):
         require(len(found)==1,'unknown-or-ambiguous-instruction');old=found[0];scope=old['scope']
     require(len(bindings)<=1,'ambiguous-teaching-binding')
     binding=bindings[0] if bindings else ({'trigger':old['trigger'],'behavior':old['behavior'],'applicability':old['applicability']} if old and old['status']=='active' else None)
+    unsupported=binding is not None and not supported_binding(policy,binding)
     return teach(root,text,{'type':'user-message','id':message_id},scope=scope,shared=policy.get('shared_root'),
-        binding=binding,applicability=(binding or {}).get('applicability',{}),
+        binding=None if unsupported else binding,applicability=(binding or {}).get('applicability',{}),
+        intent_trigger=binding['trigger'] if unsupported else None,
+        missing=['Намерение сохранено; этот trigger/action не поддержан текущим хостом. Какой поддержанный путь должен его активировать?'] if unsupported else None,
         identifier=target_id,expected_revision=old['revision'] if old else None,
         recovery_authorized=False if RESTRICT.search(text) else bool(ALLOW.search(text) or (old and old['recovery_authorized'])))

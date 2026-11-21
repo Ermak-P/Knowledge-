@@ -6,6 +6,7 @@ procedure must exactly match an independently approved current policy entry.
 from copy import deepcopy
 from pathlib import Path
 import platform
+import fnmatch
 import re
 import sys
 import time
@@ -41,8 +42,9 @@ def validate_policy(policy):
         if 'template' in b:require(b['template'] in ids,'unknown-procedure-template')
         if 'description' in b:require(isinstance(b['description'],str) and 0<len(b['description'])<=1000,'invalid-binding-description')
     for r in policy.get('requirements',[]):
-        require(isinstance(r,dict) and set(r)=={'trigger','dependency'} and isinstance(r['dependency'],str) and 0<len(r['dependency'])<=200,'invalid-memory-requirement')
+        require(isinstance(r,dict) and {'trigger','dependency'}<=set(r)<={'trigger','dependency','suite'} and isinstance(r['dependency'],str) and 0<len(r['dependency'])<=200,'invalid-memory-requirement')
         op.validate_binding(r['trigger'],{'adapter':'preserve-format'})
+        if 'suite' in r:require(isinstance(r['suite'],str) and 0<len(r['suite'])<=500 and not r['suite'].startswith(('/','\\')) and '..' not in r['suite'].split('/') and '\\' not in r['suite'] and ':' not in r['suite'],'invalid-memory-suite')
     return policy
 
 
@@ -55,15 +57,24 @@ def environment(policy):
 def retrieve(broker, name, args, include_candidates=False):
     policy=broker.c.get('memory',{});env=environment(policy)
     actions=[{'tool':name,'name':args['name']}] if name=='recipe' else [{'tool':name,'name':f['path']} for f in args['files']]
+    operation=broker.r.get('automatic_tests',{}).get('operations',{}).get(args.get('name')) if name=='recipe' else None
+    source_actions=list(actions)
+    links=[]
     for requirement in policy.get('requirements',[]):
-        if any(op.matches(requirement['trigger'],a) for a in actions):actions.append({'tool':'dependency','name':requirement['dependency']})
+        if not any(op.matches(requirement['trigger'],a) for a in source_actions):continue
+        if 'suite' in requirement and not (operation and operation['phase']=='test' and fnmatch.fnmatchcase(operation['project'],requirement['suite'])):continue
+        dependency={'tool':'dependency','name':requirement['dependency']}
+        if dependency not in actions:actions.append(dependency)
+        links.append({'dependency':requirement['dependency'],'suite':operation['project'] if operation else None,
+            'source':'verified-test-inventory' if operation else 'runner-requirement'})
     lookups=[op.lookup(broker.j.project.root,a,env,shared=policy.get('shared_root'),max_items=policy.get('max_items',8),max_bytes=policy.get('max_bytes',12000),include_candidates=include_candidates) for a in actions]
     records={r['id']:r for result in lookups for r in result['records']}
     require(len(records)<=policy.get('max_items',8),'memory-context-item-limit')
     size=len(canonical_json(list(records.values())).encode());require(size<=policy.get('max_bytes',12000),'memory-context-byte-limit')
+    bindings={identifier:value for result in lookups for identifier,value in result.get('bindings',{}).items()}
     return policy,env,list(records.values()),{'lookups':[{'action':a,**{k:v for k,v in result.items() if k!='records'}} for a,result in zip(actions,lookups)],
         'selected':[{'id':r['id'],'revision':r['revision'],'scope':r['scope']} for r in records.values()],
-        'selected_bytes':size,'lookup_bytes':sum(r['payload_bytes'] for r in lookups)}
+        'selected_bytes':size,'lookup_bytes':sum(r['payload_bytes'] for r in lookups),'binding_states':bindings,'dependency_links':links}
 
 
 def preflight(broker, action_id, name, args):
@@ -90,7 +101,12 @@ def preflight(broker, action_id, name, args):
             p=behavior['procedure']
             from knowledge.procedure_templates import permitted
             require(permitted(policy,behavior),'memory-procedure-tool-denied')
-            outcome=execute_procedure(broker,action_id,r,policy)
+            from knowledge.bindings import validate_saved
+            try:validate_saved(r.get('execution_binding'),behavior,broker.j.project.root)
+            except KnowledgeError as error:
+                op.binding_event(broker.j.project.root,r,policy.get('shared_root'),'blocked',error.code)
+                raise
+            outcome=execute_procedure(broker,action_id,r,policy,trace['binding_states'].get(r['id'],{}))
             trace['outcomes'].append({'id':r['id'],**outcome})
         trace['ok']=True
     except (KnowledgeError,OSError,ValueError) as error:
@@ -108,8 +124,11 @@ def preflight(broker, action_id, name, args):
                     [{'run':broker.r['id'],'action':action_id}])
 
 
-def execute_procedure(broker, parent_id, record, policy):
+def execute_procedure(broker, parent_id, record, policy, binding_state=None):
     p=record['behavior']['procedure'];started=time.monotonic();steps=[]
+    binding_state=binding_state or {}
+    def signal(state,reason=None,**observed):
+        return op.binding_event(broker.j.project.root,record,policy.get('shared_root'),state,reason,**observed)
     parent=broker.j.action(broker.r['id'],parent_id)
     generation=parent.get('memory_generation',0)+1;parent['memory_generation']=generation
     broker.j.action(broker.r['id'],parent_id,parent)
@@ -124,20 +143,37 @@ def execute_procedure(broker, parent_id, record, policy):
         return result
     check=p['check']
     def probe(index, remaining):return command('probe'+str(index),check['argv'],min(check['timeout'],max(.1,remaining)))
+    require(binding_state.get('reason') not in ('docker-daemon-changed','docker-resource-changed'),
+        'instruction-binding-revalidation-required',binding_state.get('reason'))
     first=probe(0,p['deadline'])
-    if first['ok']:return {'result':'ready','started':False,'steps':steps,'seconds':time.monotonic()-started}
+    if first['ok']:
+        signal('verified')
+        return {'result':'ready','started':False,'steps':steps,'seconds':time.monotonic()-started}
     require(record['behavior']['adapter']=='dependency' and 'docker' in p,'memory-precondition-failed',steps)
+    require(binding_state.get('state') not in ('blocked','attempted'),'memory-remedy-blocked',binding_state.get('reason'))
     d=p['docker'];docker=d['executable']
-    info=command('docker-info',[docker,'info','--format','{{json .ServerVersion}}'],min(5,p['deadline']))
+    selection=record['execution_binding']['docker']
+    def docker_argv(*args):return [docker,'--config',selection['config_root'],'--context',selection['context'],*args]
+    def compose_argv(*args):return docker_argv('compose','--project-directory',str(Path(d['compose_file']).parent),'-f',d['compose_file'],
+        '--project-name',d['project_name'],'--env-file',d['env_file'],*args)
+    info=command('docker-info',docker_argv('info','--format','{"ID":{{json .ID}},"Version":{{json .ServerVersion}}}'),min(5,p['deadline']))
     require(info['ok'],'docker-unavailable',steps)
+    identity=loads(info['output'].strip());require(isinstance(identity,dict) and isinstance(identity.get('ID'),str) and identity['ID'],'invalid-docker-identity')
+    daemon=digest(identity['ID'])
+    if binding_state.get('daemon') and binding_state['daemon']!=daemon:
+        signal('blocked','docker-daemon-changed');raise KnowledgeError('docker-daemon-changed')
     if 'container' in d:resource=d['container']
     else:
-        result=command('compose-locate',[docker,'compose','-f',d['compose_file'],'ps','-a','-q',d['service']],min(5,p['deadline']))
+        result=command('compose-locate',compose_argv('ps','-a','-q',d['service']),min(5,p['deadline']))
         resource=result.get('output','').strip()
         require(result['ok'] and re.fullmatch('[0-9a-f]{12,64}',resource),'docker-resource-missing-or-ambiguous',steps)
-    inspected=command('docker-inspect',[docker,'inspect','--type','container','--format','{"Status":{{json .State.Status}},"Running":{{json .State.Running}}}',resource],min(5,p['deadline']))
+    inspected=command('docker-inspect',docker_argv('inspect','--type','container','--format','{"ID":{{json .Id}},"Status":{{json .State.Status}},"Running":{{json .State.Running}}}',resource),min(5,p['deadline']))
     require(inspected['ok'],'docker-resource-missing',steps)
     state=loads(inspected['output'].strip());require(isinstance(state,dict) and type(state.get('Running')) is bool,'invalid-docker-state')
+    require(isinstance(state.get('ID'),str) and re.fullmatch('[0-9a-f]{64}',state['ID']),'invalid-docker-resource-identity')
+    resource_id=digest(state['ID'])
+    if binding_state.get('resource') and binding_state['resource']!=resource_id:
+        signal('blocked','docker-resource-changed');raise KnowledgeError('docker-resource-changed')
     require(not state['Running'],'dependency-running-not-ready',steps)
     require(state.get('Status') in ('exited','created'),'dependency-state-not-startable',steps)
     restrictions=list(broker.r.get('current_restrictions',[]))
@@ -146,10 +182,15 @@ def execute_procedure(broker, parent_id, record, policy):
         restrictions+=read_session(broker.j.project.root,broker.r['host_session'])['restrictions']
     require(not policy.get('deny_recovery',False) and 'no-service-start' not in restrictions,'current-service-start-denied')
     require(record.get('recovery_authorized') and p['attempts']==1,'remembered-start-not-authorized')
-    start_argv=[docker,'start',resource] if 'container' in d else [docker,'compose','-f',d['compose_file'],'start',d['service']]
+    from knowledge.bindings import validate_saved
+    validate_saved(record['execution_binding'],record['behavior'],broker.j.project.root)
+    # Pin daemon + immutable container ID before the effect, across fresh runs.
+    signal('attempted','recovery-outcome-unknown',daemon=daemon,resource=resource_id)
+    start_argv=docker_argv('start',state['ID'])
     # A start has one durable action identity. Unknown outcome is never blindly
     # retried; probes/inspect above determine current conditions on recovery.
     start=command('start',start_argv,min(10,p['deadline']),rerun_safe=False,fixed=True)
+    if not start['ok']:signal('blocked','dependency-start-failed')
     require(start['ok'],'dependency-start-failed',steps)
     deadline=time.monotonic()+p['deadline'];index=1;ready=False
     while time.monotonic()<deadline:
@@ -158,6 +199,7 @@ def execute_procedure(broker, parent_id, record, policy):
         remaining=deadline-time.monotonic()
         if remaining>0:time.sleep(min(p['interval'],remaining))
     outcome='readiness-verified' if ready else 'readiness-timeout'
+    signal('verified' if ready else 'blocked',None if ready else 'dependency-readiness-timeout')
     candidate=op.capture_experience(broker.j.project.root,broker.r['id']+'/'+parent_id+'/'+prefix,
         {'tool':'dependency','name':p['id']},environment(policy),
         {'initial_check':'failed','configured_resource_state':state['Status']},

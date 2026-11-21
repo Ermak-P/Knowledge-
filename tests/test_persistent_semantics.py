@@ -94,6 +94,7 @@ class PersistentSemantics(unittest.TestCase):
                 requirements=[{'trigger':{'tool':'recipe','name':'test'},'dependency':'local_broker'}]);configure(root,cfg)
             saved=ingress(root,first);self.assertEqual(saved['status'],'unbound',saved);self.assertTrue(saved['question'])
             bound=ingress(root,reply,message_id='resource-details');self.assertEqual(bound['status'],'active',bound)
+            self.assertFalse(bound['executable']);self.assertEqual(bound['execution_state'],'tool-denied')
             self.assertEqual(bound['id'],saved['id']);self.assertEqual(bound['revision'],2);self.assertTrue(bound['recovery_authorized'])
             record=op.OperationalStore(root,'shared',shared).records()['records'][0]
             self.assertEqual(record['original'],first);self.assertEqual(record['source_text'],reply)

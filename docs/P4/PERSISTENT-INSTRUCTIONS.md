@@ -7,6 +7,9 @@
 в проверяемую конфигурацию runner **до** enrollment companion. `enabled: false`
 отключает контур, сохраняя все записи.
 
+Вердикт поставки: **IMPLEMENTED / HOST VALIDATION PENDING**. Изолированные
+проверки не закрывают реальные OpenCode/local-model A01, A02, A05 и A17.
+
 ## Что поддерживается
 
 - Проектная SQLite: `<project>/.knowledge/store.sqlite3`.
@@ -112,8 +115,10 @@ shell/edit инструменты произвольного хоста этим
 В реальном JSON `allowed_procedures` содержит объекты, идентичные процедуре
 binding. Изменение команды требует нового разрешённого объекта и корректировки
 инструкции; одного текста в памяти недостаточно. Для Compose вместо `container`
-задаются только `compose_file` (absolute) и `service`: используется `ps -a -q`,
-проверка единственного ID и `start` существующего сервиса. `up`, restart, создание
+задаются `compose_file` (absolute), `service`, явные `project_name` и `env_file`
+(absolute, может быть пустым). Используются явные project directory/name/env-file,
+`ps -a -q`, проверка единственного ID и старт именно этого существующего ID.
+Изменение Compose/env файла требует перепроверки привязки. `up`, restart, создание
 контейнера и удаление томов не являются действиями памяти.
 
 Если имя контейнера и порт ещё неизвестны, настройте вместо фиксированного
@@ -192,6 +197,7 @@ knowledge memory-inspect --root <project> --scope project
 knowledge memory-inspect --root <project> --scope shared
 knowledge memory-history --root <project> --scope shared --id <ID>
 knowledge memory-retire --root <project> --scope shared --id <ID> --expected-revision <REV>
+knowledge memory-rebind --root <project> --scope shared --id <ID> --expected-revision <REV> --input <revalidation.json>
 ```
 
 Коррекция из чата: `Уточни правило <ID>: ... <alias настроенной процедуры> ...`.
@@ -206,6 +212,77 @@ JSON содержит `text`, `source:{type:"user-message",id:"durable-source-id
 Конкурентные corrections используют revision CAS. Retirement немедленно исключает
 правило из следующего lookup, сохраняя аудит. Более узкая применимость/проект может
 уточнить общий default; неразрешённые противоречия останавливают действие.
+
+`memory-rebind` повторно проверяет **текущую** установку той же процедуры: JSON
+содержит `text` (обоснование), `source:{type:"user-message",id:"unique-id"}` и
+`recovery_authorized` (по умолчанию false). ID, normalized intent и original
+сохраняются; создаётся revision, старые blocked/attempted сигналы больше не
+разрешают и не блокируют новую привязку. Для изменения самой команды/ресурса
+используйте обычную correction `memory-teach --id --expected-revision` с новым
+binding и независимым текущим allowlist. Перепривязка не выдаётся как модельный MCP.
+
+## Среда исполнения и устаревание
+
+Исполнимые check/dependency привязки отдельно фиксируют ОС, machine/context hash,
+SHA-256 явно используемых инструментов/файлов, Compose/env inputs и Docker context.
+На Linux context учитывает machine-id и UTS namespace, на Windows — MachineGuid;
+сырые идентификаторы не сохраняются. Это среда выполнения инструмента, а не
+предполагаемый рабочий стол пользователя. preserve-format переносим между средами.
+Читается только небольшой набор указанных файлов, без нового обхода репозитория.
+Отсутствующий/недоступный input означает non-executable binding, а не потерю intent.
+
+Docker всегда получает явные `--config` и `--context`. Поддержаны локальные unix
+socket/npipe; remote tcp/ssh и удалённый named pipe в этом контуре не поддержаны.
+Ambient DOCKER_HOST/DOCKER_CONTEXT/DOCKER_CONFIG не меняют выбранную привязку.
+При необходимости восстановления supervisor сверяет daemon ID и immutable
+container ID, затем сохраняет attempted **до** старта. Переиспользованное имя не
+переносит разрешение на другой контейнер. Daemon/Desktop автоматически не стартуют.
+
+Неудачный старт, readiness timeout или неизвестный исход сохраняются отдельно от
+инструкции. Новый run делает одну безопасную readiness-проверку; при продолжающемся
+отказе не повторяет remedy. Если readiness уже подтверждена, может продолжить
+исходный тест. Изменённые файлы/среда и обнаруженная замена daemon/container требуют
+исправления/перепривязки. Intent и история сохраняются. Потеря даты проверки сама по
+себе не отзывает инструкцию. Старые operational records читаются без миграции;
+старую executable-привязку без snapshot нужно явно rebind перед исполнением.
+
+Receipt различает unbound/unavailable, tool-denied и unlinked. Последний означает:
+процедура сохранена, но в текущем проекте нет declared suite -> dependency route.
+Общая запись может быть связана с requirement другого проекта без копирования.
+
+## Trigger, suite и границы интеграции
+
+Ручной recipe имеет стабильное имя из runner. У automatic tests используются уже
+проверенные `automatic_tests.operations` и inventory, а не новая discovery-система.
+Для конкретного suite дополните существующий requirement (это пример, не факт о
+репозитории пользователя):
+
+```json
+{"trigger":{"tool":"recipe","name":"@automatic-tests/*"},"suite":"integration/*Tests.csproj","dependency":"local_broker"}
+```
+
+Тогда зависимость нужна только test phase совпавших inventory paths; restore/build
+и другие suites её не активируют. Без `suite` requirement сохраняет прежнюю
+семантику явного recipe pattern. Объявлять Kafka для всех integration tests по
+эвристике не нужно. Trace содержит источник link и путь suite. Повторные links к
+одной зависимости объединяются в рамках одного действия; readiness проверяется
+заново перед использованием. Новой LLM-классификации на low-level tool call нет.
+
+| Путь | Точка lookup/enforcement | Граница |
+|---|---|---|
+| OpenCode genuine chat.message | Trusted ingress, durable receipt | Только несинтетические user parts; tool/log/repo text не authority. |
+| Enrolled harness_run | Existing task authority, затем Broker recipe/patch preflight | Plugin подставляет trusted session; без установленного/совместимого хоста реальный E2E pending. |
+| harness-run run/resume | Тот же Broker, task/source/config/lease checks | Текущие ограничения CLI/session сильнее saved grant. |
+| Automatic .NET tests | Broker.recipe после проверки operation/inventory | suite filter использует существующие metadata; нет новой discovery. |
+| Existing delegated Harness roles | Тот же owned broker | Новые агенты/права не добавляются. |
+| Private memory checks/recovery | Тот же process supervisor, без повторного preflight | Memory actions не вызывают сами себя. |
+| Read-only Knowledge MCP | Bounded lookup | Не запускает команды и не записывает user authority. |
+| Native shell/edit хоста, внешние процессы и иные оркестраторы | Вне этого enforcement | Не заявлены как автоматически покрытые; unsupported trigger сохраняется intent-only. |
+
+Conflict/overflow блокирует затронутое действие, не всю память сессии. Mandatory
+records не отбрасываются по top-k; бюджет превышен — явный отказ для этого lookup.
+Ни store write lock, ни knowledge maintenance gate не удерживаются во время Docker,
+ожидания готовности или тестов.
 
 ## Трасса, опыт и отказы
 

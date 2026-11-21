@@ -8,7 +8,7 @@ from .util import loads, emit_json, canonical_json, KnowledgeError, read_text
 
 def parser():
     p=argparse.ArgumentParser(description='Knowledge: explicit project-local evidence store')
-    p.add_argument('command',choices=['version','init','validate','submit','prepare','apply','acknowledge','context','lookup','status','recover','export','migrate-preview','migrate-apply','restore-legacy','upgrade-preview','upgrade-apply','scan','scan-status','reconcile','review','history','knowledge-init','knowledge-candidates-update','knowledge-candidates-push','memory-ingest','memory-teach','memory-lookup','memory-inspect','memory-history','memory-retire'])
+    p.add_argument('command',choices=['version','init','validate','submit','prepare','apply','acknowledge','context','lookup','status','recover','export','migrate-preview','migrate-apply','restore-legacy','upgrade-preview','upgrade-apply','scan','scan-status','reconcile','review','history','knowledge-init','knowledge-candidates-update','knowledge-candidates-push','memory-ingest','memory-teach','memory-lookup','memory-inspect','memory-history','memory-retire','memory-rebind'])
     p.add_argument('--root',required=True)
     p.add_argument('--input',type=Path)
     p.add_argument('--plan')
@@ -44,6 +44,7 @@ def execute(a):
         value=loads(raw)
         if a.command=='memory-ingest':return op.ingest(a.root,value['text'],value['message_id'],{**value.get('policy',{}),**({'shared_root':a.shared_root} if a.shared_root else {})})
         if a.command=='memory-teach':return op.teach(a.root,value['text'],value['source'],scope=a.scope,shared=a.shared_root,binding=value.get('binding'),applicability=value.get('applicability'),identifier=a.id,expected_revision=a.expected_revision,recovery_authorized=value.get('recovery_authorized',False))
+        if a.command=='memory-rebind':return op.rebind(a.root,a.id,value['text'],value['source'],scope=a.scope,shared=a.shared_root,expected_revision=a.expected_revision,recovery_authorized=value.get('recovery_authorized',False))
         return op.lookup(a.root,value['action'],value.get('environment',{}),shared=a.shared_root,max_items=a.max_items,max_bytes=a.max_bytes,include_candidates=a.include_unconfirmed)
     store=Store(a.root)
     from . import lifecycle as life, discovery

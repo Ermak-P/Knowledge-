@@ -47,3 +47,25 @@ The model returns catalog selections/data, never executable argv. An unsupported
 condition blocks before effects rather than being dropped. Real model quality
 remains unqualified; HTTP protocol doubles are labelled separately from actual
 Python processes, durable SQLite commits, broker effects and Docker protocol tests.
+
+## Reviewed task, 2026-11-21
+
+Baseline for the revised assignment is delivered `7d0bc29e` (source `7f6ea1df`),
+not an empty feature. Applicable AGENTS.md is still absent. Existing two-store
+persistence, authority boundaries, exact policy checks and owned execution are
+retained; no unrelated migration or host permission changes are needed.
+
+| Revised requirement | Audit result and concrete change |
+|---|---|
+| Shared use without project init | Already possible; add explicit absent-vs-corrupt regression and preserve no-init cross-project fixture. |
+| Executable environment identity | Prior applicability tags were optional and did not pin Docker context/files. Add independent `knowledge/bindings.py`, capture a snapshot before store writes, validate before execution/start; pin daemon/container IDs in durable binding events. |
+| Stale/failed remedy | Prior per-run bound did not suppress another run's failed startup. Add revision-scoped attempted/blocked/verified events, safe readiness recheck and explicit CAS `memory-rebind`; never remove original intent. |
+| Suite discovery boundary | Existing requirements map recipe to dependency. Extend with optional suite path using existing validated automatic-test operation/inventory metadata; record the dependency link, not a second discovery pass. |
+| Ordinary fresh host request | Real encoding driver must use an ordinary edit/test request. Real Kafka live guide now specifies separate new sessions and no evaluator-supplied memory reminder. |
+| Coverage and verdict | Add explicit path/enforcement/bypass table, A01–A20 evidence, and `IMPLEMENTED / HOST VALIDATION PENDING` until real-host A01/A02/A05/A17 pass. |
+
+Current host discovery still finds no `opencode` executable/local model service.
+The published hook-contract adapter is available; actual OpenCode/version/plugin
+compatibility remains a live validation boundary, not a successful host audit.
+Docker daemon/Desktop startup, remote Docker transports and native external
+shell/edit orchestration are outside the approved first-release execution paths.

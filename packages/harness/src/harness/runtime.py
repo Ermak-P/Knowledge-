@@ -305,6 +305,7 @@ def recipe_inputs(project,configuration,task):
         if 'docker' in procedure:
             include(procedure['docker']['executable'],True)
             if 'compose_file' in procedure['docker']:include(procedure['docker']['compose_file'])
+            if 'env_file' in procedure['docker']:include(procedure['docker']['env_file'])
     for template in configuration.get('memory',{}).get('procedure_templates',[]):
         include(template['python'],True);include(template['docker'],True)
     return sorted(paths),sorted(executables)

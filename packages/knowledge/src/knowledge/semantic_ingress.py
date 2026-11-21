@@ -31,10 +31,17 @@ def ingest(root,text,message_id,policy,reply_to=None):
         if error.code!='memory-secret-denied':raise
         return {'ok':True,'saved':False,'sensitive_skipped':True,
             'notice':'Knowledge did not persist or normalize this message: credential-like input is excluded from memory.'}
+    replay=op.binding_receipt(root,text,message_id,policy.get('shared_root'))
+    if replay:return replay
     target=re.search(r'(?i)(?:rule|правило)\s+([0-9a-f]{64})\b',text)
     identifier=target.group(1) if target else reply_to
     previous=next((r for r in records(root,policy) if r['id']==identifier),None) if identifier else None
     if identifier:require(previous is not None,'unknown-instruction')
+    if previous is None:
+        # Recover a committed incomplete intent after a host died before writing
+        # its pending-session pointer. A replay must bind the same durable ID.
+        matches=[r for r in records(root,policy) if r['kind']=='instruction' and r['status']=='unbound' and r['provenance']['id']==message_id]
+        require(len(matches)<=1,'ambiguous-teaching-source');previous=matches[0] if matches else None
     declared=policy.get('environment',{})
     environment={**declared,'machine':platform.node(),'os':sys.platform,'project_root':str(Project(root).root),'tools':{**declared.get('tools',{}),'python':platform.python_version()}}
     try:
@@ -66,6 +73,7 @@ def ingest(root,text,message_id,policy,reply_to=None):
         require(len(matches)<=1,'ambiguous-instruction-update')
         previous=matches[0] if matches else None
     unsupported=list(result['unsupported']);parameters={};template_id=(chosen or {}).get('template')
+    if chosen and not op.supported_binding(policy,chosen):unsupported.append('unsupported host trigger/action')
     if template_id:
         from .procedure_templates import materialize
         template=next((t for t in policy.get('procedure_templates',[]) if t['id']==template_id),None)
@@ -137,7 +145,8 @@ def ingest(root,text,message_id,policy,reply_to=None):
             binding_template=template_id,binding_parameters=parameters,
             authorization_resource=prior_identity if changing_grant else identity,
             predecessor={'id':old['id'],'revision':old['revision'],'scope':old['scope']} if moving else None,
-            semantic=True,receipt_stage='binding' if binding else 'intent')
+            semantic=True,receipt_stage='binding' if binding else 'intent',
+            receipt_controls={'restriction':restriction,'format_changes':result['format_changes']})
         if moving:
             op.retire(root,old['id'],scope=old['scope'],shared=policy.get('shared_root'),expected_revision=old['revision'])
             op.OperationalStore(root,old['scope'],policy.get('shared_root')).records()
