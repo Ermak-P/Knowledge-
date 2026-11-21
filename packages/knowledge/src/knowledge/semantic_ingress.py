@@ -56,6 +56,8 @@ def ingest(root,text,message_id,policy,reply_to=None):
             'question':'Намерение сохранено без исполнения. Нужна работающая локальная нормализация или явная operator-привязка.',
             'current_start':'unchanged'}
         metadata={'method':'local-model','state':'unavailable','error':error.code}
+    from .startup_authorization import restriction as current_restriction,startup
+    result['current_start']=current_restriction(text,result['current_start'])
     restriction={'deny':'no-service-start','clear-denial':'clear-service-start-denial','unchanged':None}[result['current_start']]
     if 'sensitive-input-not-stored' in result['unsupported']:
         return {'ok':True,'saved':False,'sensitive_skipped':True,'notice':'Knowledge did not persist sensitive input.'}
@@ -105,6 +107,13 @@ def ingest(root,text,message_id,policy,reply_to=None):
         unsupported.append('scope needs clarification')
         result['question']=result['question'] or 'Только текущий проект или все подходящие проекты?'
     identity=resource(chosen,template_id,parameters,applicability)
+    resource_count=sum(bool(b.get('template') or b.get('behavior',{}).get('procedure',{}).get('docker')) for b in catalog)
+    authorization=startup(text,chosen,result['authorize_recovery'],result.get('permission_quote',''),resource_count)
+    metadata['startup_authorization']=authorization
+    result['authorize_recovery']=authorization['granted']
+    # A genuine current startup denial cannot be classified away by the model.
+    # For temporary directives intent=none returned above without rewriting memory.
+    if authorization['denied']:result['revoke_recovery']=True
     prior_identity=(previous or {}).get('authorization_resource') or (resource(
         {'behavior':previous.get('behavior') or {}},previous.get('binding_template'),previous.get('binding_parameters',{}),previous['applicability']) if previous else None)
     current_grant=result['authorize_recovery'] and result.get('permission_quote','') in text
@@ -150,4 +159,8 @@ def ingest(root,text,message_id,policy,reply_to=None):
         if moving:
             op.retire(root,old['id'],scope=old['scope'],shared=policy.get('shared_root'),expected_revision=old['revision'])
             op.OperationalStore(root,old['scope'],policy.get('shared_root')).records()
+    if (chosen or {}).get('behavior',{}).get('adapter')=='dependency':
+        saved['message']+=' Запуск разрешён только для этой привязки.' if saved['recovery_authorized'] else ' Запуск не разрешён; доступна проверка готовности.'
+        if not saved['recovery_authorized'] and not authorization['denied'] and result.get('permission_quote') and not saved.get('question'):
+            saved['question']='Если нужен автоматический старт, разрешите запуск указанного контейнера явно: «Разрешаю запуск контейнера <имя>, если он остановлен».'
     return {**saved,'restriction':restriction,'normalization':metadata}

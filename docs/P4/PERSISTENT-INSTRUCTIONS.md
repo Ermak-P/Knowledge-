@@ -48,14 +48,17 @@
 Плагин включён в wheel Knowledge (`knowledge/host/opencode.mjs`) и в `host/` kit.
 MCP-профиль ставится прежним способом; новый удалённый сервис не нужен.
 
-Сначала настройте и проверьте runner, затем enroll неизменяемое задание через
-существующий `harness-host preview/apply`. В `.knowledge-host.json` проекта:
+Сначала настройте и проверьте runner, provider, plugin и `.knowledge-host.json`,
+затем enroll неизменяемое задание через существующий `harness-host preview/apply`.
+В `.knowledge-host.json` проекта:
 
 ```json
 {"python":"<абсолютный путь к Python установленного kit>"}
 ```
 
-Добавьте URI локального `host/opencode.mjs` в настройку `plugin` хоста. Это
+**До preview/apply** добавьте URI локального `host/opencode.mjs` в настройку
+`plugin` проекта `opencode.json`. Поздняя правка меняет enrolled host-config digest
+и требует обычного пересмотра enrollment; digest guard не отключается. Это
 **opt-in адаптер опубликованного hook API `@opencode-ai/plugin` 1.19.6**:
 `chat.message`, `tool.execute.before`, `tui.showToast`. Его исходники и CLI
 исследованы; ссылки/хеши — в `PERSISTENT-INSTRUCTIONS-PROTOCOLS.json`.
@@ -187,6 +190,16 @@ broker endpoints, а не только TCP или состояние конте�
 передаст типизированные session format_changes, не изменяя сохранённый default.
 Можно явно сбросить исключение для пути; новая host session начинает без исключений.
 Для CLI JSON — массив `[{"path":"Feature.cs","encoding":"utf-8","bom":false,"eol":"lf"}]`.
+`harness-run resume --root <project> --run-id <id> --no-service-start` сохраняет
+текущий запрет под execution lease до продолжения. Без флага старый запрет остаётся;
+пустой список API также не снимает запрет. Durable memory grant не меняется.
+`--format-input <json>` поддержан на `run` и `resume`: до edit intent он меняет
+только текущие выходные bytes и имеет приоритет над session format setting.
+После journaled edit intent разрешены только overrides, совместимые с уже
+зафиксированными bytes; несовместимый формат или reset этого пути даёт
+`resume-format-conflicts-with-edit-intent` без новых writes/provider calls.
+Другие command paths отклоняют оба control flags явно. Terminal run с новыми
+controls отклоняется; обычный resume сохраняет прежний terminal-result контракт.
 U+FEFF внутри
 текста не удаляется как BOM; отсутствие final newline не трактуется как BOM-ошибка.
 
@@ -222,6 +235,45 @@ JSON содержит `text`, `source:{type:"user-message",id:"durable-source-id
 binding и независимым текущим allowlist. Перепривязка не выдаётся как модельный MCP.
 
 ## Среда исполнения и устаревание
+
+### Механическая граница startup permission (R1)
+
+В semantic ingress модель предлагает intent, binding и цитату, но сама не выдаёт
+startup grant. `knowledge/startup_authorization.py`, контракт `startup-en-ru-v1`,
+проверяет полную самостоятельную фразу **текущего** genuine user message.
+Поддержаны `You may start container NAME`, `I allow/authorize you to start ...`,
+`I allow/authorize starting ...`, `Разрешаю запуск контейнера NAME` и
+`Даю разрешение на запуск контейнера NAME`. Допустимы окончания `if/when (it is)
+stopped`, `for this purpose`, `если (он) остановлен`, `для этой цели`.
+Имя обязано точно совпасть с configured/materialized container или Compose service.
+`it`, `that/the/this ... container`, `этого/указанного/... контейнера` допустимы
+только при одной Docker/template привязке в каталоге. После уточнения missing
+parameters ранее проверенный intent переносится только в его resource binding.
+
+Отрицательные startup-фразы (`you may not`, `do not/don't/never start`,
+`не запускай/запускать`, `запрещаю запуск`, `запуск ... запрещён`) сильнее
+утвердительной фразы и модельного boolean. Quotation/example/past markers и
+неподдержанная грамматика не дают нового grant. Полная фраза, а не вырезанная
+цитата, проверяет условия: `You may start it if stopped; never restart a running
+container` разрешает только start остановленного объекта. Restart не реализуется
+адаптером. Не требуется отсутствие любого `not`/`only`/`не` во всём сообщении.
+
+Неподтверждённое разрешение оставляет сохранённое правило доступным для readiness;
+receipt сообщает эффективный `recovery_authorized:false`. Если автоматический
+старт нужен, задаётся один вопрос о разрешении. Текущая отрицательная фраза также
+устанавливает session no-start независимо от классификации. Снять session denial
+может только полная текущая фраза `You may/can start services again [for this
+run/attempt]` или `Разрешаю [снова] запуск сервисов [в этом запуске]`; observation
+и old quote не снимают запрет. Пустой CLI/API resume не снимает его.
+
+Новая permission quote из original/history не восстанавливает revoked grant.
+Смена resource требует нового подходящего разрешения; независимый текущий
+procedure/template allowlist проверяется отдельно при исполнении. Trusted operator
+`memory-teach`/`memory-rebind` и явный fixture catalog mode не являются модельными
+write tools и сохраняют свои контракты. Старые записи не мигрируются массово.
+Произвольный естественный язык, выбор общего teaching intent/scope и семантическое
+соответствие инструкции каталогу всё ещё зависят от локальной модели. Это
+ограниченная recognition grammar, а не доказательство полного понимания языка.
 
 Исполнимые check/dependency привязки отдельно фиксируют ОС, machine/context hash,
 SHA-256 явно используемых инструментов/файлов, Compose/env inputs и Docker context.

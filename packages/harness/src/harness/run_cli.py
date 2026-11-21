@@ -15,6 +15,9 @@ def main():
     parser.add_argument('--format-input',type=Path,help='Explicit current format changes as a JSON array; durable defaults remain unchanged')
     args=parser.parse_args()
     try:
+        if args.no_service_start or args.format_input is not None:
+            from knowledge.util import require
+            require(args.command in ('run','resume'),'current-controls-unsupported-command')
         if args.command=='version':
             from . import __version__
             from .platform import KIND
@@ -32,7 +35,9 @@ def main():
             from .comparison import compare
             value=compare(args.root,loads(read_text(args.input)),args.output)
         elif args.command=='run':value=start(args.root,loads(read_text(args.input)),args.mode,current_restrictions=['no-service-start'] if args.no_service_start else None,format_changes=loads(read_text(args.format_input)) if args.format_input else None)
-        elif args.command=='resume':value=resume(args.root,args.run_id)
+        elif args.command=='resume':value=resume(args.root,args.run_id,
+            current_restrictions=['no-service-start'] if args.no_service_start else None,
+            format_changes=loads(read_text(args.format_input)) if args.format_input else None)
         elif args.command=='capture-retry':value=capture_retry(args.root,args.run_id)
         elif args.command=='cancel':Journal(args.root).cancel(args.run_id);value={'ok':True,'run_id':args.run_id,'cancellation_requested':True}
         elif args.command=='status' and not args.run_id:value={'ok':True,'runs':[{'id':r['id'],'status':r['status'],'started':r['started']} for r in Journal(args.root).runs()]}

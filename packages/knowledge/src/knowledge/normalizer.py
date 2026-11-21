@@ -76,8 +76,11 @@ only its configured Docker resource when unavailable, starts only an existing
 stopped resource, at most once and only if explicitly permitted, then rechecks.
 It cannot restart an unhealthy running resource, create infrastructure, or delete
 data. check runs the configured check once before the selected action.
-authorize_recovery true requires explicit user permission to start that configured
-resource and a verbatim permission_quote from this message or pending original.
+authorize_recovery true proposes explicit user permission to start that configured
+resource with a verbatim permission_quote from this CURRENT message. A bounded
+independent EN/RU full-clause recognizer validates any grant; negative, quoted,
+past or unknown language cannot issue permission. Prefer 'You may start container
+NAME if stopped' / 'Разрешаю запуск контейнера NAME, если он остановлен'.
 revoke_recovery true requires a verbatim CURRENT revocation_quote; it cannot be
 true together with authorize_recovery. In a clarification, absence of a new grant
 or revocation preserves previous authorization_intent without another question.
@@ -142,11 +145,8 @@ def normalize(text,catalog,config,pending=None,templates=None,environment=None):
         require(len(result['scope_quote'])>=3 and result['scope_quote'] in text+'\n'+(pending or {}).get('original',''),'normalizer-scope-source-mismatch')
     if result['scope']=='shared' and not (pending and pending['scope']=='shared'):
         require(result['scope_explicit'],'normalizer-shared-scope-not-authorized')
-    if result['authorize_recovery']:
-        source=text+'\n'+(pending or {}).get('original','')+'\n'+((pending or {}).get('source_text') or '')
-        require(len(result['permission_quote'])>=8 and result['permission_quote'] in source,'normalizer-permission-source-mismatch')
-        if pending and pending.get('authorization_revoked') is True:
-            require(result['permission_quote'] in text,'normalizer-cannot-revive-revoked-permission')
+    # Permission is only a proposal. Ingress validates the CURRENT whole clause
+    # against the materialized resource, rather than trusting old source quotes.
     if result['current_start']!='unchanged':
         require(len(result['restriction_quote'])>=5 and result['restriction_quote'] in text,'normalizer-restriction-source-mismatch')
     if result['revoke_recovery']:require(len(result['revocation_quote'])>=5 and result['revocation_quote'] in text,'normalizer-revocation-source-mismatch')

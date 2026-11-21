@@ -22,6 +22,9 @@ def main():
     parser.add_argument('--model',required=True);parser.add_argument('--output',type=Path,required=True)
     args=parser.parse_args();out=args.output.absolute();out.mkdir(parents=True,exist_ok=True)
     result={'status':'BLOCKED','kind':'real OpenCode + local model','scenario':'encoding','reason':'not run',
+        'host_executable':shutil.which(args.opencode),'host_version':None,'model':args.model,'endpoint':args.endpoint,
+        'compatibility':{'plugin_contract':'@opencode-ai/plugin 1.19.6','mcp_layout':'OpenCode v2 companion',
+            'actual_combination_validated':False},
         'verdict':'IMPLEMENTED / HOST VALIDATION PENDING',
         'real_host_checks':{'A01':'BLOCKED','A02':'BLOCKED','A05':'NOT RUN: follow Kafka host guide','A17':'NOT RUN: follow Kafka host guide'}}
     executable=shutil.which(args.opencode)
@@ -51,7 +54,10 @@ def main():
                   'plugin':[Path(str(plugin)).as_uri()],'autoupdate':False,'share':'disabled'}
             (root/'opencode.json').write_text(json.dumps(host,ensure_ascii=False),encoding='utf-8')
             (root/'.knowledge-host.json').write_text(json.dumps({'python':sys.executable}),encoding='utf-8')
+            # Plugin/provider/config MUST precede enrollment. Later host-config
+            # mutation is rejected by the original digest guard, not repaired here.
             preview=companion.preview(root,'task.json');companion.apply(root,preview['preview'],preview['fingerprint'])
+            assert companion.doctor(root)['ok'],'enrolled host configuration is inconsistent'
             def host_run(name,text):
                 with (out/(name+'.jsonl')).open('wb') as log:
                     proc=subprocess.run([executable,'run','--format','json','--model','local/'+args.model,text],cwd=root,stdout=log,stderr=subprocess.STDOUT,timeout=240)
@@ -70,6 +76,8 @@ def main():
             assert (root/'Feature.cs').read_bytes()==b'\xef\xbb\xbfpublic class ImprovedFeature {}\r\n','byte preservation failed'
             (out/'run.json').write_text(json.dumps({'run':run,'actions':actions},indent=2,ensure_ascii=False)+'\n',encoding='utf-8')
             result.update(status='PASS',reason=None,teaching_session=teaching_session,fresh_session=run['host_session'],record={'id':remembered['id'],'revision':remembered['revision']},model=args.model)
+            assert companion.doctor(root)['ok'],'host configuration changed after enrollment'
+            result['compatibility']['actual_combination_validated']=True
             result['real_host_checks'].update(A01='PASS: encoding host trial',A02='PASS: encoding host trial')
     except (AssertionError,OSError,ValueError,subprocess.SubprocessError) as error:
         result.update(status='FAIL',reason=str(error))

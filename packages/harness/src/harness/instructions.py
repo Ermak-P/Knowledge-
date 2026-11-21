@@ -223,10 +223,11 @@ def after_error(broker, action_id, name, args):
 def current_formats(broker):
     from knowledge.text_format import validate_changes
     from .runtime import policy_path
-    changes=list(broker.r.get('current_format_changes',[]))
+    changes=[]
     if broker.r.get('host_session'):
         from .host_ingress import read_session
         changes+=read_session(broker.j.project.root,broker.r['host_session']).get('format_changes',[])
+    changes+=broker.r.get('current_format_changes',[])
     result={}
     for change in changes:
         validate_changes([change]);key=policy_path(change['path'].replace('\\','/'))
