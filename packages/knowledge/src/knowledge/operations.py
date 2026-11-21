@@ -202,7 +202,7 @@ def _teach(root, text, source, *, scope='project', shared=None, binding=None,
           applicability=None, identifier=None, expected_revision=None, recovery_authorized=False,
           summary=None, missing=None, normalization=None, original=None, predecessor=None,
           semantic=False, receipt_stage=None, intent_trigger=None, authorization_intent=None,
-          binding_template=None, binding_parameters=None, authorization_revoked=None, authorization_resource=None, receipt_controls=None):
+          binding_template=None, binding_parameters=None, authorization_revoked=None, authorization_resource=None, receipt_controls=None, creation_id=None, execution_override=None):
     """Trusted *local user ingress*. Never exposed as a writable MCP tool.
 
     OS callers are trusted like the existing Knowledge operator CLI. A model
@@ -220,7 +220,7 @@ def _teach(root, text, source, *, scope='project', shared=None, binding=None,
         validate_binding(binding['trigger'],binding['behavior']);reject_secrets(canonical_json(binding))
     # Read installation inputs before taking any store write lock.
     from .bindings import snapshot
-    execution=snapshot(binding['behavior'],root) if binding else None
+    execution=deepcopy(execution_override) if execution_override is not None else snapshot(binding['behavior'],root) if binding else None
     store=OperationalStore(root,scope,shared);store.ensure()
     event_key={'source':source['id'],'scope':scope}
     if receipt_stage:event_key['phase']=receipt_stage
@@ -235,8 +235,9 @@ def _teach(root, text, source, *, scope='project', shared=None, binding=None,
             result=ack(saved,duplicate=True)
         else:
             key=digest({'scope':scope,'trigger':binding['trigger'],'behavior':binding['behavior'],'applicability':applicability,'recovery':recovery_authorized}) if semantic and binding else digest({'scope':scope,'text':normalized(normalized_text),'applicability':applicability})
+            if creation_id:key=creation_id
             old=next((r for r in records if r['id']==(identifier or key)),None)
-            if semantic and binding and not identifier:
+            if semantic and binding and not identifier and not creation_id:
                 # An intent first saved unbound keeps its original stable ID.
                 # Compare represented behavior, not the ID's creation strategy.
                 equivalents=[r for r in records if r['kind']=='instruction' and r['behavior'] is not None and
@@ -305,13 +306,15 @@ def ack(r,duplicate=False):
         'question':None if duplicate or r['status']!='unbound' else (r.get('missing') or ['К какой настроенной операции или процедуре относится правило? Укажите её имя; ресурс и параметры не выбраны.'])[0]}
 
 
-def retire(root, identifier, *, scope='project', shared=None, expected_revision=None):
+def retire(root, identifier, *, scope='project', shared=None, expected_revision=None,successor=None):
     store=OperationalStore(root,scope,shared)
     with store.connection(True) as db:
         old=next((r for r in current(db) if r['id']==identifier),None);require(old,'unknown-instruction')
         if expected_revision is not None:require(old['revision']==expected_revision,'instruction-revision-conflict')
         if old['status']!='retired':
-            value=deepcopy(old);value.pop('content_hash');value.update(status='retired',revision=old['revision']+1,updated=time.time(),supersedes={'id':identifier,'revision':old['revision']});append(db,value)
+            value=deepcopy(old);value.pop('content_hash');value.update(status='retired',revision=old['revision']+1,updated=time.time(),supersedes={'id':identifier,'revision':old['revision']})
+            if successor:value['successor']=deepcopy(successor)
+            append(db,value)
     return {'ok':True,'retired':identifier}
 
 
@@ -389,6 +392,9 @@ def lookup(root, action, environment, *, shared=None, max_items=8, max_bytes=120
     require(isinstance(action,dict) and set(action)=={'tool','name'} and all(isinstance(v,str) for v in action.values()),'invalid-memory-action')
     require(type(max_items) is int and 1<=max_items<=32 and type(max_bytes) is int and 512<=max_bytes<=64000,'invalid-memory-budget')
     validate_applicability(environment)
+    from .transfers import pending
+    waiting=pending(root,action,shared)
+    require(not waiting,'instruction-transfer-pending',waiting)
     selected=[];decisions=[];states={};signals={};bindings={}
     for scope in SCOPES:
         store=OperationalStore(root,scope,shared)
@@ -467,8 +473,11 @@ def supported_binding(policy,binding):
     return paths is None or binding.get('behavior',{}).get('adapter','dependency' if binding.get('template') else None) in paths.get(binding['trigger']['tool'],[])
 
 
-def binding_receipt(root,text,message_id,shared=None):
+def binding_receipt(root,text,message_id,shared=None,policy=None):
     """Replay a completed trusted source without reclassifying it or revising it."""
+    from .transfers import replay as transfer_replay
+    recovered=transfer_replay(root,text,message_id,shared)
+    if recovered:return recovered
     for scope in SCOPES:
         store=OperationalStore(root,scope,shared);state=store.records()
         if state['state']=='absent':continue
@@ -476,15 +485,28 @@ def binding_receipt(root,text,message_id,shared=None):
             if not enabled(db):continue
             key=digest({'source':message_id,'scope':scope,'phase':'binding'})
             row=db.execute('SELECT payload FROM operational_events WHERE id=?',(key,)).fetchone()
+            if not row:row=db.execute('SELECT payload FROM operational_events WHERE id=?',(digest({'source':message_id,'scope':scope}),)).fetchone()
             if not row:continue
             event=loads(row[0])
             if 'source_hash' not in event:continue  # Compatible legacy receipt path.
             require(event['source_hash']==digest(text),'teaching-source-reused')
-            record=next(r for r in state['records'] if r['id']==event['result']['id'])
-            result=ack(record,duplicate=True);binding=state.get('bindings',{}).get(record['id'])
-            if binding and binding['state'] in ('blocked','attempted'):
-                result.update(executable=False,execution_state=binding['state'],binding_reason=binding.get('reason'))
-            return {**result,**event.get('controls',{}),'normalization':{'method':'durable-source-replay'}}
+        record=next(r for r in state['records'] if r['id']==event['result']['id'])
+        from .startup_authorization import restriction,startup
+        aliases=[alias for b in (policy or {}).get('bindings',[]) if b.get('behavior')==record.get('behavior') for alias in b['aliases']]
+        auth=startup(text,{'behavior':record.get('behavior') or {},'aliases':aliases},True,text)
+        denied=restriction(text,'unchanged')=='deny'
+        if record['provenance']['id']==message_id and record['recovery_authorized'] and (denied or policy is not None and auth.get('uncertain')):
+            # Targeted revalidation of a genuine replay, not a store migration.
+            with store.connection(True) as writer:
+                latest=next(r for r in current(writer) if r['id']==record['id'])
+                require(latest['revision']==record['revision'],'instruction-revision-conflict')
+                record=deepcopy(latest);record.pop('content_hash')
+                record.update(revision=latest['revision']+1,recovery_authorized=False,authorization_intent=False,authorization_revoked=True,updated=time.time(),supersedes={'id':latest['id'],'revision':latest['revision']})
+                append(writer,record)
+        result=ack(record,duplicate=True);binding=state.get('bindings',{}).get(record['id'])
+        if binding and binding['state'] in ('blocked','attempted'):
+            result.update(executable=False,execution_state=binding['state'],binding_reason=binding.get('reason'))
+        return {**result,**event.get('controls',{}),**({'restriction':'no-service-start'} if denied else {}),'normalization':{'method':'durable-source-replay'}}
 
 
 def ingest(root, text, message_id, policy, reply_to=None):
@@ -496,11 +518,15 @@ def ingest(root, text, message_id, policy, reply_to=None):
     if policy.get('normalizer') is not None and policy.get('teaching_mode')!='catalog':
         from .semantic_ingress import ingest as semantic_ingest
         return semantic_ingest(root,text,message_id,policy,reply_to)
+    replay=binding_receipt(root,text,message_id,policy.get('shared_root'),policy)
+    if replay:return replay
     target=re.search(r'(?i)(?:rule|правило)\s+([0-9a-f]{64})\b',text)
     bindings=[b for b in policy.get('bindings',[]) if any(re.search(r'(?<!\w)'+re.escape(alias)+r'(?!\w)',text,re.I) for alias in b['aliases'])]
     target_id=target.group(1) if target else reply_to if reply_to and bindings and not TEACHING.search(text) else None
     teaching=TEACHING.search(text) or (target and re.search(r'(?i)bind|update|correct|привяжи|уточни|исправь',text)) or (reply_to and target_id)
-    if not teaching:return {'ok':True,'saved':False,'restriction':'no-service-start' if RESTRICT.search(text) else None}
+    from .startup_authorization import restriction,startup
+    denied=restriction(text,'unchanged')=='deny'
+    if not teaching:return {'ok':True,'saved':False,'restriction':'no-service-start' if denied else None}
     clean_text(text)
     scope='shared' if SHARED.search(text) else 'project'
     old=None
@@ -510,9 +536,19 @@ def ingest(root, text, message_id, policy, reply_to=None):
     require(len(bindings)<=1,'ambiguous-teaching-binding')
     binding=bindings[0] if bindings else ({'trigger':old['trigger'],'behavior':old['behavior'],'applicability':old['applicability']} if old and old['status']=='active' else None)
     unsupported=binding is not None and not supported_binding(policy,binding)
-    return teach(root,text,{'type':'user-message','id':message_id},scope=scope,shared=policy.get('shared_root'),
+    if not old:
+        key=digest({'scope':scope,'text':normalized(text),'applicability':(binding or {}).get('applicability',{})})
+        old=next((r for r in OperationalStore(root,scope,policy.get('shared_root')).records()['records'] if r['id']==key),None)
+    auth=startup(text,binding,True,text,sum(bool(b.get('template') or b.get('behavior',{}).get('procedure',{}).get('docker')) for b in policy.get('bindings',[])))
+    same=bool(old and binding and old['trigger']==binding['trigger'] and old['behavior']==binding.get('behavior') and old['applicability']==binding.get('applicability',{}))
+    grant=not (denied or auth.get('uncertain')) and bool(auth['granted'] or same and old['recovery_authorized'])
+    if old and old['recovery_authorized']!=grant:target_id=old['id']
+    result=teach(root,text,{'type':'user-message','id':message_id},scope=scope,shared=policy.get('shared_root'),
         binding=None if unsupported else binding,applicability=(binding or {}).get('applicability',{}),
         intent_trigger=binding['trigger'] if unsupported else None,
         missing=['Намерение сохранено; этот trigger/action не поддержан текущим хостом. Какой поддержанный путь должен его активировать?'] if unsupported else None,
         identifier=target_id,expected_revision=old['revision'] if old else None,
-        recovery_authorized=False if RESTRICT.search(text) else bool(ALLOW.search(text) or (old and old['recovery_authorized'])))
+        recovery_authorized=grant,normalization={'method':'catalog','startup_authorization':auth},
+        receipt_stage='binding' if binding and not unsupported else 'intent',
+        receipt_controls={'restriction':'no-service-start' if denied else None})
+    return {**result,'restriction':'no-service-start' if denied else None}

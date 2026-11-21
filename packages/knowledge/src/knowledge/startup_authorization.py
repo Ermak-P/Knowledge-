@@ -44,8 +44,11 @@ def permission_clauses(text,aliases=()):
 # These recognize startup denials, not restart prohibitions. Unknown negatives
 # can never pass the affirmative full-clause grammar below.
 DENIAL=re.compile(r"(?:\b(?:you (?:may|must|can) not|you cannot|do not|don't|never) (?:start|launch)\b|"
+    r'\b(?:starting (?:the )?containers?|container startup) (?:is|are) (?:forbidden|not (?:allowed|permitted|authorized))\b|'
     r'\bне (?:запускай|запускайте|запускать|разрешаю запуск)\b|'
-    r'\b(?:запрещаю|запретить) запуск\b|\bзапуск\b[^.;!?\n]{0,100}\bзапрещен\b)',re.I)
+    r'\b(?:запрещаю|запретить) запуск\b|\bзапуск\b[^.;!?\n]{0,100}\b(?:запрещен|не разрешен|не допускается)\b)',re.I)
+LIMITING=re.compile(r'\b(?:only|unless|until|provided|except|if|when|только|если|пока|лишь|кроме|после согласования)\b',re.I)
+STOPPED_ONLY=re.compile(r'(?:only (?:if|when) (?:it is )?stopped|только если (?:он )?остановлен)$',re.I)
 CONTEXT=re.compile(r'[`"“”«»]|(?:^|\n)\s*>|\b(?:example|quoted?|quotation|previous(?:ly)?|earlier|yesterday|said|reported|пример|цитата|ранее|вчера|сказал)\b',re.I)
 EN_TARGET=r'(?:it|(?:that |the |this |specific |local |configured |stopped |existing )*container|container [a-z0-9][a-z0-9_.-]*)'
 RU_TARGET=r'(?:(?:этого |указанного |настроенного |конкретного |локального |остановленного )*контейнера|контейнера [a-z0-9][a-z0-9_.-]*)'
@@ -77,14 +80,19 @@ def startup(text,binding,proposed,quote,resource_count=1):
     if any(DENIAL.search(c) for c in parts):
         return {'granted':False,'denied':True,'reason':'explicit-startup-denial','contract':'startup-en-ru-v1'}
     result={'granted':False,'denied':False,'reason':'no-validated-current-startup-grant','contract':'startup-en-ru-v1'}
-    if not proposed or not quote or quote not in text or CONTEXT.search(text):return result
     if not binding or not (binding.get('template') or (binding.get('behavior') or {}).get('adapter')=='dependency'):return result
     docker=binding.get('behavior',{}).get('procedure',{}).get('docker',{})
     # An incomplete approved template may retain a deictic authorization intent;
     # execution still needs validated resource parameters and current allowlist.
     if not docker and not binding.get('template'):return result
     resource=docker.get('container') or docker.get('service')
-    for clause in permission_clauses(text,binding.get('aliases',[])):
+    permitted=permission_clauses(text,binding.get('aliases',[]))
+    # Unsupported limiting prose cannot vanish between independent clauses.
+    if (not permitted and LIMITING.search(text)) or any(LIMITING.search(c) and not (
+            EN_GRANT.fullmatch(c) or RU_GRANT.fullmatch(c) or STOPPED_ONLY.fullmatch(c)) for c in permitted):
+        return {**result,'uncertain':True,'reason':'unrepresented-startup-condition'}
+    if not proposed or not quote or quote not in text or CONTEXT.search(text):return result
+    for clause in permitted:
         match=EN_GRANT.fullmatch(clause) or RU_GRANT.fullmatch(clause)
         if not match:continue
         # Quote must identify this complete permission clause, not another sentence.

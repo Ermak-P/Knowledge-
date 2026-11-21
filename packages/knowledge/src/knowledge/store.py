@@ -162,6 +162,9 @@ class Store:
     def _check_control(self, db):
         from .operations import current as operational_current
         operational_current(db)
+        from .transfers import PREFIX,validate as validate_transfer
+        for key,payload in db.execute('SELECT key,value FROM metadata WHERE key LIKE ?', (PREFIX+'%',)):
+            validate_transfer(loads(payload),key)
         legacy_ids = {}
         row = db.execute("SELECT value FROM metadata WHERE key='migration'").fetchone()
         if row:
