@@ -4,8 +4,8 @@
 Реальные OpenCode/local-model A01, A02, A05 и A17 не выполнены: хост отсутствует.
 Изолированные PASS ниже не означают ACCEPTED. Это внешняя память, не обучение модели.
 
-Исходники: `90d3db8ad4ab1ac1b3fc8a97ba429e1581835c80`, source identity
-`2a0f12a455650d25fa0328889d6527962bdb43e7c8819671662264b4c4e97b7e`.
+Исходники: `80ed3a3e6f7b03ede3f8fb5f9e5e735c946d793e`, source identity
+`291cd974be7beba5292209cc088a17434ddec065d37a78ec2df0396613b6de5d`.
 Новая редакция задания: [Task-1](../../tasks/Knowledge-Harness-Persistent-Instructions-Codex-Task-1.md).
 
 - [Ветка GitHub](https://github.com/Ermak-P/Knowledge-/tree/codex/persistent-instructions)
@@ -13,9 +13,9 @@
 - [Аудит и карта возможностей](../../docs/P4/PERSISTENT-INSTRUCTIONS-AUDIT.md)
 - [Установка, scopes, teaching, maintenance, coverage table и rollback](../../docs/P4/PERSISTENT-INSTRUCTIONS.md)
 - [Гайд настоящего host trial](../../docs/P4/PERSISTENT-INSTRUCTIONS-LIVE-HOST.md)
-- [Offline kit](90d3db8a/distribution/knowledge-harness-0.5.0rc1.zip)
-- [Хеши исходников](90d3db8a/source.json)
-- [Exact-source CI](https://github.com/Ermak-P/Knowledge-/actions/runs/44896791625)
+- [Offline kit](80ed3a3e/distribution/knowledge-harness-0.5.0rc1.zip)
+- [Хеши исходников](80ed3a3e/source.json)
+- [Exact-source CI](https://github.com/Ermak-P/Knowledge-/actions/runs/44898343312)
 
 ## Реализованное поведение
 
@@ -44,8 +44,8 @@ phase. Нет новой discovery-системы, LLM на каждый tool ca
 
 ## Матрица A01–A20
 
-Все пути свидетельств ниже относительно [90d3db8a](90d3db8a/).
-**35/35 профильных проверок PASS** из offline установленного runtime вне checkout.
+Все пути свидетельств ниже относительно [80ed3a3e](80ed3a3e/).
+**36/36 профильных проверок PASS** из offline установленного runtime вне checkout.
 UI/model/provider doubles явно отделены от реальных Python/Node процессов,
 SQLite transactions, broker/supervisor, Docker/Kafka и .NET SDK/TRX.
 
@@ -80,25 +80,29 @@ fixture. Model token usage/real-model latency недоступны; synthetic us
 
 | Сценарий | Исход | Failed test attempts | Starts | Wall, s | Records / bytes |
 |---|---|---:|---:|---:|---:|
-| baseline-stopped-memory-disabled | test failure | 1 | 0 | 0.204 | 0 / 0 |
-| A05-stopped | PASS | 0 | 1 | 4.104 | 1 / 2350 |
-| A06-ready | PASS | 0 | 0 | 0.391 | 1 / 2350 |
-| A08-application-failure | test failure | 1 | 0 | 0.339 | 3 / 9760 |
-| A08-unrelated | PASS | 0 | 0 | 0.163 | 0 / 2 |
-| A17-full-cli | PASS | 0 | 1 | 5.024 | 1 / 2776 |
-| A19-resource-changed | docker-resource-changed | 0 | 0 | 0.579 | 3 / 10599 |
-| A20-readiness-failed | dependency-readiness-timeout | 0 | 1 | 1.779 | 3 / 9642 |
-| A20-fresh-no-replay | memory-remedy-blocked | 0 | 0 | 0.262 | 3 / 9642 |
+| baseline-stopped-memory-disabled | test failure | 1 | 0 | 0.202 | 0 / 0 |
+| A05-stopped | PASS | 0 | 1 | 4.885 | 1 / 2348 |
+| A06-ready | PASS | 0 | 0 | 0.528 | 1 / 2348 |
+| A08-application-failure | test failure | 1 | 0 | 0.450 | 3 / 9754 |
+| A08-unrelated | PASS | 0 | 0 | 0.216 | 0 / 2 |
+| A17-full-cli | PASS | 0 | 1 | 4.901 | 1 / 2773 |
+| A19-resource-changed | docker-resource-changed | 0 | 0 | 0.554 | 3 / 10595 |
+| A20-readiness-failed | dependency-readiness-timeout | 0 | 1 | 1.976 | 3 / 9634 |
+| A20-fresh-no-replay | memory-remedy-blocked | 0 | 0 | 0.276 | 3 / 9634 |
 
 Records/bytes — сумма across before-action/after-error lookups, не число уникальных
 канонических записей. Каждый lookup имеет собственный byte/item cap. Raw receipts,
 lookup/diagnosis/recovery timings, ID/revision и отдельный test result:
-[acceptance.json](90d3db8a/scenarios/acceptance.json).
+[acceptance.json](80ed3a3e/scenarios/acceptance.json).
 
 Дополнительно actual SDK10/CLI/TRX: три теста из трёх обнаруженных проектов PASS,
 новый guard сработал ровно один раз перед `integration/IpmAzureAutotests.csproj`,
 ни перед restore/build, ни перед другими suites. Обычный task goal не содержит
-memory rule/ID. [Результат](90d3db8a/automatic-suite/result.json); provider — double.
+memory rule/ID. [Результат](80ed3a3e/automatic-suite/result.json); provider — double.
+
+Encoding comparison (actual fresh broker, normalizer protocol double): baseline
+byte criterion = false, enabled = true. Wall 0.142/0.087 s,
+selected 1 / 1463 bytes. [Raw bytes/result](80ed3a3e/encoding-comparison.json).
 
 ## Границы и воспроизведение
 
@@ -125,9 +129,14 @@ reminder; Kafka trial описан в отдельном гайде. До реа
 
 ## Квалификация пакета
 
-Пакет установлен вне checkout; профильные 35 tests, 18 Docker/CLI scenarios,
-standalone/rollback и fault/concurrency checks PASS. Локальный полный regression
-набор: 284 tests, 273 PASS, 11 native-only SKIP, 0 FAIL/ERROR. Остальная installed
-qualification выполняется. CI 44896791625: Linux job завершился ошибкой, причина
-ожидает retained log; Windows job ещё выполняется. Это не текущий PASS_NATIVE.
-Каталоги предшественников 7f6ea1df/95828e84/e603c584 не квалифицируют новый source.
+Пакет установлен вне checkout; профильные 36 tests, 18 Docker/CLI scenarios,
+standalone/rollback и fault/concurrency checks PASS. Финальный локальный regression набор: 285 tests, 274 PASS, 11 native-only SKIP,
+0 FAIL/ERROR. Полная installed qualification и Linux/native Windows CI [44898343312](https://github.com/Ermak-P/Knowledge-/actions/runs/44898343312) выполняются.
+
+Предыдущий source `90d3db8a` прошёл локальный installed route, но CI обнаружил:
+выбор candidate вместо instruction по позиции списка в новом тесте и одинаковые
+wall-clock timestamps у attempted/verified на Windows. В `80ed3a3e` тест выбирает
+ID, события упорядочены transactionally выделенным revision-scoped sequence,
+а отдельный regression замораживает и переводит часы назад. Immutable intent
+не переписывается. [Проверенные failed receipts/logs](90d3db8a/ci-failed/).
+Каталоги предшественников не квалифицируют финальный source.

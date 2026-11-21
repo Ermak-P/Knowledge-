@@ -1,0 +1,1318 @@
+{
+  "result": {
+    "ok": true,
+    "recipe": "test",
+    "kind": "test",
+    "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+    "config": "2eaa7d9e2b79047acff9aa57f00c7a666d134d08275051c26f12850c4fa21fc3",
+    "counts": {
+      "executed": 1
+    },
+    "artifact": null,
+    "output": ".\n----------------------------------------------------------------------\nRan 1 test in 0.018s\n\nOK\n",
+    "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/operation/0/process.log",
+    "descendants_stopped": true,
+    "duration": 0.08818721500210813,
+    "log_bytes": 98,
+    "observed_log_bytes": 98,
+    "reason": null,
+    "returncode": 0,
+    "truncated": false
+  },
+  "actions": {
+    "memory-a6961550c73dfb69e4fa3259-1-docker-info": {
+      "args": {
+        "name": "@memory/memory-a6961550c73dfb69e4fa3259-1-docker-info"
+      },
+      "at": 1795259977.001012,
+      "finished": 1795259977.1557846,
+      "memory_parent": "operation",
+      "memory_record": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+      "process": {
+        "group": 95090,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 95090,
+        "platform": "linux-pgroup-v1",
+        "start": "1978284",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795259977.145536,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.11211867400197661,
+        "log_bytes": 65,
+        "observed_log_bytes": 65,
+        "reason": null,
+        "returncode": 0,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/usr/local/bin/docker",
+          "--config",
+          "/home/agent/.docker",
+          "--context",
+          "default",
+          "info",
+          "--format",
+          "{\"ID\":{{json .ID}},\"Version\":{{json .ServerVersion}}}"
+        ],
+        "cwd": "/tmp/persistent-acceptance-x0yrgeco/project",
+        "log": "/tmp/persistent-acceptance-x0yrgeco/project/.harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-docker-info/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 5
+      },
+      "process_started": 1795259977.0314002,
+      "result": {
+        "artifact": null,
+        "config": "2eaa7d9e2b79047acff9aa57f00c7a666d134d08275051c26f12850c4fa21fc3",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.11211867400197661,
+        "kind": "build",
+        "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-docker-info/0/process.log",
+        "log_bytes": 65,
+        "observed_log_bytes": 65,
+        "ok": true,
+        "output": "{\"ID\":\"c8e56b14-3f1c-4ec2-822c-9888ee2e4b83\",\"Version\":\"29.9.2\"}\n",
+        "reason": null,
+        "recipe": "@memory/memory-a6961550c73dfb69e4fa3259-1-docker-info",
+        "returncode": 0,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "3d6614fbff504e0f9ec192a322e4438245afef06a9145d1a79ef9fa06ecbb3ac",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "memory-a6961550c73dfb69e4fa3259-1-docker-inspect": {
+      "args": {
+        "name": "@memory/memory-a6961550c73dfb69e4fa3259-1-docker-inspect"
+      },
+      "at": 1795259977.1590598,
+      "finished": 1795259977.2665637,
+      "memory_parent": "operation",
+      "memory_record": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+      "process": {
+        "group": 95124,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 95124,
+        "platform": "linux-pgroup-v1",
+        "start": "1978300",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795259977.2291455,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.0388924879989645,
+        "log_bytes": 109,
+        "observed_log_bytes": 109,
+        "reason": null,
+        "returncode": 0,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/usr/local/bin/docker",
+          "--config",
+          "/home/agent/.docker",
+          "--context",
+          "default",
+          "inspect",
+          "--type",
+          "container",
+          "--format",
+          "{\"ID\":{{json .Id}},\"Status\":{{json .State.Status}},\"Running\":{{json .State.Running}}}",
+          "knowledge-kafka-73e3b9c10b23"
+        ],
+        "cwd": "/tmp/persistent-acceptance-x0yrgeco/project",
+        "log": "/tmp/persistent-acceptance-x0yrgeco/project/.harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-docker-inspect/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 5
+      },
+      "process_started": 1795259977.1887374,
+      "result": {
+        "artifact": null,
+        "config": "2eaa7d9e2b79047acff9aa57f00c7a666d134d08275051c26f12850c4fa21fc3",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.0388924879989645,
+        "kind": "build",
+        "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-docker-inspect/0/process.log",
+        "log_bytes": 109,
+        "observed_log_bytes": 109,
+        "ok": true,
+        "output": "{\"ID\":\"b667d82f26143cfe8948c563da75e4f145e97cc565ff91ca8d8510e130da57b0\",\"Status\":\"created\",\"Running\":false}\n",
+        "reason": null,
+        "recipe": "@memory/memory-a6961550c73dfb69e4fa3259-1-docker-inspect",
+        "returncode": 0,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "4134ae990136b76c62a4caeaa141fc669d28957a0d1c6e76cfe620cd34f7e224",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "memory-a6961550c73dfb69e4fa3259-1-probe0": {
+      "args": {
+        "name": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe0"
+      },
+      "at": 1795259976.889982,
+      "finished": 1795259976.9948068,
+      "memory_parent": "operation",
+      "memory_record": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+      "process": {
+        "group": 95088,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 95088,
+        "platform": "linux-pgroup-v1",
+        "start": "1978273",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795259976.9515555,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.02982963799877325,
+        "log_bytes": 52,
+        "observed_log_bytes": 52,
+        "reason": null,
+        "returncode": 1,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/tmp/persistent-causal-final-runtime/bin/python",
+          "-I",
+          "-m",
+          "knowledge.probes",
+          "kafka",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "45405",
+          "--timeout",
+          "1"
+        ],
+        "cwd": "/tmp/persistent-acceptance-x0yrgeco/project",
+        "log": "/tmp/persistent-acceptance-x0yrgeco/project/.harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe0/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 4
+      },
+      "process_started": 1795259976.9199224,
+      "result": {
+        "artifact": null,
+        "config": "2eaa7d9e2b79047acff9aa57f00c7a666d134d08275051c26f12850c4fa21fc3",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.02982963799877325,
+        "kind": "build",
+        "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe0/0/process.log",
+        "log_bytes": 52,
+        "observed_log_bytes": 52,
+        "ok": false,
+        "output": "{\"ready\": false, \"error\": \"ConnectionRefusedError\"}\n",
+        "reason": null,
+        "recipe": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe0",
+        "returncode": 1,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "855440fae7f11624eff054fe7c3da2f94cab8c10a70fe830e74543b5ee9c1f28",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "memory-a6961550c73dfb69e4fa3259-1-probe1": {
+      "args": {
+        "name": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe1"
+      },
+      "at": 1795259977.5402884,
+      "finished": 1795259977.6483684,
+      "memory_parent": "operation",
+      "memory_record": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+      "process": {
+        "group": 95273,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 95273,
+        "platform": "linux-pgroup-v1",
+        "start": "1978338",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795259977.6198418,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.04632621499695233,
+        "log_bytes": 40,
+        "observed_log_bytes": 40,
+        "reason": null,
+        "returncode": 1,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/tmp/persistent-causal-final-runtime/bin/python",
+          "-I",
+          "-m",
+          "knowledge.probes",
+          "kafka",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "45405",
+          "--timeout",
+          "1"
+        ],
+        "cwd": "/tmp/persistent-acceptance-x0yrgeco/project",
+        "log": "/tmp/persistent-acceptance-x0yrgeco/project/.harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe1/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 4
+      },
+      "process_started": 1795259977.5716355,
+      "result": {
+        "artifact": null,
+        "config": "2eaa7d9e2b79047acff9aa57f00c7a666d134d08275051c26f12850c4fa21fc3",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.04632621499695233,
+        "kind": "build",
+        "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe1/0/process.log",
+        "log_bytes": 40,
+        "observed_log_bytes": 40,
+        "ok": false,
+        "output": "{\"ready\": false, \"error\": \"ValueError\"}\n",
+        "reason": null,
+        "recipe": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe1",
+        "returncode": 1,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "855440fae7f11624eff054fe7c3da2f94cab8c10a70fe830e74543b5ee9c1f28",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "memory-a6961550c73dfb69e4fa3259-1-probe10": {
+      "args": {
+        "name": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe10"
+      },
+      "at": 1795259981.3180604,
+      "finished": 1795259981.4781036,
+      "memory_parent": "operation",
+      "memory_record": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+      "process": {
+        "group": 96241,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 96241,
+        "platform": "linux-pgroup-v1",
+        "start": "1978716",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795259981.4384632,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.07220959599726484,
+        "log_bytes": 97,
+        "observed_log_bytes": 97,
+        "reason": null,
+        "returncode": 0,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/tmp/persistent-causal-final-runtime/bin/python",
+          "-I",
+          "-m",
+          "knowledge.probes",
+          "kafka",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "45405",
+          "--timeout",
+          "1"
+        ],
+        "cwd": "/tmp/persistent-acceptance-x0yrgeco/project",
+        "log": "/tmp/persistent-acceptance-x0yrgeco/project/.harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe10/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 4
+      },
+      "process_started": 1795259981.36387,
+      "result": {
+        "artifact": null,
+        "config": "2eaa7d9e2b79047acff9aa57f00c7a666d134d08275051c26f12850c4fa21fc3",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.07220959599726484,
+        "kind": "build",
+        "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe10/0/process.log",
+        "log_bytes": 97,
+        "observed_log_bytes": 97,
+        "ok": true,
+        "output": "{\"ready\": true, \"protocol\": \"Kafka ApiVersions v0 + Metadata v1\", \"brokers\": 1, \"controller\": 1}\n",
+        "reason": null,
+        "recipe": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe10",
+        "returncode": 0,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "855440fae7f11624eff054fe7c3da2f94cab8c10a70fe830e74543b5ee9c1f28",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "memory-a6961550c73dfb69e4fa3259-1-probe2": {
+      "args": {
+        "name": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe2"
+      },
+      "at": 1795259977.9047582,
+      "finished": 1795259978.065144,
+      "memory_parent": "operation",
+      "memory_record": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+      "process": {
+        "group": 95619,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 95619,
+        "platform": "linux-pgroup-v1",
+        "start": "1978375",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795259978.0410473,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.06016185499902349,
+        "log_bytes": 40,
+        "observed_log_bytes": 40,
+        "reason": null,
+        "returncode": 1,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/tmp/persistent-causal-final-runtime/bin/python",
+          "-I",
+          "-m",
+          "knowledge.probes",
+          "kafka",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "45405",
+          "--timeout",
+          "1"
+        ],
+        "cwd": "/tmp/persistent-acceptance-x0yrgeco/project",
+        "log": "/tmp/persistent-acceptance-x0yrgeco/project/.harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe2/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 4
+      },
+      "process_started": 1795259977.9789855,
+      "result": {
+        "artifact": null,
+        "config": "2eaa7d9e2b79047acff9aa57f00c7a666d134d08275051c26f12850c4fa21fc3",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.06016185499902349,
+        "kind": "build",
+        "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe2/0/process.log",
+        "log_bytes": 40,
+        "observed_log_bytes": 40,
+        "ok": false,
+        "output": "{\"ready\": false, \"error\": \"ValueError\"}\n",
+        "reason": null,
+        "recipe": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe2",
+        "returncode": 1,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "855440fae7f11624eff054fe7c3da2f94cab8c10a70fe830e74543b5ee9c1f28",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "memory-a6961550c73dfb69e4fa3259-1-probe3": {
+      "args": {
+        "name": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe3"
+      },
+      "at": 1795259978.3198633,
+      "finished": 1795259978.425046,
+      "memory_parent": "operation",
+      "memory_record": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+      "process": {
+        "group": 95642,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 95642,
+        "platform": "linux-pgroup-v1",
+        "start": "1978416",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795259978.3836803,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.03091148100065766,
+        "log_bytes": 40,
+        "observed_log_bytes": 40,
+        "reason": null,
+        "returncode": 1,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/tmp/persistent-causal-final-runtime/bin/python",
+          "-I",
+          "-m",
+          "knowledge.probes",
+          "kafka",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "45405",
+          "--timeout",
+          "1"
+        ],
+        "cwd": "/tmp/persistent-acceptance-x0yrgeco/project",
+        "log": "/tmp/persistent-acceptance-x0yrgeco/project/.harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe3/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 4
+      },
+      "process_started": 1795259978.351339,
+      "result": {
+        "artifact": null,
+        "config": "2eaa7d9e2b79047acff9aa57f00c7a666d134d08275051c26f12850c4fa21fc3",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.03091148100065766,
+        "kind": "build",
+        "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe3/0/process.log",
+        "log_bytes": 40,
+        "observed_log_bytes": 40,
+        "ok": false,
+        "output": "{\"ready\": false, \"error\": \"ValueError\"}\n",
+        "reason": null,
+        "recipe": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe3",
+        "returncode": 1,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "855440fae7f11624eff054fe7c3da2f94cab8c10a70fe830e74543b5ee9c1f28",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "memory-a6961550c73dfb69e4fa3259-1-probe4": {
+      "args": {
+        "name": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe4"
+      },
+      "at": 1795259978.6801338,
+      "finished": 1795259978.7877796,
+      "memory_parent": "operation",
+      "memory_record": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+      "process": {
+        "group": 96031,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 96031,
+        "platform": "linux-pgroup-v1",
+        "start": "1978452",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795259978.7554224,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.03151508299924899,
+        "log_bytes": 40,
+        "observed_log_bytes": 40,
+        "reason": null,
+        "returncode": 1,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/tmp/persistent-causal-final-runtime/bin/python",
+          "-I",
+          "-m",
+          "knowledge.probes",
+          "kafka",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "45405",
+          "--timeout",
+          "1"
+        ],
+        "cwd": "/tmp/persistent-acceptance-x0yrgeco/project",
+        "log": "/tmp/persistent-acceptance-x0yrgeco/project/.harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe4/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 4
+      },
+      "process_started": 1795259978.7206051,
+      "result": {
+        "artifact": null,
+        "config": "2eaa7d9e2b79047acff9aa57f00c7a666d134d08275051c26f12850c4fa21fc3",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.03151508299924899,
+        "kind": "build",
+        "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe4/0/process.log",
+        "log_bytes": 40,
+        "observed_log_bytes": 40,
+        "ok": false,
+        "output": "{\"ready\": false, \"error\": \"ValueError\"}\n",
+        "reason": null,
+        "recipe": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe4",
+        "returncode": 1,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "855440fae7f11624eff054fe7c3da2f94cab8c10a70fe830e74543b5ee9c1f28",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "memory-a6961550c73dfb69e4fa3259-1-probe5": {
+      "args": {
+        "name": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe5"
+      },
+      "at": 1795259979.0460362,
+      "finished": 1795259979.2161276,
+      "memory_parent": "operation",
+      "memory_record": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+      "process": {
+        "group": 96067,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 96067,
+        "platform": "linux-pgroup-v1",
+        "start": "1978490",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795259979.1894064,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.09067767899978207,
+        "log_bytes": 40,
+        "observed_log_bytes": 40,
+        "reason": null,
+        "returncode": 1,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/tmp/persistent-causal-final-runtime/bin/python",
+          "-I",
+          "-m",
+          "knowledge.probes",
+          "kafka",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "45405",
+          "--timeout",
+          "1"
+        ],
+        "cwd": "/tmp/persistent-acceptance-x0yrgeco/project",
+        "log": "/tmp/persistent-acceptance-x0yrgeco/project/.harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe5/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 4
+      },
+      "process_started": 1795259979.0968645,
+      "result": {
+        "artifact": null,
+        "config": "2eaa7d9e2b79047acff9aa57f00c7a666d134d08275051c26f12850c4fa21fc3",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.09067767899978207,
+        "kind": "build",
+        "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe5/0/process.log",
+        "log_bytes": 40,
+        "observed_log_bytes": 40,
+        "ok": false,
+        "output": "{\"ready\": false, \"error\": \"ValueError\"}\n",
+        "reason": null,
+        "recipe": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe5",
+        "returncode": 1,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "855440fae7f11624eff054fe7c3da2f94cab8c10a70fe830e74543b5ee9c1f28",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "memory-a6961550c73dfb69e4fa3259-1-probe6": {
+      "args": {
+        "name": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe6"
+      },
+      "at": 1795259979.470309,
+      "finished": 1795259979.684286,
+      "memory_parent": "operation",
+      "memory_record": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+      "process": {
+        "group": 96084,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 96084,
+        "platform": "linux-pgroup-v1",
+        "start": "1978532",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795259979.6055481,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.07987257800050429,
+        "log_bytes": 40,
+        "observed_log_bytes": 40,
+        "reason": null,
+        "returncode": 1,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/tmp/persistent-causal-final-runtime/bin/python",
+          "-I",
+          "-m",
+          "knowledge.probes",
+          "kafka",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "45405",
+          "--timeout",
+          "1"
+        ],
+        "cwd": "/tmp/persistent-acceptance-x0yrgeco/project",
+        "log": "/tmp/persistent-acceptance-x0yrgeco/project/.harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe6/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 4
+      },
+      "process_started": 1795259979.5212977,
+      "result": {
+        "artifact": null,
+        "config": "2eaa7d9e2b79047acff9aa57f00c7a666d134d08275051c26f12850c4fa21fc3",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.07987257800050429,
+        "kind": "build",
+        "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe6/0/process.log",
+        "log_bytes": 40,
+        "observed_log_bytes": 40,
+        "ok": false,
+        "output": "{\"ready\": false, \"error\": \"ValueError\"}\n",
+        "reason": null,
+        "recipe": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe6",
+        "returncode": 1,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "855440fae7f11624eff054fe7c3da2f94cab8c10a70fe830e74543b5ee9c1f28",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "memory-a6961550c73dfb69e4fa3259-1-probe7": {
+      "args": {
+        "name": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe7"
+      },
+      "at": 1795259979.9423325,
+      "finished": 1795259980.1652904,
+      "memory_parent": "operation",
+      "memory_record": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+      "process": {
+        "group": 96101,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 96101,
+        "platform": "linux-pgroup-v1",
+        "start": "1978579",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795259980.1001172,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.09867583599771024,
+        "log_bytes": 40,
+        "observed_log_bytes": 40,
+        "reason": null,
+        "returncode": 1,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/tmp/persistent-causal-final-runtime/bin/python",
+          "-I",
+          "-m",
+          "knowledge.probes",
+          "kafka",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "45405",
+          "--timeout",
+          "1"
+        ],
+        "cwd": "/tmp/persistent-acceptance-x0yrgeco/project",
+        "log": "/tmp/persistent-acceptance-x0yrgeco/project/.harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe7/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 4
+      },
+      "process_started": 1795259979.9932423,
+      "result": {
+        "artifact": null,
+        "config": "2eaa7d9e2b79047acff9aa57f00c7a666d134d08275051c26f12850c4fa21fc3",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.09867583599771024,
+        "kind": "build",
+        "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe7/0/process.log",
+        "log_bytes": 40,
+        "observed_log_bytes": 40,
+        "ok": false,
+        "output": "{\"ready\": false, \"error\": \"ValueError\"}\n",
+        "reason": null,
+        "recipe": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe7",
+        "returncode": 1,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "855440fae7f11624eff054fe7c3da2f94cab8c10a70fe830e74543b5ee9c1f28",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "memory-a6961550c73dfb69e4fa3259-1-probe8": {
+      "args": {
+        "name": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe8"
+      },
+      "at": 1795259980.4240623,
+      "finished": 1795259980.583065,
+      "memory_parent": "operation",
+      "memory_record": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+      "process": {
+        "group": 96139,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 96139,
+        "platform": "linux-pgroup-v1",
+        "start": "1978627",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795259980.5413454,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.05713522599762655,
+        "log_bytes": 40,
+        "observed_log_bytes": 40,
+        "reason": null,
+        "returncode": 1,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/tmp/persistent-causal-final-runtime/bin/python",
+          "-I",
+          "-m",
+          "knowledge.probes",
+          "kafka",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "45405",
+          "--timeout",
+          "1"
+        ],
+        "cwd": "/tmp/persistent-acceptance-x0yrgeco/project",
+        "log": "/tmp/persistent-acceptance-x0yrgeco/project/.harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe8/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 4
+      },
+      "process_started": 1795259980.4819863,
+      "result": {
+        "artifact": null,
+        "config": "2eaa7d9e2b79047acff9aa57f00c7a666d134d08275051c26f12850c4fa21fc3",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.05713522599762655,
+        "kind": "build",
+        "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe8/0/process.log",
+        "log_bytes": 40,
+        "observed_log_bytes": 40,
+        "ok": false,
+        "output": "{\"ready\": false, \"error\": \"ValueError\"}\n",
+        "reason": null,
+        "recipe": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe8",
+        "returncode": 1,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "855440fae7f11624eff054fe7c3da2f94cab8c10a70fe830e74543b5ee9c1f28",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "memory-a6961550c73dfb69e4fa3259-1-probe9": {
+      "args": {
+        "name": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe9"
+      },
+      "at": 1795259980.8545356,
+      "finished": 1795259981.0638263,
+      "memory_parent": "operation",
+      "memory_record": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+      "process": {
+        "group": 96198,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 96198,
+        "platform": "linux-pgroup-v1",
+        "start": "1978670",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795259981.0027328,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.10165880900240154,
+        "log_bytes": 40,
+        "observed_log_bytes": 40,
+        "reason": null,
+        "returncode": 1,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/tmp/persistent-causal-final-runtime/bin/python",
+          "-I",
+          "-m",
+          "knowledge.probes",
+          "kafka",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "45405",
+          "--timeout",
+          "1"
+        ],
+        "cwd": "/tmp/persistent-acceptance-x0yrgeco/project",
+        "log": "/tmp/persistent-acceptance-x0yrgeco/project/.harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe9/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 4
+      },
+      "process_started": 1795259980.8991852,
+      "result": {
+        "artifact": null,
+        "config": "2eaa7d9e2b79047acff9aa57f00c7a666d134d08275051c26f12850c4fa21fc3",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.10165880900240154,
+        "kind": "build",
+        "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe9/0/process.log",
+        "log_bytes": 40,
+        "observed_log_bytes": 40,
+        "ok": false,
+        "output": "{\"ready\": false, \"error\": \"ValueError\"}\n",
+        "reason": null,
+        "recipe": "@memory/memory-a6961550c73dfb69e4fa3259-1-probe9",
+        "returncode": 1,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "855440fae7f11624eff054fe7c3da2f94cab8c10a70fe830e74543b5ee9c1f28",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "memory-a6961550c73dfb69e4fa3259-start": {
+      "args": {
+        "name": "@memory/memory-a6961550c73dfb69e4fa3259-start"
+      },
+      "at": 1795259977.328287,
+      "finished": 1795259977.5348165,
+      "memory_parent": "operation",
+      "memory_record": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+      "process": {
+        "group": 95136,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 95136,
+        "platform": "linux-pgroup-v1",
+        "start": "1978317",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795259977.521616,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.15944217899959767,
+        "log_bytes": 65,
+        "observed_log_bytes": 65,
+        "reason": null,
+        "returncode": 0,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/usr/local/bin/docker",
+          "--config",
+          "/home/agent/.docker",
+          "--context",
+          "default",
+          "start",
+          "b667d82f26143cfe8948c563da75e4f145e97cc565ff91ca8d8510e130da57b0"
+        ],
+        "cwd": "/tmp/persistent-acceptance-x0yrgeco/project",
+        "log": "/tmp/persistent-acceptance-x0yrgeco/project/.harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-start/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 10
+      },
+      "process_started": 1795259977.360545,
+      "result": {
+        "artifact": null,
+        "config": "2eaa7d9e2b79047acff9aa57f00c7a666d134d08275051c26f12850c4fa21fc3",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.15944217899959767,
+        "kind": "build",
+        "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-start/0/process.log",
+        "log_bytes": 65,
+        "observed_log_bytes": 65,
+        "ok": true,
+        "output": "b667d82f26143cfe8948c563da75e4f145e97cc565ff91ca8d8510e130da57b0\n",
+        "reason": null,
+        "recipe": "@memory/memory-a6961550c73dfb69e4fa3259-start",
+        "returncode": 0,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "381695ed5ec7221b774ef4f5470057f1453c639804546d5d1508910157a05cac",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "operation": {
+      "agent": null,
+      "args": {
+        "name": "test"
+      },
+      "at": 1795259976.8315387,
+      "finished": 1795259981.6663027,
+      "memory_generation": 1,
+      "memory_traces": [
+        {
+          "binding_states": {},
+          "dependency_links": [
+            {
+              "dependency": "local_broker",
+              "source": "runner-requirement",
+              "suite": null
+            }
+          ],
+          "lookup_bytes": 2841,
+          "lookup_seconds": 0.0029660969994438346,
+          "lookups": [
+            {
+              "action": {
+                "name": "test",
+                "tool": "recipe"
+              },
+              "bindings": {},
+              "conflicts": [],
+              "decisions": [],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 187,
+              "signals": {},
+              "state": "no-match",
+              "stores": {
+                "project": "absent",
+                "shared": "available"
+              }
+            },
+            {
+              "action": {
+                "name": "local_broker",
+                "tool": "dependency"
+              },
+              "bindings": {},
+              "conflicts": [],
+              "decisions": [
+                {
+                  "applicable": true,
+                  "id": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+                  "reason": "match",
+                  "revision": 1
+                }
+              ],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 2654,
+              "signals": {},
+              "state": "matched",
+              "stores": {
+                "project": "absent",
+                "shared": "available"
+              }
+            }
+          ],
+          "ok": true,
+          "outcomes": [
+            {
+              "candidate": "820320d53139850dee5b9569837cabb85d47649863eb2561b96b32ccccf9fadf",
+              "id": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+              "result": "readiness-verified",
+              "seconds": 4.6145150550000835,
+              "started": true,
+              "steps": [
+                {
+                  "action": "memory-a6961550c73dfb69e4fa3259-1-probe0",
+                  "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe0/0/process.log",
+                  "ok": false,
+                  "reason": null,
+                  "returncode": 1
+                },
+                {
+                  "action": "memory-a6961550c73dfb69e4fa3259-1-docker-info",
+                  "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-docker-info/0/process.log",
+                  "ok": true,
+                  "reason": null,
+                  "returncode": 0
+                },
+                {
+                  "action": "memory-a6961550c73dfb69e4fa3259-1-docker-inspect",
+                  "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-docker-inspect/0/process.log",
+                  "ok": true,
+                  "reason": null,
+                  "returncode": 0
+                },
+                {
+                  "action": "memory-a6961550c73dfb69e4fa3259-start",
+                  "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-start/0/process.log",
+                  "ok": true,
+                  "reason": null,
+                  "returncode": 0
+                },
+                {
+                  "action": "memory-a6961550c73dfb69e4fa3259-1-probe1",
+                  "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe1/0/process.log",
+                  "ok": false,
+                  "reason": null,
+                  "returncode": 1
+                },
+                {
+                  "action": "memory-a6961550c73dfb69e4fa3259-1-probe2",
+                  "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe2/0/process.log",
+                  "ok": false,
+                  "reason": null,
+                  "returncode": 1
+                },
+                {
+                  "action": "memory-a6961550c73dfb69e4fa3259-1-probe3",
+                  "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe3/0/process.log",
+                  "ok": false,
+                  "reason": null,
+                  "returncode": 1
+                },
+                {
+                  "action": "memory-a6961550c73dfb69e4fa3259-1-probe4",
+                  "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe4/0/process.log",
+                  "ok": false,
+                  "reason": null,
+                  "returncode": 1
+                },
+                {
+                  "action": "memory-a6961550c73dfb69e4fa3259-1-probe5",
+                  "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe5/0/process.log",
+                  "ok": false,
+                  "reason": null,
+                  "returncode": 1
+                },
+                {
+                  "action": "memory-a6961550c73dfb69e4fa3259-1-probe6",
+                  "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe6/0/process.log",
+                  "ok": false,
+                  "reason": null,
+                  "returncode": 1
+                },
+                {
+                  "action": "memory-a6961550c73dfb69e4fa3259-1-probe7",
+                  "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe7/0/process.log",
+                  "ok": false,
+                  "reason": null,
+                  "returncode": 1
+                },
+                {
+                  "action": "memory-a6961550c73dfb69e4fa3259-1-probe8",
+                  "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe8/0/process.log",
+                  "ok": false,
+                  "reason": null,
+                  "returncode": 1
+                },
+                {
+                  "action": "memory-a6961550c73dfb69e4fa3259-1-probe9",
+                  "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe9/0/process.log",
+                  "ok": false,
+                  "reason": null,
+                  "returncode": 1
+                },
+                {
+                  "action": "memory-a6961550c73dfb69e4fa3259-1-probe10",
+                  "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/memory-a6961550c73dfb69e4fa3259-1-probe10/0/process.log",
+                  "ok": true,
+                  "reason": null,
+                  "returncode": 0
+                }
+              ]
+            }
+          ],
+          "phase": "before-action",
+          "selected": [
+            {
+              "id": "9bda2add04163da88e2a90a8e6ad6926a57d2505a3c16966c94a0fcf57b890d1",
+              "revision": 1,
+              "scope": "shared"
+            }
+          ],
+          "selected_bytes": 2348,
+          "total_seconds": 4.668817714999022
+        }
+      ],
+      "process": {
+        "group": 96262,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 96262,
+        "platform": "linux-pgroup-v1",
+        "start": "1978735",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795259981.6321774,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.08818721500210813,
+        "log_bytes": 98,
+        "observed_log_bytes": 98,
+        "reason": null,
+        "returncode": 0,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/tmp/persistent-causal-final-runtime/bin/python",
+          "-I",
+          "-c",
+          "import unittest,sys; from knowledge.probes import kafka; r=unittest.TextTestRunner().run(unittest.FunctionTestCase(lambda:kafka(\"127.0.0.1\",45405,1))); sys.exit(not r.wasSuccessful())"
+        ],
+        "cwd": "/tmp/persistent-acceptance-x0yrgeco/project",
+        "log": "/tmp/persistent-acceptance-x0yrgeco/project/.harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/operation/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 60
+      },
+      "process_started": 1795259981.5418375,
+      "request": null,
+      "result": {
+        "artifact": null,
+        "config": "2eaa7d9e2b79047acff9aa57f00c7a666d134d08275051c26f12850c4fa21fc3",
+        "counts": {
+          "executed": 1
+        },
+        "descendants_stopped": true,
+        "duration": 0.08818721500210813,
+        "kind": "test",
+        "log": ".harness/artifacts/04a71b900b2945c8a42a9617f6bb742a/operation/0/process.log",
+        "log_bytes": 98,
+        "observed_log_bytes": 98,
+        "ok": true,
+        "output": ".\n----------------------------------------------------------------------\nRan 1 test in 0.018s\n\nOK\n",
+        "reason": null,
+        "recipe": "test",
+        "returncode": 0,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Testing",
+      "signature": "a470e8febdfe6a992d12e490d43cd27e1017517982360bb607ad4b50e83245d1",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    }
+  },
+  "run_id": "04a71b900b2945c8a42a9617f6bb742a"
+}

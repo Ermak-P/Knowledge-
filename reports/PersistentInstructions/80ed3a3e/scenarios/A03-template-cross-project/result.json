@@ -1,0 +1,293 @@
+{
+  "result": {
+    "ok": true,
+    "recipe": "test",
+    "kind": "test",
+    "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+    "config": "f8c024d9e66207af0575211dbbab5596ddef20f24c8afc0e5a19ac2397c5d8f4",
+    "counts": {
+      "executed": 1
+    },
+    "artifact": null,
+    "output": ".\n----------------------------------------------------------------------\nRan 1 test in 0.010s\n\nOK\n",
+    "log": ".harness/artifacts/d82fb4848a3847ddbd63263b9ea018de/operation/0/process.log",
+    "descendants_stopped": true,
+    "duration": 0.07568201500180294,
+    "log_bytes": 98,
+    "observed_log_bytes": 98,
+    "reason": null,
+    "returncode": 0,
+    "truncated": false
+  },
+  "actions": {
+    "memory-2600e07a6eba032b8a524339-1-probe0": {
+      "args": {
+        "name": "@memory/memory-2600e07a6eba032b8a524339-1-probe0"
+      },
+      "at": 1795259992.9096036,
+      "finished": 1795259993.0691824,
+      "memory_parent": "operation",
+      "memory_record": "269ac26057fddb29df6254541a5e3362288ce3623891a50234f95d1b61869e22",
+      "process": {
+        "group": 98106,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 98106,
+        "platform": "linux-pgroup-v1",
+        "start": "1979875",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795259993.0136201,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.06183515399970929,
+        "log_bytes": 97,
+        "observed_log_bytes": 97,
+        "reason": null,
+        "returncode": 0,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/tmp/persistent-causal-final-runtime/bin/python",
+          "-I",
+          "-m",
+          "knowledge.probes",
+          "kafka",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "45405",
+          "--timeout",
+          "1"
+        ],
+        "cwd": "/tmp/persistent-acceptance-x0yrgeco/semantic-other/project",
+        "log": "/tmp/persistent-acceptance-x0yrgeco/semantic-other/project/.harness/artifacts/d82fb4848a3847ddbd63263b9ea018de/memory-2600e07a6eba032b8a524339-1-probe0/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 4
+      },
+      "process_started": 1795259992.9493217,
+      "result": {
+        "artifact": null,
+        "config": "f8c024d9e66207af0575211dbbab5596ddef20f24c8afc0e5a19ac2397c5d8f4",
+        "counts": null,
+        "descendants_stopped": true,
+        "duration": 0.06183515399970929,
+        "kind": "build",
+        "log": ".harness/artifacts/d82fb4848a3847ddbd63263b9ea018de/memory-2600e07a6eba032b8a524339-1-probe0/0/process.log",
+        "log_bytes": 97,
+        "observed_log_bytes": 97,
+        "ok": true,
+        "output": "{\"ready\": true, \"protocol\": \"Kafka ApiVersions v0 + Metadata v1\", \"brokers\": 1, \"controller\": 1}\n",
+        "reason": null,
+        "recipe": "@memory/memory-2600e07a6eba032b8a524339-1-probe0",
+        "returncode": 0,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Building",
+      "signature": "855440fae7f11624eff054fe7c3da2f94cab8c10a70fe830e74543b5ee9c1f28",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    },
+    "operation": {
+      "agent": null,
+      "args": {
+        "name": "test"
+      },
+      "at": 1795259992.8099623,
+      "finished": 1795259993.2428827,
+      "memory_generation": 1,
+      "memory_traces": [
+        {
+          "binding_states": {
+            "269ac26057fddb29df6254541a5e3362288ce3623891a50234f95d1b61869e22": {
+              "at": 1795259992.515074,
+              "daemon": "f61e3048c7e9ca392727561012e47395b00ae458ea261e83104cc400571b9392",
+              "reason": null,
+              "resource": "4279cece2ac1564f171c1350e939c9ca398971b726ffd3ca7bd5acd56bec596e",
+              "sequence": 2,
+              "state": "verified"
+            }
+          },
+          "dependency_links": [
+            {
+              "dependency": "local_broker",
+              "source": "runner-requirement",
+              "suite": null
+            }
+          ],
+          "lookup_bytes": 3849,
+          "lookup_seconds": 0.006911272001161706,
+          "lookups": [
+            {
+              "action": {
+                "name": "test",
+                "tool": "recipe"
+              },
+              "bindings": {},
+              "conflicts": [],
+              "decisions": [],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 187,
+              "signals": {},
+              "state": "no-match",
+              "stores": {
+                "project": "absent",
+                "shared": "available"
+              }
+            },
+            {
+              "action": {
+                "name": "local_broker",
+                "tool": "dependency"
+              },
+              "bindings": {
+                "269ac26057fddb29df6254541a5e3362288ce3623891a50234f95d1b61869e22": {
+                  "at": 1795259992.515074,
+                  "daemon": "f61e3048c7e9ca392727561012e47395b00ae458ea261e83104cc400571b9392",
+                  "reason": null,
+                  "resource": "4279cece2ac1564f171c1350e939c9ca398971b726ffd3ca7bd5acd56bec596e",
+                  "sequence": 2,
+                  "state": "verified"
+                }
+              },
+              "conflicts": [],
+              "decisions": [
+                {
+                  "applicable": true,
+                  "id": "269ac26057fddb29df6254541a5e3362288ce3623891a50234f95d1b61869e22",
+                  "reason": "match",
+                  "revision": 2
+                }
+              ],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 3662,
+              "signals": {
+                "269ac26057fddb29df6254541a5e3362288ce3623891a50234f95d1b61869e22": {
+                  "at": 1795259992.527491,
+                  "evidence": [
+                    {
+                      "action": "operation",
+                      "run": "ca4499633bb74eb98f381be86b675464"
+                    }
+                  ],
+                  "outcome": {
+                    "error": null,
+                    "ok": true,
+                    "phase": "before-action"
+                  },
+                  "root_cause": "not-established",
+                  "technical": "preconditions-satisfied"
+                }
+              },
+              "state": "matched",
+              "stores": {
+                "project": "absent",
+                "shared": "available"
+              }
+            }
+          ],
+          "ok": true,
+          "outcomes": [
+            {
+              "id": "269ac26057fddb29df6254541a5e3362288ce3623891a50234f95d1b61869e22",
+              "result": "ready",
+              "seconds": 0.1710930310000549,
+              "started": false,
+              "steps": [
+                {
+                  "action": "memory-2600e07a6eba032b8a524339-1-probe0",
+                  "log": ".harness/artifacts/d82fb4848a3847ddbd63263b9ea018de/memory-2600e07a6eba032b8a524339-1-probe0/0/process.log",
+                  "ok": true,
+                  "reason": null,
+                  "returncode": 0
+                }
+              ]
+            }
+          ],
+          "phase": "before-action",
+          "selected": [
+            {
+              "id": "269ac26057fddb29df6254541a5e3362288ce3623891a50234f95d1b61869e22",
+              "revision": 2,
+              "scope": "shared"
+            }
+          ],
+          "selected_bytes": 2769,
+          "total_seconds": 0.26198965000003227
+        }
+      ],
+      "process": {
+        "group": 98125,
+        "host": "d4ee9fd4b7d954abb22eb739162e8a63ca6d70803e2c5ce6c61ccff48130f38b",
+        "pid": 98125,
+        "platform": "linux-pgroup-v1",
+        "start": "1979892",
+        "state": "R"
+      },
+      "process_attempt": 0,
+      "process_finished": 1795259993.1876705,
+      "process_platform": "linux-pgroup-v1",
+      "process_result": {
+        "descendants_stopped": true,
+        "duration": 0.07568201500180294,
+        "log_bytes": 98,
+        "observed_log_bytes": 98,
+        "reason": null,
+        "returncode": 0,
+        "truncated": false
+      },
+      "process_spec": {
+        "argv": [
+          "/tmp/persistent-causal-final-runtime/bin/python",
+          "-I",
+          "-c",
+          "import unittest,sys; from knowledge.probes import kafka; r=unittest.TextTestRunner().run(unittest.FunctionTestCase(lambda:kafka(\"127.0.0.1\",45405,1))); sys.exit(not r.wasSuccessful())"
+        ],
+        "cwd": "/tmp/persistent-acceptance-x0yrgeco/semantic-other/project",
+        "log": "/tmp/persistent-acceptance-x0yrgeco/semantic-other/project/.harness/artifacts/d82fb4848a3847ddbd63263b9ea018de/operation/0/process.log",
+        "log_bytes": 20000,
+        "timeout": 60
+      },
+      "process_started": 1795259993.1100461,
+      "request": null,
+      "result": {
+        "artifact": null,
+        "config": "f8c024d9e66207af0575211dbbab5596ddef20f24c8afc0e5a19ac2397c5d8f4",
+        "counts": {
+          "executed": 1
+        },
+        "descendants_stopped": true,
+        "duration": 0.07568201500180294,
+        "kind": "test",
+        "log": ".harness/artifacts/d82fb4848a3847ddbd63263b9ea018de/operation/0/process.log",
+        "log_bytes": 98,
+        "observed_log_bytes": 98,
+        "ok": true,
+        "output": ".\n----------------------------------------------------------------------\nRan 1 test in 0.010s\n\nOK\n",
+        "reason": null,
+        "recipe": "test",
+        "returncode": 0,
+        "source": "781a26b1be54d16a30fda0c11105c084020ebb49533cd68578bd1cc0525e59df",
+        "truncated": false
+      },
+      "role": "Testing",
+      "signature": "a470e8febdfe6a992d12e490d43cd27e1017517982360bb607ad4b50e83245d1",
+      "source_before": {
+        "Feature.cs": "da68f54607d5f5644954096ce1597c006c5bb9f2497e07441bf064b81003ef8a"
+      },
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    }
+  },
+  "run_id": "d82fb4848a3847ddbd63263b9ea018de"
+}
