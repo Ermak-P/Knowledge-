@@ -1,0 +1,267 @@
+# Постоянные инструкции Knowledge
+
+Это внешняя память, а не обучение модели. Knowledge самостоятельно хранит
+инструкции; Harness применяет их перед своими действиями. Изменения опциональны:
+старый runner без поля `memory` сохраняет прежний контракт, включая выполнение
+при недоступном архитектурном capture. Для нового контура добавьте `memory: {}`
+в проверяемую конфигурацию runner **до** enrollment companion. `enabled: false`
+отключает контур, сохраняя все записи.
+
+## Что поддерживается
+
+- Проектная SQLite: `<project>/.knowledge/store.sqlite3`.
+- Общая SQLite: `<programmatic Path.home()>/.local/share/knowledge/store.sqlite3`,
+  включая Windows. Не используется `.config/knowledge`, shell `~` или отдельная
+  машинная база. `memory.shared_root` задаёт абсолютный override; у CLI явный
+  `--shared-root` имеет приоритет над policy во входном JSON. Env override не введён.
+- В тех же базах — совместимое расширение `operations=1`, отдельные current,
+  immutable history и receipts. Claims, очередь архитектурных кандидатов,
+  точные approvals и legacy migration не меняются. Чтение не создаёт базу.
+- Намеренное обучение, постоянная коррекция или обновление правила сохраняется
+  из доверенного сообщения пользователя. Обычная задача не становится правилом.
+  Исходная формулировка и источник сохраняются; ответ о сохранении появляется
+  после commit и повторной проверки базы.
+- По умолчанию Harness повторно использует существующий **локальный** provider
+  runner для семантической классификации: слова aliases служат описаниями каталога,
+  а не обязательными маркерами. `memory.normalizer` может явно задать loopback
+  `/chat/completions`, model, timeout (до 45 s), key_env. Remote URL, proxy и redirect
+  запрещены. Knowledge самостоятельно принимает тот же normalizer в policy.
+- Модель выбирает только типизированный binding или owner-approved template и
+  явные пользовательские параметры. Команды из свободного текста не исполняются.
+  Неизвестные или невыразимые условия сохраняются `unbound`, с исходником и одним
+  вопросом; такой intent блокирует старый более широкий default для этого действия.
+  При недоступной модели распознанное явное обучение сохраняется неисполняемым;
+  ошибка классификации обычного сообщения не подменяется успешным no-match.
+- По умолчанию область — текущий проект. Shared scope требует явного решения и
+  исходной цитаты; неоднозначная область остаётся unbound до уточнения. Correction
+  сохраняет прежнюю область, если пользователь явно не меняет её.
+- `teaching_mode:"catalog"` — явный ограниченный режим для буквальных operator
+  aliases и воспроизводимых fixtures без модели. Он не является семантическим
+  разбором произвольных условий. Для свободного обучения используйте local-model.
+
+## Подключение хоста
+
+Установка offline core остаётся прежней: `python install.py install --env <env>`.
+Плагин включён в wheel Knowledge (`knowledge/host/opencode.mjs`) и в `host/` kit.
+MCP-профиль ставится прежним способом; новый удалённый сервис не нужен.
+
+Сначала настройте и проверьте runner, затем enroll неизменяемое задание через
+существующий `harness-host preview/apply`. В `.knowledge-host.json` проекта:
+
+```json
+{"python":"<абсолютный путь к Python установленного kit>"}
+```
+
+Добавьте URI локального `host/opencode.mjs` в настройку `plugin` хоста. Это
+**opt-in адаптер опубликованного hook API `@opencode-ai/plugin` 1.19.6**:
+`chat.message`, `tool.execute.before`, `tui.showToast`. Его исходники и CLI
+исследованы; ссылки/хеши — в `PERSISTENT-INSTRUCTIONS-PROTOCOLS.json`.
+Существующие документы companion описывают v2 MCP layout. Совместимость плагина
+с конкретным v2-хостом не следует из регистрации MCP и требует отдельного запуска.
+
+Плагин захватывает только несинтетические user text parts, запускает локальный
+Python без shell и выдаёт UI/синтетический receipt после durable save. MCP
+Knowledge остаётся read-only: новая `knowledge_instructions` только читает.
+Нельзя передать `source_type=user` через модельный MCP write tool — такого tool нет.
+Обычные логи и tool output не проходят user ingress.
+
+Для Knowledge без Harness укажите `backend: "knowledge"` и `policy` с bindings
+в `.knowledge-host.json`. Тогда тот же hook вызывает только Knowledge CLI.
+Управление исполнением/текущими restrictions остаётся обязанностью самостоятельного
+потребителя read-only API. Harness backend — default интеграционного профиля.
+
+Поддерживаемый путь исполнения — enrolled `harness_run`, включая существующие
+делегирования и автоматические тесты: все они доходят до owned broker. Native
+shell/edit инструменты произвольного хоста этим механизмом не управляются;
+расширять их разрешения не требуется. При подключённом плагине trusted session ID
+подставляется перед `harness_run`, модель не может отбросить текущий запрет старта.
+Для прямого CLI есть `harness-run run ... --no-service-start`.
+Запрет и исключения формата действуют в текущей host session; новая сессия их
+не наследует. Явное разрешение текущего пользователя снимает session-запрет,
+не меняя durable правило. Для format CLI есть `--format-input <JSON-file>`.
+
+## Одноразовая привязка среды
+
+В runner допускается поле `memory` следующего вида. Это **шаблон**, а не найденная
+конфигурация вашей Kafka; заполнить нужно реальные, явно выбранные значения.
+Права и конкретная инфраструктура задаются владельцем конфигурации, а не моделью.
+
+```json
+{
+  "environment": {"environment":"<имя локальной среды>"},
+  "requirements": [
+    {"trigger":{"tool":"recipe","name":"<имя рецепта или точный pattern автоматического suite>"},"dependency":"local_broker"}
+  ],
+  "bindings": [
+    {
+      "aliases":["Kafka"],
+      "applicability":{"environment":"<имя локальной среды>","machine":"<реальное platform.node()>"},
+      "trigger":{"tool":"dependency","name":"local_broker"},
+      "behavior":{"adapter":"dependency","procedure":{
+        "id":"local_broker",
+        "check":{"argv":["<ABS_PYTHON>","-I","-m","knowledge.probes","kafka","--host","<HOST>","--port","<PORT>"],"timeout":4},
+        "docker":{"executable":"<ABS_DOCKER>","container":"<EXACT_EXISTING_CONTAINER>"},
+        "attempts":1,"deadline":30,"interval":0.25
+      }}
+    }
+  ],
+  "allowed_procedures":["<тот же объект procedure, а не строка: JSON должен точно совпадать>"]
+}
+```
+
+В реальном JSON `allowed_procedures` содержит объекты, идентичные процедуре
+binding. Изменение команды требует нового разрешённого объекта и корректировки
+инструкции; одного текста в памяти недостаточно. Для Compose вместо `container`
+задаются только `compose_file` (absolute) и `service`: используется `ps -a -q`,
+проверка единственного ID и `start` существующего сервиса. `up`, restart, создание
+контейнера и удаление томов не являются действиями памяти.
+
+Если имя контейнера и порт ещё неизвестны, настройте вместо фиксированного
+behavior типизированный template. Это пример схемы, не найденный пользовательский
+ресурс; абсолютные пути выбирает владелец среды:
+
+```json
+{
+  "procedure_templates":[{
+    "id":"local_kafka","kind":"docker-kafka-existing","procedure_id":"local_broker",
+    "python":"<ABS_PYTHON>","docker":"<ABS_DOCKER>","defaults":{"host":"127.0.0.1"},
+    "deadline":30,"interval":0.25,"attempts":1,"check_timeout":4,"probe_timeout":1
+  }],
+  "allowed_templates":["local_kafka"],
+  "bindings":[{"aliases":["Kafka"],"trigger":{"tool":"dependency","name":"local_broker"},"template":"local_kafka"}]
+}
+```
+
+Оставьте requirements/environment отдельно как выше. Определение template само по
+себе не даёт права исполнения: нужен `allowed_templates` либо точный разрешённый
+procedure. После обучения достаточно одного ответа с точным существующим именем
+контейнера и портом, без изменения конфигурации или повторного «запомни».
+Детали проверяются по цитатам источника; процедура материализуется кодом и полностью
+сверяется с текущим template перед каждым исполнением. При смене уже разрешённого
+ресурса startup grant не переносится автоматически: требуется явное разрешение
+для нового ресурса либо запрет старта. Частичные известные параметры сохраняются.
+
+Требование проекта (`requirements`) отдельно от общей инструкции/процедуры.
+В другом проекте нужны его собственные требования и разрешение на тот же exact
+procedure; каноническая shared запись не копируется. Идентификатор проекта для её
+доступа не нужен. Machine/OS/tool constraints фильтруются до исполнения; machine,
+OS и Python version определяет runtime. Прочие tool version tags — утверждения
+владельца среды; если нужен живой контроль версии, включите его в разрешённый check.
+
+Readiness выполняется из того же cwd и sanitized process environment, что и тест.
+Kafka probe проверяет ApiVersions, Metadata/controller и доступность advertised
+broker endpoints, а не только TCP или состояние контейнера. Уже готовая зависимость
+не запускается заново. Не готовая работающая служба не перезапускается. Для
+остановленной службы нужны и `attempts:1`, и явное сохранённое разрешение пользователя
+на старт контейнера, и текущий allowlist; `deadline` ограничивает ожидание readiness.
+Каждая диагностическая команда дополнительно ограничена timeout. Неизвестный исход
+старта не повторяется вслепую; повторный INTENT сначала проверяет readiness/состояние.
+
+## Как обучать и исправлять
+
+В подключённом чате:
+
+> Запомни для всех проектов с этой локальной Kafka: перед зависимыми тестами проверяй готовность. Разрешаю запуск этого контейнера для этой цели.
+
+Ответ содержит область, статус, trigger, сохранённое поведение и признак разрешения.
+Это authority о желании пользователя; `configured` не доказывает исправность команды.
+Если деталей не хватает, правило получает `unbound`, а хост задаёт один вопрос
+только о недостающем. В той же сессии достаточно ответить деталями — повторять
+«запомни» или ID не нужно. Pending reference переживает перезапуск хоста.
+В следующей независимой сессии binding уже хранится в SQLite.
+
+Для формата добавьте binding с aliases `encoding`, `BOM`, `кодировку`, trigger
+`{"tool":"patch","name":"*.cs"}` и behavior `{"adapter":"preserve-format"}`:
+
+> В дальнейших правках сохраняй исходную кодировку, BOM и окончания строк файлов, если текущая задача явно не требует другого формата.
+
+Поддержаны strict UTF-8, UTF-8 BOM, UTF-16/32 с BOM и однородные LF/CRLF/CR.
+Сохраняется наличие завершающего newline. Смешанные окончания отклоняются явно;
+неизвестная legacy encoding не угадывается. Для текущего исключения скажите,
+например: «В этой задаче переведи Feature.cs в UTF-8 без BOM и с LF». Normalizer
+передаст типизированные session format_changes, не изменяя сохранённый default.
+Можно явно сбросить исключение для пути; новая host session начинает без исключений.
+Для CLI JSON — массив `[{"path":"Feature.cs","encoding":"utf-8","bom":false,"eol":"lf"}]`.
+U+FEFF внутри
+текста не удаляется как BOM; отсутствие final newline не трактуется как BOM-ошибка.
+
+Инспекция и история через обычный локальный Knowledge CLI:
+
+```text
+knowledge memory-inspect --root <project> --scope project
+knowledge memory-inspect --root <project> --scope shared
+knowledge memory-history --root <project> --scope shared --id <ID>
+knowledge memory-retire --root <project> --scope shared --id <ID> --expected-revision <REV>
+```
+
+Коррекция из чата: `Уточни правило <ID>: ... <alias настроенной процедуры> ...`.
+ID и исходное обучение сохраняются; создаётся ревизия с ссылкой на прежнюю.
+Для operator/API есть `memory-teach --id ... --expected-revision ... --input ...`;
+JSON содержит `text`, `source:{type:"user-message",id:"durable-source-id"}`,
+`binding`, `applicability`, `recovery_authorized`. Этот локальный вход доверен как
+существующие operator CLI, не выдаётся модели через MCP. `memory-ingest` принимает
+исходный текст и `message_id` с policy через JSON stdin/`--input`.
+
+Повтор source ID идемпотентен; несовместимое повторное использование отклоняется.
+Конкурентные corrections используют revision CAS. Retirement немедленно исключает
+правило из следующего lookup, сохраняя аудит. Более узкая применимость/проект может
+уточнить общий default; неразрешённые противоречия останавливают действие.
+
+## Трасса, опыт и отказы
+
+У action в Harness journal есть `memory_traces`: IDs/revisions, scope,
+применимость, bytes, lookup time, отдельные owned command receipts и результат.
+Lookup ограничен 8 records/12000 UTF-8 bytes по умолчанию; превышение — явный
+отказ, не молчаливое усечение обязательных правил. Нет persistent lookup cache.
+В контексте источник заменён UTF-8 SHA-256/размером и ссылкой на inspect/history;
+полный исходник остаётся в SQLite. Evidence references ограничены с явным partial
+маркером. Normalizer получает каталог, текущий user text и один targeted/pending
+record, а не всю общую базу. Учитывается только явно возвращённый token usage;
+модельные метрики протокольных doubles не выдаются за реальные измерения.
+`no-match`, `absent`, store busy, corruption и conflict различаются.
+
+После восстановления создаётся project-scoped `experience/candidate` с операцией,
+наблюдаемым состоянием, вмешательством, исходом и ссылками на durable artifacts.
+Это диагностическая зацепка, доступная targeted after-error lookup. Она не является
+обязательной инструкцией, не утверждает root cause и не повышает статус от повторения
+моделью. Отдельные application signals хранят timestamp/preconditions/failure без
+перезаписи исходного желания пользователя. Технический результат теста остаётся
+в собственном receipt; восстановление инфраструктуры не означает успешного теста.
+
+Приватные исходники/логи не копируются автоматически в shared память; туда попадает
+только явное пользовательское обучение с binding. Типовые credentials/private keys
+отклоняются; не включайте секреты в обучение или procedure argv. Raw output остаётся
+в локальных owned artifacts, а memory evidence содержит ссылки, не stdout.
+
+## Воспроизведение и границы доставки
+
+Из установленного Python вне checkout, используя repository validation drivers:
+
+```text
+python -m unittest discover -s <repo>/tests -p "test_persistent*.py" -v
+docker pull apache/kafka@sha256:4ceccc577f03f51f6af8dbfda55194d0d892f4fa7913ffbded567ce3895622ed
+python -I <repo>/scripts/persistent_instructions_scenarios.py --output <new-output-dir>
+python -I <repo>/scripts/validate_persistent_host.py --model <local-model-id> --endpoint http://127.0.0.1:<port>/v1/chat/completions --output <host-output>
+```
+
+Первый сценарный driver создаёт только именованные fixtures с собственным label и
+удаляет только их после проверки владения. Сравнение memory disabled/enabled сбрасывает
+состояние контейнера. Реальный host driver создаёт временный проект и две базы,
+выбирает только loopback provider, завершает teaching process, запускает новый host
+без `--session`/`--continue`, требует другой session ID, completed Harness receipt,
+matched ID/revision и точные BOM/CRLF bytes. Никакие broad permissions не включаются.
+
+В этой среде OpenCode/local model отсутствуют: **полный A02 host E2E BLOCKED**.
+Node hook contract + реальный Python ingress, отдельные broker/CLI процессы и
+настоящий Kafka не заменяют эту проверку. Выгода по токенам/скорости не установлена.
+Локальная семантическая интеграция проверена протокольным double; качество реальной
+модели и управление native host tools не заявляются. Исполняются только настроенные
+типизированные bindings/templates; неизразимые условия остаются unbound.
+
+Откат: отключить plugin, восстановить прежний runner **без ключа memory** и заново
+enroll его проверенный task (старый Harness не знает нового ключа), затем восстановить прежние core
+wheels по обычному установочному процессу. Не удалять `.knowledge` или shared root.
+Предыдущий reader игнорирует additive operational tables; audit и инструкции
+сохраняются для повторной установки. Поддерживаемые backups копируют всю project
+SQLite; shared базу резервируйте отдельно под её maintenance gate/SQLite backup,
+не копированием открытого файла. Никакой bulk migration при установке не выполняется.
