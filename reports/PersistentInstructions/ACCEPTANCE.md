@@ -4,7 +4,14 @@
 Реальные OpenCode/local-model A01, A02, A05 и A17 не выполнены: хост отсутствует.
 Изолированные PASS ниже не означают ACCEPTED. Это внешняя память, не обучение модели.
 
-Актуальное R1: code fixes **IMPLEMENTED**, host validation **PENDING**.
+Актуальное R2: **parser fix IMPLEMENTED**, **real-host validation PENDING**.
+Исходники [`1d57654f3`](https://github.com/Ermak-P/Knowledge-/commit/1d57654f385594bbab03178ecc510cace534c51b).
+[Отчёт R2 и новые source-bound проверки](R2-1d57654f/REVIEW.md).
+Запрет перед teaching colon сохраняется; EN/RU conflicting-prefix regressions
+дают saved grant=false и 0 startup calls (model/Docker doubles). 55/55 профильных
+проверок PASS; qualification нового source приведена в R2 report.
+
+Предыдущая квалификация R1: code fixes **IMPLEMENTED**, host validation **PENDING**.
 Исходники [`287a6a8aa`](https://github.com/Ermak-P/Knowledge-/commit/287a6a8aa976b40a0117684a213ee46310df27bc).
 [Отчёт R1, регрессии и новые exact-source receipts](R1-287a6a8a/REVIEW.md).
 R1 исправляет передачу CLI resume controls и независимую проверку startup grants.
