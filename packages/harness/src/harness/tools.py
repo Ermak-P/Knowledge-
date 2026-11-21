@@ -170,7 +170,7 @@ class Broker:
                 path=patch_path(self.j.project,f['path'],self.r['task'],self.r['protected_paths'],self.r.get('protected_executables',[]))
                 require(isinstance(f['after'],str) and len(f['after'].encode())<=self.limits['file_bytes'],'patch-too-large')
                 require(before.get(f['path'])==f['before'],'edit-before-state-mismatch')
-            from .instructions import preflight,encode_edit,decode_edit
+            from .instructions import preflight,encode_edit,decode_edit,current_formats
             preflight(self,action_id,'patch',action['args'])
             exceptions=[f['path'] for f in files if f['path'] in self.r['task']['existing_test_edits']]
             if exceptions:self.j.event(self.r['id'],'explicit-test-edit-authorized',action=action_id,paths=exceptions)
@@ -178,7 +178,9 @@ class Broker:
             # journaled before any write, so recovery cannot re-encode an edit.
             action=self.j.action(self.r['id'],action_id)
             raw_before={f['path']:local_path(self.j.project,f['path']).read_bytes() if local_path(self.j.project,f['path']).exists() else b'' for f in files}
-            raw_after={f['path']:(encode_edit(raw_before[f['path']],f['after']) if f['path'] in self._preserve_paths else f['after'].encode()).hex() for f in files}
+            formats=current_formats(self)
+            raw_after={f['path']:(encode_edit(raw_before[f['path']],f['after'],formats.get(policy_path(f['path'])),f['before'] is not None) if (f['path'] in self._preserve_paths and f['before'] is not None) or policy_path(f['path']) in formats else f['after'].encode()).hex() for f in files}
+            if action.get('memory_traces'):action['memory_traces'][-1]['current_format_overrides']=[{'path':f['path'],**formats[policy_path(f['path'])]} for f in files if policy_path(f['path']) in formats]
             action['edit_intent']={'before_source':before,'files':files,'before_text':{p:decode_edit(raw) for p,raw in raw_before.items()},'after_bytes':raw_after};self.j.action(self.r['id'],action_id,action)
         intent=action['edit_intent'];current=source_snapshot(self.j.project,self.limits['file_bytes']);paths={f['path'] for f in files}
         intended={f['path']:bytes.fromhex(intent['after_bytes'][f['path']]) if 'after_bytes' in intent else f['after'].encode() for f in files}

@@ -14,7 +14,11 @@ from knowledge.util import canonical_json, digest, require, KnowledgeError, load
 
 
 def validate_policy(policy):
-    require(isinstance(policy,dict) and set(policy)<={'enabled','shared_root','environment','bindings','requirements','allowed_procedures','deny_recovery','max_items','max_bytes'},'invalid-memory-policy')
+    require(isinstance(policy,dict) and set(policy)<={'enabled','shared_root','environment','bindings','requirements','allowed_procedures','deny_recovery','max_items','max_bytes','normalizer','teaching_mode','procedure_templates','allowed_templates'},'invalid-memory-policy')
+    require(policy.get('teaching_mode','local-model') in ('local-model','catalog'),'invalid-memory-teaching-mode')
+    if policy.get('normalizer'):
+        from knowledge.normalizer import validate
+        validate(policy['normalizer'])
     require(type(policy.get('enabled',True)) is bool,'invalid-memory-enabled')
     if 'shared_root' in policy:op.shared_root(policy['shared_root'])
     op.validate_applicability(policy.get('environment',{}))
@@ -24,10 +28,18 @@ def validate_policy(policy):
     for key in ('bindings','requirements','allowed_procedures'):
         require(isinstance(policy.get(key,[]),list) and len(policy.get(key,[]))<=32,'invalid-memory-policy-list')
     for p in policy.get('allowed_procedures',[]):op.validate_procedure(p)
+    from knowledge.procedure_templates import validate as validate_template
+    require(isinstance(policy.get('procedure_templates',[]),list) and len(policy.get('procedure_templates',[]))<=32,'invalid-procedure-templates')
+    for template in policy.get('procedure_templates',[]):validate_template(template)
+    ids=[t['id'] for t in policy.get('procedure_templates',[])]
+    require(len(ids)==len(set(ids)),'duplicate-procedure-template')
+    require(isinstance(policy.get('allowed_templates',[]),list) and all(isinstance(t,str) and t in ids for t in policy.get('allowed_templates',[])),'invalid-allowed-templates')
     for b in policy.get('bindings',[]):
-        require(isinstance(b,dict) and {'aliases','trigger','behavior'}<=set(b)<={'aliases','trigger','behavior','applicability'},'invalid-teaching-binding')
+        require(isinstance(b,dict) and {'aliases','trigger'}<=set(b)<={'aliases','trigger','behavior','applicability','description','template'} and ('behavior' in b)!=('template' in b),'invalid-teaching-binding')
         require(isinstance(b['aliases'],list) and 0<len(b['aliases'])<=10 and all(isinstance(a,str) and 1<=len(a)<=200 for a in b['aliases']),'invalid-teaching-alias')
-        op.validate_binding(b['trigger'],b['behavior']);op.validate_applicability(b.get('applicability',{}))
+        op.validate_binding(b['trigger'],b.get('behavior',{'adapter':'preserve-format'}));op.validate_applicability(b.get('applicability',{}))
+        if 'template' in b:require(b['template'] in ids,'unknown-procedure-template')
+        if 'description' in b:require(isinstance(b['description'],str) and 0<len(b['description'])<=1000,'invalid-binding-description')
     for r in policy.get('requirements',[]):
         require(isinstance(r,dict) and set(r)=={'trigger','dependency'} and isinstance(r['dependency'],str) and 0<len(r['dependency'])<=200,'invalid-memory-requirement')
         op.validate_binding(r['trigger'],{'adapter':'preserve-format'})
@@ -69,14 +81,15 @@ def preflight(broker, action_id, name, args):
         require(not any(result['conflicts'] for result in trace['lookups']),'instruction-conflict')
         require(not any(r['status']=='unbound' for r in records),'instruction-binding-required')
         require(all(any(op.matches(r['trigger'],result['action']) for r in records if r['status']=='active') for result in trace['lookups'] if result['action']['tool']=='dependency'),'required-dependency-instruction-missing')
-        for r in records:
+        for r in sorted(records,key=lambda r: 1 if (r['behavior'] or {}).get('adapter')=='dependency' else 0):
             if r['kind']!='instruction':continue
             behavior=r['behavior']
             if behavior['adapter']=='preserve-format':
                 broker._preserve_paths.update(f['path'] for f in args.get('files',[]) if op.matches(r['trigger'],{'tool':'patch','name':f['path']}))
                 trace['outcomes'].append({'id':r['id'],'result':'preserve-format'});continue
             p=behavior['procedure']
-            require(any(digest(allowed)==digest(p) for allowed in policy.get('allowed_procedures',[])),'memory-procedure-tool-denied')
+            from knowledge.procedure_templates import permitted
+            require(permitted(policy,behavior),'memory-procedure-tool-denied')
             outcome=execute_procedure(broker,action_id,r,policy)
             trace['outcomes'].append({'id':r['id'],**outcome})
         trace['ok']=True
@@ -122,7 +135,7 @@ def execute_procedure(broker, parent_id, record, policy):
         result=command('compose-locate',[docker,'compose','-f',d['compose_file'],'ps','-a','-q',d['service']],min(5,p['deadline']))
         resource=result.get('output','').strip()
         require(result['ok'] and re.fullmatch('[0-9a-f]{12,64}',resource),'docker-resource-missing-or-ambiguous',steps)
-    inspected=command('docker-inspect',[docker,'inspect','--type','container','--format','{{json .State}}',resource],min(5,p['deadline']))
+    inspected=command('docker-inspect',[docker,'inspect','--type','container','--format','{"Status":{{json .State.Status}},"Running":{{json .State.Running}}}',resource],min(5,p['deadline']))
     require(inspected['ok'],'docker-resource-missing',steps)
     state=loads(inspected['output'].strip());require(isinstance(state,dict) and type(state.get('Running')) is bool,'invalid-docker-state')
     require(not state['Running'],'dependency-running-not-ready',steps)
@@ -165,26 +178,26 @@ def after_error(broker, action_id, name, args):
     broker.j.action(broker.r['id'],action_id,action)
 
 
-def encode_edit(raw, text):
-    """Strict supported UTF-8[/BOM], UTF-16/32 BOM formats, uniform EOLs.
+def current_formats(broker):
+    from knowledge.text_format import validate_changes
+    from .runtime import policy_path
+    changes=list(broker.r.get('current_format_changes',[]))
+    if broker.r.get('host_session'):
+        from .host_ingress import read_session
+        changes+=read_session(broker.j.project.root,broker.r['host_session']).get('format_changes',[])
+    result={}
+    for change in changes:
+        validate_changes([change]);key=policy_path(change['path'].replace('\\','/'))
+        if change.get('reset'):result.pop(key,None)
+        else:result[key]={k:v for k,v in change.items() if k!='path'}
+    return result
 
-    A U+FEFF in the middle is ordinary content, not an encoding signature.
-    Missing final newline remains missing. Mixed EOL/unknown encodings fail.
-    """
-    signatures=[(b'\xff\xfe\x00\x00','utf-32-le'),(b'\x00\x00\xfe\xff','utf-32-be'),
-        (b'\xef\xbb\xbf','utf-8'),(b'\xff\xfe','utf-16-le'),(b'\xfe\xff','utf-16-be')]
-    bom,encoding=next(((bom,enc) for bom,enc in signatures if raw.startswith(bom)),(b'','utf-8'))
-    before=raw[len(bom):].decode(encoding)
-    endings=set(re.findall(r'\r\n|\r|\n',before));require(len(endings)<=1,'mixed-line-endings-preservation-unsupported')
-    eol=next(iter(endings),'\n')
-    after=text.replace('\r\n','\n').replace('\r','\n')
-    if not before.endswith(('\r','\n')):after=after.rstrip('\n')
-    elif not after.endswith('\n'):after+='\n'
-    # The tool's text is content, with no synthetic BOM added to read results.
-    return bom+after.replace('\n',eol).encode(encoding)
+
+def encode_edit(raw,text,change=None,exists=True):
+    from knowledge.text_format import encode
+    return encode(raw,text,change,exists)
 
 
 def decode_edit(raw):
-    if raw.startswith((b'\xff\xfe\x00\x00',b'\x00\x00\xfe\xff')):return raw.decode('utf-32').replace('\r\n','\n').replace('\r','\n')
-    if raw.startswith((b'\xff\xfe',b'\xfe\xff')):return raw.decode('utf-16').replace('\r\n','\n').replace('\r','\n')
-    return raw.decode('utf-8-sig').replace('\r\n','\n').replace('\r','\n')
+    from knowledge.text_format import decode
+    return decode(raw)

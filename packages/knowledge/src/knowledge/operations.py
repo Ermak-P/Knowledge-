@@ -141,7 +141,12 @@ def validate_binding(trigger, behavior):
     require(isinstance(trigger, dict) and set(trigger) == {'tool', 'name'} and
         all(isinstance(v,str) and 0<len(v)<=200 for v in trigger.values()), 'invalid-memory-trigger')
     require(isinstance(behavior,dict) and behavior.get('adapter') in ('preserve-format','check','dependency'), 'unsupported-memory-action')
-    require(set(behavior) == ({'adapter'} if behavior['adapter']=='preserve-format' else {'adapter','procedure'}), 'invalid-memory-behavior')
+    expected={'adapter'} if behavior['adapter']=='preserve-format' else {'adapter','procedure'}
+    require(expected<=set(behavior)<=expected|({'capability'} if behavior['adapter']=='dependency' else set()),'invalid-memory-behavior')
+    if 'capability' in behavior:
+        from .procedure_templates import parameters
+        cap=behavior['capability'];require(isinstance(cap,dict) and set(cap)=={'template','parameters'} and isinstance(cap['template'],str),'invalid-procedure-capability')
+        parameters(cap['parameters'])
     if behavior['adapter'] != 'preserve-format': validate_procedure(behavior['procedure'])
 
 
@@ -185,20 +190,29 @@ def append(db, value):
 
 
 def _teach(root, text, source, *, scope='project', shared=None, binding=None,
-          applicability=None, identifier=None, expected_revision=None, recovery_authorized=False):
+          applicability=None, identifier=None, expected_revision=None, recovery_authorized=False,
+          summary=None, missing=None, normalization=None, original=None, predecessor=None,
+          semantic=False, receipt_stage=None, intent_trigger=None, authorization_intent=None,
+          binding_template=None, binding_parameters=None, authorization_revoked=None, authorization_resource=None):
     """Trusted *local user ingress*. Never exposed as a writable MCP tool.
 
     OS callers are trusted like the existing Knowledge operator CLI. A model
     tool/result cannot manufacture user authority through the read-only MCP.
     """
-    normalized_text=clean_text(text)
+    clean_text(text)
+    normalized_text=clean_text(summary if summary else text)
+    if original is not None:clean_text(original)
+    if normalization is not None:reject_secrets(canonical_json(normalization))
+    require(missing is None or isinstance(missing,list) and len(missing)<=8 and all(isinstance(x,str) and 0<len(x)<=500 for x in missing),'invalid-instruction-missing-details')
     require(isinstance(source,dict) and set(source)=={'type','id'} and source.get('type')=='user-message' and isinstance(source.get('id'),str) and 0<len(source['id'])<=300,'user-source-required')
     reject_secrets(canonical_json(source))
     applicability=deepcopy(applicability or {});validate_applicability(applicability)
     if binding:
         validate_binding(binding['trigger'],binding['behavior']);reject_secrets(canonical_json(binding))
     store=OperationalStore(root,scope,shared);store.ensure()
-    event_id=digest({'source':source['id'],'scope':scope})
+    event_key={'source':source['id'],'scope':scope}
+    if receipt_stage:event_key['phase']=receipt_stage
+    event_id=digest(event_key)
     request=digest({'text':text,'binding':binding,'applicability':applicability,'identifier':identifier,'recovery_authorized':recovery_authorized})
     with store.connection(True) as db:
         records=current(db)
@@ -208,8 +222,8 @@ def _teach(root, text, source, *, scope='project', shared=None, binding=None,
             saved=next(r for r in records if r['id']==receipt['result']['id'])
             result=ack(saved,duplicate=True)
         else:
-            semantic=digest({'scope':scope,'text':normalized(normalized_text),'applicability':applicability})
-            old=next((r for r in records if r['id']==(identifier or semantic)),None)
+            key=digest({'scope':scope,'trigger':binding['trigger'],'behavior':binding['behavior'],'applicability':applicability,'recovery':recovery_authorized}) if semantic and binding else digest({'scope':scope,'text':normalized(normalized_text),'applicability':applicability})
+            old=next((r for r in records if r['id']==(identifier or key)),None)
             if identifier:
                 require(old is not None,'unknown-instruction')
                 require(old['kind']=='instruction','experience-requires-new-explicit-instruction')
@@ -221,17 +235,23 @@ def _teach(root, text, source, *, scope='project', shared=None, binding=None,
                 result=ack(old,duplicate=True)
             else:
                 now=time.time()
-                value=dict(version=1,id=identifier or semantic,revision=old['revision']+1 if old else 1,
+                value=dict(version=1,id=identifier or key,revision=old['revision']+1 if old else 1,
                     kind='instruction',status='active' if binding else 'unbound',scope=scope,
                     project=Project(root).identity if scope=='project' else None,
-                    original=old['original'] if old else text,normalized=normalized_text,
+                    original=old['original'] if old else original if original is not None else text,
+                    source_text=text if old or original is not None else None,normalized=normalized_text,missing=deepcopy(missing or []),
                     provenance=deepcopy(source),authority='user',applicability=applicability,
-                    trigger=deepcopy(binding['trigger']) if binding else None,
+                    trigger=deepcopy(binding['trigger']) if binding else deepcopy(intent_trigger),
                     behavior=deepcopy(binding['behavior']) if binding else None,
                     recovery_authorized=bool(recovery_authorized),
-                    technical={'state':'configured' if binding else 'unverified','evidence':[]},
+                    authorization_intent=bool(recovery_authorized if authorization_intent is None else authorization_intent),
+                    authorization_revoked=bool(authorization_revoked) if authorization_revoked is not None else bool(old and old.get('authorization_intent',old['recovery_authorized']) and not recovery_authorized),
+                    authorization_resource=authorization_resource,
+                    binding_template=binding_template,binding_parameters=deepcopy(binding_parameters or {}),
+                    technical={'state':'configured' if binding else 'unverified','evidence':[],
+                        'normalization':deepcopy(normalization)},
                     created=old['created'] if old else now,updated=now,last_verified=None,
-                    supersedes={'id':old['id'],'revision':old['revision']} if old else None,
+                    supersedes={'id':old['id'],'revision':old['revision']} if old else predecessor,
                     stale=None,evidence=[])
                 append(db,value);result=ack(value)
             db.execute('INSERT INTO operational_events VALUES (?,?)',(event_id,canonical_json({'request':request,'result':result})))
@@ -254,8 +274,8 @@ def ack(r,duplicate=False):
         'scope':r['scope'],'status':r['status'],'behavior':r['normalized'],
         'trigger':r['trigger'],'action':r['behavior'],'recovery_authorized':r['recovery_authorized'],
         'message':f"Сохранено ({r['scope']}, {r['status']}): {r['normalized']}",
-        'missing':['action/procedure binding and applicability; no resource guessed'] if r['status']=='unbound' else [],
-        'question':None if duplicate or r['status']!='unbound' else 'К какой настроенной операции или процедуре относится правило? Укажите её имя; ресурс и параметры не выбраны.'}
+        'missing':(r.get('missing') or ['action/procedure binding and applicability; no resource guessed']) if r['status']=='unbound' else [],
+        'question':None if duplicate or r['status']!='unbound' else (r.get('missing') or ['К какой настроенной операции или процедуре относится правило? Укажите её имя; ресурс и параметры не выбраны.'])[0]}
 
 
 def retire(root, identifier, *, scope='project', shared=None, expected_revision=None):
@@ -293,6 +313,21 @@ def applicable(r, environment):
     return True
 
 
+def context_view(record):
+    """Bounded retrieval references durable source instead of echoing transcripts."""
+    value=deepcopy(record)
+    original=value.pop('original','');latest=value.pop('source_text',None)
+    value['view']='operational-context-v1'
+    from hashlib import sha256
+    value['source_refs']={'original_sha256':sha256(original.encode('utf-8')).hexdigest(),'original_bytes':len(original.encode('utf-8')),
+        'latest_sha256':sha256((latest if latest is not None else original).encode('utf-8')).hexdigest(),'read':'memory-inspect / memory-history'}
+    for owner in (value,value.get('technical',{})):
+        evidence=owner.get('evidence')
+        if isinstance(evidence,list) and len(evidence)>8:
+            owner['evidence_total']=len(evidence);owner['evidence_partial']=True;owner['evidence']=evidence[:8]
+    return value
+
+
 def lookup(root, action, environment, *, shared=None, max_items=8, max_bytes=12000, include_candidates=False):
     require(isinstance(action,dict) and set(action)=={'tool','name'} and all(isinstance(v,str) for v in action.values()),'invalid-memory-action')
     require(type(max_items) is int and 1<=max_items<=32 and type(max_bytes) is int and 512<=max_bytes<=64000,'invalid-memory-budget')
@@ -306,7 +341,7 @@ def lookup(root, action, environment, *, shared=None, max_items=8, max_bytes=120
             if r['status']=='unbound':
                 # Surface missing binding without pretending an absent trigger
                 # can authorize execution. Kept bounded like other selections.
-                if applicable(r,environment) and any(word in normalized(r['normalized']) for word in normalized(action['name']).split() if len(word)>3):
+                if applicable(r,environment) and ((r['trigger'] and matches(r['trigger'],action)) or any(word in normalized(r['normalized']) for word in normalized(action['name']).split() if len(word)>3)):
                     selected.append(r)
                 continue
             if r['status']!='active' and not (include_candidates and r['status']=='candidate'):continue
@@ -333,7 +368,7 @@ def lookup(root, action, environment, *, shared=None, max_items=8, max_bytes=120
             conflicts.append([{'id':r['id'],'revision':r['revision']} for r in narrow])
         resolved.extend(narrow)
     result={'ok':True,'state':'conflict' if conflicts else 'matched' if resolved else 'no-match',
-        'stores':states,'records':resolved,'decisions':decisions,'conflicts':conflicts,'partial':False,
+        'stores':states,'records':[context_view(r) for r in resolved],'decisions':decisions,'conflicts':conflicts,'partial':False,
         'signals':{r['id']:signals[r['id']] for r in resolved if r['id'] in signals}}
     require(len(resolved)<=max_items, 'memory-context-item-limit')
     result['payload_bytes']=0
@@ -373,6 +408,9 @@ def ingest(root, text, message_id, policy, reply_to=None):
     Unknown language/intent remains unbound, never guessed. Configuration aliases
     identify supported actions, not arbitrary natural-language command execution.
     """
+    if policy.get('normalizer') is not None and policy.get('teaching_mode')!='catalog':
+        from .semantic_ingress import ingest as semantic_ingest
+        return semantic_ingest(root,text,message_id,policy,reply_to)
     target=re.search(r'(?i)(?:rule|правило)\s+([0-9a-f]{64})\b',text)
     bindings=[b for b in policy.get('bindings',[]) if any(re.search(r'(?<!\w)'+re.escape(alias)+r'(?!\w)',text,re.I) for alias in b['aliases'])]
     target_id=target.group(1) if target else reply_to if reply_to and bindings and not TEACHING.search(text) else None

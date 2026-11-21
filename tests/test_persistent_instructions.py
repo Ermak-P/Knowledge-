@@ -24,7 +24,7 @@ def setup_fixture(base):
     cfg={'version':1,'provider':{'endpoint':'http://127.0.0.1:1/chat/completions','model':'unused'},'capture':'off','limits':{},
          'recipes':{'test':{'kind':'test','argv':[sys.executable,'-c','import unittest; unittest.TextTestRunner().run(unittest.FunctionTestCase(lambda: None))'],
                             'result':{'format':'unittest','path':''},'rerun_safe':True,'env':{}}},
-         'memory':{'shared_root':str(shared),'bindings':[],'allowed_procedures':[]}}
+         'memory':{'shared_root':str(shared),'bindings':[],'allowed_procedures':[],'teaching_mode':'catalog'}}
     configure(root,cfg)
     return root,shared,cfg
 
@@ -183,7 +183,7 @@ class PersistentInstructions(unittest.TestCase):
         from p2_fixtures import project,configuration,task,http_provider,FixtureProvider
         with tempfile.TemporaryDirectory() as tmp,http_provider(FixtureProvider()) as endpoint:
             root=project(Path(tmp)/'project');shared=Path(tmp)/'home/.local/share/knowledge'
-            cfg=configuration(endpoint);cfg['memory']={'shared_root':str(shared),'bindings':[binding()]}
+            cfg=configuration(endpoint);cfg['memory']={'shared_root':str(shared),'bindings':[binding()],'teaching_mode':'catalog'}
             configure(root,cfg,True)
             (root/'Feature.cs').write_bytes(b'\xef\xbb\xbfpublic class InitialFeature {}\r\n')
             test=root/'test_feature.py';test.write_text(test.read_text().replace('read_text()','read_text(encoding="utf-8-sig")'))

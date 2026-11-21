@@ -122,6 +122,38 @@ def main():
                 negative=run('A07-'+kind,r);assert not negative['result']['ok'];assert rows['A07-'+kind]['starts']==0
                 expected={'missing':'docker-resource-missing','unhealthy':'dependency-running-not-ready','docker-unavailable':'memory-executable-unavailable'}[kind]
                 assert negative['result'].get('error')==expected,negative['result']
+            # Semantic bridge: real isolated resource; local-model protocol double.
+            # Missing resource details arrive once in a second genuine user event.
+            from test_persistent_semantics import decision,local_normalizer,template
+            semantic_base=base/'semantic';semantic_base.mkdir();sr,ss,sc=setup_fixture(semantic_base)
+            capability=template();capability.update(docker=docker,deadline=30,interval=.25,check_timeout=4)
+            first_text='Remember for all projects using local Kafka: check readiness before required tests. You may start that specific local container.'
+            details=f'Use container {kafka} and port {port}.'
+            first=decision(scope='shared',scope_explicit=True,scope_quote='all projects',authorize_recovery=True,
+                permission_quote='You may start that specific local container.',summary='Check Kafka and start only its stopped configured container when permitted.',
+                question='What are the configured container name and test-accessible port?')
+            answer=decision(intent='clarify',scope='shared',summary=first['summary'],parameters={'container':kafka,'port':port},
+                parameter_quotes={'container':f'container {kafka}','port':f'port {port}'})
+            semantic_requests=[]
+            with local_normalizer([first,answer],semantic_requests) as normalizer:
+                sc['recipes']['test']['argv']=[sys.executable,'-I','-c',test_code]
+                sc['memory'].update(teaching_mode='local-model',normalizer=normalizer,procedure_templates=[capability],allowed_templates=[capability['id']],
+                    environment={'environment':'isolated-fixture-'+tag},
+                    bindings=[{'aliases':['Kafka'],'trigger':{'tool':'dependency','name':'local_broker'},'template':capability['id'],'applicability':{'environment':'isolated-fixture-'+tag}}],
+                    requirements=[{'trigger':{'tool':'recipe','name':'test'},'dependency':'local_broker'}]);configure(sr,sc)
+                pending=ingress(sr,first_text);assert pending['status']=='unbound',pending
+                before_binding=run('A16-resource-unbound',sr);assert before_binding['result'].get('error')=='instruction-binding-required';assert rows['A16-resource-unbound']['starts']==0
+                bound=ingress(sr,details,message_id='resource-details');assert bound['status']=='active' and bound['id']==pending['id'] and bound['revision']==2,bound
+            # No original dialog, no reminder, and the normalization endpoint is off.
+            repaired=run('A16-resource-bound-fresh-process',sr);assert repaired['result']['ok'],repaired['result'];assert rows['A16-resource-bound-fresh-process']['starts']==1
+            semantic_other=base/'semantic-other';semantic_other.mkdir();orr,_,orc=setup_fixture(semantic_other)
+            orc['memory']=deepcopy(sc['memory']);orc['memory']['shared_root']=str(ss);orc['recipes']=deepcopy(sc['recipes']);configure(orr,orc)
+            reused=run('A03-template-cross-project',orr);assert reused['result']['ok'];assert not (orr/'.knowledge').exists()
+            assert len(semantic_requests)==2
+            report['semantic_ingress']={'type':'local-model protocol double; actual installed ingress/SQLite/owned Docker execution',
+                'record_id':bound['id'],'revision':bound['revision'],'normalizer_requests':len(semantic_requests),
+                'user_teaching':first_text,'user_details':details,'retained_original':op.OperationalStore(sr,'shared',ss).records()['records'][0]['original'],
+                'model_usage_evidence':'test-double only; no real model usage claim'}
             # Published hook contract; UI is a fixture, ingress/storage are real.
             cfg['memory']['bindings']=[binding()];configure(root,cfg)
             plugin=importlib.resources.files('knowledge').joinpath('host/opencode.mjs')

@@ -57,6 +57,7 @@ def main():
             host_run('teaching','Remember encoding: preserve existing encoding, BOM presence and line endings when editing files.')
             records=OperationalStore(root,'project',shared).records()['records'];assert len(records)==1 and records[0]['status']=='active','actual host did not durably capture teaching'
             remembered=records[0];teaching_session=remembered['provenance']['id'].split('/')[0]
+            assert (root/'Feature.cs').read_bytes()==b'\xef\xbb\xbfpublic class InitialFeature {}\r\n','teaching session unexpectedly edited the fixture'
             # First process has terminated. This prompt contains no encoding rule.
             host_run('fresh-session','Execute the enrolled approved_task through harness_run and report the verified result.')
             runs=Journal(root).runs();assert runs and any(run.get('status')=='completed' for run in runs),'fresh host did not execute the guarded task'

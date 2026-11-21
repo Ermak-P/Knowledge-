@@ -33,7 +33,7 @@ def task_shape(task,configuration,*,p4_base=False):
     else:require(not task['writable'] and not task['recipes'],'read-only-task-has-write-authority')
 
 
-def start(root,task,mode='multi',*,entry_authority=None,current_restrictions=None,host_session=None):
+def start(root,task,mode='multi',*,entry_authority=None,current_restrictions=None,host_session=None,format_changes=None):
     task=deepcopy(task);entry_authority=deepcopy(entry_authority)
     journal=Journal(root)
     require(mode in ('multi','single'),'invalid-execution-mode')
@@ -49,6 +49,9 @@ def start(root,task,mode='multi',*,entry_authority=None,current_restrictions=Non
         if current_restrictions:
             require(isinstance(current_restrictions,list) and set(current_restrictions)<={'no-service-start'},'invalid-current-restriction')
             run['current_restrictions']=deepcopy(current_restrictions)
+        if format_changes:
+            from knowledge.text_format import validate_changes
+            run['current_format_changes']=deepcopy(validate_changes(format_changes))
         if host_session:
             from .host_ingress import read_session
             read_session(root,host_session);run['host_session']=host_session

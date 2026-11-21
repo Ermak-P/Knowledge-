@@ -38,3 +38,12 @@ host shell/edit tools cannot inherit Harness's owned-process guarantees.
 Docker daemon 29.9.2 and Node/npm are available. No user Kafka binding or Kafka
 image was supplied. Tests must create explicitly named isolated fixtures, never
 discover/start a user's service by guessing a container name.
+
+The final ingress also uses `normalizer.py` (loopback-only semantic classification),
+`semantic_ingress.py` (quoted resource/scope binding, incomplete intent and CAS),
+`procedure_templates.py` (independently permitted typed Docker/Kafka factory), and
+`text_format.py` (pure byte codec and explicit current-session exceptions).
+The model returns catalog selections/data, never executable argv. An unsupported
+condition blocks before effects rather than being dropped. Real model quality
+remains unqualified; HTTP protocol doubles are labelled separately from actual
+Python processes, durable SQLite commits, broker effects and Docker protocol tests.
