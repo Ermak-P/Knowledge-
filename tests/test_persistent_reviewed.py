@@ -147,9 +147,29 @@ class ReviewedInstructions(unittest.TestCase):
             fixed=op.rebind(root,record['id'],'Revalidate the existing resource and permit startup.',{'type':'user-message','id':'repair'},shared=shared,expected_revision=1,recovery_authorized=True)
             self.assertEqual(fixed['id'],saved['id']);self.assertNotIn(record['id'],store.records()['bindings'])
             ready=DockerContract(root,after_start=True)
-            execute_procedure(ready,'operation',store.records()['records'][0],{'shared_root':str(shared)})
+            revised=next(r for r in store.records()['records'] if r['id']==record['id'])
+            execute_procedure(ready,'operation',revised,{'shared_root':str(shared)})
             self.assertEqual(len(ready.starts()),1);self.assertEqual(store.records()['bindings'][record['id']]['state'],'verified')
-            self.assertEqual(store.records()['records'][0]['original'],record['original'])
+            self.assertEqual(next(r for r in store.records()['records'] if r['id']==record['id'])['original'],record['original'])
+
+    def test_binding_events_use_causal_order_when_clock_equal_or_backwards(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root,shared,cfg=setup_fixture(tmp);p=procedure()
+            saved=op.teach(root,'Keep this guard intent.',{'type':'user-message','id':'clock'},shared=shared,
+                binding=binding('guard','recipe','test',{'adapter':'check','procedure':p}))
+            store=op.OperationalStore(root,'project',shared);record=store.records()['records'][0]
+            with patch('knowledge.operations.time.time',return_value=100):
+                op.binding_event(root,record,shared,'attempted','unknown',daemon='old-daemon')
+                last=op.binding_event(root,record,shared,'verified')
+            self.assertEqual(last['sequence'],2);self.assertEqual(store.records()['bindings'][saved['id']]['state'],'verified')
+            with patch('knowledge.operations.time.time',return_value=99):
+                last=op.binding_event(root,record,shared,'blocked','failed')
+            self.assertEqual(last['sequence'],3);self.assertEqual(store.records()['bindings'][saved['id']]['state'],'blocked')
+            op.rebind(root,saved['id'],'Revalidate.',{'type':'user-message','id':'clock-rebind'},shared=shared,expected_revision=1)
+            revised=store.records()['records'][0]
+            with self.assertRaisesRegex(KnowledgeError,'instruction-revision-conflict'):op.binding_event(root,record,shared,'verified')
+            current=op.binding_event(root,revised,shared,'verified')
+            self.assertEqual(current['sequence'],1);self.assertNotIn('daemon',current)
 
     def test_changed_daemon_or_container_identity_requires_rebind(self):
         for field in ('daemon','resource'):

@@ -81,16 +81,15 @@ class OperationalStore(Store):
             records=current(db)
             signals={};bindings={}
             if enabled(db):
-                for payload, in db.execute('SELECT payload FROM operational_events'):
+                for payload, in db.execute('SELECT payload FROM operational_events ORDER BY rowid'):
                     result=loads(payload)['result']
                     record=next((r for r in records if r['id']==result.get('id')),None)
                     if record is None or record['revision']!=result.get('revision'):continue
                     if 'binding_state' in result:
                         old=bindings.get(result['id'])
-                        if old is None or old['at']<result['binding_state']['at']:bindings[result['id']]=result['binding_state']
+                        if old is None or result['binding_state'].get('sequence',0)>=old.get('sequence',0):bindings[result['id']]=result['binding_state']
                     if 'application' in result:
-                        old=signals.get(result['id'])
-                        if old is None or old['at']<result['application']['at']:signals[result['id']]=result['application']
+                        signals[result['id']]=result['application']
             return {'state': 'available', 'records': records, 'signals':signals,'bindings':bindings}
 
     def history(self, identifier):
@@ -329,10 +328,12 @@ def binding_event(root,record,shared,state,reason=None,**observed):
     with store.connection(True) as db:
         require(any(r['id']==record['id'] and r['revision']==record['revision'] for r in current(db)),'instruction-revision-conflict')
         previous={}
-        for payload, in db.execute('SELECT payload FROM operational_events'):
+        for payload, in db.execute('SELECT payload FROM operational_events ORDER BY rowid'):
             result=loads(payload)['result'];value=result.get('binding_state')
-            if result.get('id')==record['id'] and result.get('revision')==record['revision'] and value and value['at']>previous.get('at',0):previous=value
-        value={**previous,**observed,'at':time.time(),'state':state,'reason':reason}
+            if result.get('id')==record['id'] and result.get('revision')==record['revision'] and value and value.get('sequence',0)>=previous.get('sequence',0):previous=value
+        # Windows wall-clock ticks may coincide; time may also move backwards.
+        # Order state by a revision-scoped counter allocated inside this write.
+        value={**previous,**observed,'sequence':previous.get('sequence',0)+1,'at':time.time(),'state':state,'reason':reason}
         reject_secrets(canonical_json(value))
         event={'request':digest(value),'result':{'id':record['id'],'revision':record['revision'],'binding_state':value}}
         db.execute('INSERT INTO operational_events VALUES (?,?)',(digest(event),canonical_json(event)))
