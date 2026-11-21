@@ -45,6 +45,28 @@ class DockerContract:
 
 
 class ReviewedInstructions(unittest.TestCase):
+    def test_paraphrase_after_clarification_reuses_the_original_intent_id(self):
+        with tempfile.TemporaryDirectory() as tmp,local_normalizer([
+            decision(binding=None,question='Which file type?'),decision(intent='clarify'),
+            decision(summary='Keep the configured source byte format.')]) as normalizer:
+            root,shared,cfg=setup_fixture(tmp)
+            cfg['memory'].update(teaching_mode='local-model',normalizer=normalizer,
+                bindings=[binding(name='*.cs'),binding('prose',name='*.txt')]);configure(root,cfg)
+            first=ingress(root,'Remember the file byte format for future edits.')
+            self.assertEqual(first['status'],'unbound')
+            bound=ingress(root,'Use the configured .cs path.',message_id='binding')
+            repeated=ingress(root,'Keep the configured source byte format for future edits.',message_id='paraphrase')
+            self.assertEqual(bound['id'],first['id']);self.assertEqual(repeated['id'],first['id'])
+            self.assertTrue(repeated['duplicate']);self.assertEqual(repeated['revision'],bound['revision'])
+            store=op.OperationalStore(root,'project',shared)
+            self.assertEqual(len(store.records()['records']),1);self.assertEqual(len(store.history(first['id'])),2)
+            changed=op.teach(root,'Use the configured prose path instead.',{'type':'user-message','id':'correction'},
+                shared=shared,binding=binding('prose',name='*.txt'),identifier=first['id'],expected_revision=2,semantic=True)
+            again=op.teach(root,'Preserve prose byte format.',{'type':'user-message','id':'corrected-repeat'},
+                shared=shared,binding=binding('prose',name='*.txt'),semantic=True)
+            self.assertEqual(changed['id'],again['id']);self.assertTrue(again['duplicate']);self.assertEqual(again['revision'],3)
+            self.assertEqual(len(store.records()['records']),1);self.assertEqual(len(store.history(first['id'])),3)
+
     def test_unbound_known_dependency_blocks_only_the_declared_suite(self):
         with tempfile.TemporaryDirectory() as tmp:
             root,shared,cfg=setup_fixture(tmp)

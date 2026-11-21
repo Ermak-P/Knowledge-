@@ -236,6 +236,13 @@ def _teach(root, text, source, *, scope='project', shared=None, binding=None,
         else:
             key=digest({'scope':scope,'trigger':binding['trigger'],'behavior':binding['behavior'],'applicability':applicability,'recovery':recovery_authorized}) if semantic and binding else digest({'scope':scope,'text':normalized(normalized_text),'applicability':applicability})
             old=next((r for r in records if r['id']==(identifier or key)),None)
+            if semantic and binding and not identifier:
+                # An intent first saved unbound keeps its original stable ID.
+                # Compare represented behavior, not the ID's creation strategy.
+                equivalents=[r for r in records if r['kind']=='instruction' and r['behavior'] is not None and
+                    digest({'scope':r['scope'],'trigger':r['trigger'],'behavior':r['behavior'],
+                        'applicability':r['applicability'],'recovery':r['recovery_authorized']})==key]
+                old=next((r for r in equivalents if r['status']=='active'),old or next(iter(equivalents),None))
             if identifier:
                 require(old is not None,'unknown-instruction')
                 require(old['kind']=='instruction','experience-requires-new-explicit-instruction')
