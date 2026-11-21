@@ -67,14 +67,18 @@ python -m unittest discover -s <repo>/tests -p "test_persistent*.py" -v
 [новый offline kit](distribution/knowledge-harness-0.5.0rc1.zip),
 [проверка package/source](package-validation.json).
 
-Полный source-bound маршрут `.venv/bin/python scripts/verify_p4.py` выполняется.
-Новый [CI run 44923713836](https://github.com/Ermak-P/Knowledge-/actions/runs/44923713836)
-проверяет Linux и native Windows; Windows command: `scripts/verify-p4-windows.ps1`.
-Окончательные результаты будут добавлены сюда. Предыдущие R1 CI не переиспользуются.
+Полный source-bound маршрут `.venv/bin/python scripts/verify_p4.py`:
+**PASS_PORTABLE**, 22/22 commands, 304 tests — 293 PASS, 11 native-only SKIP,
+0 FAIL/ERROR, source unchanged=true. [Ledger и command logs](local-qualified/)
+сверены с exact source map/commit и SHA-256 каждого лога.
+Новый [CI run 44923713836](https://github.com/Ermak-P/Knowledge-/actions/runs/44923713836):
+Linux job 136905134748 завершён success; native Windows job 136905134709 ещё
+выполняется. Windows command: `scripts/verify-p4-windows.ps1`.
+Окончательные retained receipts будут добавлены сюда. R1 CI не переиспользуются.
 
 ## Real-host validation
 
-[Discovery](host-discovery.json): OpenCode/Ollama отсутствуют, проверенные loopback
+[Discovery](host-discovery.json): OpenCode/Ollama не найдены в PATH, проверенные loopback
 порты 11434/1234/8080/8000 не слушают. [Existing isolated driver](host-validation.json)
 вернул BLOCKED до создания host session. Host/model versions, independent session
 IDs и live remembered revisions отсутствуют. `unavailable-local-model` — placeholder,
