@@ -1,0 +1,170 @@
+{
+  "result": {
+    "ok": false,
+    "error": "instruction-binding-required",
+    "details": null
+  },
+  "actions": {
+    "operation": {
+      "agent": null,
+      "args": {
+        "name": "test"
+      },
+      "at": 1795258890.7343168,
+      "finished": 1795258890.7470381,
+      "memory_traces": [
+        {
+          "binding_states": {},
+          "dependency_links": [
+            {
+              "dependency": "local_broker",
+              "source": "runner-requirement",
+              "suite": null
+            }
+          ],
+          "error": "instruction-binding-required",
+          "lookup_bytes": 1974,
+          "lookup_seconds": 0.002756170000793645,
+          "lookups": [
+            {
+              "action": {
+                "name": "test",
+                "tool": "recipe"
+              },
+              "bindings": {},
+              "conflicts": [],
+              "decisions": [],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 187,
+              "signals": {},
+              "state": "no-match",
+              "stores": {
+                "project": "absent",
+                "shared": "available"
+              }
+            },
+            {
+              "action": {
+                "name": "local_broker",
+                "tool": "dependency"
+              },
+              "bindings": {},
+              "conflicts": [],
+              "decisions": [],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 1787,
+              "signals": {},
+              "state": "matched",
+              "stores": {
+                "project": "absent",
+                "shared": "available"
+              }
+            }
+          ],
+          "ok": false,
+          "outcomes": [],
+          "phase": "before-action",
+          "selected": [
+            {
+              "id": "db9c9b831de0368e8cfeb7d0518524dcd3a16fa7601cac197ae0a0f25cb1bf8f",
+              "revision": 1,
+              "scope": "shared"
+            }
+          ],
+          "selected_bytes": 1602,
+          "total_seconds": 0.004222262003167998
+        },
+        {
+          "binding_states": {},
+          "candidate_ids": [],
+          "dependency_links": [
+            {
+              "dependency": "local_broker",
+              "source": "runner-requirement",
+              "suite": null
+            }
+          ],
+          "lookup_bytes": 2292,
+          "lookups": [
+            {
+              "action": {
+                "name": "test",
+                "tool": "recipe"
+              },
+              "bindings": {},
+              "conflicts": [],
+              "decisions": [],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 187,
+              "signals": {},
+              "state": "no-match",
+              "stores": {
+                "project": "absent",
+                "shared": "available"
+              }
+            },
+            {
+              "action": {
+                "name": "local_broker",
+                "tool": "dependency"
+              },
+              "bindings": {},
+              "conflicts": [],
+              "decisions": [],
+              "ok": true,
+              "partial": false,
+              "payload_bytes": 2105,
+              "signals": {
+                "db9c9b831de0368e8cfeb7d0518524dcd3a16fa7601cac197ae0a0f25cb1bf8f": {
+                  "at": 1795258890.7413087,
+                  "evidence": [
+                    {
+                      "action": "operation",
+                      "run": "c9c4307b3df94a5899a872aa643024eb"
+                    }
+                  ],
+                  "outcome": {
+                    "error": "instruction-binding-required",
+                    "ok": false,
+                    "phase": "before-action"
+                  },
+                  "root_cause": "not-established",
+                  "technical": "blocked-or-failed"
+                }
+              },
+              "state": "matched",
+              "stores": {
+                "project": "absent",
+                "shared": "available"
+              }
+            }
+          ],
+          "phase": "after-error",
+          "selected": [
+            {
+              "id": "db9c9b831de0368e8cfeb7d0518524dcd3a16fa7601cac197ae0a0f25cb1bf8f",
+              "revision": 1,
+              "scope": "shared"
+            }
+          ],
+          "selected_bytes": 1602
+        }
+      ],
+      "request": null,
+      "result": {
+        "details": null,
+        "error": "instruction-binding-required",
+        "ok": false
+      },
+      "role": "Testing",
+      "signature": "a470e8febdfe6a992d12e490d43cd27e1017517982360bb607ad4b50e83245d1",
+      "status": "FINISHED",
+      "tool": "recipe",
+      "version": 1
+    }
+  },
+  "run_id": "c9c4307b3df94a5899a872aa643024eb"
+}

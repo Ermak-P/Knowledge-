@@ -1,147 +1,133 @@
-# Persistent instructions — приёмка
+# Persistent instructions — reviewed task
 
-Результат: **PARTIAL / real host A02 BLOCKED**. Реализованы внешняя память,
-автоматический доверенный ingress, локальная семантическая нормализация,
-ограниченный lookup и применение в owned Harness. Это внешняя память,
-а не обучение весов модели. OpenCode и локальная модель в среде отсутствуют;
-полный host E2E не подменяется протокольными doubles.
+Вердикт: **IMPLEMENTED / HOST VALIDATION PENDING**.
+Реальные OpenCode/local-model A01, A02, A05 и A17 не выполнены: хост отсутствует.
+Изолированные PASS ниже не означают ACCEPTED. Это внешняя память, не обучение модели.
 
-Проверяемый код: `7f6ea1df8f56720787776e943d8a284a870bdcac`, поверх опубликованного
-`37a280da38d913b6fef7867e0f988ad40026947f`. Source identity:
-`07e36dc018a1d91b1d10660024c233d3d3537af4048171d20721665280877bd8`.
+Исходники: `90d3db8ad4ab1ac1b3fc8a97ba429e1581835c80`, source identity
+`2a0f12a455650d25fa0328889d6527962bdb43e7c8819671662264b4c4e97b7e`.
+Новая редакция задания: [Task-1](../../tasks/Knowledge-Harness-Persistent-Instructions-Codex-Task-1.md).
 
 - [Ветка GitHub](https://github.com/Ermak-P/Knowledge-/tree/codex/persistent-instructions)
 - [Изменения относительно main](https://github.com/Ermak-P/Knowledge-/compare/main...codex/persistent-instructions)
-- [Exact-source CI](https://github.com/Ermak-P/Knowledge-/actions/runs/44877877238)
-- [Карта возможностей и аудит](../../docs/P4/PERSISTENT-INSTRUCTIONS-AUDIT.md)
-- [Установка, обучение, обслуживание и откат](../../docs/P4/PERSISTENT-INSTRUCTIONS.md)
-- [Пример template policy](TEMPLATE-CONFIGURATION.md)
-- [Offline kit](7f6ea1df/distribution/knowledge-harness-0.5.0rc1.zip)
-- [Хеши исходников](7f6ea1df/source.json)
+- [Аудит и карта возможностей](../../docs/P4/PERSISTENT-INSTRUCTIONS-AUDIT.md)
+- [Установка, scopes, teaching, maintenance, coverage table и rollback](../../docs/P4/PERSISTENT-INSTRUCTIONS.md)
+- [Гайд настоящего host trial](../../docs/P4/PERSISTENT-INSTRUCTIONS-LIVE-HOST.md)
+- [Offline kit](90d3db8a/distribution/knowledge-harness-0.5.0rc1.zip)
+- [Хеши исходников](90d3db8a/source.json)
+- [Exact-source CI](https://github.com/Ermak-P/Knowledge-/actions/runs/44896791625)
 
-Candidate остаётся `0.5.0rc1`, release не опубликован, main не изменялся.
-Существующие `knowledge-init`, `knowledge-candidates-update`,
-`knowledge-candidates-push` сохранены. Worktrees, новая архитектура делегирования
-и broad permissions не вводились.
+## Реализованное поведение
 
-## Матрица
+Сохранены две SQLite, самостоятельность Knowledge и существующие lifecycle/claims
+контракты. Shared teaching не требует `.knowledge` проекта; absent store нормален,
+corrupt/unreadable existing store означает отказ. Сохранение подтверждается после
+commit и проверки; original wording/history остаются независимо от binding state.
 
-Ссылки ниже относительно [каталога финального кода](7f6ea1df/).
-Профильные **24/24 PASS** выполнены из offline установленного kit вне checkout.
-Provider нормализации и UI в этих проверках — явно обозначенные doubles;
-Python/Node процессы, SQLite commits, owned broker и Docker/Kafka — настоящие.
+Новая installation binding отдельно фиксирует execution machine/context, Docker
+context и хеши известных inputs. Изменение блокирует затронутую процедуру. При
+recovery фиксируются daemon и immutable container ID: прежнее имя не разрешает
+старт другого объекта. Compose требует project name/directory и явный env-file.
+Docker daemon/Desktop автоматически не запускаются; remote Docker вне покрытия.
 
-| ID | Статус | Тип, результат и свидетельство |
+Attempted/blocked/verified сигналы привязаны к revision и не заменяют пользовательский
+intent. Неудача/неизвестный исход startup не повторяется при каждом новом run:
+допускается безопасный readiness recheck, затем явный blocked до исправления или
+operator rebind. CAS-перепривязка сохраняет ID, normalized intent, original и audit.
+Startup grant для новой привязки задаётся явно; allowlist остаётся независимым.
+
+Suite -> dependency -> shared procedure определяется существующим runner requirement.
+У automatic tests optional `suite` выбирает проверенный inventory path и только test
+phase. Нет новой discovery-системы, LLM на каждый tool call или recursive lookup.
+Отсутствующий activation route, current tool denial и unsupported trigger отражаются
+в receipt; сохранение intent не обещает исполнение неподдержанного действия.
+
+## Матрица A01–A20
+
+Все пути свидетельств ниже относительно [90d3db8a](90d3db8a/).
+**35/35 профильных проверок PASS** из offline установленного runtime вне checkout.
+UI/model/provider doubles явно отделены от реальных Python/Node процессов,
+SQLite transactions, broker/supervisor, Docker/Kafka и .NET SDK/TRX.
+
+| ID | Статус требования | Уровень и свидетельство |
 |---|---|---|
-| A01 | PASS | Contract/process integration: неизвестная ранее формулировка без alias/«remember» проходит локальный model protocol, сохраняется до receipt с original/scope/ID/revision. `focused-tests.log`; настоящий OpenCode отдельно BLOCKED. |
-| A02 | BLOCKED | Teaching process и endpoint завершаются; новые broker/CLI процессы применяют правило без transcript. Настоящий новый OpenCode session не проверен: executable отсутствует, `real-host.json`. Runnable driver — `scripts/validate_persistent_host.py`. |
-| A03 | PASS | Real broker/Docker: другой проект применяет одну каноническую shared запись, включая параметризованный template. `scenarios/A03-cross-project/`, `scenarios/A03-template-cross-project/`. Нет копии записи в новом проекте. |
-| A04 | PASS | Unit/process contract: project isolation, machine/OS/exact tool mismatch. `focused-tests.log`, `extra-validation.json`. Machine/OS/Python берутся из runtime; дополнительные tool tags — assertions владельца policy. |
-| A05 | PASS | Real stopped Kafka fixture: ровно один owned start, ApiVersions/Metadata/controller и advertised endpoints проверены из среды теста, затем исходный integration test. `scenarios/A05-stopped/`, `scenarios/A16-resource-bound-fresh-process/`. |
-| A06 | PASS | Real ready Kafka: повторный независимый процесс без start/restart. `scenarios/A06-ready/`. |
-| A07 | PASS | Real Docker: отсутствующий resource, running-not-ready container; отдельно отсутствующий executable. Ограниченный отказ, ноль стартов. `scenarios/A07-*/`. Windows Docker и недоступный remote daemon не квалифицированы. |
-| A08 | PASS | Real protocol/test integration: ready Kafka + application failure остаётся test failure без infrastructure recovery; unrelated suite не запускает остановленную Kafka. `scenarios/A08-*/`. |
-| A09 | PASS | Real user ingress + отдельный broker: текущий запрет и current allowlist нельзя обойти remembered grant. `scenarios/A09-*/`. Contract проверяет trusted session ID, семантический deny/clear и сохранность durable default. |
-| A10 | PASS | Unit/process: source retry, semantic dedup разных формулировок, CAS correction/history/retirement без cache. Смена ресурса не переносит startup grant. `focused-tests.log`. |
-| A11 | PASS | Real recovery создаёт project `experience/candidate`, evidence refs, вмешательство, исход и uncertainty. Не повышается в обязательную причинную инструкцию. `scenarios/acceptance.json`, поле `candidates`. |
-| A12 | PASS | Process/byte integration: UTF-8 BOM/CRLF/no-final-newline, UTF-16 BOM и mid-text U+FEFF. Явное текущее изменение на UTF-8/no-BOM/LF не переписывает default; новая сессия сохраняет исходный формат. Новый archive_guard обучен без изменения production code. `focused-tests.log`. |
-| A13 | PASS | Temporary homes, 8 независимых CLI writers + 8 retries: без потери/дубликатов. Standalone Knowledge без Harness и старый reader 0.4.0rc3 сохраняют архитектуру и обе DB byte-for-byte. `extra-validation.json`, `compatibility.json`; native CI см. ниже. |
-| A14 | PASS | Fault после реального INSERT до commit откатывает новую запись/history/receipt, сохраняет предыдущую запись; retry один раз. Corrupt retrieval блокирует действие без false no-match. Remote normalizer/неизвестная команда/придуманный ресурс не исполняются. `focused-tests.log`, `extra-validation.json`. |
-| A15 | PASS | Unit/process: исключены unrelated shared records, проверен byte cap. Context содержит ID/revision/source hashes/inspect refs; canonical source в DB. Реальные traces дают bytes/time/applicability. `scenarios/acceptance.json`, `focused-tests.log`. |
-| A16 | PASS | Real ingress/SQLite/Docker с model protocol double: исходный intent unbound, один вопрос о container/port; один ответ связывает тот же ID, rev2 без правки config/повторного обучения. Normalizer затем завершён, новый broker применяет процедуру. `scenarios/A16-resource-unbound/`, `scenarios/A16-resource-bound-fresh-process/`, `semantic_ingress` в acceptance.json. |
+| A01 | BLOCKED: real host | PASS contract/process: genuine user ingress, unseen wording, source/scope/ID/revision и durable receipt. `focused-tests.log`, `scenarios/host-contract.log`. Реальная модель/хост не проверены. |
+| A02 | BLOCKED: real host | PASS independent installed ingress/broker/CLI processes без transcript/reminder; model endpoint завершается. `focused-tests.log`. Реальный encoding host driver: `real-host.json`, BLOCKED. |
+| A03 | PASS | Real broker/Docker: shared canonical record работает в другом fixture проекте без project init/копирования. `scenarios/A03-*/`. |
+| A04 | PASS | Unit/process: project isolation, machine/OS/tool mismatch, execution context mismatch до любого процесса. `focused-tests.log`, `extra-validation.json`. |
+| A05 | BLOCKED: real host | PASS real stopped Kafka fixture: один start, protocol readiness и отдельный исходный test result. `scenarios/A05-stopped/`, `A16-resource-bound-fresh-process/`. Настоящий OpenCode не участвовал. |
+| A06 | PASS | Real ready Kafka, новый процесс, ноль start/restart. `scenarios/A06-ready/`. |
+| A07 | PASS | Real owned resources: missing/unhealthy; отдельно unavailable executable/non-executable binding. Concrete bounded errors, ноль стартов. `scenarios/A07-*/`. Remote daemon и Windows Docker не квалифицированы. |
+| A08 | PASS | Ready Kafka + application failure остаётся test failure без инфраструктурного remedy. Unrelated suite не запускает остановленную Kafka. `scenarios/A08-*/`. |
+| A09 | PASS | Actual ingress/broker/Docker: текущий no-start и пустой allowlist сильнее memory. Hook contract подставляет trusted session. `scenarios/A09-*/`, `focused-tests.log`. |
+| A10 | PASS | Unit/process: source/hash replay, recovery потерянного pending pointer, semantic dedup, CAS correction, retirement/history. `focused-tests.log`. |
+| A11 | PASS | Real recovery пишет project candidate с evidence/uncertainty, не causal/mandatory rule. `scenarios/acceptance.json`, поле candidates. |
+| A12 | PASS: component fresh session | Byte-exact UTF-8 BOM/no-BOM и UTF-16, non-ASCII/untouched content, EOL/final newline, current format exception без смены default. Новый guard без production branch, отдельный CLI/SDK trial. `focused-tests.log`, `automatic-suite/`. Настоящий host encoding trial BLOCKED. |
+| A13 | PASS: isolated storage/process | Temporary roots; 8 parallel CLI writers + 8 replays, без потери/дубликатов. Standalone без Harness и rollback reader 0.4.0rc3 сохраняют архитектуру/обе DB byte-for-byte. `extra-validation.json`, `compatibility.json`. Native qualification отдельно ниже. |
+| A14 | PASS | Fault после INSERT до commit откатывает record/history/receipt и сохраняет предыдущий commit; corrupt retrieval не становится no-match. Недоступная/изменённая binding отражена как non-executable. `focused-tests.log`, `extra-validation.json`. |
+| A15 | PASS | Unrelated records исключены, overflow явный, без top-k потери обязательных правил; IDs/revs/source refs/bytes/time доступны в traces. `focused-tests.log`, `scenarios/acceptance.json`. |
+| A16 | PASS | Real ingress/SQLite/Docker + local-model protocol double: unbound intent, один ответ container/port, тот же ID/rev2, новый процесс без normalization endpoint. `scenarios/A16-*/`. |
+| A17 | BLOCKED: real host | PASS full ordinary-goal CLI/role/broker/Docker path с model double, без Kafka/memory reminder. PASS actual SDK: 3 discovered projects, guard только у declared suite. `scenarios/A17-full-cli/`, `automatic-suite/`. OpenCode fresh session не проверен. |
+| A18 | PASS: contract/process | Негативные условия/unsupported guard сохраняются; unresolved conflict блокирует affected action; current format/no-start не переписывает default. Реальный running-not-ready fixture не restart. `focused-tests.log`, `scenarios/A07-unhealthy/`. |
+| A19 | PASS | Shared без project init, corruption отдельно. Actual same-name replacement даёт docker-resource-changed до start; unit daemon/context/Compose input changes. `scenarios/A19-resource-changed/`, `focused-tests.log`. |
+| A20 | PASS | Actual failed readiness/start attempt, затем fresh no-replay; intent active, binding blocked. Full CLI private checks без recursive lookup. Known bypasses в coverage table. `scenarios/A20-*/`, `scenarios/A17-full-cli/`, docs. |
 
-Невыразимое «только в maintenance window» сохраняется unbound и блокирует старый
-широкий default до эффектов. Неясная scope вызывает один вопрос; ответ об общей
-области сохраняет shared successor и audit прежней project записи. Подстановка
-моделью усечённого container name или port не проходит проверку цитаты источника.
+## Измерения
 
-Матрица не означает универсальное исполнение произвольного языка. Модель выбирает
-только owner-configured bindings/templates; команды материализует типизированный
-код. Текущая policy независимо разрешает exact procedure/template, а для startup
-нужно отдельное пользовательское разрешение. Проверены adapters check, dependency
-и preserve-format. Native tools хоста вне Harness этим механизмом не управляются.
-Режим `teaching_mode:catalog` — явный literal/alias режим для operator fixtures;
-он не заменяет семантический разбор свободных формулировок. По умолчанию Harness
-использует существующий loopback provider. Качество реальной модели не измерено.
+Один trial каждого сценария; baseline/enabled сброшены к одному owned stopped
+fixture. Model token usage/real-model latency недоступны; synthetic usage не
+считается метрикой модели. Выигрыш по скорости/токенам не установлен.
 
-## Свежий процесс и измерения
-
-[Raw acceptance JSON](7f6ea1df/scenarios/acceptance.json) содержит ID/revision,
-readiness command receipts, отдельный test result и полные lookup/recovery timings.
-Для параметризованного пути: два user message, две нормализации protocol double,
-одна запись `3d2f6023934e7261088646043106bedc57a02af99164e73c5645b0e70f1fb763`,
-rev2. Исходное teaching сохранено; ответ добавил только точное имя fixture и port.
-Настоящий контейнер имеет собственный label и удалён после проверки владения.
-
-Один последовательный trial каждого сценария. Baseline/enabled начинают с
-остановленного одинакового fixture; protocol integration test не меняется.
-
-| Сценарий | Итог | Failed test attempts | Starts | Wall, s | Records / bytes |
+| Сценарий | Исход | Failed test attempts | Starts | Wall, s | Records / bytes |
 |---|---|---:|---:|---:|---:|
-| Baseline, memory disabled | test failure | 1 | 0 | 0.207 | 0 / 0 |
-| Enabled, stopped Kafka | PASS | 0 | 1 | 4.058 | 1 / 1652 |
-| Enabled, ready Kafka | PASS | 0 | 0 | 0.278 | 1 / 1652 |
-| Другой проект | PASS | 0 | 0 | 0.321 | 1 / 1652 |
-| Ready Kafka, application failure | test failure | 1 | 0 | 0.351 | 3 / 8362* |
-| Unrelated suite, stopped Kafka | PASS | 0 | 0 | 0.177 | 0 / 2 |
-| Binding supplied once, fresh process | PASS | 0 | 1 | 4.091 | 1 / 2126 |
-| Template, другой проект | PASS | 0 | 0 | 0.332 | 1 / 2126 |
+| baseline-stopped-memory-disabled | test failure | 1 | 0 | 0.204 | 0 / 0 |
+| A05-stopped | PASS | 0 | 1 | 4.104 | 1 / 2350 |
+| A06-ready | PASS | 0 | 0 | 0.391 | 1 / 2350 |
+| A08-application-failure | test failure | 1 | 0 | 0.339 | 3 / 9760 |
+| A08-unrelated | PASS | 0 | 0 | 0.163 | 0 / 2 |
+| A17-full-cli | PASS | 0 | 1 | 5.024 | 1 / 2776 |
+| A19-resource-changed | docker-resource-changed | 0 | 0 | 0.579 | 3 / 10599 |
+| A20-readiness-failed | dependency-readiness-timeout | 0 | 1 | 1.779 | 3 / 9642 |
+| A20-fresh-no-replay | memory-remedy-blocked | 0 | 0 | 0.262 | 3 / 9642 |
 
-`*` Сумма before-action и targeted after-error lookup, включая candidate; каждый
-lookup ограничен отдельно. `2` — bytes пустого массива. Неправильных remedies в
-fixtures — 0. Это отдельные измеренные trial, не статистическое сравнение.
-Real-model token usage/latency недоступны; выигрыша по скорости/токенам не заявлено.
-Числа test-double token usage не считаются метриками модели.
+Records/bytes — сумма across before-action/after-error lookups, не число уникальных
+канонических записей. Каждый lookup имеет собственный byte/item cap. Raw receipts,
+lookup/diagnosis/recovery timings, ID/revision и отдельный test result:
+[acceptance.json](90d3db8a/scenarios/acceptance.json).
 
-Отдельное [сравнение кодировки](7f6ea1df/encoding-comparison.json) выполнено на
-одинаковом сброшенном BOM/CRLF fixture. Baseline broker завершает правку, но
-байтовое требование нарушено (`6368616e6765640a`); с памятью новый процесс получает
-`efbbbf6368616e6765640d0a`, ID/rev1 и 1399 context bytes. Wall baseline/enabled:
-0.072/0.116 s. Normalizer — protocol double, модельные метрики недоступны.
+Дополнительно actual SDK10/CLI/TRX: три теста из трёх обнаруженных проектов PASS,
+новый guard сработал ровно один раз перед `integration/IpmAzureAutotests.csproj`,
+ни перед restore/build, ни перед другими suites. Обычный task goal не содержит
+memory rule/ID. [Результат](90d3db8a/automatic-suite/result.json); provider — double.
 
-## Совместимость и границы
+## Границы и воспроизведение
 
-Final kit установлен в `/tmp/persistent-semantic-runtime`, standalone — в
-`/tmp/persistent-semantic-knowledge-only`. Drivers и результаты приложены.
-Rollback reader 0.4.0rc3 читает прежние архитектурные данные; project/shared DB
-не меняются, повторная установка нового reader возвращает доступ к инструкциям.
-Реальные user stores не использовались. Корни только project `.knowledge` и
-programmatic `Path.home()/.local/share/knowledge`; явный absolute override доступен.
+[Coverage table](../../docs/P4/PERSISTENT-INSTRUCTIONS.md) сопоставляет genuine
+chat.message, enrolled harness_run, CLI run/resume, automatic tests и existing
+roles с Broker preflight. Read-only MCP не запускает процедуры. Native host
+shell/edit и внешние оркестраторы не покрываются этим enforcement.
 
-Старые runners без `memory` сохраняют поведение. Включённый gateway закрыт при
-retrieval failure. Нет модельного write MCP с authority user. Original source
-не подменяется техническим доказательством; configured не означает verified.
-Нормализация остаётся локальной, без proxy/redirect/remote provider. Credential-like
-input не сохраняется и не отправляется normalizer; полные логи не копируются в shared.
+Только project `.knowledge` и programmatic Path.home()/.local/share/knowledge;
+explicit absolute shared-root override имеет документированный приоритет.
+Binding fingerprints/сигналы живут в той же SQLite, третьей machine DB нет.
+Секреты не копируются в shared; Docker context metadata сохраняет выбранную
+идентичность без auth/credential payload. Исходники и логи проекта туда не inject.
 
-Текущие запреты и format exceptions действуют в trusted host session; для CLI
-они относятся к конкретному run. Явный reset/clear поддержан, новые host sessions
-не наследуют временные исключения. Durable defaults не переписываются.
+Operator maintenance: inspect/history/retire, memory-teach correction и
+memory-rebind с expected revision. Ни одна дата проверки сама не удаляет intent.
+Новая binding требует текущего allowlist и явного startup grant; rebind default
+его не переносит автоматически. При rollback отключите plugin, верните runner
+без ключа memory, reenroll task и установите старые wheels, сохранив обе SQLite.
 
-Откат: отключить plugin, вернуть прежний runner без ключа `memory`, заново enroll
-проверенное задание, установить прежние wheels. Обе SQLite сохранить. Подробная
-инструкция и runnable real-host trial — в docs/P4/PERSISTENT-INSTRUCTIONS.md.
+Полный live-host driver использует обычный запрос на правку/checks без memory/tool
+reminder; Kafka trial описан в отдельном гайде. До реальных A01/A02/A05/A17 и
+применимых negatives итог остаётся IMPLEMENTED / HOST VALIDATION PENDING.
 
-## Финальная квалификация
+## Квалификация пакета
 
-Код `7f6ea1df` получил **PASS_PORTABLE / PASS_NATIVE** в
-[CI 44877877238](https://github.com/Ermak-P/Knowledge-/actions/runs/44877877238).
-[Retained receipts, ledgers и command logs](7f6ea1df/ci/) прочитаны как данные:
-код из artifacts не исполнялся. Проверены точный commit, source identity и вся
-карта исходников, неизменность source, SHA-256 каждого command log и каждого файла
-kit. Доставленный offline-kit совпадает с content map обеих CI-платформ.
-
-| Контур | Результат | Tests | PASS | SKIP | Команды |
-|---|---|---:|---:|---:|---:|
-| GitHub Linux | PASS_PORTABLE | 273 | 262 | 11 | 22 PASS |
-| GitHub native Windows | PASS_NATIVE | 273 | 273 | 0 | 23 PASS |
-| Локальный installed route | PASS_PORTABLE | 273 | 262 | 11 | 22 PASS |
-
-Linux skips относятся только к NativeWindowsSafety. Failures/errors — 0.
-[Результат проверки retained evidence](7f6ea1df/ci/validation.json).
-Последующие report-only commits не меняют проверяемый source identity.
-Полный реальный OpenCode/local-model A02 по-прежнему **BLOCKED**, независимо от CI.
-
-Каталоги `e603c584` и `95828e84` — свидетельства предшественников, а не финальная
-квалификация. Старый Windows fixture failure в e603c584 исправлен в 95828e84;
-финальный код 7f6ea1df прошёл все 273 native tests без skips.
+Пакет установлен вне checkout; профильные 35 tests, 18 Docker/CLI scenarios,
+standalone/rollback и fault/concurrency checks PASS. Локальный полный regression
+набор: 284 tests, 273 PASS, 11 native-only SKIP, 0 FAIL/ERROR. Остальная installed
+qualification выполняется. CI 44896791625: Linux job завершился ошибкой, причина
+ожидает retained log; Windows job ещё выполняется. Это не текущий PASS_NATIVE.
+Каталоги предшественников 7f6ea1df/95828e84/e603c584 не квалифицируют новый source.
