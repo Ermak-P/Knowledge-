@@ -71,8 +71,12 @@ Trusted operator CLI и явный catalog fixture mode не являются mo
 
 ## Полная квалификация
 
-Локальный installed route и Linux/native Windows CI выполняются. Результаты
-будут сохранены здесь с exact source identity и SHA-256 command logs.
+Локальный installed route: **PASS_PORTABLE**, 22/22 commands, 299 tests —
+288 PASS, 11 native-only SKIP, 0 FAIL/ERROR. Source unchanged=true.
+[Ledger и raw command logs](local-qualified/) проверены по source map/commit и
+SHA-256 каждого лога. Linux CI job 136851238440 также завершился success.
+Native Windows job 136851238488 пока выполняется; его retained receipts ещё
+не получены. Старые Windows результаты не квалифицируют новый source.
 
 ## Что требуется на пользовательском хосте
 
