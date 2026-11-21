@@ -74,9 +74,20 @@ Trusted operator CLI и явный catalog fixture mode не являются mo
 Локальный installed route: **PASS_PORTABLE**, 22/22 commands, 299 tests —
 288 PASS, 11 native-only SKIP, 0 FAIL/ERROR. Source unchanged=true.
 [Ledger и raw command logs](local-qualified/) проверены по source map/commit и
-SHA-256 каждого лога. Linux CI job 136851238440 также завершился success.
-Native Windows job 136851238488 пока выполняется; его retained receipts ещё
-не получены. Старые Windows результаты не квалифицируют новый source.
+SHA-256 каждого лога. Финальный CI завершён на том же product source:
+
+| Платформа | Qualification | Commands | Tests | PASS | SKIP | FAIL/ERROR |
+|---|---|---:|---:|---:|---:|---:|
+| Linux | PASS_PORTABLE | 22/22 | 299 | 288 | 11 native-only | 0 |
+| Native Windows | PASS_NATIVE | 23/23 | 299 | 299 | 0 | 0 |
+
+[Retained receipts, test ledger и command logs](ci/),
+[результат независимой сверки](ci/validation.json).
+Данные прочитаны из Git evidence branch `96e7821bb4595bc09f8c967117abeb53dcdac5e9`;
+код артефактов не исполнялся. Exact commit/source map, source unchanged,
+SHA-256 каждого command log и всех файлов обоих CI kits сверены с переданным
+local offline kit. Native Windows результаты квалифицируют этот R1 source,
+но не являются real OpenCode/local-model или Windows Docker trial.
 
 ## Что требуется на пользовательском хосте
 

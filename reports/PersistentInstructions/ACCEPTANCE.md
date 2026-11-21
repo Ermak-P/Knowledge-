@@ -8,6 +8,8 @@
 Исходники [`287a6a8aa`](https://github.com/Ermak-P/Knowledge-/commit/287a6a8aa976b40a0117684a213ee46310df27bc).
 [Отчёт R1, регрессии и новые exact-source receipts](R1-287a6a8a/REVIEW.md).
 R1 исправляет передачу CLI resume controls и независимую проверку startup grants.
+50/50 профильных tests и 18 isolated Docker/CLI scenarios PASS; полный installed
+route и CI: Linux 288 PASS / 11 native-only SKIP, Windows 299/299 PASS.
 
 Ниже сохранён предыдущий review packet. Его результаты относятся к исходникам
 `5dfc4c52` и не являются квалификацией нового R1 source; прежние failures сохранены.
