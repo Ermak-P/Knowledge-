@@ -4,6 +4,14 @@
 Реальные OpenCode/local-model A01, A02, A05 и A17 не выполнены: хост отсутствует.
 Изолированные PASS ниже не означают ACCEPTED. Это внешняя память, не обучение модели.
 
+Актуальное R1: code fixes **IMPLEMENTED**, host validation **PENDING**.
+Исходники [`287a6a8aa`](https://github.com/Ermak-P/Knowledge-/commit/287a6a8aa976b40a0117684a213ee46310df27bc).
+[Отчёт R1, регрессии и новые exact-source receipts](R1-287a6a8a/REVIEW.md).
+R1 исправляет передачу CLI resume controls и независимую проверку startup grants.
+
+Ниже сохранён предыдущий review packet. Его результаты относятся к исходникам
+`5dfc4c52` и не являются квалификацией нового R1 source; прежние failures сохранены.
+
 Исходники: `5dfc4c523b1bc5cd5cf48b37f8366c6bb09cdb1d`, source identity
 `1ea17652bc9f19353c7e5f706bb298cafdde866e1d1b57f2becaa7c417c3f572`.
 Новая редакция задания: [Task-1](../../tasks/Knowledge-Harness-Persistent-Instructions-Codex-Task-1.md).
