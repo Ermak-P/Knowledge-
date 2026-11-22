@@ -7,9 +7,9 @@ questions about missing reasons and intentional nonchanges, and uses the existin
 candidate → exact plan → apply → acknowledge lifecycle. The receipt includes
 normal retrieval, canonical IDs/revisions, source revisions and unresolved limits.
 
-Code revision: `cb8b3d725f8e8b86faf4f1f7e2b5a79759313750`.
+Code/qualification revision: `1a4999fa62a0d78a9d331d4f6f9396a0bef73995`.
 Qualification source identity:
-`15f7bd9f644bb9d35aeecbb4316c50268014c862681037a60ae98686d8e3fa43`.
+`a09c9364beaa434d5ab35e3af97f396ad8b7fdfd9ba5c2c5167aff7747b0e0ab`.
 Started clean at `90cf0623e`; fetched current main `b1e88a848` had the same tree
 and includes the separately reviewed SQLite optimization. The feature branch is
 `codex/update-by-cr`, based on that main. No worktree, application PR merge,
@@ -67,7 +67,10 @@ with withheld IDs, rather than a false fully usable saved result.
   checks. Raw questions, exact answers, plans, IDs and exports are retained.
 * [Native OpenCode](native/result.json): actual **1.19.6 Linux x64** registration,
   no/one/two-link command API calls, later foreground link messages and new-chat
-  `--resume` all PASS. This is the real host with an isolated controlled SSE
+  `--resume` all PASS. The expanded real-host interview also verifies actual
+  foreground user-message IDs, Russian answers, exact-plan fixture approval and
+  normal apply/acknowledgment/retrieval (`native/interview-messages.json`).
+  This is the real host with an isolated controlled SSE
   responder; the transcript/logs and published plugin types are retained.
 * [Independent profile](independent/result.json): real persistence and normal
   retrieval with **Knowledge only**, no Harness/MCP imports or dependencies.
@@ -78,23 +81,26 @@ with withheld IDs, rather than a false fully usable saved result.
   actual saved IDs/revisions produce no redundant questions. An independently
   applied canonical correction makes the previous analysis stale.
 
-The full installed Linux route is **PASS_PORTABLE**, all **25 commands PASS**,
+The earlier full installed Linux route is **PASS_PORTABLE**, all **25 commands PASS**,
 with **389 tests: 378 PASS, 11 native-Windows-only SKIP**. All inputs remained
 unchanged. The entire raw run is retained in [qualification/](qualification/run.json),
 including logs, comparison results, application outputs and installed replay.
 The separate local full regression also passes (`local/full-result.json`).
-Source-bound CI Linux/native Windows results are recorded in `ci/validation.json`
-when their receipts become available; local Linux is not native Windows evidence.
+That local route ran at `cb8b3d725`, before the replay-pipe encoding correction;
+its source descriptor is retained alongside it. All product wheel bytes are
+identical to the final delivery. Final-source CI Linux/native Windows results
+are recorded in `ci/validation.json` when their receipts become available.
+The expanded native OpenCode profile uses the final installed wheel.
 
 ## Worked outcome
 
 The retry dialogue explains why four total operation attempts fit the bounded
 budget, why the independent packet retry owner stays at two, and why the public
 caller deadline remains 120ms. Its three revision-1 records are
-`ucr.e4a7e408bd78bf29.retry-limit`, `.transport-owner`, and `.deadline`.
+`ucr.5917a2eacdf368ff.retry-limit`, `.transport-owner`, and `.deadline`.
 The Russian cache dialogue captures capacity 32, bounded memory/miss behavior and
 compatibility of `ILookup.Find`; its revision-1 records are
-`ucr.e8c7d3a93d2e9aed.capacity` and `.contract`. These fixture-specific IDs derive
+`ucr.7ba1e88c78b8d81b.capacity` and `.contract`. These fixture-specific IDs derive
 from the project identity; reruns in other temporary roots have different prefixes.
 Both worked results are actually `saved`, not just queued or awaiting approval.
 
@@ -117,6 +123,13 @@ access was available. Provider exports/controlled responses are labelled honestl
 Remote changes require a new source observation through the host/provider tools;
 the backend checks local/Knowledge freshness on each continuation but does not
 pretend that an offline export proves current remote state.
+
+The first source-bound Windows attempt (`failures/ci-cb8b3d725/`) passed
+388 tests and failed one replay test method in two subcases. Its fresh worker
+printed Unicode JSON through cp1252. The fix uses ASCII JSON transport, which
+restores the exact original Unicode through json.loads. The regression now forces
+cp1252 on every OS and compares the complete decoded task/context/plan. The fix
+and guard are in the final qualification revision; the failed receipt is retained.
 
 The initial full regression attempt is retained in
 `failures/pre-freeze-full-regressions.log`: one FileNotFoundError occurred while

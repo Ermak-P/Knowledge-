@@ -2,13 +2,13 @@
 
 All host configuration/XDG/processes are isolated. No live model quality claim.
 """
-import argparse,json,os,socket,subprocess,tempfile,threading,time,urllib.request,urllib.error
+import argparse,importlib.util,json,os,socket,subprocess,tempfile,threading,time,urllib.request,urllib.error
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from pathlib import Path
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--python',type=Path,required=True);p.add_argument('--opencode',type=Path,required=True);p.add_argument('--output',type=Path,required=True);a=p.parse_args();a.output.mkdir(parents=True,exist_ok=True);requests=[]
+    p=argparse.ArgumentParser();p.add_argument('--python',type=Path,required=True);p.add_argument('--opencode',type=Path,required=True);p.add_argument('--output',type=Path,required=True);a=p.parse_args();a.output.mkdir(parents=True,exist_ok=True);requests=[];controlled_reply={}
     class Provider(BaseHTTPRequestHandler):
         def log_message(self,*args):pass
         def do_POST(self):
@@ -24,6 +24,7 @@ def main():
                     if marker in content:
                         state=json.JSONDecoder().raw_decode(content.rsplit(marker,1)[1])[0]
                         question=state.get('question') or 'Ссылки получены; требуется чтение источников. Knowledge ещё не сохранено.'
+            question=controlled_reply.get('text',question)
             if value.get('stream'):
                 chunks=[dict(id='controlled',object='chat.completion.chunk',created=0,model='fixture',choices=[dict(index=0,delta={'role':'assistant','content':question},finish_reason=None)]),dict(id='controlled',object='chat.completion.chunk',created=0,model='fixture',choices=[dict(index=0,delta={},finish_reason='stop')])]
                 body=(''.join('data: '+json.dumps(v,ensure_ascii=False)+'\n\n' for v in chunks)+'data: [DONE]\n\n').encode()
@@ -33,7 +34,10 @@ def main():
     provider=ThreadingHTTPServer(('127.0.0.1',0),Provider);thread=threading.Thread(target=provider.serve_forever,daemon=True);thread.start()
     result={'profile':'native-opencode-controlled-provider','live_model':False,'checks':{},'commands':[]}
     with tempfile.TemporaryDirectory(prefix='ucr-native-') as tmp:
-        root=Path(tmp)/'project';root.mkdir();xdg=Path(tmp)/'xdg';env={**os.environ,'XDG_DATA_HOME':str(xdg/'data'),'XDG_CONFIG_HOME':str(xdg/'config'),'XDG_CACHE_HOME':str(xdg/'cache'),'XDG_STATE_HOME':str(xdg/'state'),'npm_config_cache':str(xdg/'npm-cache'),'NPM_CONFIG_CACHE':str(xdg/'npm-cache'),'OPENCODE_DISABLE_AUTOUPDATE':'1','OPENCODE_DISABLE_MODELS_FETCH':'1','OPENCODE_DISABLE_DEFAULT_PLUGINS':'1'}
+        spec=importlib.util.spec_from_file_location('native_cr_fixture',Path(__file__).resolve().parents[2]/'tests/cr_fixtures.py');fixture=importlib.util.module_from_spec(spec);spec.loader.exec_module(fixture)
+        root,snapshot=fixture.project(tmp);xdg=Path(tmp)/'xdg';env={**os.environ,'XDG_DATA_HOME':str(xdg/'data'),'XDG_CONFIG_HOME':str(xdg/'config'),'XDG_CACHE_HOME':str(xdg/'cache'),'XDG_STATE_HOME':str(xdg/'state'),'npm_config_cache':str(xdg/'npm-cache'),'NPM_CONFIG_CACHE':str(xdg/'npm-cache'),'OPENCODE_DISABLE_AUTOUPDATE':'1','OPENCODE_DISABLE_MODELS_FETCH':'1','OPENCODE_DISABLE_DEFAULT_PLUGINS':'1'}
+        def backend(action,value):
+            process=subprocess.run([str(a.python),'-I','-m','knowledge.cr_cli',action,'--root',str(root)],input=json.dumps(value),text=True,capture_output=True);assert process.returncode==0,process.stdout+process.stderr;return json.loads(process.stdout)
         install=subprocess.run([str(a.python),'-I','-m','knowledge.cr_cli','install','--root',str(root)],input=json.dumps({'python':str(a.python),'language':'ru'}),text=True,capture_output=True);assert install.returncode==0,install.stdout+install.stderr
         configuration={'$schema':'https://opencode.ai/config.json','model':'fixture/fixture','provider':{'fixture':{'npm':'@ai-sdk/openai-compatible','name':'Controlled fixture only','options':{'baseURL':f'http://127.0.0.1:{provider.server_port}/v1','apiKey':'controlled-fixture-not-a-credential'},'models':{'fixture':{'name':'fixture','limit':{'context':64000,'output':2048}}}}}}
         (root/'opencode.json').write_text(json.dumps(configuration))
@@ -74,6 +78,27 @@ def main():
             resumed=subprocess.run([str(a.python),'-I','-m','knowledge.cr_cli','start','--root',str(root)],input=json.dumps({'host_session':new['id'],'language':'ru'}),text=True,capture_output=True)
             assert resumed.returncode==0,resumed.stdout;resumed=json.loads(resumed.stdout);assert resumed['session']==known['session'] and resumed['missing']==[]
             result['commands'].append(dict(case='new-chat-resume',response=answer,backend=resumed));result['checks']['new_chat_resume']='PASS'
+            current=backend('sources',dict(session=known['session'],snapshot=snapshot,expected_revision=resumed['revision']))
+            inspection=backend('inspect',dict(session=known['session'],paths=['Transport.cs','Caller.cs','Checks.cs']));result['inspection']=inspection
+            current=backend('analyze',dict(session=known['session'],items=fixture.decisions(snapshot),expected_revision=current['revision']));assert current['state']=='awaiting_answers'
+            questions=current['questions'];controlled_reply['text']=questions[0]['text']
+            api('/session/'+new['id']+'/message',{'parts':[{'type':'text','text':'Готов обсудить причины и границы решения.'}]})
+            result['interview']=[]
+            for index,q in enumerate(questions):
+                quote={'retry-limit':'Четыре попытки ограничивают общий бюджет операции.', 'transport-owner':'Transport владеет независимым повтором пакета; его изменение умножило бы работу.', 'deadline':'Публичный срок вызывающего кода 120 мс должен остаться прежним.'}[q['item']]
+                controlled_reply['text']=questions[index+1]['text'] if index+1<len(questions) else 'Ответы получены; каноническая запись ещё не сохранена. Нужно подготовить точный план.'
+                api('/session/'+new['id']+'/message',{'parts':[{'type':'text','text':quote}]})
+                messages=api('/session/'+new['id']+'/message');user=next(v for v in reversed(messages) if v['info']['role']=='user' and any(p.get('text')==quote for p in v['parts']))
+                current=backend('resume',dict(session=known['session']))
+                current=backend('answer',dict(session=known['session'],question=q['id'],text=quote,delivery_id='native-answer-'+str(index),turn=user['info']['id'],expected_revision=current['revision']))
+                result['interview'].append(dict(question=q,actual_user_quote=quote,native_message_id=user['info']['id'],backend=current))
+            current=backend('prepare',dict(session=known['session'],expected_revision=current['revision']));assert current['state']=='awaiting_approval';result['prepared']=current
+            pid=current['proposal']['plan'];controlled_reply['text']='Получено явное одобрение точного плана; выполнение проверяется через обычный Knowledge backend.'
+            api('/session/'+new['id']+'/message',{'parts':[{'type':'text','text':'Одобряю точный план '+pid}]})
+            current=backend('resume',dict(session=known['session']));saved=backend('apply',dict(session=known['session'],approve=pid,expected_revision=current['revision']))
+            assert saved['state'] in ('saved','partial_saved') and saved['receipt']['records'] and saved['receipt']['retrieval']['claims'];result['saved']=saved
+            result['checks']['actual_foreground_user_turn_binding']='PASS';result['checks']['normal_exact_apply_ack_and_retrieval']='PASS'
+            (a.output/'interview-messages.json').write_text(json.dumps(api('/session/'+new['id']+'/message'),ensure_ascii=False,indent=2)+'\n')
         except Exception as error:
             result.update(status='FAIL',error=str(error));raise
         finally:

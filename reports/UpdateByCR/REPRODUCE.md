@@ -5,7 +5,7 @@ For native Windows use Windows PowerShell 5.1 and the existing qualification rou
 WSL does not establish the Windows profile.
 
 ```text
-git checkout cb8b3d725f8e8b86faf4f1f7e2b5a79759313750
+git checkout 1a4999fa62a0d78a9d331d4f6f9396a0bef73995
 python scripts/setup_p3.py
 .venv/bin/python -B -m unittest discover -s tests -p 'test_update*cr*.py' -v
 .venv/bin/python -B scripts/verify_p4.py
@@ -18,15 +18,22 @@ and now includes both `update-by-cr-dialogue-replay` and
 `update-by-cr-knowledge-only`. It does not downgrade existing checks.
 
 The delivered [ZIP](distribution/knowledge-harness-0.5.0rc1.zip) has SHA-256
-`3d014e6e0527058fdf5472be46c9b9d9d36ff966b37fa56c0e28a9f124b54be4`.
+`b1b7eac4aa0d4d950f0613986ff223cb2de482ba708327f3813b3add617a34e0`.
 The companion `RELEASE.json` seals every asset. Rebuild with:
 
 ```text
-.venv/bin/python scripts/build_p4.py --output /tmp/ucr-dist --source-id 15f7bd9f644bb9d35aeecbb4316c50268014c862681037a60ae98686d8e3fa43
+.venv/bin/python scripts/build_p4.py --output /tmp/ucr-dist --source-id a09c9364beaa434d5ab35e3af97f396ad8b7fdfd9ba5c2c5167aff7747b0e0ab
 python /tmp/ucr-dist/knowledge-harness-0.5.0rc1/install.py install --env /tmp/ucr-runtime
 python /tmp/ucr-dist/knowledge-harness-0.5.0rc1/install.py install --env /tmp/ucr-independent --profile knowledge
 /tmp/ucr-runtime/bin/python -I -B /absolute/repo/scripts/update_cr_trial.py --output /tmp/ucr-trial
 /tmp/ucr-independent/bin/python -I -B /absolute/repo/scripts/update_cr_independent.py --output /tmp/ucr-independent-result
+```
+
+Verify all retained review bytes and their Git/ZIP source chain without executing
+any ZIP/CI artifact contents:
+
+```text
+python reports/UpdateByCR/verify_packet.py
 ```
 
 Use `Scripts/python.exe` on Windows. Paths above are explicit examples; preserve
@@ -70,7 +77,7 @@ release asset; it executes no artifact code:
 
 ```text
 git fetch origin p4-ci-evidence
-python reports/UpdateByCR/collect_ci.py --commit cb8b3d725f8e8b86faf4f1f7e2b5a79759313750 --source reports/UpdateByCR/source.json --output reports/UpdateByCR/ci
+python reports/UpdateByCR/collect_ci.py --commit 1a4999fa62a0d78a9d331d4f6f9396a0bef73995 --source reports/UpdateByCR/source.json --output reports/UpdateByCR/ci
 ```
 
 If no matching evidence exists yet the platform map is empty, not PASS. Refer to

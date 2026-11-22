@@ -6,16 +6,16 @@
         "conflicts_with": [],
         "depends_on": [],
         "evidence": [
-          "ucr.evidence.4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
-          "ucr.code.f89e02a231a535ab5189a694122671f541705df7f03c1e8971f0d2b43170fca9"
+          "ucr.evidence.370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
+          "ucr.code.7dad75e20ea10ed8725645b787da0b1a213b9e70266bab99937ffd1457ff334c"
         ],
-        "id": "ucr.e8c7d3a93d2e9aed.capacity",
+        "id": "ucr.7ba1e88c78b8d81b.capacity",
         "last_verified": "2026-11-22",
         "provenance": {
           "actor": "reviewed-CR-workflow",
           "method": "update-by-cr-v1"
         },
-        "statement": "Для справочника использовать ограниченный кэш ёмкостью 32 записи When / Условия: Для локального справочника с неизменяемыми ключами. Reason / Причина: cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.. Preserve / Сохранить: Ограничение памяти и прежнее поведение при промахе. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target fe524cd429ed3f8ab8b23e01256600d7dd859b09. Terms: cache, lookup, кэш, поиск.",
+        "statement": "Для справочника использовать ограниченный кэш ёмкостью 32 записи When / Условия: Для локального справочника с неизменяемыми ключами. Reason / Причина: cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.. Preserve / Сохранить: Ограничение памяти и прежнее поведение при промахе. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target 833b7b00ef54db507a3f495c5db41252112d9dc7. Terms: cache, lookup, кэш, поиск.",
         "status": "CONFIRMED",
         "type": "architecture"
       },
@@ -23,16 +23,16 @@
         "conflicts_with": [],
         "depends_on": [],
         "evidence": [
-          "ucr.evidence.ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
-          "ucr.code.9803e3981f9c766b666dc1be12b8b71286f32431c2a4ab1bf70bed19bc9a9a32"
+          "ucr.evidence.0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
+          "ucr.code.90a6d0906cc063728245efc6d429415cd88e0319d6342e1d4ee837b4c3b4e1ec"
         ],
-        "id": "ucr.e8c7d3a93d2e9aed.contract",
+        "id": "ucr.7ba1e88c78b8d81b.contract",
         "last_verified": "2026-11-22",
         "provenance": {
           "actor": "reviewed-CR-workflow",
           "method": "update-by-cr-v1"
         },
-        "statement": "Публичный интерфейс ILookup.Find оставить прежним When / Условия: Пока остаются старые потребители ILookup. Reason / Причина: Нужна совместимость прежних потребителей ILookup; сохранить сигнатуру Find.. Preserve / Сохранить: Не менять сигнатуру Find и совместимость потребителей. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target fe524cd429ed3f8ab8b23e01256600d7dd859b09. Terms: ILookup, Find, интерфейс, контракт.",
+        "statement": "Публичный интерфейс ILookup.Find оставить прежним When / Условия: Пока остаются старые потребители ILookup. Reason / Причина: Нужна совместимость прежних потребителей ILookup; сохранить сигнатуру Find.. Preserve / Сохранить: Не менять сигнатуру Find и совместимость потребителей. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target 833b7b00ef54db507a3f495c5db41252112d9dc7. Terms: ILookup, Find, интерфейс, контракт.",
         "status": "CONFIRMED",
         "type": "architecture"
       }
@@ -40,30 +40,11 @@
     "evidence": [
       {
         "captured_at": "2026-11-22T12:00:00Z",
-        "content_hash": "sha256:0301b911310e559d0ed4642d45f89c48c86af2808b2f36ae6efa02e6b3f1a965",
-        "description": "public interface ILookup { string Find(string key); }",
-        "id": "ucr.code.9803e3981f9c766b666dc1be12b8b71286f32431c2a4ab1bf70bed19bc9a9a32",
-        "location": {
-          "reference": "fe524cd429ed3f8ab8b23e01256600d7dd859b09:Contracts.cs#L1-L1"
-        },
-        "provenance": {
-          "actor": "pinned-git-code",
-          "method": "update-by-cr-code-v1"
-        },
-        "source": "Contracts.cs",
-        "status": "active",
-        "substantiates": [
-          "ucr.e8c7d3a93d2e9aed.contract"
-        ],
-        "type": "direct-technical"
-      },
-      {
-        "captured_at": "2026-11-22T12:00:00Z",
         "content_hash": "sha256:b2800be32818fa3b0eab133acf4ab9ca077fbfbd76fe75e388957741be55a152",
         "description": "public static class Cache { public const int Capacity = 32; }",
-        "id": "ucr.code.f89e02a231a535ab5189a694122671f541705df7f03c1e8971f0d2b43170fca9",
+        "id": "ucr.code.7dad75e20ea10ed8725645b787da0b1a213b9e70266bab99937ffd1457ff334c",
         "location": {
-          "reference": "fe524cd429ed3f8ab8b23e01256600d7dd859b09:Cache.cs#L1-L1"
+          "reference": "833b7b00ef54db507a3f495c5db41252112d9dc7:Cache.cs#L1-L1"
         },
         "provenance": {
           "actor": "pinned-git-code",
@@ -72,34 +53,34 @@
         "source": "Cache.cs",
         "status": "active",
         "substantiates": [
-          "ucr.e8c7d3a93d2e9aed.capacity"
+          "ucr.7ba1e88c78b8d81b.capacity"
         ],
         "type": "direct-technical"
       },
       {
         "captured_at": "2026-11-22T12:00:00Z",
-        "content_hash": "sha256:4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
-        "description": "cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.",
-        "id": "ucr.evidence.4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
+        "content_hash": "sha256:0301b911310e559d0ed4642d45f89c48c86af2808b2f36ae6efa02e6b3f1a965",
+        "description": "public interface ILookup { string Find(string key); }",
+        "id": "ucr.code.90a6d0906cc063728245efc6d429415cd88e0319d6342e1d4ee837b4c3b4e1ec",
         "location": {
-          "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | capacity"
+          "reference": "833b7b00ef54db507a3f495c5db41252112d9dc7:Contracts.cs#L1-L1"
         },
         "provenance": {
-          "actor": "user-CR-interview",
-          "method": "update-by-cr-v1"
+          "actor": "pinned-git-code",
+          "method": "update-by-cr-code-v1"
         },
-        "source": ".knowledge/update-cr/4b1c57afdd4f426091734d25d9c3f742/4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350.json",
+        "source": "Contracts.cs",
         "status": "active",
         "substantiates": [
-          "ucr.e8c7d3a93d2e9aed.capacity"
+          "ucr.7ba1e88c78b8d81b.contract"
         ],
-        "type": "direct-authoritative"
+        "type": "direct-technical"
       },
       {
         "captured_at": "2026-11-22T12:00:00Z",
-        "content_hash": "sha256:ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
+        "content_hash": "sha256:0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
         "description": "Нужна совместимость прежних потребителей ILookup; сохранить сигнатуру Find.",
-        "id": "ucr.evidence.ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
+        "id": "ucr.evidence.0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
         "location": {
           "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | contract"
         },
@@ -107,10 +88,29 @@
           "actor": "user-CR-interview",
           "method": "update-by-cr-v1"
         },
-        "source": ".knowledge/update-cr/4b1c57afdd4f426091734d25d9c3f742/ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e.json",
+        "source": ".knowledge/update-cr/e81bdde42b9045dd870681fc3fae55f6/0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e.json",
         "status": "active",
         "substantiates": [
-          "ucr.e8c7d3a93d2e9aed.contract"
+          "ucr.7ba1e88c78b8d81b.contract"
+        ],
+        "type": "direct-authoritative"
+      },
+      {
+        "captured_at": "2026-11-22T12:00:00Z",
+        "content_hash": "sha256:370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
+        "description": "cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.",
+        "id": "ucr.evidence.370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
+        "location": {
+          "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | capacity"
+        },
+        "provenance": {
+          "actor": "user-CR-interview",
+          "method": "update-by-cr-v1"
+        },
+        "source": ".knowledge/update-cr/e81bdde42b9045dd870681fc3fae55f6/370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db.json",
+        "status": "active",
+        "substantiates": [
+          "ucr.7ba1e88c78b8d81b.capacity"
         ],
         "type": "direct-authoritative"
       }
@@ -119,20 +119,20 @@
   },
   "queue": [
     {
-      "id": "794f182a06e69b3133733fcd916767471f3722375a2db092a4895571ca929414",
+      "id": "cf6df33be4b6e0576f060b49e19f42f2ae043afdb435661ae02a60bf42dcd829",
       "payload": {
         "operation": "batch",
         "operations": [
           {
             "action": "add",
             "expected": 0,
-            "id": "ucr.evidence.4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
+            "id": "ucr.evidence.370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
             "kind": "evidence",
             "payload": {
               "captured_at": "2026-11-22T12:00:00Z",
-              "content_hash": "sha256:4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
+              "content_hash": "sha256:370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
               "description": "cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.",
-              "id": "ucr.evidence.4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
+              "id": "ucr.evidence.370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
               "location": {
                 "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | capacity"
               },
@@ -140,10 +140,10 @@
                 "actor": "user-CR-interview",
                 "method": "update-by-cr-v1"
               },
-              "source": ".knowledge/update-cr/4b1c57afdd4f426091734d25d9c3f742/4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350.json",
+              "source": ".knowledge/update-cr/e81bdde42b9045dd870681fc3fae55f6/370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db.json",
               "status": "active",
               "substantiates": [
-                "ucr.e8c7d3a93d2e9aed.capacity"
+                "ucr.7ba1e88c78b8d81b.capacity"
               ],
               "type": "direct-authoritative"
             },
@@ -152,15 +152,15 @@
           {
             "action": "add",
             "expected": 0,
-            "id": "ucr.code.f89e02a231a535ab5189a694122671f541705df7f03c1e8971f0d2b43170fca9",
+            "id": "ucr.code.7dad75e20ea10ed8725645b787da0b1a213b9e70266bab99937ffd1457ff334c",
             "kind": "evidence",
             "payload": {
               "captured_at": "2026-11-22T12:00:00Z",
               "content_hash": "sha256:b2800be32818fa3b0eab133acf4ab9ca077fbfbd76fe75e388957741be55a152",
               "description": "public static class Cache { public const int Capacity = 32; }",
-              "id": "ucr.code.f89e02a231a535ab5189a694122671f541705df7f03c1e8971f0d2b43170fca9",
+              "id": "ucr.code.7dad75e20ea10ed8725645b787da0b1a213b9e70266bab99937ffd1457ff334c",
               "location": {
-                "reference": "fe524cd429ed3f8ab8b23e01256600d7dd859b09:Cache.cs#L1-L1"
+                "reference": "833b7b00ef54db507a3f495c5db41252112d9dc7:Cache.cs#L1-L1"
               },
               "provenance": {
                 "actor": "pinned-git-code",
@@ -169,7 +169,7 @@
               "source": "Cache.cs",
               "status": "active",
               "substantiates": [
-                "ucr.e8c7d3a93d2e9aed.capacity"
+                "ucr.7ba1e88c78b8d81b.capacity"
               ],
               "type": "direct-technical"
             },
@@ -178,22 +178,22 @@
           {
             "action": "add",
             "expected": 0,
-            "id": "ucr.e8c7d3a93d2e9aed.capacity",
+            "id": "ucr.7ba1e88c78b8d81b.capacity",
             "kind": "claims",
             "payload": {
               "conflicts_with": [],
               "depends_on": [],
               "evidence": [
-                "ucr.evidence.4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
-                "ucr.code.f89e02a231a535ab5189a694122671f541705df7f03c1e8971f0d2b43170fca9"
+                "ucr.evidence.370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
+                "ucr.code.7dad75e20ea10ed8725645b787da0b1a213b9e70266bab99937ffd1457ff334c"
               ],
-              "id": "ucr.e8c7d3a93d2e9aed.capacity",
+              "id": "ucr.7ba1e88c78b8d81b.capacity",
               "last_verified": "2026-11-22",
               "provenance": {
                 "actor": "reviewed-CR-workflow",
                 "method": "update-by-cr-v1"
               },
-              "statement": "Для справочника использовать ограниченный кэш ёмкостью 32 записи When / Условия: Для локального справочника с неизменяемыми ключами. Reason / Причина: cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.. Preserve / Сохранить: Ограничение памяти и прежнее поведение при промахе. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target fe524cd429ed3f8ab8b23e01256600d7dd859b09. Terms: cache, lookup, кэш, поиск.",
+              "statement": "Для справочника использовать ограниченный кэш ёмкостью 32 записи When / Условия: Для локального справочника с неизменяемыми ключами. Reason / Причина: cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.. Preserve / Сохранить: Ограничение памяти и прежнее поведение при промахе. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target 833b7b00ef54db507a3f495c5db41252112d9dc7. Terms: cache, lookup, кэш, поиск.",
               "status": "CONFIRMED",
               "type": "architecture"
             },
@@ -202,13 +202,13 @@
           {
             "action": "add",
             "expected": 0,
-            "id": "ucr.evidence.ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
+            "id": "ucr.evidence.0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
             "kind": "evidence",
             "payload": {
               "captured_at": "2026-11-22T12:00:00Z",
-              "content_hash": "sha256:ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
+              "content_hash": "sha256:0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
               "description": "Нужна совместимость прежних потребителей ILookup; сохранить сигнатуру Find.",
-              "id": "ucr.evidence.ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
+              "id": "ucr.evidence.0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
               "location": {
                 "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | contract"
               },
@@ -216,10 +216,10 @@
                 "actor": "user-CR-interview",
                 "method": "update-by-cr-v1"
               },
-              "source": ".knowledge/update-cr/4b1c57afdd4f426091734d25d9c3f742/ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e.json",
+              "source": ".knowledge/update-cr/e81bdde42b9045dd870681fc3fae55f6/0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e.json",
               "status": "active",
               "substantiates": [
-                "ucr.e8c7d3a93d2e9aed.contract"
+                "ucr.7ba1e88c78b8d81b.contract"
               ],
               "type": "direct-authoritative"
             },
@@ -228,15 +228,15 @@
           {
             "action": "add",
             "expected": 0,
-            "id": "ucr.code.9803e3981f9c766b666dc1be12b8b71286f32431c2a4ab1bf70bed19bc9a9a32",
+            "id": "ucr.code.90a6d0906cc063728245efc6d429415cd88e0319d6342e1d4ee837b4c3b4e1ec",
             "kind": "evidence",
             "payload": {
               "captured_at": "2026-11-22T12:00:00Z",
               "content_hash": "sha256:0301b911310e559d0ed4642d45f89c48c86af2808b2f36ae6efa02e6b3f1a965",
               "description": "public interface ILookup { string Find(string key); }",
-              "id": "ucr.code.9803e3981f9c766b666dc1be12b8b71286f32431c2a4ab1bf70bed19bc9a9a32",
+              "id": "ucr.code.90a6d0906cc063728245efc6d429415cd88e0319d6342e1d4ee837b4c3b4e1ec",
               "location": {
-                "reference": "fe524cd429ed3f8ab8b23e01256600d7dd859b09:Contracts.cs#L1-L1"
+                "reference": "833b7b00ef54db507a3f495c5db41252112d9dc7:Contracts.cs#L1-L1"
               },
               "provenance": {
                 "actor": "pinned-git-code",
@@ -245,7 +245,7 @@
               "source": "Contracts.cs",
               "status": "active",
               "substantiates": [
-                "ucr.e8c7d3a93d2e9aed.contract"
+                "ucr.7ba1e88c78b8d81b.contract"
               ],
               "type": "direct-technical"
             },
@@ -254,22 +254,22 @@
           {
             "action": "add",
             "expected": 0,
-            "id": "ucr.e8c7d3a93d2e9aed.contract",
+            "id": "ucr.7ba1e88c78b8d81b.contract",
             "kind": "claims",
             "payload": {
               "conflicts_with": [],
               "depends_on": [],
               "evidence": [
-                "ucr.evidence.ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
-                "ucr.code.9803e3981f9c766b666dc1be12b8b71286f32431c2a4ab1bf70bed19bc9a9a32"
+                "ucr.evidence.0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
+                "ucr.code.90a6d0906cc063728245efc6d429415cd88e0319d6342e1d4ee837b4c3b4e1ec"
               ],
-              "id": "ucr.e8c7d3a93d2e9aed.contract",
+              "id": "ucr.7ba1e88c78b8d81b.contract",
               "last_verified": "2026-11-22",
               "provenance": {
                 "actor": "reviewed-CR-workflow",
                 "method": "update-by-cr-v1"
               },
-              "statement": "Публичный интерфейс ILookup.Find оставить прежним When / Условия: Пока остаются старые потребители ILookup. Reason / Причина: Нужна совместимость прежних потребителей ILookup; сохранить сигнатуру Find.. Preserve / Сохранить: Не менять сигнатуру Find и совместимость потребителей. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target fe524cd429ed3f8ab8b23e01256600d7dd859b09. Terms: ILookup, Find, интерфейс, контракт.",
+              "statement": "Публичный интерфейс ILookup.Find оставить прежним When / Условия: Пока остаются старые потребители ILookup. Reason / Причина: Нужна совместимость прежних потребителей ILookup; сохранить сигнатуру Find.. Preserve / Сохранить: Не менять сигнатуру Find и совместимость потребителей. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target 833b7b00ef54db507a3f495c5db41252112d9dc7. Terms: ILookup, Find, интерфейс, контракт.",
               "status": "CONFIRMED",
               "type": "architecture"
             },
@@ -278,76 +278,107 @@
         ],
         "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7",
         "source": {
-          "identity": "08f8f1153b002331051d50a40d551484b061075b6d275fef44bdcb97e60fe9a2",
+          "identity": "9f97f7a97f5528a9bbddf206e7186d903b60b3fe185867f9b20cd689a7a02b7f",
           "kind": "committed",
-          "revision": "fe524cd429ed3f8ab8b23e01256600d7dd859b09"
+          "revision": "833b7b00ef54db507a3f495c5db41252112d9dc7"
         },
         "version": 2
       },
       "status": "imported",
-      "binding": "sha256:e953f240b353dddeff40ac86361de580eb3ba8197370ed19db06bfd62612938c"
+      "binding": "sha256:a2763a5293cd1522dd6c261b2827d63fa5fc4e831aedcbf760a6910686f5a4a2"
     }
   ],
   "history": [
     {
       "candidates": [
-        "794f182a06e69b3133733fcd916767471f3722375a2db092a4895571ca929414"
+        "cf6df33be4b6e0576f060b49e19f42f2ae043afdb435661ae02a60bf42dcd829"
       ],
       "event": "import",
-      "fingerprint": "sha256:e953f240b353dddeff40ac86361de580eb3ba8197370ed19db06bfd62612938c"
+      "fingerprint": "sha256:a2763a5293cd1522dd6c261b2827d63fa5fc4e831aedcbf760a6910686f5a4a2"
     }
   ],
   "view": "all-latest-with-lifecycle; use context for trusted current",
   "revisions": [
     {
-      "captured_at": "2026-11-22T19:59:51.233194+00:00",
-      "id": "ucr.code.9803e3981f9c766b666dc1be12b8b71286f32431c2a4ab1bf70bed19bc9a9a32",
-      "kind": "evidence",
+      "captured_at": "2026-11-22T20:24:55.314759+00:00",
+      "id": "ucr.7ba1e88c78b8d81b.capacity",
+      "kind": "claims",
       "lifecycle": "active",
-      "plan": "sha256:e953f240b353dddeff40ac86361de580eb3ba8197370ed19db06bfd62612938c",
+      "plan": "sha256:a2763a5293cd1522dd6c261b2827d63fa5fc4e831aedcbf760a6910686f5a4a2",
       "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7",
       "record": {
-        "captured_at": "2026-11-22T12:00:00Z",
-        "content_hash": "sha256:0301b911310e559d0ed4642d45f89c48c86af2808b2f36ae6efa02e6b3f1a965",
-        "description": "public interface ILookup { string Find(string key); }",
-        "id": "ucr.code.9803e3981f9c766b666dc1be12b8b71286f32431c2a4ab1bf70bed19bc9a9a32",
-        "location": {
-          "reference": "fe524cd429ed3f8ab8b23e01256600d7dd859b09:Contracts.cs#L1-L1"
-        },
-        "provenance": {
-          "actor": "pinned-git-code",
-          "method": "update-by-cr-code-v1"
-        },
-        "source": "Contracts.cs",
-        "status": "active",
-        "substantiates": [
-          "ucr.e8c7d3a93d2e9aed.contract"
+        "conflicts_with": [],
+        "depends_on": [],
+        "evidence": [
+          "ucr.evidence.370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
+          "ucr.code.7dad75e20ea10ed8725645b787da0b1a213b9e70266bab99937ffd1457ff334c"
         ],
-        "type": "direct-technical"
+        "id": "ucr.7ba1e88c78b8d81b.capacity",
+        "last_verified": "2026-11-22",
+        "provenance": {
+          "actor": "reviewed-CR-workflow",
+          "method": "update-by-cr-v1"
+        },
+        "statement": "Для справочника использовать ограниченный кэш ёмкостью 32 записи When / Условия: Для локального справочника с неизменяемыми ключами. Reason / Причина: cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.. Preserve / Сохранить: Ограничение памяти и прежнее поведение при промахе. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target 833b7b00ef54db507a3f495c5db41252112d9dc7. Terms: cache, lookup, кэш, поиск.",
+        "status": "CONFIRMED",
+        "type": "architecture"
       },
       "revision": 1,
       "source": {
-        "identity": "08f8f1153b002331051d50a40d551484b061075b6d275fef44bdcb97e60fe9a2",
+        "identity": "9f97f7a97f5528a9bbddf206e7186d903b60b3fe185867f9b20cd689a7a02b7f",
         "kind": "committed",
-        "revision": "fe524cd429ed3f8ab8b23e01256600d7dd859b09"
+        "revision": "833b7b00ef54db507a3f495c5db41252112d9dc7"
       },
       "successor": null,
       "verified_at": null
     },
     {
-      "captured_at": "2026-11-22T19:59:51.232975+00:00",
-      "id": "ucr.code.f89e02a231a535ab5189a694122671f541705df7f03c1e8971f0d2b43170fca9",
+      "captured_at": "2026-11-22T20:24:55.314951+00:00",
+      "id": "ucr.7ba1e88c78b8d81b.contract",
+      "kind": "claims",
+      "lifecycle": "active",
+      "plan": "sha256:a2763a5293cd1522dd6c261b2827d63fa5fc4e831aedcbf760a6910686f5a4a2",
+      "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7",
+      "record": {
+        "conflicts_with": [],
+        "depends_on": [],
+        "evidence": [
+          "ucr.evidence.0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
+          "ucr.code.90a6d0906cc063728245efc6d429415cd88e0319d6342e1d4ee837b4c3b4e1ec"
+        ],
+        "id": "ucr.7ba1e88c78b8d81b.contract",
+        "last_verified": "2026-11-22",
+        "provenance": {
+          "actor": "reviewed-CR-workflow",
+          "method": "update-by-cr-v1"
+        },
+        "statement": "Публичный интерфейс ILookup.Find оставить прежним When / Условия: Пока остаются старые потребители ILookup. Reason / Причина: Нужна совместимость прежних потребителей ILookup; сохранить сигнатуру Find.. Preserve / Сохранить: Не менять сигнатуру Find и совместимость потребителей. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target 833b7b00ef54db507a3f495c5db41252112d9dc7. Terms: ILookup, Find, интерфейс, контракт.",
+        "status": "CONFIRMED",
+        "type": "architecture"
+      },
+      "revision": 1,
+      "source": {
+        "identity": "9f97f7a97f5528a9bbddf206e7186d903b60b3fe185867f9b20cd689a7a02b7f",
+        "kind": "committed",
+        "revision": "833b7b00ef54db507a3f495c5db41252112d9dc7"
+      },
+      "successor": null,
+      "verified_at": null
+    },
+    {
+      "captured_at": "2026-11-22T20:24:55.314705+00:00",
+      "id": "ucr.code.7dad75e20ea10ed8725645b787da0b1a213b9e70266bab99937ffd1457ff334c",
       "kind": "evidence",
       "lifecycle": "active",
-      "plan": "sha256:e953f240b353dddeff40ac86361de580eb3ba8197370ed19db06bfd62612938c",
+      "plan": "sha256:a2763a5293cd1522dd6c261b2827d63fa5fc4e831aedcbf760a6910686f5a4a2",
       "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7",
       "record": {
         "captured_at": "2026-11-22T12:00:00Z",
         "content_hash": "sha256:b2800be32818fa3b0eab133acf4ab9ca077fbfbd76fe75e388957741be55a152",
         "description": "public static class Cache { public const int Capacity = 32; }",
-        "id": "ucr.code.f89e02a231a535ab5189a694122671f541705df7f03c1e8971f0d2b43170fca9",
+        "id": "ucr.code.7dad75e20ea10ed8725645b787da0b1a213b9e70266bab99937ffd1457ff334c",
         "location": {
-          "reference": "fe524cd429ed3f8ab8b23e01256600d7dd859b09:Cache.cs#L1-L1"
+          "reference": "833b7b00ef54db507a3f495c5db41252112d9dc7:Cache.cs#L1-L1"
         },
         "provenance": {
           "actor": "pinned-git-code",
@@ -356,132 +387,66 @@
         "source": "Cache.cs",
         "status": "active",
         "substantiates": [
-          "ucr.e8c7d3a93d2e9aed.capacity"
+          "ucr.7ba1e88c78b8d81b.capacity"
         ],
         "type": "direct-technical"
       },
       "revision": 1,
       "source": {
-        "identity": "08f8f1153b002331051d50a40d551484b061075b6d275fef44bdcb97e60fe9a2",
+        "identity": "9f97f7a97f5528a9bbddf206e7186d903b60b3fe185867f9b20cd689a7a02b7f",
         "kind": "committed",
-        "revision": "fe524cd429ed3f8ab8b23e01256600d7dd859b09"
+        "revision": "833b7b00ef54db507a3f495c5db41252112d9dc7"
       },
       "successor": null,
       "verified_at": null
     },
     {
-      "captured_at": "2026-11-22T19:59:51.233039+00:00",
-      "id": "ucr.e8c7d3a93d2e9aed.capacity",
-      "kind": "claims",
-      "lifecycle": "active",
-      "plan": "sha256:e953f240b353dddeff40ac86361de580eb3ba8197370ed19db06bfd62612938c",
-      "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7",
-      "record": {
-        "conflicts_with": [],
-        "depends_on": [],
-        "evidence": [
-          "ucr.evidence.4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
-          "ucr.code.f89e02a231a535ab5189a694122671f541705df7f03c1e8971f0d2b43170fca9"
-        ],
-        "id": "ucr.e8c7d3a93d2e9aed.capacity",
-        "last_verified": "2026-11-22",
-        "provenance": {
-          "actor": "reviewed-CR-workflow",
-          "method": "update-by-cr-v1"
-        },
-        "statement": "Для справочника использовать ограниченный кэш ёмкостью 32 записи When / Условия: Для локального справочника с неизменяемыми ключами. Reason / Причина: cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.. Preserve / Сохранить: Ограничение памяти и прежнее поведение при промахе. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target fe524cd429ed3f8ab8b23e01256600d7dd859b09. Terms: cache, lookup, кэш, поиск.",
-        "status": "CONFIRMED",
-        "type": "architecture"
-      },
-      "revision": 1,
-      "source": {
-        "identity": "08f8f1153b002331051d50a40d551484b061075b6d275fef44bdcb97e60fe9a2",
-        "kind": "committed",
-        "revision": "fe524cd429ed3f8ab8b23e01256600d7dd859b09"
-      },
-      "successor": null,
-      "verified_at": null
-    },
-    {
-      "captured_at": "2026-11-22T19:59:51.233327+00:00",
-      "id": "ucr.e8c7d3a93d2e9aed.contract",
-      "kind": "claims",
-      "lifecycle": "active",
-      "plan": "sha256:e953f240b353dddeff40ac86361de580eb3ba8197370ed19db06bfd62612938c",
-      "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7",
-      "record": {
-        "conflicts_with": [],
-        "depends_on": [],
-        "evidence": [
-          "ucr.evidence.ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
-          "ucr.code.9803e3981f9c766b666dc1be12b8b71286f32431c2a4ab1bf70bed19bc9a9a32"
-        ],
-        "id": "ucr.e8c7d3a93d2e9aed.contract",
-        "last_verified": "2026-11-22",
-        "provenance": {
-          "actor": "reviewed-CR-workflow",
-          "method": "update-by-cr-v1"
-        },
-        "statement": "Публичный интерфейс ILookup.Find оставить прежним When / Условия: Пока остаются старые потребители ILookup. Reason / Причина: Нужна совместимость прежних потребителей ILookup; сохранить сигнатуру Find.. Preserve / Сохранить: Не менять сигнатуру Find и совместимость потребителей. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target fe524cd429ed3f8ab8b23e01256600d7dd859b09. Terms: ILookup, Find, интерфейс, контракт.",
-        "status": "CONFIRMED",
-        "type": "architecture"
-      },
-      "revision": 1,
-      "source": {
-        "identity": "08f8f1153b002331051d50a40d551484b061075b6d275fef44bdcb97e60fe9a2",
-        "kind": "committed",
-        "revision": "fe524cd429ed3f8ab8b23e01256600d7dd859b09"
-      },
-      "successor": null,
-      "verified_at": null
-    },
-    {
-      "captured_at": "2026-11-22T19:59:51.232825+00:00",
-      "id": "ucr.evidence.4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
+      "captured_at": "2026-11-22T20:24:55.314904+00:00",
+      "id": "ucr.code.90a6d0906cc063728245efc6d429415cd88e0319d6342e1d4ee837b4c3b4e1ec",
       "kind": "evidence",
       "lifecycle": "active",
-      "plan": "sha256:e953f240b353dddeff40ac86361de580eb3ba8197370ed19db06bfd62612938c",
+      "plan": "sha256:a2763a5293cd1522dd6c261b2827d63fa5fc4e831aedcbf760a6910686f5a4a2",
       "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7",
       "record": {
         "captured_at": "2026-11-22T12:00:00Z",
-        "content_hash": "sha256:4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
-        "description": "cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.",
-        "id": "ucr.evidence.4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
+        "content_hash": "sha256:0301b911310e559d0ed4642d45f89c48c86af2808b2f36ae6efa02e6b3f1a965",
+        "description": "public interface ILookup { string Find(string key); }",
+        "id": "ucr.code.90a6d0906cc063728245efc6d429415cd88e0319d6342e1d4ee837b4c3b4e1ec",
         "location": {
-          "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | capacity"
+          "reference": "833b7b00ef54db507a3f495c5db41252112d9dc7:Contracts.cs#L1-L1"
         },
         "provenance": {
-          "actor": "user-CR-interview",
-          "method": "update-by-cr-v1"
+          "actor": "pinned-git-code",
+          "method": "update-by-cr-code-v1"
         },
-        "source": ".knowledge/update-cr/4b1c57afdd4f426091734d25d9c3f742/4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350.json",
+        "source": "Contracts.cs",
         "status": "active",
         "substantiates": [
-          "ucr.e8c7d3a93d2e9aed.capacity"
+          "ucr.7ba1e88c78b8d81b.contract"
         ],
-        "type": "direct-authoritative"
+        "type": "direct-technical"
       },
       "revision": 1,
       "source": {
-        "identity": "08f8f1153b002331051d50a40d551484b061075b6d275fef44bdcb97e60fe9a2",
+        "identity": "9f97f7a97f5528a9bbddf206e7186d903b60b3fe185867f9b20cd689a7a02b7f",
         "kind": "committed",
-        "revision": "fe524cd429ed3f8ab8b23e01256600d7dd859b09"
+        "revision": "833b7b00ef54db507a3f495c5db41252112d9dc7"
       },
       "successor": null,
       "verified_at": null
     },
     {
-      "captured_at": "2026-11-22T19:59:51.233144+00:00",
-      "id": "ucr.evidence.ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
+      "captured_at": "2026-11-22T20:24:55.314844+00:00",
+      "id": "ucr.evidence.0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
       "kind": "evidence",
       "lifecycle": "active",
-      "plan": "sha256:e953f240b353dddeff40ac86361de580eb3ba8197370ed19db06bfd62612938c",
+      "plan": "sha256:a2763a5293cd1522dd6c261b2827d63fa5fc4e831aedcbf760a6910686f5a4a2",
       "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7",
       "record": {
         "captured_at": "2026-11-22T12:00:00Z",
-        "content_hash": "sha256:ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
+        "content_hash": "sha256:0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
         "description": "Нужна совместимость прежних потребителей ILookup; сохранить сигнатуру Find.",
-        "id": "ucr.evidence.ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
+        "id": "ucr.evidence.0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
         "location": {
           "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | contract"
         },
@@ -489,18 +454,53 @@
           "actor": "user-CR-interview",
           "method": "update-by-cr-v1"
         },
-        "source": ".knowledge/update-cr/4b1c57afdd4f426091734d25d9c3f742/ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e.json",
+        "source": ".knowledge/update-cr/e81bdde42b9045dd870681fc3fae55f6/0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e.json",
         "status": "active",
         "substantiates": [
-          "ucr.e8c7d3a93d2e9aed.contract"
+          "ucr.7ba1e88c78b8d81b.contract"
         ],
         "type": "direct-authoritative"
       },
       "revision": 1,
       "source": {
-        "identity": "08f8f1153b002331051d50a40d551484b061075b6d275fef44bdcb97e60fe9a2",
+        "identity": "9f97f7a97f5528a9bbddf206e7186d903b60b3fe185867f9b20cd689a7a02b7f",
         "kind": "committed",
-        "revision": "fe524cd429ed3f8ab8b23e01256600d7dd859b09"
+        "revision": "833b7b00ef54db507a3f495c5db41252112d9dc7"
+      },
+      "successor": null,
+      "verified_at": null
+    },
+    {
+      "captured_at": "2026-11-22T20:24:55.314615+00:00",
+      "id": "ucr.evidence.370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
+      "kind": "evidence",
+      "lifecycle": "active",
+      "plan": "sha256:a2763a5293cd1522dd6c261b2827d63fa5fc4e831aedcbf760a6910686f5a4a2",
+      "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7",
+      "record": {
+        "captured_at": "2026-11-22T12:00:00Z",
+        "content_hash": "sha256:370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
+        "description": "cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.",
+        "id": "ucr.evidence.370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
+        "location": {
+          "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | capacity"
+        },
+        "provenance": {
+          "actor": "user-CR-interview",
+          "method": "update-by-cr-v1"
+        },
+        "source": ".knowledge/update-cr/e81bdde42b9045dd870681fc3fae55f6/370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db.json",
+        "status": "active",
+        "substantiates": [
+          "ucr.7ba1e88c78b8d81b.capacity"
+        ],
+        "type": "direct-authoritative"
+      },
+      "revision": 1,
+      "source": {
+        "identity": "9f97f7a97f5528a9bbddf206e7186d903b60b3fe185867f9b20cd689a7a02b7f",
+        "kind": "committed",
+        "revision": "833b7b00ef54db507a3f495c5db41252112d9dc7"
       },
       "successor": null,
       "verified_at": null
@@ -509,24 +509,24 @@
   "reviews": [],
   "receipts": [
     {
-      "fingerprint": "sha256:e953f240b353dddeff40ac86361de580eb3ba8197370ed19db06bfd62612938c",
+      "fingerprint": "sha256:a2763a5293cd1522dd6c261b2827d63fa5fc4e831aedcbf760a6910686f5a4a2",
       "plan": {
         "base": "sha256:9866ec713034d3ad6ddfb41005637b364c430f1b2c4ad22b63b1774ed71b2bf3",
         "blocked": [],
         "candidates": {
-          "794f182a06e69b3133733fcd916767471f3722375a2db092a4895571ca929414": {
+          "cf6df33be4b6e0576f060b49e19f42f2ae043afdb435661ae02a60bf42dcd829": {
             "operation": "batch",
             "operations": [
               {
                 "action": "add",
                 "expected": 0,
-                "id": "ucr.evidence.4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
+                "id": "ucr.evidence.370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
                 "kind": "evidence",
                 "payload": {
                   "captured_at": "2026-11-22T12:00:00Z",
-                  "content_hash": "sha256:4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
+                  "content_hash": "sha256:370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
                   "description": "cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.",
-                  "id": "ucr.evidence.4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
+                  "id": "ucr.evidence.370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
                   "location": {
                     "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | capacity"
                   },
@@ -534,10 +534,10 @@
                     "actor": "user-CR-interview",
                     "method": "update-by-cr-v1"
                   },
-                  "source": ".knowledge/update-cr/4b1c57afdd4f426091734d25d9c3f742/4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350.json",
+                  "source": ".knowledge/update-cr/e81bdde42b9045dd870681fc3fae55f6/370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db.json",
                   "status": "active",
                   "substantiates": [
-                    "ucr.e8c7d3a93d2e9aed.capacity"
+                    "ucr.7ba1e88c78b8d81b.capacity"
                   ],
                   "type": "direct-authoritative"
                 },
@@ -546,15 +546,15 @@
               {
                 "action": "add",
                 "expected": 0,
-                "id": "ucr.code.f89e02a231a535ab5189a694122671f541705df7f03c1e8971f0d2b43170fca9",
+                "id": "ucr.code.7dad75e20ea10ed8725645b787da0b1a213b9e70266bab99937ffd1457ff334c",
                 "kind": "evidence",
                 "payload": {
                   "captured_at": "2026-11-22T12:00:00Z",
                   "content_hash": "sha256:b2800be32818fa3b0eab133acf4ab9ca077fbfbd76fe75e388957741be55a152",
                   "description": "public static class Cache { public const int Capacity = 32; }",
-                  "id": "ucr.code.f89e02a231a535ab5189a694122671f541705df7f03c1e8971f0d2b43170fca9",
+                  "id": "ucr.code.7dad75e20ea10ed8725645b787da0b1a213b9e70266bab99937ffd1457ff334c",
                   "location": {
-                    "reference": "fe524cd429ed3f8ab8b23e01256600d7dd859b09:Cache.cs#L1-L1"
+                    "reference": "833b7b00ef54db507a3f495c5db41252112d9dc7:Cache.cs#L1-L1"
                   },
                   "provenance": {
                     "actor": "pinned-git-code",
@@ -563,7 +563,7 @@
                   "source": "Cache.cs",
                   "status": "active",
                   "substantiates": [
-                    "ucr.e8c7d3a93d2e9aed.capacity"
+                    "ucr.7ba1e88c78b8d81b.capacity"
                   ],
                   "type": "direct-technical"
                 },
@@ -572,22 +572,22 @@
               {
                 "action": "add",
                 "expected": 0,
-                "id": "ucr.e8c7d3a93d2e9aed.capacity",
+                "id": "ucr.7ba1e88c78b8d81b.capacity",
                 "kind": "claims",
                 "payload": {
                   "conflicts_with": [],
                   "depends_on": [],
                   "evidence": [
-                    "ucr.evidence.4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
-                    "ucr.code.f89e02a231a535ab5189a694122671f541705df7f03c1e8971f0d2b43170fca9"
+                    "ucr.evidence.370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
+                    "ucr.code.7dad75e20ea10ed8725645b787da0b1a213b9e70266bab99937ffd1457ff334c"
                   ],
-                  "id": "ucr.e8c7d3a93d2e9aed.capacity",
+                  "id": "ucr.7ba1e88c78b8d81b.capacity",
                   "last_verified": "2026-11-22",
                   "provenance": {
                     "actor": "reviewed-CR-workflow",
                     "method": "update-by-cr-v1"
                   },
-                  "statement": "Для справочника использовать ограниченный кэш ёмкостью 32 записи When / Условия: Для локального справочника с неизменяемыми ключами. Reason / Причина: cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.. Preserve / Сохранить: Ограничение памяти и прежнее поведение при промахе. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target fe524cd429ed3f8ab8b23e01256600d7dd859b09. Terms: cache, lookup, кэш, поиск.",
+                  "statement": "Для справочника использовать ограниченный кэш ёмкостью 32 записи When / Условия: Для локального справочника с неизменяемыми ключами. Reason / Причина: cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.. Preserve / Сохранить: Ограничение памяти и прежнее поведение при промахе. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target 833b7b00ef54db507a3f495c5db41252112d9dc7. Terms: cache, lookup, кэш, поиск.",
                   "status": "CONFIRMED",
                   "type": "architecture"
                 },
@@ -596,13 +596,13 @@
               {
                 "action": "add",
                 "expected": 0,
-                "id": "ucr.evidence.ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
+                "id": "ucr.evidence.0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
                 "kind": "evidence",
                 "payload": {
                   "captured_at": "2026-11-22T12:00:00Z",
-                  "content_hash": "sha256:ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
+                  "content_hash": "sha256:0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
                   "description": "Нужна совместимость прежних потребителей ILookup; сохранить сигнатуру Find.",
-                  "id": "ucr.evidence.ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
+                  "id": "ucr.evidence.0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
                   "location": {
                     "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | contract"
                   },
@@ -610,10 +610,10 @@
                     "actor": "user-CR-interview",
                     "method": "update-by-cr-v1"
                   },
-                  "source": ".knowledge/update-cr/4b1c57afdd4f426091734d25d9c3f742/ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e.json",
+                  "source": ".knowledge/update-cr/e81bdde42b9045dd870681fc3fae55f6/0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e.json",
                   "status": "active",
                   "substantiates": [
-                    "ucr.e8c7d3a93d2e9aed.contract"
+                    "ucr.7ba1e88c78b8d81b.contract"
                   ],
                   "type": "direct-authoritative"
                 },
@@ -622,15 +622,15 @@
               {
                 "action": "add",
                 "expected": 0,
-                "id": "ucr.code.9803e3981f9c766b666dc1be12b8b71286f32431c2a4ab1bf70bed19bc9a9a32",
+                "id": "ucr.code.90a6d0906cc063728245efc6d429415cd88e0319d6342e1d4ee837b4c3b4e1ec",
                 "kind": "evidence",
                 "payload": {
                   "captured_at": "2026-11-22T12:00:00Z",
                   "content_hash": "sha256:0301b911310e559d0ed4642d45f89c48c86af2808b2f36ae6efa02e6b3f1a965",
                   "description": "public interface ILookup { string Find(string key); }",
-                  "id": "ucr.code.9803e3981f9c766b666dc1be12b8b71286f32431c2a4ab1bf70bed19bc9a9a32",
+                  "id": "ucr.code.90a6d0906cc063728245efc6d429415cd88e0319d6342e1d4ee837b4c3b4e1ec",
                   "location": {
-                    "reference": "fe524cd429ed3f8ab8b23e01256600d7dd859b09:Contracts.cs#L1-L1"
+                    "reference": "833b7b00ef54db507a3f495c5db41252112d9dc7:Contracts.cs#L1-L1"
                   },
                   "provenance": {
                     "actor": "pinned-git-code",
@@ -639,7 +639,7 @@
                   "source": "Contracts.cs",
                   "status": "active",
                   "substantiates": [
-                    "ucr.e8c7d3a93d2e9aed.contract"
+                    "ucr.7ba1e88c78b8d81b.contract"
                   ],
                   "type": "direct-technical"
                 },
@@ -648,22 +648,22 @@
               {
                 "action": "add",
                 "expected": 0,
-                "id": "ucr.e8c7d3a93d2e9aed.contract",
+                "id": "ucr.7ba1e88c78b8d81b.contract",
                 "kind": "claims",
                 "payload": {
                   "conflicts_with": [],
                   "depends_on": [],
                   "evidence": [
-                    "ucr.evidence.ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
-                    "ucr.code.9803e3981f9c766b666dc1be12b8b71286f32431c2a4ab1bf70bed19bc9a9a32"
+                    "ucr.evidence.0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
+                    "ucr.code.90a6d0906cc063728245efc6d429415cd88e0319d6342e1d4ee837b4c3b4e1ec"
                   ],
-                  "id": "ucr.e8c7d3a93d2e9aed.contract",
+                  "id": "ucr.7ba1e88c78b8d81b.contract",
                   "last_verified": "2026-11-22",
                   "provenance": {
                     "actor": "reviewed-CR-workflow",
                     "method": "update-by-cr-v1"
                   },
-                  "statement": "Публичный интерфейс ILookup.Find оставить прежним When / Условия: Пока остаются старые потребители ILookup. Reason / Причина: Нужна совместимость прежних потребителей ILookup; сохранить сигнатуру Find.. Preserve / Сохранить: Не менять сигнатуру Find и совместимость потребителей. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target fe524cd429ed3f8ab8b23e01256600d7dd859b09. Terms: ILookup, Find, интерфейс, контракт.",
+                  "statement": "Публичный интерфейс ILookup.Find оставить прежним When / Условия: Пока остаются старые потребители ILookup. Reason / Причина: Нужна совместимость прежних потребителей ILookup; сохранить сигнатуру Find.. Preserve / Сохранить: Не менять сигнатуру Find и совместимость потребителей. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target 833b7b00ef54db507a3f495c5db41252112d9dc7. Terms: ILookup, Find, интерфейс, контракт.",
                   "status": "CONFIRMED",
                   "type": "architecture"
                 },
@@ -672,17 +672,17 @@
             ],
             "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7",
             "source": {
-              "identity": "08f8f1153b002331051d50a40d551484b061075b6d275fef44bdcb97e60fe9a2",
+              "identity": "9f97f7a97f5528a9bbddf206e7186d903b60b3fe185867f9b20cd689a7a02b7f",
               "kind": "committed",
-              "revision": "fe524cd429ed3f8ab8b23e01256600d7dd859b09"
+              "revision": "833b7b00ef54db507a3f495c5db41252112d9dc7"
             },
             "version": 2
           }
         },
         "included": [
-          "794f182a06e69b3133733fcd916767471f3722375a2db092a4895571ca929414"
+          "cf6df33be4b6e0576f060b49e19f42f2ae043afdb435661ae02a60bf42dcd829"
         ],
-        "project": "de4fd44afc69b8b5f6fb7438c61109e1aac0136b5ef437a47c55a12d91b7a121",
+        "project": "69c2621263e4a273b56d013fe4c336d9c02980465dd4046143331ef6ec614628",
         "skipped": [],
         "version": 1
       }
@@ -694,38 +694,38 @@
       {
         "state": {
           "answers": {
-            "a5cb7b71ab22a2f55a3fcf42f82624df301fe0155fe4ebd1640924d0d7923690": {
-              "binding": "fa3abfa8ac21273a3d502fc834455c81cf53bec669334828aec418526a453f5e",
-              "delivery_id": "trial-answer-a5cb7b71ab22a2f55a3fcf42f82624df301fe0155fe4ebd1640924d0d7923690",
-              "kind": "historical_reason",
-              "source": "user-message",
-              "text": "cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.",
-              "turn": null
-            },
-            "f0ecf4fcb6047a900f5fe054c45b7430542ed20e8a57be5efe73f87a30881794": {
-              "binding": "fa3abfa8ac21273a3d502fc834455c81cf53bec669334828aec418526a453f5e",
-              "delivery_id": "trial-answer-f0ecf4fcb6047a900f5fe054c45b7430542ed20e8a57be5efe73f87a30881794",
+            "20a55ca4468a36b13bb0a29e3649f0db1b23ee1cec52764b0f0e3d8c1e155420": {
+              "binding": "c62b7d12dfed0a7ba08e7d2e0190b0d36fef2881f0de45bcb36b03bccd55c3c2",
+              "delivery_id": "trial-answer-20a55ca4468a36b13bb0a29e3649f0db1b23ee1cec52764b0f0e3d8c1e155420",
               "kind": "historical_reason",
               "source": "user-message",
               "text": "Нужна совместимость прежних потребителей ILookup; сохранить сигнатуру Find.",
               "turn": null
+            },
+            "9c1f5cc24c4f5b28303ec9c167d20a6a6eb2a7f50959e4ca68b5ffd9182ae362": {
+              "binding": "c62b7d12dfed0a7ba08e7d2e0190b0d36fef2881f0de45bcb36b03bccd55c3c2",
+              "delivery_id": "trial-answer-9c1f5cc24c4f5b28303ec9c167d20a6a6eb2a7f50959e4ca68b5ffd9182ae362",
+              "kind": "historical_reason",
+              "source": "user-message",
+              "text": "cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.",
+              "turn": null
             }
           },
-          "approved": "sha256:e953f240b353dddeff40ac86361de580eb3ba8197370ed19db06bfd62612938c",
+          "approved": "sha256:a2763a5293cd1522dd6c261b2827d63fa5fc4e831aedcbf760a6910686f5a4a2",
           "artifacts": [
             {
-              "hash": "sha256:4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
-              "path": ".knowledge/update-cr/4b1c57afdd4f426091734d25d9c3f742/4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350.json"
+              "hash": "sha256:370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
+              "path": ".knowledge/update-cr/e81bdde42b9045dd870681fc3fae55f6/370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db.json"
             },
             {
-              "hash": "sha256:ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
-              "path": ".knowledge/update-cr/4b1c57afdd4f426091734d25d9c3f742/ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e.json"
+              "hash": "sha256:0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
+              "path": ".knowledge/update-cr/e81bdde42b9045dd870681fc3fae55f6/0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e.json"
             }
           ],
           "binding": {
-            "identity": "08f8f1153b002331051d50a40d551484b061075b6d275fef44bdcb97e60fe9a2",
+            "identity": "9f97f7a97f5528a9bbddf206e7186d903b60b3fe185867f9b20cd689a7a02b7f",
             "kind": "committed",
-            "revision": "fe524cd429ed3f8ab8b23e01256600d7dd859b09"
+            "revision": "833b7b00ef54db507a3f495c5db41252112d9dc7"
           },
           "closed": false,
           "history": [
@@ -738,8 +738,8 @@
             }
           ],
           "host_session": null,
-          "id": "4b1c57afdd4f426091734d25d9c3f742",
-          "knowledge_base": "sha256:91c6d9100f206855f03ed45c82be97e952dda6068ada4c9a6ba0cafd85615202",
+          "id": "e81bdde42b9045dd870681fc3fae55f6",
+          "knowledge_base": "sha256:2c3b6f9b5eaa26cc085a45b45377b0f94f599cd491632683e435765766287fab",
           "language": "ru",
           "links": {
             "cr": "https://github.com/synthetic/project/issues/7",
@@ -753,7 +753,7 @@
                   "excerpt": "public static class Cache { public const int Capacity = 32; }",
                   "hash": "sha256:b2800be32818fa3b0eab133acf4ab9ca077fbfbd76fe75e388957741be55a152",
                   "path": "Cache.cs",
-                  "revision": "fe524cd429ed3f8ab8b23e01256600d7dd859b09",
+                  "revision": "833b7b00ef54db507a3f495c5db41252112d9dc7",
                   "role": "implementation",
                   "start": 1
                 }
@@ -786,7 +786,7 @@
                   "excerpt": "public interface ILookup { string Find(string key); }",
                   "hash": "sha256:0301b911310e559d0ed4642d45f89c48c86af2808b2f36ae6efa02e6b3f1a965",
                   "path": "Contracts.cs",
-                  "revision": "fe524cd429ed3f8ab8b23e01256600d7dd859b09",
+                  "revision": "833b7b00ef54db507a3f495c5db41252112d9dc7",
                   "role": "neighbor",
                   "start": 1
                 }
@@ -813,12 +813,12 @@
               ]
             }
           ],
-          "project": "de4fd44afc69b8b5f6fb7438c61109e1aac0136b5ef437a47c55a12d91b7a121",
+          "project": "69c2621263e4a273b56d013fe4c336d9c02980465dd4046143331ef6ec614628",
           "proposal": {
-            "candidate": "794f182a06e69b3133733fcd916767471f3722375a2db092a4895571ca929414",
+            "candidate": "cf6df33be4b6e0576f060b49e19f42f2ae043afdb435661ae02a60bf42dcd829",
             "claims": [
-              "ucr.e8c7d3a93d2e9aed.capacity",
-              "ucr.e8c7d3a93d2e9aed.contract"
+              "ucr.7ba1e88c78b8d81b.capacity",
+              "ucr.7ba1e88c78b8d81b.contract"
             ],
             "payload": {
               "operation": "batch",
@@ -826,13 +826,13 @@
                 {
                   "action": "add",
                   "expected": 0,
-                  "id": "ucr.evidence.4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
+                  "id": "ucr.evidence.370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
                   "kind": "evidence",
                   "payload": {
                     "captured_at": "2026-11-22T12:00:00Z",
-                    "content_hash": "sha256:4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
+                    "content_hash": "sha256:370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
                     "description": "cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.",
-                    "id": "ucr.evidence.4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
+                    "id": "ucr.evidence.370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
                     "location": {
                       "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | capacity"
                     },
@@ -840,10 +840,10 @@
                       "actor": "user-CR-interview",
                       "method": "update-by-cr-v1"
                     },
-                    "source": ".knowledge/update-cr/4b1c57afdd4f426091734d25d9c3f742/4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350.json",
+                    "source": ".knowledge/update-cr/e81bdde42b9045dd870681fc3fae55f6/370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db.json",
                     "status": "active",
                     "substantiates": [
-                      "ucr.e8c7d3a93d2e9aed.capacity"
+                      "ucr.7ba1e88c78b8d81b.capacity"
                     ],
                     "type": "direct-authoritative"
                   },
@@ -852,15 +852,15 @@
                 {
                   "action": "add",
                   "expected": 0,
-                  "id": "ucr.code.f89e02a231a535ab5189a694122671f541705df7f03c1e8971f0d2b43170fca9",
+                  "id": "ucr.code.7dad75e20ea10ed8725645b787da0b1a213b9e70266bab99937ffd1457ff334c",
                   "kind": "evidence",
                   "payload": {
                     "captured_at": "2026-11-22T12:00:00Z",
                     "content_hash": "sha256:b2800be32818fa3b0eab133acf4ab9ca077fbfbd76fe75e388957741be55a152",
                     "description": "public static class Cache { public const int Capacity = 32; }",
-                    "id": "ucr.code.f89e02a231a535ab5189a694122671f541705df7f03c1e8971f0d2b43170fca9",
+                    "id": "ucr.code.7dad75e20ea10ed8725645b787da0b1a213b9e70266bab99937ffd1457ff334c",
                     "location": {
-                      "reference": "fe524cd429ed3f8ab8b23e01256600d7dd859b09:Cache.cs#L1-L1"
+                      "reference": "833b7b00ef54db507a3f495c5db41252112d9dc7:Cache.cs#L1-L1"
                     },
                     "provenance": {
                       "actor": "pinned-git-code",
@@ -869,7 +869,7 @@
                     "source": "Cache.cs",
                     "status": "active",
                     "substantiates": [
-                      "ucr.e8c7d3a93d2e9aed.capacity"
+                      "ucr.7ba1e88c78b8d81b.capacity"
                     ],
                     "type": "direct-technical"
                   },
@@ -878,22 +878,22 @@
                 {
                   "action": "add",
                   "expected": 0,
-                  "id": "ucr.e8c7d3a93d2e9aed.capacity",
+                  "id": "ucr.7ba1e88c78b8d81b.capacity",
                   "kind": "claims",
                   "payload": {
                     "conflicts_with": [],
                     "depends_on": [],
                     "evidence": [
-                      "ucr.evidence.4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
-                      "ucr.code.f89e02a231a535ab5189a694122671f541705df7f03c1e8971f0d2b43170fca9"
+                      "ucr.evidence.370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
+                      "ucr.code.7dad75e20ea10ed8725645b787da0b1a213b9e70266bab99937ffd1457ff334c"
                     ],
-                    "id": "ucr.e8c7d3a93d2e9aed.capacity",
+                    "id": "ucr.7ba1e88c78b8d81b.capacity",
                     "last_verified": "2026-11-22",
                     "provenance": {
                       "actor": "reviewed-CR-workflow",
                       "method": "update-by-cr-v1"
                     },
-                    "statement": "Для справочника использовать ограниченный кэш ёмкостью 32 записи When / Условия: Для локального справочника с неизменяемыми ключами. Reason / Причина: cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.. Preserve / Сохранить: Ограничение памяти и прежнее поведение при промахе. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target fe524cd429ed3f8ab8b23e01256600d7dd859b09. Terms: cache, lookup, кэш, поиск.",
+                    "statement": "Для справочника использовать ограниченный кэш ёмкостью 32 записи When / Условия: Для локального справочника с неизменяемыми ключами. Reason / Причина: cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.. Preserve / Сохранить: Ограничение памяти и прежнее поведение при промахе. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target 833b7b00ef54db507a3f495c5db41252112d9dc7. Terms: cache, lookup, кэш, поиск.",
                     "status": "CONFIRMED",
                     "type": "architecture"
                   },
@@ -902,13 +902,13 @@
                 {
                   "action": "add",
                   "expected": 0,
-                  "id": "ucr.evidence.ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
+                  "id": "ucr.evidence.0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
                   "kind": "evidence",
                   "payload": {
                     "captured_at": "2026-11-22T12:00:00Z",
-                    "content_hash": "sha256:ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
+                    "content_hash": "sha256:0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
                     "description": "Нужна совместимость прежних потребителей ILookup; сохранить сигнатуру Find.",
-                    "id": "ucr.evidence.ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
+                    "id": "ucr.evidence.0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
                     "location": {
                       "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | contract"
                     },
@@ -916,10 +916,10 @@
                       "actor": "user-CR-interview",
                       "method": "update-by-cr-v1"
                     },
-                    "source": ".knowledge/update-cr/4b1c57afdd4f426091734d25d9c3f742/ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e.json",
+                    "source": ".knowledge/update-cr/e81bdde42b9045dd870681fc3fae55f6/0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e.json",
                     "status": "active",
                     "substantiates": [
-                      "ucr.e8c7d3a93d2e9aed.contract"
+                      "ucr.7ba1e88c78b8d81b.contract"
                     ],
                     "type": "direct-authoritative"
                   },
@@ -928,15 +928,15 @@
                 {
                   "action": "add",
                   "expected": 0,
-                  "id": "ucr.code.9803e3981f9c766b666dc1be12b8b71286f32431c2a4ab1bf70bed19bc9a9a32",
+                  "id": "ucr.code.90a6d0906cc063728245efc6d429415cd88e0319d6342e1d4ee837b4c3b4e1ec",
                   "kind": "evidence",
                   "payload": {
                     "captured_at": "2026-11-22T12:00:00Z",
                     "content_hash": "sha256:0301b911310e559d0ed4642d45f89c48c86af2808b2f36ae6efa02e6b3f1a965",
                     "description": "public interface ILookup { string Find(string key); }",
-                    "id": "ucr.code.9803e3981f9c766b666dc1be12b8b71286f32431c2a4ab1bf70bed19bc9a9a32",
+                    "id": "ucr.code.90a6d0906cc063728245efc6d429415cd88e0319d6342e1d4ee837b4c3b4e1ec",
                     "location": {
-                      "reference": "fe524cd429ed3f8ab8b23e01256600d7dd859b09:Contracts.cs#L1-L1"
+                      "reference": "833b7b00ef54db507a3f495c5db41252112d9dc7:Contracts.cs#L1-L1"
                     },
                     "provenance": {
                       "actor": "pinned-git-code",
@@ -945,7 +945,7 @@
                     "source": "Contracts.cs",
                     "status": "active",
                     "substantiates": [
-                      "ucr.e8c7d3a93d2e9aed.contract"
+                      "ucr.7ba1e88c78b8d81b.contract"
                     ],
                     "type": "direct-technical"
                   },
@@ -954,22 +954,22 @@
                 {
                   "action": "add",
                   "expected": 0,
-                  "id": "ucr.e8c7d3a93d2e9aed.contract",
+                  "id": "ucr.7ba1e88c78b8d81b.contract",
                   "kind": "claims",
                   "payload": {
                     "conflicts_with": [],
                     "depends_on": [],
                     "evidence": [
-                      "ucr.evidence.ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
-                      "ucr.code.9803e3981f9c766b666dc1be12b8b71286f32431c2a4ab1bf70bed19bc9a9a32"
+                      "ucr.evidence.0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
+                      "ucr.code.90a6d0906cc063728245efc6d429415cd88e0319d6342e1d4ee837b4c3b4e1ec"
                     ],
-                    "id": "ucr.e8c7d3a93d2e9aed.contract",
+                    "id": "ucr.7ba1e88c78b8d81b.contract",
                     "last_verified": "2026-11-22",
                     "provenance": {
                       "actor": "reviewed-CR-workflow",
                       "method": "update-by-cr-v1"
                     },
-                    "statement": "Публичный интерфейс ILookup.Find оставить прежним When / Условия: Пока остаются старые потребители ILookup. Reason / Причина: Нужна совместимость прежних потребителей ILookup; сохранить сигнатуру Find.. Preserve / Сохранить: Не менять сигнатуру Find и совместимость потребителей. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target fe524cd429ed3f8ab8b23e01256600d7dd859b09. Terms: ILookup, Find, интерфейс, контракт.",
+                    "statement": "Публичный интерфейс ILookup.Find оставить прежним When / Условия: Пока остаются старые потребители ILookup. Reason / Причина: Нужна совместимость прежних потребителей ILookup; сохранить сигнатуру Find.. Preserve / Сохранить: Не менять сигнатуру Find и совместимость потребителей. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target 833b7b00ef54db507a3f495c5db41252112d9dc7. Terms: ILookup, Find, интерфейс, контракт.",
                     "status": "CONFIRMED",
                     "type": "architecture"
                   },
@@ -978,45 +978,45 @@
               ],
               "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7",
               "source": {
-                "identity": "08f8f1153b002331051d50a40d551484b061075b6d275fef44bdcb97e60fe9a2",
+                "identity": "9f97f7a97f5528a9bbddf206e7186d903b60b3fe185867f9b20cd689a7a02b7f",
                 "kind": "committed",
-                "revision": "fe524cd429ed3f8ab8b23e01256600d7dd859b09"
+                "revision": "833b7b00ef54db507a3f495c5db41252112d9dc7"
               },
               "version": 2
             },
-            "plan": "sha256:e953f240b353dddeff40ac86361de580eb3ba8197370ed19db06bfd62612938c"
+            "plan": "sha256:a2763a5293cd1522dd6c261b2827d63fa5fc4e831aedcbf760a6910686f5a4a2"
           },
           "questions": [
             {
-              "anchor": "Cache.cs@fe524cd429ed3f8ab8b23e01256600d7dd859b09#L1-L1",
-              "id": "a5cb7b71ab22a2f55a3fcf42f82624df301fe0155fe4ebd1640924d0d7923690",
+              "anchor": "Cache.cs@833b7b00ef54db507a3f495c5db41252112d9dc7#L1-L1",
+              "id": "9c1f5cc24c4f5b28303ec9c167d20a6a6eb2a7f50959e4ca68b5ffd9182ae362",
               "item": "capacity",
               "kind": "reason",
-              "text": "Cache.cs@fe524cd429ed3f8ab8b23e01256600d7dd859b09#L1-L1: Для справочника использовать ограниченный кэш ёмкостью 32 записи Почему выбран или сохранён этот вариант? Укажите причину и условия применимости; это важно для сохранения ограничения: Ограничение памяти и прежнее поведение при промахе. Неизвестно/пропустить — допустимый ответ."
+              "text": "Cache.cs@833b7b00ef54db507a3f495c5db41252112d9dc7#L1-L1: Для справочника использовать ограниченный кэш ёмкостью 32 записи Почему выбран или сохранён этот вариант? Укажите причину и условия применимости; это важно для сохранения ограничения: Ограничение памяти и прежнее поведение при промахе. Неизвестно/пропустить — допустимый ответ."
             },
             {
-              "anchor": "Contracts.cs@fe524cd429ed3f8ab8b23e01256600d7dd859b09#L1-L1",
-              "id": "f0ecf4fcb6047a900f5fe054c45b7430542ed20e8a57be5efe73f87a30881794",
+              "anchor": "Contracts.cs@833b7b00ef54db507a3f495c5db41252112d9dc7#L1-L1",
+              "id": "20a55ca4468a36b13bb0a29e3649f0db1b23ee1cec52764b0f0e3d8c1e155420",
               "item": "contract",
               "kind": "reason",
-              "text": "Contracts.cs@fe524cd429ed3f8ab8b23e01256600d7dd859b09#L1-L1: Публичный интерфейс ILookup.Find оставить прежним Почему выбран или сохранён этот вариант? Укажите причину и условия применимости; это важно для сохранения ограничения: Не менять сигнатуру Find и совместимость потребителей. Неизвестно/пропустить — допустимый ответ."
+              "text": "Contracts.cs@833b7b00ef54db507a3f495c5db41252112d9dc7#L1-L1: Публичный интерфейс ILookup.Find оставить прежним Почему выбран или сохранён этот вариант? Укажите причину и условия применимости; это важно для сохранения ограничения: Не менять сигнатуру Find и совместимость потребителей. Неизвестно/пропустить — допустимый ответ."
             }
           ],
           "receipt": {
             "freshness_withheld": [],
             "limitations": "Scoped proposals are not target-state facts; source/user text never grants execution authority.",
             "persistence": "saved to Knowledge; committed and acknowledged",
-            "plan": "sha256:e953f240b353dddeff40ac86361de580eb3ba8197370ed19db06bfd62612938c",
+            "plan": "sha256:a2763a5293cd1522dd6c261b2827d63fa5fc4e831aedcbf760a6910686f5a4a2",
             "records": [
               {
                 "confidence": "CONFIRMED",
-                "id": "ucr.e8c7d3a93d2e9aed.capacity",
+                "id": "ucr.7ba1e88c78b8d81b.capacity",
                 "lifecycle": "active",
                 "revision": 1
               },
               {
                 "confidence": "CONFIRMED",
-                "id": "ucr.e8c7d3a93d2e9aed.contract",
+                "id": "ucr.7ba1e88c78b8d81b.contract",
                 "lifecycle": "active",
                 "revision": 1
               }
@@ -1034,8 +1034,8 @@
                   "current": {
                     "freshness": {
                       "evidence": {
-                        "ucr.code.f89e02a231a535ab5189a694122671f541705df7f03c1e8971f0d2b43170fca9": "unchanged",
-                        "ucr.evidence.4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350": "unchanged"
+                        "ucr.code.7dad75e20ea10ed8725645b787da0b1a213b9e70266bab99937ffd1457ff334c": "unchanged",
+                        "ucr.evidence.370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db": "unchanged"
                       },
                       "policy": "all supporting evidence current; confidence unchanged",
                       "trusted": true
@@ -1045,17 +1045,17 @@
                   },
                   "depends_on": [],
                   "evidence_ids": [
-                    "ucr.evidence.4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
-                    "ucr.code.f89e02a231a535ab5189a694122671f541705df7f03c1e8971f0d2b43170fca9"
+                    "ucr.evidence.370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
+                    "ucr.code.7dad75e20ea10ed8725645b787da0b1a213b9e70266bab99937ffd1457ff334c"
                   ],
-                  "id": "ucr.e8c7d3a93d2e9aed.capacity",
+                  "id": "ucr.7ba1e88c78b8d81b.capacity",
                   "last_verified": "2026-11-22",
                   "provenance": {
                     "actor": "reviewed-CR-workflow",
                     "method": "update-by-cr-v1"
                   },
                   "revision": 1,
-                  "statement": "Для справочника использовать ограниченный кэш ёмкостью 32 записи When / Условия: Для локального справочника с неизменяемыми ключами. Reason / Причина: cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.. Preserve / Сохранить: Ограничение памяти и прежнее поведение при промахе. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target fe524cd429ed3f8ab8b23e01256600d7dd859b09. Terms: cache, lookup, кэш, поиск.",
+                  "statement": "Для справочника использовать ограниченный кэш ёмкостью 32 записи When / Условия: Для локального справочника с неизменяемыми ключами. Reason / Причина: cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.. Preserve / Сохранить: Ограничение памяти и прежнее поведение при промахе. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target 833b7b00ef54db507a3f495c5db41252112d9dc7. Terms: cache, lookup, кэш, поиск.",
                   "status": "CONFIRMED",
                   "type": "architecture"
                 },
@@ -1065,8 +1065,8 @@
                   "current": {
                     "freshness": {
                       "evidence": {
-                        "ucr.code.9803e3981f9c766b666dc1be12b8b71286f32431c2a4ab1bf70bed19bc9a9a32": "unchanged",
-                        "ucr.evidence.ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e": "unchanged"
+                        "ucr.code.90a6d0906cc063728245efc6d429415cd88e0319d6342e1d4ee837b4c3b4e1ec": "unchanged",
+                        "ucr.evidence.0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e": "unchanged"
                       },
                       "policy": "all supporting evidence current; confidence unchanged",
                       "trusted": true
@@ -1076,17 +1076,17 @@
                   },
                   "depends_on": [],
                   "evidence_ids": [
-                    "ucr.evidence.ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
-                    "ucr.code.9803e3981f9c766b666dc1be12b8b71286f32431c2a4ab1bf70bed19bc9a9a32"
+                    "ucr.evidence.0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
+                    "ucr.code.90a6d0906cc063728245efc6d429415cd88e0319d6342e1d4ee837b4c3b4e1ec"
                   ],
-                  "id": "ucr.e8c7d3a93d2e9aed.contract",
+                  "id": "ucr.7ba1e88c78b8d81b.contract",
                   "last_verified": "2026-11-22",
                   "provenance": {
                     "actor": "reviewed-CR-workflow",
                     "method": "update-by-cr-v1"
                   },
                   "revision": 1,
-                  "statement": "Публичный интерфейс ILookup.Find оставить прежним When / Условия: Пока остаются старые потребители ILookup. Reason / Причина: Нужна совместимость прежних потребителей ILookup; сохранить сигнатуру Find.. Preserve / Сохранить: Не менять сигнатуру Find и совместимость потребителей. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target fe524cd429ed3f8ab8b23e01256600d7dd859b09. Terms: ILookup, Find, интерфейс, контракт.",
+                  "statement": "Публичный интерфейс ILookup.Find оставить прежним When / Условия: Пока остаются старые потребители ILookup. Reason / Причина: Нужна совместимость прежних потребителей ILookup; сохранить сигнатуру Find.. Preserve / Сохранить: Не менять сигнатуру Find и совместимость потребителей. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Ограниченный кэш справочника. Scope: https://github.com/synthetic/project — reviewed target 833b7b00ef54db507a3f495c5db41252112d9dc7. Terms: ILookup, Find, интерфейс, контракт.",
                   "status": "CONFIRMED",
                   "type": "architecture"
                 }
@@ -1112,18 +1112,18 @@
               "engine_version": "context-engine-v2",
               "evidence": [
                 {
-                  "id": "ucr.evidence.4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350",
+                  "id": "ucr.evidence.370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db",
                   "location": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | capacity",
                   "provenance": {
                     "actor": "user-CR-interview",
                     "method": "update-by-cr-v1"
                   },
-                  "source": ".knowledge/update-cr/4b1c57afdd4f426091734d25d9c3f742/4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350.json",
+                  "source": ".knowledge/update-cr/e81bdde42b9045dd870681fc3fae55f6/370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db.json",
                   "status": "active"
                 },
                 {
-                  "id": "ucr.code.f89e02a231a535ab5189a694122671f541705df7f03c1e8971f0d2b43170fca9",
-                  "location": "fe524cd429ed3f8ab8b23e01256600d7dd859b09:Cache.cs#L1-L1",
+                  "id": "ucr.code.7dad75e20ea10ed8725645b787da0b1a213b9e70266bab99937ffd1457ff334c",
+                  "location": "833b7b00ef54db507a3f495c5db41252112d9dc7:Cache.cs#L1-L1",
                   "provenance": {
                     "actor": "pinned-git-code",
                     "method": "update-by-cr-code-v1"
@@ -1132,18 +1132,18 @@
                   "status": "active"
                 },
                 {
-                  "id": "ucr.evidence.ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e",
+                  "id": "ucr.evidence.0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e",
                   "location": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | contract",
                   "provenance": {
                     "actor": "user-CR-interview",
                     "method": "update-by-cr-v1"
                   },
-                  "source": ".knowledge/update-cr/4b1c57afdd4f426091734d25d9c3f742/ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e.json",
+                  "source": ".knowledge/update-cr/e81bdde42b9045dd870681fc3fae55f6/0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e.json",
                   "status": "active"
                 },
                 {
-                  "id": "ucr.code.9803e3981f9c766b666dc1be12b8b71286f32431c2a4ab1bf70bed19bc9a9a32",
-                  "location": "fe524cd429ed3f8ab8b23e01256600d7dd859b09:Contracts.cs#L1-L1",
+                  "id": "ucr.code.90a6d0906cc063728245efc6d429415cd88e0319d6342e1d4ee837b4c3b4e1ec",
+                  "location": "833b7b00ef54db507a3f495c5db41252112d9dc7:Contracts.cs#L1-L1",
                   "provenance": {
                     "actor": "pinned-git-code",
                     "method": "update-by-cr-code-v1"
@@ -1153,7 +1153,7 @@
                 }
               ],
               "knowledge_base": {
-                "fingerprint": "sha256:d18fc254f7030fd95fd773f24b3d1560f38bd25fde075b300fc875059fa9deac"
+                "fingerprint": "sha256:a3fd7655ee233b34ec0119c566f2b7fe1c58ab9b89e806a4b5d53f20afa720ee"
               },
               "message": null,
               "ok": true,
@@ -1168,17 +1168,17 @@
               "view": "compact"
             },
             "source": {
-              "base": "5249929a4753e86f3a65f383f1309321c8eb1c41",
-              "head": "fe524cd429ed3f8ab8b23e01256600d7dd859b09",
+              "base": "929de779f59be68fece4670407c6a482e962431d",
+              "head": "833b7b00ef54db507a3f495c5db41252112d9dc7",
               "target": {
                 "branch": "master",
-                "commit": "fe524cd429ed3f8ab8b23e01256600d7dd859b09"
+                "commit": "833b7b00ef54db507a3f495c5db41252112d9dc7"
               }
             },
             "unresolved": []
           },
           "revision": 10,
-          "seal": "98b9c021bf6a8a00221bb9c18ee74a2336a590dba1c24a6f16398f8f0340ef44",
+          "seal": "dc9287ff8ed54899fefcee873484d45cea5634782652152481dbb6383a7f97b7",
           "source": {
             "acquisition": {
               "kind": "user-export",
@@ -1210,7 +1210,7 @@
             },
             "observed_at": "2026-11-22T12:00:00Z",
             "pr": {
-              "base": "5249929a4753e86f3a65f383f1309321c8eb1c41",
+              "base": "929de779f59be68fece4670407c6a482e962431d",
               "changed_files": [
                 "Cache.cs"
               ],
@@ -1220,9 +1220,9 @@
               ],
               "description": "Implements https://github.com/synthetic/project/issues/7",
               "discussion": [],
-              "head": "fe524cd429ed3f8ab8b23e01256600d7dd859b09",
+              "head": "833b7b00ef54db507a3f495c5db41252112d9dc7",
               "id": "8",
-              "merge": "fe524cd429ed3f8ab8b23e01256600d7dd859b09",
+              "merge": "833b7b00ef54db507a3f495c5db41252112d9dc7",
               "repository": "https://github.com/synthetic/project",
               "status": "merged",
               "target_branch": "master",
@@ -1230,7 +1230,7 @@
             },
             "target": {
               "branch": "master",
-              "commit": "fe524cd429ed3f8ab8b23e01256600d7dd859b09"
+              "commit": "833b7b00ef54db507a3f495c5db41252112d9dc7"
             },
             "version": 1
           },
@@ -1239,12 +1239,12 @@
           "version": 1
         },
         "artifacts": {
-          ".knowledge/update-cr/4b1c57afdd4f426091734d25d9c3f742/4abcc3bc4d01f221ea9fa3f5ebc04409471a256a9790fff2bc204b4055715350.json": {
+          ".knowledge/update-cr/e81bdde42b9045dd870681fc3fae55f6/370bf5dd6590d9181f8cb3ecf5b00925f3d901e24ceedb1d1f92e2de500986db.json": {
             "acquisition": {
               "kind": "user-export",
               "reference": "synthetic fixture export, not independently fetched"
             },
-            "base": "5249929a4753e86f3a65f383f1309321c8eb1c41",
+            "base": "929de779f59be68fece4670407c6a482e962431d",
             "coverage": {
               "attachments": "complete",
               "checks": "complete",
@@ -1257,7 +1257,7 @@
             },
             "cr": "https://github.com/synthetic/project/issues/7",
             "format": "knowledge-update-cr-evidence-v1",
-            "head": "fe524cd429ed3f8ab8b23e01256600d7dd859b09",
+            "head": "833b7b00ef54db507a3f495c5db41252112d9dc7",
             "item": {
               "anchors": [
                 {
@@ -1265,7 +1265,7 @@
                   "excerpt": "public static class Cache { public const int Capacity = 32; }",
                   "hash": "sha256:b2800be32818fa3b0eab133acf4ab9ca077fbfbd76fe75e388957741be55a152",
                   "path": "Cache.cs",
-                  "revision": "fe524cd429ed3f8ab8b23e01256600d7dd859b09",
+                  "revision": "833b7b00ef54db507a3f495c5db41252112d9dc7",
                   "role": "implementation",
                   "start": 1
                 }
@@ -1294,7 +1294,7 @@
             "observed_at": "2026-11-22T12:00:00Z",
             "pr": "https://github.com/synthetic/project/pull/8",
             "pr_status": "merged",
-            "project": "de4fd44afc69b8b5f6fb7438c61109e1aac0136b5ef437a47c55a12d91b7a121",
+            "project": "69c2621263e4a273b56d013fe4c336d9c02980465dd4046143331ef6ec614628",
             "references": {
               "cr:req:body": {
                 "reference": "https://github.com/synthetic/project/issues/7",
@@ -1305,14 +1305,14 @@
                 "text": "Implements https://github.com/synthetic/project/issues/7"
               }
             },
-            "source_fingerprint": "fa3abfa8ac21273a3d502fc834455c81cf53bec669334828aec418526a453f5e",
+            "source_fingerprint": "c62b7d12dfed0a7ba08e7d2e0190b0d36fef2881f0de45bcb36b03bccd55c3c2",
             "target": {
               "branch": "master",
-              "commit": "fe524cd429ed3f8ab8b23e01256600d7dd859b09"
+              "commit": "833b7b00ef54db507a3f495c5db41252112d9dc7"
             },
             "user_answer": {
-              "binding": "fa3abfa8ac21273a3d502fc834455c81cf53bec669334828aec418526a453f5e",
-              "delivery_id": "trial-answer-a5cb7b71ab22a2f55a3fcf42f82624df301fe0155fe4ebd1640924d0d7923690",
+              "binding": "c62b7d12dfed0a7ba08e7d2e0190b0d36fef2881f0de45bcb36b03bccd55c3c2",
+              "delivery_id": "trial-answer-9c1f5cc24c4f5b28303ec9c167d20a6a6eb2a7f50959e4ca68b5ffd9182ae362",
               "kind": "historical_reason",
               "source": "user-message",
               "text": "cache_capacity=32 ограничивает расход памяти; сохранить поведение при промахе.",
@@ -1320,12 +1320,12 @@
             },
             "version": 1
           },
-          ".knowledge/update-cr/4b1c57afdd4f426091734d25d9c3f742/ed308f26f4c56e1c17102a369bc93175abbfb04f016327f71a527615f591256e.json": {
+          ".knowledge/update-cr/e81bdde42b9045dd870681fc3fae55f6/0037c24d270c9a725db8c465f59c672518d00af0338508871c78b91ab4a56e2e.json": {
             "acquisition": {
               "kind": "user-export",
               "reference": "synthetic fixture export, not independently fetched"
             },
-            "base": "5249929a4753e86f3a65f383f1309321c8eb1c41",
+            "base": "929de779f59be68fece4670407c6a482e962431d",
             "coverage": {
               "attachments": "complete",
               "checks": "complete",
@@ -1338,7 +1338,7 @@
             },
             "cr": "https://github.com/synthetic/project/issues/7",
             "format": "knowledge-update-cr-evidence-v1",
-            "head": "fe524cd429ed3f8ab8b23e01256600d7dd859b09",
+            "head": "833b7b00ef54db507a3f495c5db41252112d9dc7",
             "item": {
               "anchors": [
                 {
@@ -1346,7 +1346,7 @@
                   "excerpt": "public interface ILookup { string Find(string key); }",
                   "hash": "sha256:0301b911310e559d0ed4642d45f89c48c86af2808b2f36ae6efa02e6b3f1a965",
                   "path": "Contracts.cs",
-                  "revision": "fe524cd429ed3f8ab8b23e01256600d7dd859b09",
+                  "revision": "833b7b00ef54db507a3f495c5db41252112d9dc7",
                   "role": "neighbor",
                   "start": 1
                 }
@@ -1375,7 +1375,7 @@
             "observed_at": "2026-11-22T12:00:00Z",
             "pr": "https://github.com/synthetic/project/pull/8",
             "pr_status": "merged",
-            "project": "de4fd44afc69b8b5f6fb7438c61109e1aac0136b5ef437a47c55a12d91b7a121",
+            "project": "69c2621263e4a273b56d013fe4c336d9c02980465dd4046143331ef6ec614628",
             "references": {
               "cr:req:body": {
                 "reference": "https://github.com/synthetic/project/issues/7",
@@ -1386,14 +1386,14 @@
                 "text": "Implements https://github.com/synthetic/project/issues/7"
               }
             },
-            "source_fingerprint": "fa3abfa8ac21273a3d502fc834455c81cf53bec669334828aec418526a453f5e",
+            "source_fingerprint": "c62b7d12dfed0a7ba08e7d2e0190b0d36fef2881f0de45bcb36b03bccd55c3c2",
             "target": {
               "branch": "master",
-              "commit": "fe524cd429ed3f8ab8b23e01256600d7dd859b09"
+              "commit": "833b7b00ef54db507a3f495c5db41252112d9dc7"
             },
             "user_answer": {
-              "binding": "fa3abfa8ac21273a3d502fc834455c81cf53bec669334828aec418526a453f5e",
-              "delivery_id": "trial-answer-f0ecf4fcb6047a900f5fe054c45b7430542ed20e8a57be5efe73f87a30881794",
+              "binding": "c62b7d12dfed0a7ba08e7d2e0190b0d36fef2881f0de45bcb36b03bccd55c3c2",
+              "delivery_id": "trial-answer-20a55ca4468a36b13bb0a29e3649f0db1b23ee1cec52764b0f0e3d8c1e155420",
               "kind": "historical_reason",
               "source": "user-message",
               "text": "Нужна совместимость прежних потребителей ILookup; сохранить сигнатуру Find.",
