@@ -18,6 +18,7 @@ from . import lifecycle as life
 from .project import Project, safe_tree
 from .retrieval import ContextEngine
 from .util import canonical_json, digest, fingerprint, loads, require, KnowledgeError
+from .sqlite_snapshot import Connection, view
 
 GROUPS = {'claims': 'knowledge/claims', 'evidence': 'evidence', 'relationships': 'knowledge/relationships'}
 KINDS = {'claims': 'claim', 'evidence': 'evidence', 'relationships': 'relationship'}
@@ -131,7 +132,7 @@ class Store:
         require(self.path.is_file(), 'knowledge-absent')
         db = None
         try:
-            db = sqlite3.connect(self.path.as_uri() + '?mode=rw', uri=True, timeout=0.15)
+            db = sqlite3.connect(self.path.as_uri() + '?mode=rw', uri=True, timeout=0.15, factory=Connection)
             db.execute('PRAGMA foreign_keys=ON')
             db.execute('PRAGMA synchronous=FULL')
             db.execute('BEGIN IMMEDIATE' if write else 'BEGIN')
@@ -160,8 +161,8 @@ class Store:
                 db.close()
 
     def _check_control(self, db):
-        from .operations import current as operational_current
-        operational_current(db)
+        from .operations import validated_view
+        validated_view(db)
         from .transfers import PREFIX,validate as validate_transfer
         for key,payload in db.execute('SELECT key,value FROM metadata WHERE key LIKE ?', (PREFIX+'%',)):
             validate_transfer(loads(payload),key)
@@ -174,8 +175,8 @@ class Store:
                 require(isinstance(item,dict) and isinstance(item.get('id'),str) and 'payload' in item, 'corrupt-migration-manifest')
                 legacy_ids[item['id']]=digest(candidate(item['payload']))
 
-        def valid_identity(cid, item):
-            hashed=digest(candidate(item))
+        def valid_identity(cid, item, validated=False):
+            hashed=digest(item if validated else candidate(item))
             return cid==hashed or legacy_ids.get(cid)==hashed
 
         plans = {}
@@ -190,15 +191,17 @@ class Store:
                 require(valid_identity(cid,item),'corrupt-plan-candidate')
             require(plan['included']==(list(plan['candidates']) if not plan['blocked'] else []), 'corrupt-plan-inclusion')
             plans[pid]=(plan,state)
+        queue=[]
         for cid, payload, status, binding in db.execute('SELECT id,payload,status,binding FROM queue'):
             item = candidate(loads(payload))
-            require(valid_identity(cid,item) and status in ('pending','imported','rejected','deferred'), 'corrupt-queue')
+            require(valid_identity(cid,item,validated=True) and status in ('pending','imported','rejected','deferred'), 'corrupt-queue')
             require((status in ('pending','rejected','deferred') and binding is None) or
                     (status == 'imported' and binding is not None), 'corrupt-queue-binding')
             if binding:
                 bound=plans.get(binding)
                 require(bound is not None and bound[1] in ('COMMITTED','ACKNOWLEDGED') and
                         cid in bound[0]['included'] and bound[0]['candidates'][cid]==item, 'corrupt-queue-binding')
+            queue.append((cid,status,payload,item))
         for payload, in db.execute('SELECT payload FROM history'):
             require(isinstance(loads(payload),dict),'corrupt-history')
 
@@ -213,6 +216,8 @@ class Store:
             for pid,payload in db.execute('SELECT plan,payload FROM receipts'):
                 require(pid in plans and plans[pid][1]!='PREPARED' and loads(payload)==plans[pid][0],'receipt-plan-mismatch')
                 self._verify_committed(db,pid,plans[pid][0])
+        view(db,'validated-queue',lambda:queue)
+        return queue
 
     def init(self):
         from .coordination import gate
@@ -260,9 +265,14 @@ class Store:
         with self.connection(True) as db:
             current = self._records(db)
             if item['version']==2:require(life.enabled(db),'upgrade-required')
-            row = db.execute('SELECT id,status,payload FROM queue WHERE id=? OR payload=?',(cid,canonical_json(item))).fetchone()
+            # _check_control has checked every row in this same snapshot. Keep
+            # the old table traversal order and exact raw TEXT equality, including
+            # predecessor IDs/noncanonical JSON; a digest never replaces equality.
+            queued=view(db,'validated-queue',lambda:self._check_control(db))
+            serialized=canonical_json(item)
+            row=next((r for r in queued if r[0]==cid or r[2]==serialized),None)
             if row:
-                require(loads(row[2])==item,'candidate-identity-conflict')
+                require(row[3]==item,'candidate-identity-conflict')
                 return {'ok':True,'candidate':row[0],'result':'duplicate','status':row[1]}
             if item['version']==2:
                 db.execute('INSERT INTO queue VALUES (?,?,?,NULL)', (cid,canonical_json(item),'pending'))
@@ -272,8 +282,7 @@ class Store:
                 return {'ok':True,'candidate':cid,'result':'submitted','status':'pending'}
             known_ids = {r['id'] for v in current.values() for r in v}
             statements = {normalized(c['statement']) for c in current['claims']}
-            for payload, in db.execute('SELECT payload FROM queue'):
-                queued_item=loads(payload)
+            for _,_,_,queued_item in queued:
                 if queued_item['version']!=1:continue
                 queued = queued_item['records']
                 known_ids.update(r['id'] for v in queued.values() for r in v)

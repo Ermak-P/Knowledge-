@@ -98,7 +98,8 @@ def metrics(run,actions):
 def status(root,run_id):
     journal=Journal(root);run=journal.load(run_id)
     from .testing import summary
-    return {'ok':True,'automatic_tests':summary(run),'run':run,'events':journal.events(run_id),'actions':journal.actions(run_id),'outbox':journal.outbox(run_id),'metrics':metrics(run,journal.actions(run_id))}
+    events=journal.events(run_id);actions=journal.actions(run_id);outbox=journal.outbox(run_id)
+    return {'ok':True,'automatic_tests':summary(run),'run':run,'events':events,'actions':actions,'outbox':outbox,'metrics':metrics(run,actions)}
 
 
 def resume(root,run_id,*,current_restrictions=None,format_changes=None):

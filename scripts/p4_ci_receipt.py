@@ -6,8 +6,8 @@ def git(*args,cwd=ROOT):return subprocess.check_output(['git',*args],cwd=cwd,tex
 def main():
     assert os.environ.get('GITHUB_ACTIONS')=='true'
     assert os.environ.get('GITHUB_EVENT_NAME') in ('push','workflow_dispatch'),'PR validation cannot publish evidence'
-    assert os.environ.get('GITHUB_REPOSITORY')=='Ermak-P/Knowledge-' and os.environ.get('GITHUB_REF') in ('refs/heads/main','refs/heads/codex/integrated-fixes','refs/heads/codex/automatic-test-discovery','refs/heads/codex/persistent-instructions','refs/heads/codex/audit-stages-1-2'),'untrusted publication ref'
-    assert os.environ.get('GITHUB_EVENT_NAME') in ('push','workflow_dispatch') and os.environ.get('GITHUB_REPOSITORY')=='Ermak-P/Knowledge-' and os.environ.get('GITHUB_REF') in ('refs/heads/main','refs/heads/codex/integrated-fixes','refs/heads/codex/automatic-test-discovery','refs/heads/codex/persistent-instructions','refs/heads/codex/audit-stages-1-2'),'untrusted evidence publication context'
+    assert os.environ.get('GITHUB_REPOSITORY')=='Ermak-P/Knowledge-' and os.environ.get('GITHUB_REF') in ('refs/heads/main','refs/heads/codex/integrated-fixes','refs/heads/codex/automatic-test-discovery','refs/heads/codex/persistent-instructions','refs/heads/codex/audit-stages-1-2','refs/heads/codex/sqlite-optimization'),'untrusted publication ref'
+    assert os.environ.get('GITHUB_EVENT_NAME') in ('push','workflow_dispatch') and os.environ.get('GITHUB_REPOSITORY')=='Ermak-P/Knowledge-' and os.environ.get('GITHUB_REF') in ('refs/heads/main','refs/heads/codex/integrated-fixes','refs/heads/codex/automatic-test-discovery','refs/heads/codex/persistent-instructions','refs/heads/codex/audit-stages-1-2','refs/heads/codex/sqlite-optimization'),'untrusted evidence publication context'
     latest=ROOT/'reports/P4/latest.json'
     if not latest.exists():raise RuntimeError('No qualification ledger; inspect failed Actions job')
     index=json.loads(latest.read_text());rid=index['run'];run=ROOT/'reports/P4/runs'/rid;ledger=json.loads((run/'run.json').read_text());sha=os.environ.get('P4_CI_EXPECTED_COMMIT') or os.environ['GITHUB_SHA'];job=os.environ['P4_CI_PLATFORM']

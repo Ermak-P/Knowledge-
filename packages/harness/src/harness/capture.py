@@ -40,9 +40,9 @@ def deliver(journal,run,configuration):
             except KnowledgeError as e:
                 item['error']=e.code;journal.update_outbox(identifier,item)
                 raise
-        items=journal.outbox(run['id']).values()
-        pending=any(i['state']=='pending' for i in items);manual=any(i['state']=='manual-review' for i in items)
-        run['capture']={'state':'pending' if pending else 'manual-review' if manual else 'delivered' if journal.outbox(run['id']) else 'no-candidate','outbox':list(journal.outbox(run['id']))}
+        items=journal.outbox(run['id'])
+        pending=any(i['state']=='pending' for i in items.values());manual=any(i['state']=='manual-review' for i in items.values())
+        run['capture']={'state':'pending' if pending else 'manual-review' if manual else 'delivered' if items else 'no-candidate','outbox':list(items)}
     except KnowledgeError as e:
         run['capture']={'state':'pending','error':e.code}
     journal.save(run)
