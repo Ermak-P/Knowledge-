@@ -151,6 +151,12 @@ class SQLiteOptimization(unittest.TestCase):
 
     def test_new_journal_index_and_existing_reads_do_not_migrate(self):
         journal=Journal(self.root)
+        with journal.db() as db:self.assertFalse(ix.check(db))
+        with self.assertRaisesRegex(KnowledgeError,'explicit-index-maintenance-required'):Journal(self.root,index_outbox=True)
+        other=Path(self.tmp.name)/'indexed';other.mkdir()
+        indexed=Journal(other,index_outbox=True)
+        with indexed.db() as db:self.assertTrue(ix.check(db))
+        self.apply(self.preview())
         with journal.db() as db:self.assertTrue(ix.check(db));db.execute('DROP INDEX '+ix.NAME)
         before=journal.path.read_bytes()
         Journal(self.root).outbox('absent')
@@ -158,7 +164,7 @@ class SQLiteOptimization(unittest.TestCase):
         with journal.db() as db:self.assertFalse(ix.check(db))
 
     def test_nonempty_index_upgrade_repeat_rollback_backup_restore(self):
-        journal=Journal(self.root)
+        journal=Journal(self.root,index_outbox=True)
         journal.put_outbox('a','run',{'state':'pending'});journal.put_outbox('b','other',{'state':'delivered'})
         with journal.db() as db:db.execute('DROP INDEX '+ix.NAME)
         before=ix.identity(journal.project);p=self.preview();result=self.apply(p)
@@ -189,7 +195,7 @@ class SQLiteOptimization(unittest.TestCase):
                 with journal.db() as db:self.assertTrue(ix.check(db))
 
     def test_index_stale_preview_and_conflicting_definition(self):
-        journal=Journal(self.root);p=self.preview();journal.put_outbox('a','run',{})
+        journal=Journal(self.root,index_outbox=True);p=self.preview();journal.put_outbox('a','run',{})
         with self.assertRaisesRegex(KnowledgeError,'stale-maintenance-preview'):self.apply(p)
         with journal.db() as db:db.execute('DROP INDEX '+ix.NAME);db.execute('CREATE INDEX '+ix.NAME+' ON outbox(id)')
         with self.assertRaisesRegex(KnowledgeError,'index-definition-conflict'):self.preview(suffix='conflict')
@@ -204,7 +210,7 @@ class SQLiteOptimization(unittest.TestCase):
         self.assertEqual(result.returncode,0,result.stdout+result.stderr);self.assertEqual(self.store.path.read_bytes(),before)
 
     def test_older_writer_preserves_index_and_journal_rows(self):
-        journal=Journal(self.root)
+        journal=Journal(self.root,index_outbox=True)
         # An ordinary predecessor writer needs no knowledge of this physical
         # index; SQLite maintains it transactionally on inserts/updates.
         with closing(sqlite3.connect(journal.path)) as db, db:

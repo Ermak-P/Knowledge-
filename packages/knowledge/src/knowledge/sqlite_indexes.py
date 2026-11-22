@@ -1,6 +1,7 @@
 """Optional physical indexes; no canonical format or dependency-direction change.
 
-Only outbox(run) earned a product-level gain. Knowledge's all-row audit dominates
+Only outbox(run) earned a subset-read gain; it is an OPT-IN profile because extra
+quick_check pages slow other journal operations. Knowledge's all-row audit dominates
 queue/plan subset reads; those indexes are intentionally absent. This module is
 also usable by standalone maintenance without importing Harness.
 """

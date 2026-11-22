@@ -20,12 +20,19 @@ duplicate lookup reuses checked rows and compares exact payload text and then
 objects, preserving predecessor IDs and identity conflicts. No payload hash column
 or uniqueness/backfill is added. Canonical/schema/filesystem validation remains.
 
-New Harness journals create `ix_outbox_run ON outbox(run)`. Existing journals are
+An optional outbox profile creates `ix_outbox_run ON outbox(run)`. The default
+leaves it absent: measured subset reads improve, but its extra quick_check pages
+slow unrelated journal reads/writes. Select it for an outbox-dominated workload,
+not as a general agent speedup. New journals can select it through the normal
+initialization API `Journal(root, index_outbox=True)`. For an existing journal that
+request refuses a missing index and directs the operator to explicit maintenance.
+Existing journals are
 validated on opening, without CREATE/ANALYZE/migration. The index is optional:
 missing indexes preserve correct reads and writes. SQLite maintains it even for
 older writers. Queue/status and plan/status indexes were evaluated and excluded:
 their faster subset SELECT did not improve the fully audited operation enough to
-justify storage/write costs. Primary keys already support all ID/composite-prefix
+justify storage/write costs. The outbox profile is also opt-in because of measured
+write/read costs elsewhere. Primary keys already support all ID/composite-prefix
 lookups. No DESC, event or whole-JSON index is added.
 
 All journal transaction modes remain BEGIN IMMEDIATE. FULL sync, quick_check,
