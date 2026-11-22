@@ -5,6 +5,7 @@ binding uses task/item/role, source/config, canonical generation and known evide
 bytes. Inflight/provider-response paths never call this module again.
 """
 from pathlib import Path
+from contextlib import closing
 import hashlib,sqlite3,time
 from knowledge.project import safe_path
 from knowledge.util import canonical_json,digest,KnowledgeError,require
@@ -17,7 +18,7 @@ def store_token(project):
         safe_path(path)
         if not path.exists():return {'state':'absent'}
         stat=path.stat()
-        with sqlite3.connect(path.as_uri()+'?mode=ro',uri=True,timeout=.15) as db:
+        with closing(sqlite3.connect(path.as_uri()+'?mode=ro',uri=True,timeout=.15)) as db:
             metadata=dict(db.execute("SELECT key,value FROM metadata WHERE key IN ('format','project','p1')"))
             require(metadata.get('project')==project.identity and metadata.get('format')=='knowledge-sqlite-v1','knowledge-store-binding-changed')
             records=db.execute('SELECT COALESCE(MAX(rowid),0),COUNT(*) FROM records').fetchone()

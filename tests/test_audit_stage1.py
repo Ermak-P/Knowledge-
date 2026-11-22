@@ -20,7 +20,9 @@ from harness.instructions import execute_procedure
 def unreadable(path):
     if os.name=='nt':
         sid=re.search(r'S-1-[\d-]+',subprocess.check_output(['whoami','/user','/fo','csv','/nh'],text=True))[0]
-        subprocess.run(['icacls',str(path),'/deny','*'+sid+':(OI)(CI)(RX)'],check=True,capture_output=True)
+        # Deny actual directory enumeration, retaining READ_CONTROL/WRITE_DAC
+        # so finally can remove this fixture ACE without elevated privileges.
+        subprocess.run(['icacls',str(path),'/deny','*'+sid+':(RD)'],check=True,capture_output=True)
         try:yield
         finally:subprocess.run(['icacls',str(path),'/remove:d','*'+sid],check=True,capture_output=True)
     else:
