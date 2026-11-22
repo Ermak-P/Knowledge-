@@ -21,6 +21,10 @@ class UpdateCRReplay(unittest.TestCase):
                 p=workflow.prepare(s['session'],s['revision']);workflow.apply(s['session'],p['proposal']['plan'],p['revision'])
                 child=subprocess.run([sys.executable,'-I',str(HERE/'cr_replay_worker.py'),str(root),query],capture_output=True,text=True)
                 self.assertEqual(child.returncode,0,child.stdout+child.stderr);result=json.loads(child.stdout);plan=result['plan'];expected=oracle[scenario]
+                legacy_pipe="import sys,runpy;sys.stdout.reconfigure(encoding='cp1252');path=sys.argv.pop(1);sys.argv[0]=path;runpy.run_path(path,run_name='__main__')"
+                encoded=subprocess.run([sys.executable,'-I','-c',legacy_pipe,str(HERE/'cr_replay_worker.py'),str(root),query],capture_output=True,text=True,encoding='utf-8')
+                self.assertEqual(encoded.returncode,0,encoded.stdout+encoded.stderr)
+                self.assertEqual(json.loads(encoded.stdout),result,'Legacy pipe encoding changed Unicode task or Knowledge')
                 self.assertEqual(plan['parameters'],expected['parameters'])
                 for condition in expected['preserve']:self.assertIn(condition,' '.join(plan['preserve']))
                 for reason in expected['reasons']:self.assertIn(reason,' '.join(plan['reasons']))
