@@ -9,7 +9,7 @@ from contextlib import closing
 import hashlib,sqlite3,time
 from knowledge.project import safe_path
 from knowledge.util import canonical_json,digest,KnowledgeError,require
-from .tools import knowledge
+from .tools import knowledge,current_knowledge
 
 
 def store_token(project):
@@ -54,14 +54,7 @@ def query(run,frame):
 
 
 def retrieve(root,query,limit):
-    value=knowledge(root,query,limit)
-    claims=value.get('context',{}).get('claims',[])
-    if any(c.get('revision') is None or not c.get('current',{}).get('freshness',{}).get('trusted') for c in claims):
-        # P0 confidence alone is not a current verification. Preserve the core
-        # legacy API, but do not promote its historical text into fresh P4 facts.
-        return {'ok':True,'available':False,'partial':True,'reason':'knowledge-lifecycle-upgrade-required',
-            'next':'Upgrade/review supporting evidence through the supported Knowledge lifecycle before current architectural delivery.'}
-    return value
+    return current_knowledge(knowledge(root,query,limit))
 
 
 def slice_for(j,c,r,f,limits):

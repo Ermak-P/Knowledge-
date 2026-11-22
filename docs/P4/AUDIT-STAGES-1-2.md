@@ -21,7 +21,7 @@ protections and proven retirement remain in force.
 ## Natural-language startup grants
 
 Catalog, semantic normalization, CLI and host use the independent
-`startup-en-ru-v1` full-source decision. A positive model quote alone is insufficient.
+`startup-en-ru-v2` full-source decision. A positive model quote alone is insufficient.
 Contradictory denial wins, including `starting containers is forbidden` and
 `запуск контейнера не разрешен`. Unknown limiting clauses do not disappear into a
 new grant. The supported grammar is deliberately narrow: current explicit startup
@@ -164,3 +164,5 @@ Legacy P0 stores remain readable through the core and task-v1 contracts. Their
 confidence flag alone has no lifecycle revision/current freshness proof; P4
 withholds such text with `knowledge-lifecycle-upgrade-required` and a supported
 upgrade/review next step. It never upgrades or rewrites the old store implicitly.
+
+R1 whole-message authorization and shared P4 tool/history validation: [AUDIT-STAGES-1-2-R1.md](AUDIT-STAGES-1-2-R1.md).

@@ -87,6 +87,7 @@ class Broker:
         if previous:
             require(previous['signature']==signature,'tool-action-identity-conflict')
             if previous['status']=='FINISHED':
+                if name=='knowledge' and self.r.get('p4'):return current_knowledge(previous['result'])
                 if name=='recipe' and args['name'].startswith('@automatic-tests/'):
                     from .testing import validate_cached
                     validate_cached(self,previous)
@@ -122,7 +123,9 @@ class Broker:
                     except (KnowledgeError,OSError,UnicodeError):continue
                     if len(matches)>=20:break
                 result={'ok':True,'matches':matches[:20],'partial':len(matches)>20}
-            elif name=='knowledge':result=knowledge(self.j.project.root,args['task'],self.limits['tool_bytes'])
+            elif name=='knowledge':
+                result=knowledge(self.j.project.root,args['task'],self.limits['tool_bytes'])
+                if self.r.get('p4'):result=current_knowledge(result)
             elif name=='artifact':
                 action=self.j.action(self.r['id'],args['action']);require(action is not None,'unknown-artifact');result={'ok':True,'action':args['action'],'receipt':action.get('result',{}),'signature':action['signature']}
                 if action['tool']=='recipe' and action.get('process_spec'):
@@ -292,6 +295,33 @@ class Broker:
         after=source_snapshot(self.j.project,self.limits['file_bytes'])
         require(after==action['source_before'],'source-changed-during-gate')
         return {'ok':bool(success),'recipe':name,'kind':recipe['kind'],'source':digest(after),'config':self.r['config_hash'],'counts':counts,'artifact':artifact,'output':log[-min(self.limits['tool_bytes']//2,4000):],'log':str(log_path.relative_to(self.j.project.root)),**process,**automatic}
+
+
+def current_knowledge(value):
+    """One P4-facing current-fact boundary, also for cached tool receipts."""
+    claims=value.get('context',{}).get('claims',[])
+    if any(c.get('revision') is None or not c.get('current',{}).get('freshness',{}).get('trusted') for c in claims):
+        return {'ok':True,'available':False,'partial':True,'reason':'knowledge-lifecycle-upgrade-required',
+            'next':'Upgrade/review supporting evidence through the supported Knowledge lifecycle before current architectural delivery.'}
+    return value
+
+
+def knowledge_history(history):
+    """Project old paired Knowledge messages before a NEW P4 request only.
+
+    Durable history/receipts and already begun provider requests stay unchanged.
+    Tool IDs are scoped to their assistant turn (fixtures/hosts may reuse IDs).
+    No Store lookup or inference is needed to withhold unverified legacy text.
+    """
+    messages=[]
+    for chunk in deepcopy(history):
+        names={}
+        for message in chunk:
+            if message['role']=='assistant':names={c['id']:c['function']['name'] for c in message.get('tool_calls',[])}
+            elif message['role']=='tool' and names.get(message.get('tool_call_id'))=='knowledge':
+                message['content']=canonical_json(current_knowledge(loads(message['content'])))
+            messages.append(message)
+    return messages
 
 
 def knowledge(root,task,limit):

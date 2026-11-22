@@ -3,7 +3,7 @@ from copy import deepcopy
 import uuid,re
 from knowledge.util import require,digest,canonical_json,KnowledgeError
 from . import runtime as rt
-from .tools import schemas,SCHEMAS,REQUIRED,Broker
+from .tools import schemas,SCHEMAS,REQUIRED,Broker,knowledge_history
 
 POLICY='bounded-v1'
 
@@ -64,7 +64,7 @@ def context(j,c,r,f,limits):
     if 'automatic_tests' in r:
         from .testing import summary,INSTRUCTIONS
         system['automatic_tests']=summary(r);system['automatic_test_instructions']=INSTRUCTIONS
-    body=dict(model=c['provider']['model'],messages=[{'role':'system','content':canonical_json(system)}]+[m for chunk in f['history'] for m in chunk],tools=schemas(f['role']),max_tokens=limits['output_tokens'],parallel_tool_calls=False,stream=False)
+    body=dict(model=c['provider']['model'],messages=[{'role':'system','content':canonical_json(system)}]+knowledge_history(f['history']),tools=schemas(f['role']),max_tokens=limits['output_tokens'],parallel_tool_calls=False,stream=False)
     if 'automatic_tests' in r and f['role'] in ('Main','Planning','Coding','Reviewing'):
         body['tools'].append({'type':'function','function':{'name':'test_inventory','description':'Read-only paginated approved test inventory and verification summary.','parameters':{'type':'object','properties':{'offset':{'type':'integer'},'limit':{'type':'integer'}},'additionalProperties':False}}})
     if f['role']=='Reviewing':

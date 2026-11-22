@@ -506,7 +506,11 @@ def binding_receipt(root,text,message_id,shared=None,policy=None):
         result=ack(record,duplicate=True);binding=state.get('bindings',{}).get(record['id'])
         if binding and binding['state'] in ('blocked','attempted'):
             result.update(executable=False,execution_state=binding['state'],binding_reason=binding.get('reason'))
-        return {**result,**event.get('controls',{}),**({'restriction':'no-service-start'} if denied else {}),'normalization':{'method':'durable-source-replay'}}
+        controls=deepcopy(event.get('controls',{}))
+        proposed='clear-denial' if controls.get('restriction')=='clear-service-start-denial' else 'unchanged'
+        checked=restriction(text,proposed)
+        controls['restriction']={'deny':'no-service-start','clear-denial':'clear-service-start-denial','unchanged':None}[checked]
+        return {**result,**controls,'normalization':{'method':'durable-source-replay'}}
 
 
 def ingest(root, text, message_id, policy, reply_to=None):

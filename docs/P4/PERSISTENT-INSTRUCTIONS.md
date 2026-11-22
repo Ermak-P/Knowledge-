@@ -239,7 +239,7 @@ binding и независимым текущим allowlist. Перепривяз
 ### Механическая граница startup permission (R1)
 
 В semantic ingress модель предлагает intent, binding и цитату, но сама не выдаёт
-startup grant. `knowledge/startup_authorization.py`, контракт `startup-en-ru-v1`,
+startup grant. `knowledge/startup_authorization.py`, контракт `startup-en-ru-v2`,
 проверяет полную самостоятельную фразу **текущего** genuine user message.
 Поддержаны `You may start container NAME`, `I allow/authorize you to start ...`,
 `I allow/authorize starting ...`, `Разрешаю запуск контейнера NAME` и
@@ -412,3 +412,5 @@ SQLite; shared базу резервируйте отдельно под её ma
 не копированием открытого файла. Никакой bulk migration при установке не выполняется.
 
 Current audit-stage contracts: [AUDIT-STAGES-1-2.md](AUDIT-STAGES-1-2.md) covers source gaps, transfer/degraded recovery, bounded graph diagnostics and automatic P4 delivery.
+
+R1 whole-message authorization and shared P4 tool/history validation: [AUDIT-STAGES-1-2-R1.md](AUDIT-STAGES-1-2-R1.md).

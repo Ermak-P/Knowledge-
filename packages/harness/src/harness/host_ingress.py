@@ -68,13 +68,16 @@ def _memory_binding(root,policy):
     return digest([(scope,r['id'],r['revision']) for scope in op.SCOPES for r in op.OperationalStore(root,scope,policy.get('shared_root')).records()['records']])
 
 
-def _replay(root,policy,entry,source_id):
+def _replay(root,policy,entry,source_id,text):
     if entry.get('record'):
         ref=entry['record'];record=next((r for r in op.OperationalStore(root,ref['scope'],policy.get('shared_root')).records()['records'] if r['id']==ref['id']),None)
         require(record is not None,'host-source-record-missing');result=op.ack(record,duplicate=True)
         # A committed intent is not a completed binding. Authentic redelivery
         # may finish that same source after host death/lost pending pointer.
         if record['status']=='unbound' and record['provenance']['id']==source_id:return None
+        # Revalidate historical natural-language grants with the current whole-
+        # source boundary. This uses durable receipts, never a new model call.
+        result=op.binding_receipt(root,text,source_id,policy.get('shared_root'),policy) or result
     else:result={'ok':True,'saved':False,'duplicate':True}
     return {**result,'restriction':None,'format_changes':[],'normalization':{'method':'session-source-replay'},'controls_applied':False,'integration_enabled':True}
 
@@ -103,7 +106,7 @@ def message(root,text,session_id,message_id):
         if message_id in messages:
             entry=messages[message_id];require(entry['hash']==digest(text),'teaching-source-reused')
             if entry['state']=='resolved':
-                replay=_replay(root,policy,entry,session_id+'/'+message_id)
+                replay=_replay(root,policy,entry,session_id+'/'+message_id,text)
                 if replay is not None:return replay
                 require(sum(len(e.get('text','').encode()) for e in messages.values())+len(text.encode())<=MAX_PENDING_BYTES,'host-pending-byte-budget')
                 entry.update(state='pending',text=text)
