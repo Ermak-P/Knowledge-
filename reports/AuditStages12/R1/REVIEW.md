@@ -77,8 +77,8 @@ qualification. The earlier 342-test development suite is historical evidence in
 | Profile | Status | PASS / SKIP tests | Commands |
 |---|---|---|---|
 | Local Linux | PASS_PORTABLE | 332 / 11 | 23 |
-| CI Linux | PENDING | — / — | — |
-| Native Windows | PENDING | — / — | — |
+| CI Linux | PASS_PORTABLE | 332 / 11 | 23 |
+| Native Windows | PASS_NATIVE | 343 / 0 | 24 |
 
 Final local suite: 343 methods, 332 PASS,
 0 FAIL, 0 ERROR, 11 native-only SKIP.

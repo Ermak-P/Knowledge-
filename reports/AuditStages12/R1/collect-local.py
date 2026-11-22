@@ -1,6 +1,6 @@
 from pathlib import Path,PurePosixPath
 import argparse,hashlib,json,shutil,zipfile
-parser=argparse.ArgumentParser();parser.add_argument('--repo',type=Path,default=Path('/workspace/Knowledge-'));parser.add_argument('--run',type=Path,default=Path('/workspace/Knowledge-/reports/P4/runs/a83ca87b88aa42929fd8263a98a4652f'));args=parser.parse_args()
+parser=argparse.ArgumentParser();parser.add_argument('--repo',type=Path,default=Path('/workspace/Knowledge-'));parser.add_argument('--run',type=Path,default=Path('/tmp/audit-r1-qualified-run'));args=parser.parse_args()
 root=args.repo;out=root/'reports/AuditStages12/R1';source=json.loads((out/'source.json').read_text());runpath=args.run;run=json.loads((runpath/'run.json').read_text())
 assert run['status']=='PASS_PORTABLE' and run['unchanged'] and run['commit']==source['commit'] and run['source_identity']==source['source_identity'] and run['source']==source['source']
 local=out/'local';local.mkdir(exist_ok=True)
