@@ -12,7 +12,7 @@ from harness import delivery
 from test_persistent_instructions import setup_fixture,ingress
 from test_persistent_r1 import dependency
 from test_persistent_reviewed import DockerContract
-from test_persistent_semantics import local_normalizer,decision
+from test_persistent_semantics import local_normalizer,decision,template
 from test_p4 import p4task,Decisions
 from p2_fixtures import project,configuration,http_provider,calls,final,task
 from fixtures import addition
@@ -34,6 +34,16 @@ def cli_ingress(root,text,policy,source='cli'):
  return json.loads(child.stdout)
 
 class WholeSource(unittest.TestCase):
+ def test_valid_template_grant_survives_resolved_host_and_cli_replay(self):
+  text='Remember Kafka: You may start container fixture if stopped; never restart a running container.'
+  with tempfile.TemporaryDirectory() as tmp,local_normalizer([
+    decision(authorize_recovery=True,permission_quote='You may start container fixture if stopped')]) as normalizer:
+   root,shared,cfg=setup_fixture(tmp);t=template();t['defaults'].update(container='fixture',port=19092)
+   cfg['memory'].update(teaching_mode='local-model',normalizer=normalizer,procedure_templates=[t],allowed_templates=[t['id']],bindings=[{'aliases':['Kafka'],'trigger':{'tool':'dependency','name':'local_broker'},'template':t['id']}]);configure(root,cfg)
+   saved=ingress(root,text);self.assertTrue(saved['recovery_authorized'])
+   host=ingress(root,text);self.assertTrue(host['recovery_authorized']);self.assertEqual(host['revision'],saved['revision'])
+   cli=cli_ingress(root,text,cfg['memory'],'teaching/m1');self.assertTrue(cli['recovery_authorized']);self.assertEqual(cli['revision'],saved['revision'])
+
  def test_positive_stopped_grant_and_ordinary_clarification_stay_usable(self):
   positive='Remember Kafka: You may start container fixture if stopped; never restart a running container.'
   with tempfile.TemporaryDirectory() as tmp,local_normalizer([

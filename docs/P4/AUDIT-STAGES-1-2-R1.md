@@ -41,6 +41,9 @@ Authentic historical source replay uses this same current boundary without model
 inference. A weaker historical natural-language grant may receive a revocation
 revision while retaining its original record ID, wording, provenance and history.
 The host's resolved-envelope shortcut also revalidates such durable receipts.
+Replay retains template aliases by stored template ID as well as concrete binding
+identity; a valid stopped-template grant survives host/CLI replay. The current
+catalog supplies the independent resource count.
 No bulk migration or background reinterpretation of operator stores occurs.
 
 ## R2: clearing current denial is an authorization change

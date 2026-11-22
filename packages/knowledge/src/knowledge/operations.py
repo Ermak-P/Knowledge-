@@ -492,8 +492,11 @@ def binding_receipt(root,text,message_id,shared=None,policy=None):
             require(event['source_hash']==digest(text),'teaching-source-reused')
         record=next(r for r in state['records'] if r['id']==event['result']['id'])
         from .startup_authorization import restriction,startup
-        aliases=[alias for b in (policy or {}).get('bindings',[]) if b.get('behavior')==record.get('behavior') for alias in b['aliases']]
-        auth=startup(text,{'behavior':record.get('behavior') or {},'aliases':aliases},True,text)
+        catalog=(policy or {}).get('bindings',[])
+        aliases=[alias for b in catalog if b.get('behavior')==record.get('behavior') or
+            b.get('template') is not None and b['template']==record.get('binding_template') for alias in b['aliases']]
+        resource_count=sum(bool(b.get('template') or b.get('behavior',{}).get('procedure',{}).get('docker')) for b in catalog)
+        auth=startup(text,{'behavior':record.get('behavior') or {},'aliases':aliases},True,text,resource_count)
         denied=restriction(text,'unchanged')=='deny'
         if record['provenance']['id']==message_id and record['recovery_authorized'] and (denied or policy is not None and auth.get('uncertain')):
             # Targeted revalidation of a genuine replay, not a store migration.
