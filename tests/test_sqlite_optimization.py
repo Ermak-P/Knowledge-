@@ -95,7 +95,7 @@ class SQLiteOptimization(unittest.TestCase):
 
     def test_invalid_and_orphan_events_are_not_no_match(self):
         raw=self.store.path.read_bytes()
-        for event in ({'request':'bad','result':{}},{'request':'a'*64,'result':{'id':'absent','revision':1}}):
+        for event in ({'request':'bad','result':{}},{'request':'a'*64,'result':{'id':'absent','revision':1}},{'request':'a'*64,'result':{'id':[],'revision':1}}):
             self.store.path.write_bytes(raw);self.mutate('INSERT INTO operational_events VALUES (?,?)',(digest(event),canonical_json(event)))
             with self.assertRaises(KnowledgeError):self.lookup()
         self.store.path.write_bytes(raw)

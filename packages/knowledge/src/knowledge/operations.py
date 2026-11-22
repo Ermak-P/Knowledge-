@@ -139,7 +139,8 @@ def _validated_view(db):
     for event_id,payload in db.execute('SELECT id,payload FROM operational_events ORDER BY rowid'):
         event=loads(payload)
         require(isinstance(event,dict) and isinstance(event.get('request'),str) and len(event['request'])==64 and isinstance(event.get('result'),dict),'corrupt-operational-event')
-        event_result=event['result'];record=by_id.get(event_result.get('id'))
+        event_result=event['result'];identifier=event_result.get('id')
+        record=by_id.get(identifier) if isinstance(identifier,str) else None
         require(record is not None and record['revision']>=event_result.get('revision',0),'orphan-operational-event')
         if record['revision']!=event_result.get('revision'):continue
         if 'binding_state' in event_result:
