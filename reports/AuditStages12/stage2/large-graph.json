@@ -1,0 +1,63 @@
+{
+  "status": "PASS",
+  "kind": "installed API/CLI; 131 reviewed claims, 130 dependency edges, UTF-8",
+  "full": {
+    "claims": 100,
+    "references": 128,
+    "omitted_references": 2,
+    "truncation": {
+      "candidates": 129,
+      "returned": 100,
+      "dropped": 29,
+      "reason": null
+    }
+  },
+  "budgets": [
+    {
+      "cap": 256,
+      "actual_cli_bytes": 190,
+      "returned": 0,
+      "truncation": {
+        "candidates": 1,
+        "dropped": 1,
+        "returned": 0
+      },
+      "result": "budget-too-small"
+    },
+    {
+      "cap": 400,
+      "actual_cli_bytes": 190,
+      "returned": 0,
+      "truncation": {
+        "candidates": 1,
+        "dropped": 1,
+        "returned": 0
+      },
+      "result": "budget-too-small"
+    },
+    {
+      "cap": 1000,
+      "actual_cli_bytes": 707,
+      "returned": 0,
+      "truncation": {
+        "candidates": 1,
+        "dropped": 1,
+        "reason": "budget-exhausted-by-envelope",
+        "returned": 0
+      },
+      "result": "budget-exhausted"
+    },
+    {
+      "cap": 32000,
+      "actual_cli_bytes": 31582,
+      "returned": 29,
+      "truncation": {
+        "candidates": 129,
+        "dropped": 100,
+        "reason": "byte-budget",
+        "returned": 29
+      },
+      "result": "matches-with-gaps"
+    }
+  ]
+}

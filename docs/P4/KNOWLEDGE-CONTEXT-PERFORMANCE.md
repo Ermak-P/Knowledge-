@@ -67,3 +67,5 @@ the pre-correction repository implementation.
 These are synthetic Linux measurements, not Windows/IPM latency claims. Request
 time on the actual affected checkout remains to be measured after updating.
 
+
+Current audit-stage contracts: [AUDIT-STAGES-1-2.md](AUDIT-STAGES-1-2.md) covers source gaps, transfer/degraded recovery, bounded graph diagnostics and automatic P4 delivery.

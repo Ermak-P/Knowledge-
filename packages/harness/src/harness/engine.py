@@ -220,6 +220,9 @@ def drive(journal,configuration,run,lease):
     limits={**DEFAULT_LIMITS,**configuration['limits']};broker=Broker(journal,configuration,run,lease)
     try:
         require(digest(configuration)==run['config_hash'],'configuration-changed-revalidation-required')
+        if run.get('host_session') and run['task']['kind']=='coding':
+            from .host_ingress import guard
+            guard(journal.project.root,run['host_session'],'run')
         if 'automatic_tests' in run:
             from .testing import guard
             guard(journal.project,configuration,run)
@@ -319,6 +322,7 @@ def drive(journal,configuration,run,lease):
             body=context_body(journal,configuration,run,frame,limits)
             request_id=uuid.uuid4().hex
             entry={'id':request_id,'agent':frame['id'],'role':frame['role'],'state':'inflight','at':stamp(),'input_bytes':len(canonical_json(body).encode()),'input_hash':digest(body),'usage':{'coverage':'unknown','raw':None}}
+            if frame.get('knowledge_projection'):entry['knowledge_delivery']=deepcopy(frame['knowledge_projection'])
             run['requests'].append(entry);frame['inflight']=request_id;frame['turns']+=1
             next(a for a in run['agents'] if a['id']==frame['id'])['provider_requests']+=1
             journal.save(run);journal.event(run['id'],'provider-request',**{k:entry[k] for k in ('id','agent','role','input_bytes','input_hash')})
@@ -362,7 +366,7 @@ def drive(journal,configuration,run,lease):
             finish_tool(parent,call,answer,limits);journal.save(run)
         raise KnowledgeError('missing-main-completion')
     except KnowledgeError as e:
-        run['error']=e.code;run['status']='cancelled' if e.code=='cancelled' else 'blocked' if e.code in ('recipe-outcome-unknown','unverifiable-process-ownership','recipe-still-running','provider-outcome-unknown','provider-outcome-unknown-manual-retry-required','edit-recovery-conflict','unrelated-source-conflict','source-conflict','configuration-changed-revalidation-required','test-inventory-changed-revalidation-required','automatic-test-artifact-changed') else 'failed'
+        run['error']=e.code;run['status']='cancelled' if e.code=='cancelled' else 'blocked' if e.code in ('host-controls-unresolved','recipe-outcome-unknown','unverifiable-process-ownership','recipe-still-running','provider-outcome-unknown','provider-outcome-unknown-manual-retry-required','edit-recovery-conflict','unrelated-source-conflict','source-conflict','configuration-changed-revalidation-required','test-inventory-changed-revalidation-required','automatic-test-artifact-changed') else 'failed'
         if run['execution']!='passed':
             run['execution']='cancelled' if e.code=='cancelled' else 'failed'
             run['capture']={'state':'not-eligible','reason':'execution did not pass mandatory gates'}

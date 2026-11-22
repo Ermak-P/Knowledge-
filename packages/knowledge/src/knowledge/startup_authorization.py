@@ -43,9 +43,12 @@ def permission_clauses(text,aliases=()):
 
 # These recognize startup denials, not restart prohibitions. Unknown negatives
 # can never pass the affirmative full-clause grammar below.
-DENIAL=re.compile(r"(?:\b(?:you (?:may|must|can) not|you cannot|do not|don't|never) (?:start|launch)\b|"
+DENIAL=re.compile(r"(?:\b(?:you (?:may|must|can) not|you cannot|do not|don't|never) (?:automatically )?(?:start|launch)\b|"
+    r'\b(?:starting (?:the )?containers?|container startup) (?:is|are) (?:forbidden|not (?:allowed|permitted|authorized))\b|'
     r'\bне (?:запускай|запускайте|запускать|разрешаю запуск)\b|'
-    r'\b(?:запрещаю|запретить) запуск\b|\bзапуск\b[^.;!?\n]{0,100}\bзапрещен\b)',re.I)
+    r'\b(?:запрещаю|запретить|запрещено) (?:запуск|запускать)\b|\bзапуск\b[^.;!?\n]{0,100}\b(?:запрещен|не разрешен|не допускается)\b)',re.I)
+LIMITING=re.compile(r'\b(?:only|unless|until|provided|except|if|when|только|если|пока|лишь|кроме|после согласования)\b',re.I)
+STOPPED_ONLY=re.compile(r'(?:only (?:if|when) (?:it is )?stopped|только если (?:он )?остановлен)$',re.I)
 CONTEXT=re.compile(r'[`"“”«»]|(?:^|\n)\s*>|\b(?:example|quoted?|quotation|previous(?:ly)?|earlier|yesterday|said|reported|пример|цитата|ранее|вчера|сказал)\b',re.I)
 EN_TARGET=r'(?:it|(?:that |the |this |specific |local |configured |stopped |existing )*container|container [a-z0-9][a-z0-9_.-]*)'
 RU_TARGET=r'(?:(?:этого |указанного |настроенного |конкретного |локального |остановленного )*контейнера|контейнера [a-z0-9][a-z0-9_.-]*)'
@@ -55,6 +58,32 @@ RU_GRANT=re.compile(r'(?:разрешаю запуск|даю разрешени
     r'(?:,? (?:только )?если (?:он )?остановлен| для этой цели)?$',re.I)
 CLEAR=re.compile(r'(?:you (?:may|can) start services again(?: for this (?:run|attempt))?|'
     r'разрешаю (?:снова )?запуск сервисов(?: в этом запуске)?)$',re.I)
+NEVER_RESTART=re.compile(r'(?:never restart a running (?:container|service)|никогда не перезапускай работающий (?:контейнер|сервис))$',re.I)
+READINESS=re.compile(r'check readiness(?: before required (?:integration )?tests)?$',re.I)
+AUTHORIZATION_TOPIC=re.compile(r'\b(?:start\w*|launch\w*|permission\w*|approv\w*|authoriz\w*|запуск\w*|разреш\w*|соглас\w*|утвержд\w*)\b',re.I)
+CONTRACT='startup-en-ru-v2'
+
+
+def represented_clauses(text,mode,aliases=(),resource=None):
+    """Closed whole-message grammar, shared by grants and denial clearing.
+
+    Unknown clauses are never silently dropped when changing authorization.
+    Supporting grant clauses describe only guards the executor already enforces;
+    a universal session clear admits no conditional/supporting clause at all.
+    """
+    parts=permission_clauses(text,aliases)
+    if not parts:return None
+    for part in parts:
+        if mode=='clear':
+            if not CLEAR.fullmatch(part):return None
+            continue
+        if EN_GRANT.fullmatch(part) or RU_GRANT.fullmatch(part) or STOPPED_ONLY.fullmatch(part) or NEVER_RESTART.fullmatch(part) or READINESS.fullmatch(part):continue
+        # Existing explicit resource teaching: data, not free-form prose.
+        # Names are matched literally and must equal the selected resource.
+        metadata=re.fullmatch(r'remember (\w{1,64}) container ([a-z0-9][a-z0-9_.-]*) and port ([0-9]{1,5})',part,re.I)
+        if metadata and metadata[1].casefold() in {a.casefold() for a in aliases} and metadata[2]==resource and 1<=int(metadata[3])<=65535:continue
+        return None
+    return parts
 
 
 def restriction(text,proposed):
@@ -62,7 +91,7 @@ def restriction(text,proposed):
     parts=clauses(text)
     if any(DENIAL.search(c) for c in parts):return 'deny'
     if proposed=='clear-denial':
-        return 'clear-denial' if not CONTEXT.search(text) and any(CLEAR.fullmatch(c) for c in permission_clauses(text)) else 'unchanged'
+        return 'clear-denial' if not CONTEXT.search(text) and represented_clauses(text,'clear') else 'unchanged'
     return proposed
 
 
@@ -75,16 +104,24 @@ def startup(text,binding,proposed,quote,resource_count=1):
     """
     parts=clauses(text)
     if any(DENIAL.search(c) for c in parts):
-        return {'granted':False,'denied':True,'reason':'explicit-startup-denial','contract':'startup-en-ru-v1'}
-    result={'granted':False,'denied':False,'reason':'no-validated-current-startup-grant','contract':'startup-en-ru-v1'}
-    if not proposed or not quote or quote not in text or CONTEXT.search(text):return result
+        return {'granted':False,'denied':True,'reason':'explicit-startup-denial','contract':CONTRACT}
+    result={'granted':False,'denied':False,'reason':'no-validated-current-startup-grant','contract':CONTRACT}
     if not binding or not (binding.get('template') or (binding.get('behavior') or {}).get('adapter')=='dependency'):return result
     docker=binding.get('behavior',{}).get('procedure',{}).get('docker',{})
     # An incomplete approved template may retain a deictic authorization intent;
     # execution still needs validated resource parameters and current allowlist.
     if not docker and not binding.get('template'):return result
     resource=docker.get('container') or docker.get('service')
-    for clause in permission_clauses(text,binding.get('aliases',[])):
+    aliases=binding.get('aliases',[])
+    permitted=represented_clauses(text,'grant',aliases,resource)
+    # Ordinary same-resource clarification may preserve a prior grant. An
+    # authorization-related source needs complete representation even when the
+    # model declines a new grant (including historical replay).
+    if permitted is None and (AUTHORIZATION_TOPIC.search(text) or LIMITING.search(text)):
+        return {**result,'uncertain':True,'reason':'unrepresented-startup-condition'}
+    if permitted is None:return result
+    if not proposed or not quote or quote not in text or CONTEXT.search(text):return result
+    for clause in permitted:
         match=EN_GRANT.fullmatch(clause) or RU_GRANT.fullmatch(clause)
         if not match:continue
         # Quote must identify this complete permission clause, not another sentence.

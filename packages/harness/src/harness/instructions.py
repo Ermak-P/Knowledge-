@@ -182,6 +182,9 @@ def execute_procedure(broker, parent_id, record, policy, binding_state=None):
         restrictions+=read_session(broker.j.project.root,broker.r['host_session'])['restrictions']
     require(not policy.get('deny_recovery',False) and 'no-service-start' not in restrictions,'current-service-start-denied')
     require(record.get('recovery_authorized') and p['attempts']==1,'remembered-start-not-authorized')
+    if broker.r.get('host_session'):
+        from .host_ingress import guard
+        guard(broker.j.project.root,broker.r['host_session'],'service-start')
     from knowledge.bindings import validate_saved
     validate_saved(record['execution_binding'],record['behavior'],broker.j.project.root)
     # Pin daemon + immutable container ID before the effect, across fresh runs.

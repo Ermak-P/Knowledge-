@@ -35,19 +35,21 @@ def blob(data):return hashlib.sha256(data).hexdigest()
 
 def source_snapshot(project,limit=1048576):
     result={}
-    for directory,dirs,files in os.walk(project.root,followlinks=False):
-        parent=Path(directory)
-        for name in list(dirs):
-            p=parent/name
-            if name in IGNORED or name.startswith('.'):dirs.remove(name)
-            elif p.is_symlink():result[p.relative_to(project.root).as_posix()]={'linked':True};dirs.remove(name)
-        for name in files:
-            path=parent/name;relative=path.relative_to(project.root).as_posix()
-            if path.suffix.lower() in BINARY or (name.startswith('.') and name not in ('.gitignore','.gitattributes','.editorconfig')) or any(part in name.casefold() for part in ('secret','credential','privatekey')):continue
-            if path.is_symlink():result[relative]={'linked':True};continue
-            safe_path(path)
-            require(path.stat().st_size<=limit,'source-file-too-large',relative)
-            result[relative]=blob(path.read_bytes())
+    from knowledge.source_coverage import strict_source,enumeration_error
+    with strict_source(project.root,'source-snapshot-incomplete'):
+        for directory,dirs,files in os.walk(project.root,followlinks=False,onerror=enumeration_error):
+            parent=Path(directory)
+            for name in list(dirs):
+                p=parent/name
+                if name in IGNORED or name.startswith('.'):dirs.remove(name)
+                elif p.is_symlink() or p.is_junction():result[p.relative_to(project.root).as_posix()]={'linked':True};dirs.remove(name)
+            for name in files:
+                path=parent/name;relative=path.relative_to(project.root).as_posix()
+                if path.suffix.lower() in BINARY or (name.startswith('.') and name not in ('.gitignore','.gitattributes','.editorconfig')) or any(part in name.casefold() for part in ('secret','credential','privatekey')):continue
+                if path.is_symlink():result[relative]={'linked':True};continue
+                safe_path(path)
+                require(path.stat().st_size<=limit,'source-file-too-large',relative)
+                result[relative]=blob(path.read_bytes())
     return dict(sorted(result.items()))
 
 

@@ -31,7 +31,7 @@ def ingest(root,text,message_id,policy,reply_to=None):
         if error.code!='memory-secret-denied':raise
         return {'ok':True,'saved':False,'sensitive_skipped':True,
             'notice':'Knowledge did not persist or normalize this message: credential-like input is excluded from memory.'}
-    replay=op.binding_receipt(root,text,message_id,policy.get('shared_root'))
+    replay=op.binding_receipt(root,text,message_id,policy.get('shared_root'),policy)
     if replay:return replay
     target=re.search(r'(?i)(?:rule|правило)\s+([0-9a-f]{64})\b',text)
     identifier=target.group(1) if target else reply_to
@@ -47,15 +47,8 @@ def ingest(root,text,message_id,policy,reply_to=None):
     try:
         result,metadata=normalize(text,policy.get('bindings',[]),policy['normalizer'],previous,policy.get('procedure_templates',[]),environment)
     except KnowledgeError as error:
-        if not op.TEACHING.search(text):raise
-        candidates=[i for i,b in enumerate(policy.get('bindings',[])) if any(re.search(r'(?<!\w)'+re.escape(alias)+r'(?!\w)',text,re.I) for alias in b['aliases'])]
-        result={'intent':'teach','scope':previous['scope'] if previous else 'shared' if op.SHARED.search(text) else 'project',
-            'scope_explicit':False,'binding':candidates[0] if len(candidates)==1 else None,'summary':(previous or {}).get('normalized') or text,
-            'applicability':{},'authorize_recovery':bool(op.ALLOW.search(text)),'revoke_recovery':False,'parameters':{},'parameter_quotes':{},
-            'unsupported':[error.code],'format_changes':[],
-            'question':'Намерение сохранено без исполнения. Нужна работающая локальная нормализация или явная operator-привязка.',
-            'current_start':'unchanged'}
-        metadata={'method':'local-model','state':'unavailable','error':error.code}
+        from .ingress_failure import degraded
+        return degraded(root,text,message_id,policy,previous,error)
     from .startup_authorization import restriction as current_restriction,startup
     result['current_start']=current_restriction(text,result['current_start'])
     restriction={'deny':'no-service-start','clear-denial':'clear-service-start-denial','unchanged':None}[result['current_start']]
@@ -140,12 +133,12 @@ def ingest(root,text,message_id,policy,reply_to=None):
                 (r['behavior'] or {}).get('procedure',{}).get('id')==behavior.get('procedure',{}).get('id')]
             require(len(candidates)<=1,'ambiguous-instruction-update')
             old=candidates[0] if candidates else None
-        requested=False if result['revoke_recovery'] else bool(result['authorize_recovery'] or old and old.get('authorization_intent',old['recovery_authorized']))
+        requested=False if result['revoke_recovery'] or authorization.get('uncertain') else bool(result['authorize_recovery'] or old and old.get('authorization_intent',old['recovery_authorized']))
         grant=bool(binding and binding['behavior']['adapter']=='dependency' and requested)
         moving=bool(old and old['scope']!=scope)
         if old and old['provenance']['id']==message_id and old['status']=='unbound' and not binding and not moving:
             return {**op.ack(old,duplicate=True),'restriction':restriction,'normalization':metadata}
-        saved=op.teach(root,text,{'type':'user-message','id':message_id},scope=scope,shared=policy.get('shared_root'),
+        kwargs=dict(scope=scope,
             binding=binding,applicability=applicability,identifier=old['id'] if old and not moving else None,
             expected_revision=old['revision'] if old and not moving else None,recovery_authorized=grant,
             authorization_intent=requested,summary=summary,missing=missing,normalization=metadata,
@@ -157,8 +150,11 @@ def ingest(root,text,message_id,policy,reply_to=None):
             semantic=True,receipt_stage='binding' if binding else 'intent',
             receipt_controls={'restriction':restriction,'format_changes':result['format_changes']})
         if moving:
-            op.retire(root,old['id'],scope=old['scope'],shared=policy.get('shared_root'),expected_revision=old['revision'])
-            op.OperationalStore(root,old['scope'],policy.get('shared_root')).records()
+            from .transfers import begin
+            kwargs.pop("identifier");kwargs.pop("expected_revision")
+            saved=begin(root,old,text,message_id,policy.get("shared_root"),kwargs)
+        else:
+            saved=op.teach(root,text,{"type":"user-message","id":message_id},shared=policy.get("shared_root"),**kwargs)
     if (chosen or {}).get('behavior',{}).get('adapter')=='dependency':
         saved['message']+=' Запуск разрешён только для этой привязки.' if saved['recovery_authorized'] else ' Запуск не разрешён; доступна проверка готовности.'
         if not saved['recovery_authorized'] and not authorization['denied'] and result.get('permission_quote') and not saved.get('question'):

@@ -76,13 +76,16 @@ def release_reservations(project):
 
 def source_identity(root):
     files={};ignored={'.git','.knowledge','.harness','.maintenance','.venv','.local','.opencode','bin','obj','node_modules','__pycache__','TestResults'}
-    for directory,dirs,names in os.walk(root,followlinks=False):
-        dirs[:]=[n for n in dirs if n not in ignored and not n.startswith('.')]
-        for name in names:
-            p=Path(directory)/name
-            if name.startswith('.') or p.suffix.lower() in ('.zip','.pyc','.dll','.pdb','.exe','.png','.jpg','.pdf'):continue
-            safe_path(p);require(p.stat().st_size<=2*1024*1024,'maintenance-source-too-large')
-            files[p.relative_to(root).as_posix()]=sha(p.read_bytes())
+    from .source_coverage import strict_source,enumeration_error
+    with strict_source(root,'maintenance-source-incomplete'):
+        for directory,dirs,names in os.walk(root,followlinks=False,onerror=enumeration_error):
+            dirs[:]=[n for n in dirs if n not in ignored and not n.startswith('.')]
+            for name in dirs:safe_path(Path(directory)/name)
+            for name in names:
+                p=Path(directory)/name
+                if name.startswith('.') or p.suffix.lower() in ('.zip','.pyc','.dll','.pdb','.exe','.png','.jpg','.pdf'):continue
+                safe_path(p);require(p.stat().st_size<=2*1024*1024,'maintenance-source-too-large')
+                files[p.relative_to(root).as_posix()]=sha(p.read_bytes())
     return digest(files)
 
 def database(path,project):

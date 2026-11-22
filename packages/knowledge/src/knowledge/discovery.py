@@ -67,21 +67,32 @@ def base_source_matches(data,observation,snapshot):
 
 
 def inventory(root,base=None,head=None):
-    root=Path(root); files={}; excluded=[];repo=has_git(root);blobs={};lf_blobs={}
+    root=Path(root); files={}; excluded=[];errors=[];repo=has_git(root);blobs={};lf_blobs={}
+    def gap(error,phase='enumerate'):
+        path=Path(error.filename) if error.filename else root
+        try:relative=path.relative_to(root).as_posix()
+        except ValueError:relative='.'
+        value={'path':relative,'phase':phase,'errno':error.errno,'scope':'.','reason':'included source unavailable; negative proof blocked'}
+        if value not in errors:errors.append(value)
     object_format=git(root,'rev-parse','--show-object-format',required=True) if repo else 'sha1'
     require(object_format in ('sha1','sha256'),'unsupported-git-object-format')
-    for folder,dirs,names in os.walk(root,followlinks=False):
+    for folder,dirs,names in os.walk(root,followlinks=False,onerror=gap):
         parent=Path(folder)
         for name in list(dirs):
             p=parent/name
-            if name in EXCLUDED or p.is_symlink() or p.is_junction() or name.startswith('.'):
+            try:excluded_dir=name in EXCLUDED or name.startswith('.') or p.is_symlink() or p.is_junction()
+            except OSError as error:
+                gap(error,'inspect-directory');dirs.remove(name);continue
+            if excluded_dir:
                 excluded.append({'path':p.relative_to(root).as_posix(),'status':'excluded','reason':'dependency/generated/hidden or linked directory'})
                 dirs.remove(name)
         for name in names:
             p=parent/name; rel=p.relative_to(root).as_posix()
-            if p.is_symlink() or p.suffix.lower() not in SUFFIXES or re.search(r'(?i)(secret|credential|\.env|appsettings\.(?!json)|\.g\.cs|\.designer\.cs)',name):
+            if p.suffix.lower() not in SUFFIXES or re.search(r'(?i)(secret|credential|\.env|appsettings\.(?!json)|\.g\.cs|\.designer\.cs)',name):
                 excluded.append({'path':rel,'status':'excluded','reason':'binary/unsupported/generated/credential-risk'});continue
             try:
+                if p.is_symlink():
+                    excluded.append({'path':rel,'status':'excluded','reason':'linked file'});continue
                 safe_path(p)
                 with p.open('rb') as source:data=source.read(LIMIT+1)
                 if repo:
@@ -183,6 +194,7 @@ def inventory(root,base=None,head=None):
             entry['head_blob']=head_blobs.get(path)
         dirty.sort(key=lambda d:d['path'])
     core={'index_blobs':index_blobs,'policy':{'excluded_dirs':sorted(EXCLUDED),'suffixes':sorted(SUFFIXES),'max_file_bytes':LIMIT},'extractor':VERSION,'files':{p:{k:v for k,v in item.items() if k!='status'} for p,item in sorted(files.items())},'exclusions':sorted(excluded,key=lambda x:x['path']), 'revision':revision,'dirty':dirty}
+    if errors:core['coverage_errors']=sorted(errors,key=lambda e:(e['path'],e['phase'],e['errno'] or 0))
     return {'identity':digest(core),**core,'files':files,'delta':delta,'snapshot_kind':'working-tree-with-hashes' if dirty else 'committed' if revision else 'filesystem-no-history'}
 
 
@@ -311,7 +323,9 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False):
         pending=sorted((p for p,e in state['coverage'].items() if e['status']=='not-analyzed'),key=lambda p:(not p.endswith(('.csproj','.cs')),p))
         extracted_this_call=[]
         for path in pending[:max_files]:
-            observations,status,reason=extract(store.project.root,path,state['coverage'][path])
+            try:observations,status,reason=extract(store.project.root,path,state['coverage'][path])
+            except (OSError,UnicodeError):
+                observations,status,reason=[],'blocked','source disappeared/unreadable during extraction'
             extracted_this_call.append(path)
             # Ambiguous identities from overloads/duplicate declarations are gaps, never guessed.
             existing={o['id'] for o in state['observations']}
@@ -328,7 +342,7 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False):
                 existing.add(o['id']);state['observations'].append(o)
             state['ambiguous']=sorted(ambiguous)
             state['coverage'][path].update(status=status,reason=reason)
-        state['complete']=not any(e['status'] in ('not-analyzed','blocked') for e in state['coverage'].values())
+        state['complete']=not snap.get('coverage_errors') and not any(e['status'] in ('not-analyzed','blocked') for e in state['coverage'].values())
         # The durable snapshot-bound chunks already contain global ambiguity state.
         # Do not re-extract completed or not-yet-budgeted files for this scan.
         scope={'snapshot':state['snapshot'],'observations':state['observations'],
@@ -578,18 +592,18 @@ def declaration_contexts(code):
 def analysis_scope(root,snapshot=None):
     """One complete included-scope analysis for ambiguity-sensitive reads."""
     snapshot=snapshot if snapshot is not None else inventory(root)
-    groups={}
+    groups={};complete=not snapshot.get('coverage_errors') and not any(e['status']=='blocked' for e in snapshot['files'].values())
     for path,entry in sorted(snapshot['files'].items()):
         if entry['status']=='blocked':continue
         try:observations,_,_=extract(root,path,entry)
-        except (OSError,UnicodeError):continue
+        except (OSError,UnicodeError):complete=False;continue
         for observation in observations:groups.setdefault(observation['id'],[]).append(observation)
     for identifier,items in list(groups.items()):
         if len(items)>1 and all(equivalent_occurrence(items[0],o) for o in items[1:]):
             merged=dict(items[0],occurrences=[occurrence(o) for o in items]);groups[identifier]=[merged]
     ambiguous={i:items for i,items in groups.items() if len(items)>1 or any(o.get('unsupported') for o in items)}
     return {'snapshot':snapshot,'observations':[items[0] for i,items in groups.items() if i not in ambiguous],
-            'ambiguous':ambiguous}
+            'ambiguous':ambiguous,'complete':complete}
 
 
 def negative_coverage_gaps(snapshot):
@@ -599,7 +613,7 @@ def negative_coverage_gaps(snapshot):
     block negative proof: arbitrary Compile Include rules may make them live.
     """
     projects=[p for p in snapshot['files'] if p.endswith('.csproj')]
-    result=[]
+    result=[{'project':project,'path':error['path'],'reason':error['reason']} for error in snapshot.get('coverage_errors',[]) for project in projects or ['.']]
     administrative={'.maintenance','.harness','.knowledge-control.lock','.git','.gitignore','.gitattributes','.editorconfig','.knowledge','.ai','.venv','.local','.vs','TestResults'}
     for excluded in snapshot['exclusions']:
         path=Path(excluded['path'])

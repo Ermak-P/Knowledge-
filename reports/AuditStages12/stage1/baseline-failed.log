@@ -1,0 +1,86 @@
+test_public_catalog_ingress_cannot_bypass_deny_wins (test_audit_stage1.CatalogAuthorization.test_public_catalog_ingress_cannot_bypass_deny_wins) ... 
+  test_public_catalog_ingress_cannot_bypass_deny_wins (test_audit_stage1.CatalogAuthorization.test_public_catalog_ingress_cannot_bypass_deny_wins) (text='Remember Kafka: do not start the container; you may start the container.') ... FAIL
+  test_public_catalog_ingress_cannot_bypass_deny_wins (test_audit_stage1.CatalogAuthorization.test_public_catalog_ingress_cannot_bypass_deny_wins) (text='Запомни Kafka: не запускай контейнер; разрешаю запуск этого контейнера.') ... FAIL
+  test_public_catalog_ingress_cannot_bypass_deny_wins (test_audit_stage1.CatalogAuthorization.test_public_catalog_ingress_cannot_bypass_deny_wins) (text='Remember Kafka: starting containers is forbidden. You may start the container.') ... FAIL
+  test_public_catalog_ingress_cannot_bypass_deny_wins (test_audit_stage1.CatalogAuthorization.test_public_catalog_ingress_cannot_bypass_deny_wins) (text='Запомни Kafka: запуск контейнера не разрешен. Разрешаю запуск этого контейнера.') ... FAIL
+test_enumeration_fault_and_disappearance_are_durable_gaps (test_audit_stage1.EnumerationBoundaries.test_enumeration_fault_and_disappearance_are_durable_gaps) ... 
+  test_enumeration_fault_and_disappearance_are_durable_gaps (test_audit_stage1.EnumerationBoundaries.test_enumeration_fault_and_disappearance_are_durable_gaps) (error='PermissionError') ... FAIL
+  test_enumeration_fault_and_disappearance_are_durable_gaps (test_audit_stage1.EnumerationBoundaries.test_enumeration_fault_and_disappearance_are_durable_gaps) (error='FileNotFoundError') ... FAIL
+test_real_permission_refusal_never_retires_live_claim_and_recovers (test_audit_stage1.EnumerationBoundaries.test_real_permission_refusal_never_retires_live_claim_and_recovers) ... FAIL
+test_target_commit_then_replay_without_model_finishes_retirement (test_audit_stage1.ScopeTransfer.test_target_commit_then_replay_without_model_finishes_retirement) ... FAIL
+
+======================================================================
+FAIL: test_public_catalog_ingress_cannot_bypass_deny_wins (test_audit_stage1.CatalogAuthorization.test_public_catalog_ingress_cannot_bypass_deny_wins) (text='Remember Kafka: do not start the container; you may start the container.')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/tests/test_audit_stage1.py", line 81, in test_public_catalog_ingress_cannot_bypass_deny_wins
+    self.assertFalse(contract.starts());self.assertFalse(record['recovery_authorized']);self.assertEqual(record['original'],text)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: [['/workspace/Knowledge-/.venv/bin/python', '--config', '/home/agent/.docker', '--context', 'default', 'start', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa']] is not false
+
+======================================================================
+FAIL: test_public_catalog_ingress_cannot_bypass_deny_wins (test_audit_stage1.CatalogAuthorization.test_public_catalog_ingress_cannot_bypass_deny_wins) (text='Запомни Kafka: не запускай контейнер; разрешаю запуск этого контейнера.')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/tests/test_audit_stage1.py", line 81, in test_public_catalog_ingress_cannot_bypass_deny_wins
+    self.assertFalse(contract.starts());self.assertFalse(record['recovery_authorized']);self.assertEqual(record['original'],text)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: [['/workspace/Knowledge-/.venv/bin/python', '--config', '/home/agent/.docker', '--context', 'default', 'start', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa']] is not false
+
+======================================================================
+FAIL: test_public_catalog_ingress_cannot_bypass_deny_wins (test_audit_stage1.CatalogAuthorization.test_public_catalog_ingress_cannot_bypass_deny_wins) (text='Remember Kafka: starting containers is forbidden. You may start the container.')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/tests/test_audit_stage1.py", line 81, in test_public_catalog_ingress_cannot_bypass_deny_wins
+    self.assertFalse(contract.starts());self.assertFalse(record['recovery_authorized']);self.assertEqual(record['original'],text)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: [['/workspace/Knowledge-/.venv/bin/python', '--config', '/home/agent/.docker', '--context', 'default', 'start', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa']] is not false
+
+======================================================================
+FAIL: test_public_catalog_ingress_cannot_bypass_deny_wins (test_audit_stage1.CatalogAuthorization.test_public_catalog_ingress_cannot_bypass_deny_wins) (text='Запомни Kafka: запуск контейнера не разрешен. Разрешаю запуск этого контейнера.')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/tests/test_audit_stage1.py", line 81, in test_public_catalog_ingress_cannot_bypass_deny_wins
+    self.assertFalse(contract.starts());self.assertFalse(record['recovery_authorized']);self.assertEqual(record['original'],text)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: [['/workspace/Knowledge-/.venv/bin/python', '--config', '/home/agent/.docker', '--context', 'default', 'start', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa']] is not false
+
+======================================================================
+FAIL: test_enumeration_fault_and_disappearance_are_durable_gaps (test_audit_stage1.EnumerationBoundaries.test_enumeration_fault_and_disappearance_are_durable_gaps) (error='PermissionError')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/tests/test_audit_stage1.py", line 63, in test_enumeration_fault_and_disappearance_are_durable_gaps
+    self.assertFalse(again['complete']);self.assertEqual(first['snapshot']['identity'],again['snapshot']['identity'])
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_enumeration_fault_and_disappearance_are_durable_gaps (test_audit_stage1.EnumerationBoundaries.test_enumeration_fault_and_disappearance_are_durable_gaps) (error='FileNotFoundError')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/tests/test_audit_stage1.py", line 63, in test_enumeration_fault_and_disappearance_are_durable_gaps
+    self.assertFalse(again['complete']);self.assertEqual(first['snapshot']['identity'],again['snapshot']['identity'])
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_real_permission_refusal_never_retires_live_claim_and_recovers (test_audit_stage1.EnumerationBoundaries.test_real_permission_refusal_never_retires_live_claim_and_recovers)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/tests/test_audit_stage1.py", line 46, in test_real_permission_refusal_never_retires_live_claim_and_recovers
+    self.assertFalse(scan['complete'],scan)
+AssertionError: True is not false : {'ok': True, 'id': '74c9c094a88e68dc0cecc2a503d440984953f62c59d546c7c1b372c82e557e28', 'extractor': 'dotnet-lexical-v3', 'snapshot': {'identity': '68331e37800f95dac12c828ba49caf1917756ac9e311a00104d325e4c843f939', 'index_blobs': {'Project.csproj': ['100644 d6ca42c77f50ddcde985ca442b521cdc3c3e1305 0']}, 'policy': {'excluded_dirs': ['.ai', '.git', '.knowledge', '.local', '.venv', '.vs', 'TestResults', 'bin', 'build', 'dist', 'node_modules', 'obj', 'packages', 'vendor'], 'suffixes': ['.config', '.cs', '.csproj', '.json', '.md', '.props', '.sln', '.targets', '.xml', '.yaml', '.yml'], 'max_file_bytes': 512000}, 'extractor': 'dotnet-lexical-v3', 'files': {'Project.csproj': {'hash': 'sha256:aa7fe35869bed525186ee1713b90ead01c57cc25e1bff9b9dbb8f03e21546663', 'status': 'not-analyzed', 'partition': 'Project.csproj', 'bytes': 35, 'partition_ambiguous': False, 'working_blob': 'd6ca42c77f50ddcde985ca442b521cdc3c3e1305', 'git_blob': 'd6ca42c77f50ddcde985ca442b521cdc3c3e1305', 'git_state': 'committed', 'head_blob': 'd6ca42c77f50ddcde985ca442b521cdc3c3e1305'}}, 'exclusions': [{'path': '.git', 'status': 'excluded', 'reason': 'dependency/generated/hidden or linked directory'}, {'path': '.gitignore', 'status': 'excluded', 'reason': 'binary/unsupported/generated/credential-risk'}, {'path': '.knowledge', 'status': 'excluded', 'reason': 'dependency/generated/hidden or linked directory'}, {'path': '.knowledge-control.lock', 'status': 'excluded', 'reason': 'binary/unsupported/generated/credential-risk'}], 'revision': '4032677a10051a644a40eeede0b58128735d5dd8', 'dirty': [], 'delta': {'base': '092e3daecd160e703fe31a146986cafa329a8dea', 'head': '4032677a10051a644a40eeede0b58128735d5dd8', 'committed': 'R100\tInitial.cs\tUnreadable/Initial.cs'}, 'snapshot_kind': 'committed'}, 'coverage': {'Project.csproj': {'hash': 'sha256:aa7fe35869bed525186ee1713b90ead01c57cc25e1bff9b9dbb8f03e21546663', 'status': 'analyzed', 'partition': 'Project.csproj', 'bytes': 35, 'partition_ambiguous': False, 'working_blob': 'd6ca42c77f50ddcde985ca442b521cdc3c3e1305', 'git_blob': 'd6ca42c77f50ddcde985ca442b521cdc3c3e1305', 'git_state': 'committed', 'head_blob': 'd6ca42c77f50ddcde985ca442b521cdc3c3e1305', 'reason': None}}, 'observations': [{'id': 'scan.a57c61359c07bf8a2d020661f0a3d16a', 'category': 'project', 'project': 'Project.csproj', 'path': 'Project.csproj', 'line': 1, 'anchor': '<Project Sdk="Microsoft.NET.Sdk"/>', 'statement': 'Project [Project.csproj] declares a .NET project using Microsoft.NET.Sdk.', 'subject': 'Project [Project.csproj]', 'legacy_id': 'scan.6ba7a69aa1723a4525dab24a383952d9', 'method': 'dotnet-lexical-v3', 'content_hash': 'sha256:aa7fe35869bed525186ee1713b90ead01c57cc25e1bff9b9dbb8f03e21546663', 'unsupported': False}], 'candidates': [], 'captured_at': '2026-11-21T19:23:20.026991+00:00', 'complete': True, 'ambiguous': [], 'work': {'version': 1, 'extracted_this_call': 1, 'paths_this_call': ['Project.csproj'], 'durable_extracted_files': 1, 'remaining_files': 0, 'enumeration_and_hashing': 'whole-snapshot; distinct from bounded extraction'}, 'impact': {'changed_or_unverifiable_evidence': ['evidence.07c312994ba8c2428bc1e0c902fc1be3f614cad58cea31b44b3283801523713a'], 'direct_claims': ['scan.e8ea3a77b504fffb42f68cffbd5cecd1'], 'dependent_claims': [], 'relationships': [], 'policy': 'completed included scope reused; impact is a review request, not retirement'}, 'semantic_coverage_complete': False, 'limits': ['No runtime/deployment proof or business rationale', 'C# lexical matches are partial, not compiler analysis', 'Non-code files are content inventory only', 'Untracked permitted source is included with dirty hashes; Git dirty state is separate from committed HEAD'], 'compatibility': [], 'reintroductions': [], 'review_required': []}
+
+======================================================================
+FAIL: test_target_commit_then_replay_without_model_finishes_retirement (test_audit_stage1.ScopeTransfer.test_target_commit_then_replay_without_model_finishes_retirement)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/tests/test_audit_stage1.py", line 95, in test_target_commit_then_replay_without_model_finishes_retirement
+    self.assertEqual(len(selected['records']),1,selected);self.assertEqual(selected['records'][0]['status'],'active')
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 2 != 1 : {'ok': True, 'state': 'matched', 'stores': {'project': 'available', 'shared': 'available'}, 'records': [{'applicability': {}, 'authority': 'user', 'authorization_intent': False, 'authorization_resource': None, 'authorization_revoked': False, 'behavior': None, 'binding_parameters': {}, 'binding_template': None, 'content_hash': 'c71ace2a27d5bd0e070e1330c8de96f4eab57fe3498f8bf39bf1359923fa3d7b', 'created': 1795289000.0778782, 'evidence': [], 'execution_binding': None, 'id': 'aa3456c9f18556c1e15c80c7e94d4c2852d71a7d83dda7191a4419aea4053357', 'kind': 'instruction', 'last_verified': None, 'missing': ['Which scope?', 'scope needs clarification'], 'normalized': 'Preserve the existing byte format when editing files.', 'project': 'bdab0b2cd014bd6d757af80e64e7f1618754cc6b95e7f11b8b8f47098aee8678', 'provenance': {'id': 'teach', 'type': 'user-message'}, 'recovery_authorized': False, 'revision': 1, 'scope': 'project', 'stale': None, 'status': 'unbound', 'supersedes': None, 'technical': {'evidence': [], 'normalization': {'evidence': 'test-double', 'method': 'local-model', 'model': 'semantic-fixture', 'startup_authorization': {'contract': 'startup-en-ru-v1', 'denied': False, 'granted': False, 'reason': 'no-validated-current-startup-grant'}, 'technical_truth': 'not-established-by-normalization', 'usage': {'completion_tokens': 7, 'prompt_tokens': 11, 'total_tokens': 18}}, 'state': 'unverified'}, 'trigger': {'name': '*', 'tool': 'patch'}, 'updated': 1795289000.0778782, 'version': 1, 'view': 'operational-context-v1', 'source_refs': {'original_sha256': '475c78f54500be10a0b02a4af99d828e025894fe9a580be03561501b9b33396c', 'original_bytes': 18, 'latest_sha256': '475c78f54500be10a0b02a4af99d828e025894fe9a580be03561501b9b33396c', 'read': 'memory-inspect / memory-history'}}, {'applicability': {}, 'authority': 'user', 'authorization_intent': False, 'authorization_resource': None, 'authorization_revoked': False, 'behavior': {'adapter': 'preserve-format'}, 'binding_parameters': {}, 'binding_template': None, 'content_hash': 'c36d17a1298371070125337b9d0b7ef45cf34d058b5e3a4cd525c280823efafd', 'created': 1795289000.0956316, 'evidence': [], 'execution_binding': {'files': {}, 'state': 'portable', 'version': 1}, 'id': '2f3458e74f2c078d55d837794c5600916765f13a6adfea8a1319c50e1fdf639d', 'kind': 'instruction', 'last_verified': None, 'missing': [], 'normalized': 'Preserve the existing byte format when editing files.', 'project': None, 'provenance': {'id': 'scope-change', 'type': 'user-message'}, 'recovery_authorized': False, 'revision': 1, 'scope': 'shared', 'stale': None, 'status': 'active', 'supersedes': {'id': 'aa3456c9f18556c1e15c80c7e94d4c2852d71a7d83dda7191a4419aea4053357', 'revision': 1, 'scope': 'project'}, 'technical': {'evidence': [], 'normalization': {'evidence': 'test-double', 'method': 'local-model', 'model': 'semantic-fixture', 'startup_authorization': {'contract': 'startup-en-ru-v1', 'denied': False, 'granted': False, 'reason': 'no-validated-current-startup-grant'}, 'technical_truth': 'not-established-by-normalization', 'usage': {'completion_tokens': 7, 'prompt_tokens': 11, 'total_tokens': 18}}, 'state': 'configured'}, 'trigger': {'name': '*', 'tool': 'patch'}, 'updated': 1795289000.0956316, 'version': 1, 'view': 'operational-context-v1', 'source_refs': {'original_sha256': '475c78f54500be10a0b02a4af99d828e025894fe9a580be03561501b9b33396c', 'original_bytes': 18, 'latest_sha256': 'a8b576ed6a3cc709c63775851a584355e265f6856d6fb139574c2830e7d43c20', 'read': 'memory-inspect / memory-history'}}], 'decisions': [{'id': '2f3458e74f2c078d55d837794c5600916765f13a6adfea8a1319c50e1fdf639d', 'revision': 1, 'applicable': True, 'reason': 'match'}], 'conflicts': [], 'partial': False, 'signals': {}, 'bindings': {}, 'payload_bytes': 3515}
+
+----------------------------------------------------------------------
+Ran 4 tests in 1.674s
+
+FAILED (failures=8)

@@ -8,7 +8,7 @@ from .util import loads, emit_json, canonical_json, KnowledgeError, read_text
 
 def parser():
     p=argparse.ArgumentParser(description='Knowledge: explicit project-local evidence store')
-    p.add_argument('command',choices=['version','init','validate','submit','prepare','apply','acknowledge','context','lookup','status','recover','export','migrate-preview','migrate-apply','restore-legacy','upgrade-preview','upgrade-apply','scan','scan-status','reconcile','review','history','knowledge-init','knowledge-candidates-update','knowledge-candidates-push','memory-ingest','memory-teach','memory-lookup','memory-inspect','memory-history','memory-retire','memory-rebind'])
+    p.add_argument('command',choices=['version','init','validate','submit','prepare','apply','acknowledge','context','lookup','status','recover','export','migrate-preview','migrate-apply','restore-legacy','upgrade-preview','upgrade-apply','scan','scan-status','reconcile','review','history','knowledge-init','knowledge-candidates-update','knowledge-candidates-push','memory-ingest','memory-teach','memory-lookup','memory-inspect','memory-history','memory-retire','memory-rebind','memory-transfer-recover'])
     p.add_argument('--root',required=True)
     p.add_argument('--input',type=Path)
     p.add_argument('--plan')
@@ -36,7 +36,12 @@ def parser():
 def execute(a):
     if a.command.startswith('memory-'):
         from . import operations as op
-        if a.command=='memory-inspect':return {'ok':True,**op.OperationalStore(a.root,a.scope,a.shared_root).records()}
+        if a.command=='memory-transfer-recover':
+            from .transfers import recover
+            return recover(a.root,a.shared_root)
+        if a.command=='memory-inspect':
+            from .transfers import intents
+            return {'ok':True,**op.OperationalStore(a.root,a.scope,a.shared_root).records(),'transfers':intents(a.root)}
         if a.command=='memory-history':return {'ok':True,'history':op.OperationalStore(a.root,a.scope,a.shared_root).history(a.id)}
         if a.command=='memory-retire':return op.retire(a.root,a.id,scope=a.scope,shared=a.shared_root,expected_revision=a.expected_revision)
         raw=read_text(a.input) if a.input else sys.stdin.buffer.read(65537).decode('utf-8')

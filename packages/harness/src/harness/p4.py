@@ -3,7 +3,7 @@ from copy import deepcopy
 import uuid,re
 from knowledge.util import require,digest,canonical_json,KnowledgeError
 from . import runtime as rt
-from .tools import schemas,SCHEMAS,REQUIRED,Broker
+from .tools import schemas,SCHEMAS,REQUIRED,Broker,knowledge_history
 
 POLICY='bounded-v1'
 
@@ -64,7 +64,7 @@ def context(j,c,r,f,limits):
     if 'automatic_tests' in r:
         from .testing import summary,INSTRUCTIONS
         system['automatic_tests']=summary(r);system['automatic_test_instructions']=INSTRUCTIONS
-    body=dict(model=c['provider']['model'],messages=[{'role':'system','content':canonical_json(system)}]+[m for chunk in f['history'] for m in chunk],tools=schemas(f['role']),max_tokens=limits['output_tokens'],parallel_tool_calls=False,stream=False)
+    body=dict(model=c['provider']['model'],messages=[{'role':'system','content':canonical_json(system)}]+knowledge_history(f['history']),tools=schemas(f['role']),max_tokens=limits['output_tokens'],parallel_tool_calls=False,stream=False)
     if 'automatic_tests' in r and f['role'] in ('Main','Planning','Coding','Reviewing'):
         body['tools'].append({'type':'function','function':{'name':'test_inventory','description':'Read-only paginated approved test inventory and verification summary.','parameters':{'type':'object','properties':{'offset':{'type':'integer'},'limit':{'type':'integer'}},'additionalProperties':False}}})
     if f['role']=='Reviewing':
@@ -72,6 +72,8 @@ def context(j,c,r,f,limits):
     if f['role'] in ('Main','Planning','Coding'):body['tools'].extend(t for t in schemas('Reviewing') if t['function']['name']=='artifact')
     for name in ('checkpoint','continuation'):
         body['tools'].append({'type':'function','function':{'name':name,'description':'Untrusted bounded working-state record/retrieval; never changes authority.','parameters':{'type':'object','properties':SCHEMAS[name],'required':REQUIRED[name],'additionalProperties':False}}})
+    from .delivery import slice_for,record_projection
+    system['knowledge']=slice_for(j,c,r,f,limits)
     system['checkpoints']=f.get('checkpoints',[])
     system['continuation']=continuation_seed(r,f)
     body['messages'][0]['content']=canonical_json(system)
@@ -88,6 +90,10 @@ def context(j,c,r,f,limits):
         if f.get('item'):next(i for i in r['p4']['items'] if i['id']==f['item'])['epochs'].append(f['id'])
         j.save(r);rt.fault('p4-checkpoint');return context(j,c,r,f,limits)
     if f['role']=='Main':body['tools'].append({'type':'function','function':{'name':'plan','description':'Propose at most eight ordered items before coding; scope must use exact authorized patterns. Original acceptance is unchanged.','parameters':{'type':'object','properties':{'items':{'type':'array','items':{'type':'object','properties':{'id':{'type':'string'},'objective':{'type':'string'},'depends':{'type':'array','items':{'type':'string'}},'writable':{'type':'array','items':{'type':'string'}},'recipes':{'type':'array','items':{'type':'string'}}},'required':['id','objective','depends','writable'],'additionalProperties':False}}},'required':['items'],'additionalProperties':False}}})
+    if len(canonical_json(body).encode())>limits['context_bytes']:
+        system['knowledge']={'delivery':f.get('knowledge_delivery'),'available':False,'partial':True,'reason':'provider-byte-budget'}
+        body['messages'][0]['content']=canonical_json(system)
+    record_projection(j,r,f,system['knowledge'])
     require(len(canonical_json(body).encode())<=limits['context_bytes'],'split-required')
     return body
 

@@ -14,6 +14,9 @@ def context(root,task,max_bytes=None,include_unconfirmed=False):
     require(type(budget) is int and 512<=budget<=1000000,'invalid-harness-budget')
     try:
         result=Store(project.root).context(task,budget-256,include_unconfirmed=include_unconfirmed)
+        if result.get('result')=='store-absent':
+            return {'ok':True,'mode':'degraded','knowledge_available':False,'reason':'knowledge-absent',
+                    'runner':'not-invoked','claims':[]}
     except KnowledgeError as e:
         if e.code in ('knowledge-absent','store-busy-retry','database-unavailable-or-corrupt'):
             # Corruption is an explicit unavailable/error result, never empty knowledge success.
