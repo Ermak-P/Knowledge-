@@ -1,0 +1,25 @@
+{"run": "24c2d1ff0b8e4ce9b501a7279ba2cf6a", "status": "FAILED"}
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/scripts/verify_p4.py", line 93, in <module>
+    if __name__=='__main__':raise SystemExit(main())
+                                             ^^^^^^
+  File "/workspace/Knowledge-/scripts/verify_p4.py", line 68, in main
+    command('automatic-tests',[py,'-I','-X','utf8','-B',ROOT/'scripts/automatic_test_discovery.py',out/'automatic-tests'],base)
+  File "/workspace/Knowledge-/scripts/verify_p4.py", line 21, in command
+    with (out/(name+'.log')).open('wb') as log:p=subprocess.run(argv,cwd=cwd,stdout=log,stderr=subprocess.STDOUT)
+                                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 550, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1201, in communicate
+    self.wait()
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1264, in wait
+    return self._wait(timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 2053, in _wait
+    (pid, sts) = self._try_wait(0)
+                 ^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 2011, in _try_wait
+    (pid, sts) = os.waitpid(self.pid, wait_flags)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
