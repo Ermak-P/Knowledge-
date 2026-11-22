@@ -1,0 +1,159 @@
+{
+  "operation": "duplicate",
+  "dataset": {
+    "version": 1,
+    "root": "/tmp/sqlite-ready-benchmarks/legacy",
+    "kind": "legacy",
+    "size": 2,
+    "events": 0,
+    "pending": 1,
+    "revisions": 3,
+    "shared": "/tmp/sqlite-ready-benchmarks/legacy-shared-absent",
+    "committed": false,
+    "duplicate": {
+      "operation": "add",
+      "records": {
+        "claims": [
+          {
+            "conflicts_with": [],
+            "depends_on": [],
+            "evidence": [
+              "evidence.synthetic.pending"
+            ],
+            "id": "synthetic.pending",
+            "last_verified": "2026-11-14",
+            "provenance": {
+              "actor": "synthetic-test",
+              "method": "fixture-source"
+            },
+            "statement": "Synthetic pending item.",
+            "status": "CONFIRMED",
+            "type": "technical_fact"
+          }
+        ],
+        "evidence": [
+          {
+            "captured_at": "2026-11-14T00:00:00Z",
+            "description": "Synthetic source fixture supports the statement.",
+            "id": "evidence.synthetic.pending",
+            "location": "Fixture.cs#L1",
+            "provenance": {
+              "actor": "synthetic-test",
+              "method": "fixture-source"
+            },
+            "source": "Fixture.cs",
+            "status": "active",
+            "substantiates": [
+              "synthetic.pending"
+            ],
+            "type": "direct-technical"
+          }
+        ],
+        "relationships": []
+      },
+      "version": 1
+    },
+    "new": {
+      "version": 1,
+      "operation": "add",
+      "records": {
+        "claims": [
+          {
+            "id": "benchmark.legacy.new",
+            "statement": "New legacy benchmark statement.",
+            "type": "technical_fact",
+            "status": "CONFIRMED",
+            "evidence": [
+              "evidence.benchmark.legacy.new"
+            ],
+            "provenance": {
+              "actor": "synthetic-test",
+              "method": "fixture-source"
+            },
+            "last_verified": "2026-11-14",
+            "depends_on": [],
+            "conflicts_with": []
+          }
+        ],
+        "evidence": [
+          {
+            "id": "evidence.benchmark.legacy.new",
+            "type": "direct-technical",
+            "status": "active",
+            "source": "Fixture.cs",
+            "provenance": {
+              "actor": "synthetic-test",
+              "method": "fixture-source"
+            },
+            "captured_at": "2026-11-14T00:00:00Z",
+            "location": "Fixture.cs#L1",
+            "description": "Synthetic source fixture supports the statement.",
+            "substantiates": [
+              "benchmark.legacy.new"
+            ]
+          }
+        ],
+        "relationships": []
+      }
+    },
+    "databases": {
+      ".knowledge/store.sqlite3": {
+        "history": "ddd180d86c6ad87e6f7fc12fbd7e79043e9c2283091ee3701c948d85a0550f06",
+        "metadata": "9e1a85b17f510b0933659e0e685aeb6bbe3328e878b0b1b5550b9b02c87639dd",
+        "plans": "d2e9c093df3eaf687ca7b2662fd947ae2a3152913c5e824de6640d223a6690d5",
+        "queue": "648860d79c79358cb93af16424b7cfdcd311137a1e9c5dbdc6c6ff1047e29011",
+        "records": "a8064ca72cd827e09629b47a0ab6e0216d886e35668252c193e442ee20504ca5"
+      }
+    },
+    "snapshot_sha256": {
+      ".knowledge/store.sqlite3": "a559dfd2b53cd93ab8d26fac0cee9b58edc294079e5d06191d5a1c185ae6ad65"
+    }
+  },
+  "index_variant": "none",
+  "samples_seconds": [
+    0.004239619011059403,
+    0.0039027500024531037,
+    0.00451706800959073,
+    0.003978384003858082,
+    0.004066537003382109,
+    0.004184766003163531,
+    0.004133287991862744,
+    0.004299740001442842,
+    0.004111585003556684,
+    0.0040035720012383536
+  ],
+  "median": 0.004122436497709714,
+  "p95": 0.00451706800959073,
+  "p95_method": "nearest rank ceil(0.95*n), one-based",
+  "logical_results": [
+    "60f0b322407aef96d0d86561584bc4284f041ac0d613e872c9c534ba60c5cd77",
+    "60f0b322407aef96d0d86561584bc4284f041ac0d613e872c9c534ba60c5cd77",
+    "60f0b322407aef96d0d86561584bc4284f041ac0d613e872c9c534ba60c5cd77",
+    "60f0b322407aef96d0d86561584bc4284f041ac0d613e872c9c534ba60c5cd77",
+    "60f0b322407aef96d0d86561584bc4284f041ac0d613e872c9c534ba60c5cd77",
+    "60f0b322407aef96d0d86561584bc4284f041ac0d613e872c9c534ba60c5cd77",
+    "60f0b322407aef96d0d86561584bc4284f041ac0d613e872c9c534ba60c5cd77",
+    "60f0b322407aef96d0d86561584bc4284f041ac0d613e872c9c534ba60c5cd77",
+    "60f0b322407aef96d0d86561584bc4284f041ac0d613e872c9c534ba60c5cd77",
+    "60f0b322407aef96d0d86561584bc4284f041ac0d613e872c9c534ba60c5cd77"
+  ],
+  "runtime": {
+    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "sqlite": "3.53.1",
+    "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+    "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+  },
+  "databases": {
+    ".knowledge/store.sqlite3": {
+      "bytes": 57344,
+      "logical": {
+        "history": "ddd180d86c6ad87e6f7fc12fbd7e79043e9c2283091ee3701c948d85a0550f06",
+        "metadata": "9e1a85b17f510b0933659e0e685aeb6bbe3328e878b0b1b5550b9b02c87639dd",
+        "plans": "d2e9c093df3eaf687ca7b2662fd947ae2a3152913c5e824de6640d223a6690d5",
+        "queue": "648860d79c79358cb93af16424b7cfdcd311137a1e9c5dbdc6c6ff1047e29011",
+        "records": "a8064ca72cd827e09629b47a0ab6e0216d886e35668252c193e442ee20504ca5"
+      }
+    }
+  }
+}

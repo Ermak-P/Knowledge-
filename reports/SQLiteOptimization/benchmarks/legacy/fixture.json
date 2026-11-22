@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "root": "/tmp/sqlite-ready-benchmarks/legacy",
+  "kind": "legacy",
+  "size": 2,
+  "events": 0,
+  "pending": 1,
+  "revisions": 3,
+  "shared": "/tmp/sqlite-ready-benchmarks/legacy-shared-absent",
+  "committed": false,
+  "duplicate": {
+    "operation": "add",
+    "records": {
+      "claims": [
+        {
+          "conflicts_with": [],
+          "depends_on": [],
+          "evidence": [
+            "evidence.synthetic.pending"
+          ],
+          "id": "synthetic.pending",
+          "last_verified": "2026-11-14",
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture-source"
+          },
+          "statement": "Synthetic pending item.",
+          "status": "CONFIRMED",
+          "type": "technical_fact"
+        }
+      ],
+      "evidence": [
+        {
+          "captured_at": "2026-11-14T00:00:00Z",
+          "description": "Synthetic source fixture supports the statement.",
+          "id": "evidence.synthetic.pending",
+          "location": "Fixture.cs#L1",
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture-source"
+          },
+          "source": "Fixture.cs",
+          "status": "active",
+          "substantiates": [
+            "synthetic.pending"
+          ],
+          "type": "direct-technical"
+        }
+      ],
+      "relationships": []
+    },
+    "version": 1
+  },
+  "new": {
+    "version": 1,
+    "operation": "add",
+    "records": {
+      "claims": [
+        {
+          "id": "benchmark.legacy.new",
+          "statement": "New legacy benchmark statement.",
+          "type": "technical_fact",
+          "status": "CONFIRMED",
+          "evidence": [
+            "evidence.benchmark.legacy.new"
+          ],
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture-source"
+          },
+          "last_verified": "2026-11-14",
+          "depends_on": [],
+          "conflicts_with": []
+        }
+      ],
+      "evidence": [
+        {
+          "id": "evidence.benchmark.legacy.new",
+          "type": "direct-technical",
+          "status": "active",
+          "source": "Fixture.cs",
+          "provenance": {
+            "actor": "synthetic-test",
+            "method": "fixture-source"
+          },
+          "captured_at": "2026-11-14T00:00:00Z",
+          "location": "Fixture.cs#L1",
+          "description": "Synthetic source fixture supports the statement.",
+          "substantiates": [
+            "benchmark.legacy.new"
+          ]
+        }
+      ],
+      "relationships": []
+    }
+  },
+  "databases": {
+    ".knowledge/store.sqlite3": {
+      "history": "ddd180d86c6ad87e6f7fc12fbd7e79043e9c2283091ee3701c948d85a0550f06",
+      "metadata": "9e1a85b17f510b0933659e0e685aeb6bbe3328e878b0b1b5550b9b02c87639dd",
+      "plans": "d2e9c093df3eaf687ca7b2662fd947ae2a3152913c5e824de6640d223a6690d5",
+      "queue": "648860d79c79358cb93af16424b7cfdcd311137a1e9c5dbdc6c6ff1047e29011",
+      "records": "a8064ca72cd827e09629b47a0ab6e0216d886e35668252c193e442ee20504ca5"
+    }
+  },
+  "snapshot_sha256": {
+    ".knowledge/store.sqlite3": "a559dfd2b53cd93ab8d26fac0cee9b58edc294079e5d06191d5a1c185ae6ad65"
+  }
+}
