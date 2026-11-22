@@ -1,0 +1,218 @@
+{
+  "profile": "controlled-fresh-planner",
+  "input_task": "An equivalent transient operation: bounded retry, independent transport recovery, caller deadline",
+  "retrieved": {
+    "command": "context",
+    "ok": true,
+    "engine_version": "context-engine-v2",
+    "result": "matches",
+    "message": null,
+    "claims": [
+      {
+        "id": "ucr.e4a7e408bd78bf29.transport-owner",
+        "status": "CONFIRMED",
+        "confirmed": true,
+        "type": "architecture",
+        "statement": "Leave the independent packet recovery in Transport unchanged When / Условия: For this component and reviewed version. Reason / Причина: packet_attempts=2 is an independent per-packet recovery responsibility; changing it would multiply operation work.. Preserve / Сохранить: Do not multiply operation retries by changing packet recovery ownership. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target 98766373c7a424d0e51331ca4ba96053b8e8c436. Terms: transport, retry, повтор.",
+        "last_verified": "2026-11-22",
+        "depends_on": [],
+        "revision": 1,
+        "provenance": {
+          "actor": "reviewed-CR-workflow",
+          "method": "update-by-cr-v1"
+        },
+        "evidence_ids": [
+          "ucr.evidence.fa31ed3f1354b1bb9a7b207faaaea912f180e4edf34dfa240214e20da036c30a",
+          "ucr.code.af9b4cddebafa010a7580ac6b7b86928a12015386735295bc7fe9aeb37247413"
+        ],
+        "conflicts_with": [],
+        "current": {
+          "lifecycle": "active",
+          "revision": 1,
+          "freshness": {
+            "trusted": true,
+            "evidence": {
+              "ucr.evidence.fa31ed3f1354b1bb9a7b207faaaea912f180e4edf34dfa240214e20da036c30a": "unchanged",
+              "ucr.code.af9b4cddebafa010a7580ac6b7b86928a12015386735295bc7fe9aeb37247413": "unchanged"
+            },
+            "policy": "all supporting evidence current; confidence unchanged"
+          }
+        }
+      },
+      {
+        "id": "ucr.e4a7e408bd78bf29.retry-limit",
+        "status": "CONFIRMED",
+        "confirmed": true,
+        "type": "architecture",
+        "statement": "Prefer four total transient operation attempts When / Условия: For this component and reviewed version. Reason / Причина: max_attempts=4 fits the bounded transient operation budget.. Preserve / Сохранить: Bound work within the caller deadline. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target 98766373c7a424d0e51331ca4ba96053b8e8c436. Terms: retry, transient, повтор, ошибка.",
+        "last_verified": "2026-11-22",
+        "depends_on": [],
+        "revision": 1,
+        "provenance": {
+          "actor": "reviewed-CR-workflow",
+          "method": "update-by-cr-v1"
+        },
+        "evidence_ids": [
+          "ucr.evidence.aed9ada957cbce6416cace96c54e683e248822ad99c65b0969612c030c66c321",
+          "ucr.code.4ffee3d3bfecaea117b2f7f5666f5b1931834cc72a1680c98f8be2c7e2610544"
+        ],
+        "conflicts_with": [],
+        "current": {
+          "lifecycle": "active",
+          "revision": 1,
+          "freshness": {
+            "trusted": true,
+            "evidence": {
+              "ucr.evidence.aed9ada957cbce6416cace96c54e683e248822ad99c65b0969612c030c66c321": "unchanged",
+              "ucr.code.4ffee3d3bfecaea117b2f7f5666f5b1931834cc72a1680c98f8be2c7e2610544": "unchanged"
+            },
+            "policy": "all supporting evidence current; confidence unchanged"
+          }
+        }
+      },
+      {
+        "id": "ucr.e4a7e408bd78bf29.deadline",
+        "status": "CONFIRMED",
+        "confirmed": true,
+        "type": "architecture",
+        "statement": "Preserve the caller deadline of 120 ms When / Условия: For this component and reviewed version. Reason / Причина: caller_deadline_ms=120 is the existing public caller budget.. Preserve / Сохранить: Do not extend the public caller deadline. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target 98766373c7a424d0e51331ca4ba96053b8e8c436. Terms: deadline, timeout, срок.",
+        "last_verified": "2026-11-22",
+        "depends_on": [],
+        "revision": 1,
+        "provenance": {
+          "actor": "reviewed-CR-workflow",
+          "method": "update-by-cr-v1"
+        },
+        "evidence_ids": [
+          "ucr.evidence.d5bfca90d3f276f423282abd1fc99965f80a461334e012576c004265a2233cb5",
+          "ucr.code.108def451d8c1e15772ab2f214418c04ae46d0e0127e79c528cad7877c127524"
+        ],
+        "conflicts_with": [],
+        "current": {
+          "lifecycle": "active",
+          "revision": 1,
+          "freshness": {
+            "trusted": true,
+            "evidence": {
+              "ucr.evidence.d5bfca90d3f276f423282abd1fc99965f80a461334e012576c004265a2233cb5": "unchanged",
+              "ucr.code.108def451d8c1e15772ab2f214418c04ae46d0e0127e79c528cad7877c127524": "unchanged"
+            },
+            "policy": "all supporting evidence current; confidence unchanged"
+          }
+        }
+      }
+    ],
+    "evidence": [
+      {
+        "id": "ucr.evidence.fa31ed3f1354b1bb9a7b207faaaea912f180e4edf34dfa240214e20da036c30a",
+        "provenance": {
+          "actor": "user-CR-interview",
+          "method": "update-by-cr-v1"
+        },
+        "status": "active",
+        "source": ".knowledge/update-cr/cf14ca939b654cdbbec98e5d4c904f2c/fa31ed3f1354b1bb9a7b207faaaea912f180e4edf34dfa240214e20da036c30a.json",
+        "location": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | transport-owner"
+      },
+      {
+        "id": "ucr.code.af9b4cddebafa010a7580ac6b7b86928a12015386735295bc7fe9aeb37247413",
+        "provenance": {
+          "actor": "pinned-git-code",
+          "method": "update-by-cr-code-v1"
+        },
+        "status": "active",
+        "source": "Transport.cs",
+        "location": "98766373c7a424d0e51331ca4ba96053b8e8c436:Transport.cs#L1-L1"
+      },
+      {
+        "id": "ucr.evidence.aed9ada957cbce6416cace96c54e683e248822ad99c65b0969612c030c66c321",
+        "provenance": {
+          "actor": "user-CR-interview",
+          "method": "update-by-cr-v1"
+        },
+        "status": "active",
+        "source": ".knowledge/update-cr/cf14ca939b654cdbbec98e5d4c904f2c/aed9ada957cbce6416cace96c54e683e248822ad99c65b0969612c030c66c321.json",
+        "location": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | retry-limit"
+      },
+      {
+        "id": "ucr.code.4ffee3d3bfecaea117b2f7f5666f5b1931834cc72a1680c98f8be2c7e2610544",
+        "provenance": {
+          "actor": "pinned-git-code",
+          "method": "update-by-cr-code-v1"
+        },
+        "status": "active",
+        "source": "Retry.cs",
+        "location": "98766373c7a424d0e51331ca4ba96053b8e8c436:Retry.cs#L1-L1"
+      },
+      {
+        "id": "ucr.evidence.d5bfca90d3f276f423282abd1fc99965f80a461334e012576c004265a2233cb5",
+        "provenance": {
+          "actor": "user-CR-interview",
+          "method": "update-by-cr-v1"
+        },
+        "status": "active",
+        "source": ".knowledge/update-cr/cf14ca939b654cdbbec98e5d4c904f2c/d5bfca90d3f276f423282abd1fc99965f80a461334e012576c004265a2233cb5.json",
+        "location": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | deadline"
+      },
+      {
+        "id": "ucr.code.108def451d8c1e15772ab2f214418c04ae46d0e0127e79c528cad7877c127524",
+        "provenance": {
+          "actor": "pinned-git-code",
+          "method": "update-by-cr-code-v1"
+        },
+        "status": "active",
+        "source": "Caller.cs",
+        "location": "98766373c7a424d0e51331ca4ba96053b8e8c436:Caller.cs#L1-L1"
+      }
+    ],
+    "conflicts": [],
+    "truncation": {
+      "candidates": 3,
+      "returned": 3,
+      "dropped": 0,
+      "reason": null
+    },
+    "budget": {
+      "max_tokens": 4000,
+      "estimated_tokens": 1715,
+      "estimation": "utf8-bytes/4"
+    },
+    "view": "compact",
+    "knowledge_base": {
+      "fingerprint": "sha256:1934804923bb7aa9700a03b37986b85f596f3501ed4100c2ecea00e50d16bb5a"
+    },
+    "delivery_version": 2,
+    "diagnostics": {
+      "store": "available",
+      "selection": "matches",
+      "filtered": [],
+      "filtered_count": 0,
+      "omitted": 0
+    },
+    "dependencies": {
+      "version": 1,
+      "max_depth": 4,
+      "complete": true,
+      "references": [],
+      "max_references": 128,
+      "omitted": 0
+    },
+    "partial": false
+  },
+  "plan": {
+    "parameters": {
+      "packet_attempts": 2,
+      "max_attempts": 4,
+      "caller_deadline_ms": 120
+    },
+    "preserve": [
+      "Do not multiply operation retries by changing packet recovery ownership",
+      "Bound work within the caller deadline",
+      "Do not extend the public caller deadline"
+    ],
+    "reasons": [
+      "packet_attempts=2 is an independent per-packet recovery responsibility; changing it would multiply operation work",
+      "max_attempts=4 fits the bounded transient operation budget",
+      "caller_deadline_ms=120 is the existing public caller budget"
+    ]
+  }
+}

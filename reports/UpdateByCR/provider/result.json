@@ -1,0 +1,55 @@
+{
+  "status": "PASS",
+  "profile": "installed-real-subprocess-provider-boundaries",
+  "live_provider": false,
+  "checks": [
+    {
+      "case": "paginated-slurp",
+      "status": "PASS",
+      "seconds": 0.03289635098190047,
+      "transport_argv": [
+        [
+          "controlled-gh",
+          "api",
+          "/controlled/export",
+          "--paginate",
+          "--slurp"
+        ]
+      ],
+      "result": [
+        {
+          "id": 1
+        },
+        {
+          "id": 2
+        }
+      ]
+    },
+    {
+      "case": "bounded-response",
+      "status": "PASS",
+      "seconds": 0.016217327007325366,
+      "transport_argv": [
+        [
+          "controlled-gh",
+          "api",
+          "/controlled/export"
+        ]
+      ],
+      "result": "ucr-provider-response-too-large"
+    },
+    {
+      "case": "provider-timeout",
+      "status": "PASS",
+      "seconds": 25.0023229259823,
+      "transport_argv": [
+        [
+          "controlled-gh",
+          "api",
+          "/controlled/export"
+        ]
+      ],
+      "result": "ucr-provider-timeout"
+    }
+  ]
+}
