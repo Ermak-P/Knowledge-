@@ -5,7 +5,7 @@ only public operations, profile uses separate instrumentation, reset restores
 quiescent bytes at the SAME root. No live services or execution effects.
 """
 import argparse
-from contextlib import ExitStack
+from contextlib import ExitStack,closing
 from copy import deepcopy
 import hashlib
 import json
@@ -24,7 +24,7 @@ def save(path,value):Path(path).write_text(json.dumps(value,indent=2)+'\n',encod
 
 
 def logical(path):
-    with sqlite3.connect(path) as db:
+    with closing(sqlite3.connect(path)) as db, db:
         return {t:sha(json.dumps(sorted(list(db.execute('SELECT * FROM "'+t+'"')),key=repr),ensure_ascii=True).encode())
             for t, in db.execute("SELECT name FROM sqlite_schema WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")}
 
@@ -54,14 +54,20 @@ def fixture(root,kind='operations',size=32,events=0,pending=1,revisions=3,commit
             ids=[]
             for i in range(size):
                 value=deepcopy(template);value['id']=digest(['rule',i]);ids.append(value['id'])
+                value['original']=value['normalized']=f'Remember formatting for synthetic rule {i}'
+                value['provenance']={'type':'user-message','id':f'fixture-rule-{i}'}
                 value['trigger']['name']='Fixture.cs' if i==0 else f'irrelevant-{i}.cs'
                 for revision in range(1,revisions+1):
+                    value['supersedes']={'id':value['id'],'revision':revision-1} if revision>1 else None
                     value['revision']=revision;value.pop('content_hash',None);op.append(db,value)
             def event_rows():
+                sequences={}
                 for i in range(events):
                     result={'id':ids[i%size],'revision':revisions if i%5 else 1}
                     if i%2:result['application']={'at':0,'outcome':{'ok':True},'evidence':[],'technical':'preconditions-satisfied','root_cause':'not-established'}
-                    else:result['binding_state']={'sequence':i+1,'at':0,'state':'verified','reason':None}
+                    else:
+                        key=(result['id'],result['revision']);sequences[key]=sequences.get(key,0)+1
+                        result['binding_state']={'sequence':sequences[key],'at':0,'state':'verified','reason':None}
                     yield digest(['event',i]),canonical_json({'request':digest(i),'result':result})
             db.executemany('INSERT INTO operational_events VALUES (?,?)',event_rows())
         info['target']=ids[0]
@@ -89,7 +95,7 @@ def fixture(root,kind='operations',size=32,events=0,pending=1,revisions=3,commit
                 plan=dict(version=1,project=store.project.identity,base=base,candidates={cid:value},included=[cid],skipped=[],blocked=[])
                 db.execute('INSERT INTO plans VALUES (?,?,?)',(fingerprint(plan),canonical_json(plan),'PREPARED'))
         store.validate();prepared=store.prepare();assert prepared['ok'] is not committed
-        with sqlite3.connect(store.path) as db:db.execute('DELETE FROM plans WHERE id=?',(prepared['fingerprint'],))
+        with closing(sqlite3.connect(store.path)) as db, db:db.execute('DELETE FROM plans WHERE id=?',(prepared['fingerprint'],))
         raw=store.path.read_bytes();store.recover();store.path.write_bytes(raw)
     elif kind=='journal':
         journal=Journal(root)
@@ -210,7 +216,7 @@ def sample(root,name,count,profile=False,index_variant='none'):
         else:
             path=root/'.knowledge/store.sqlite3'
             sql='CREATE INDEX ix_queue_status_id ON queue(status,id)' if index_variant=='ordinary' else "CREATE INDEX ix_queue_pending ON queue(id) WHERE status='pending'"
-        with sqlite3.connect(path) as db:db.execute(sql)
+        with closing(sqlite3.connect(path)) as db, db:db.execute(sql)
     reset();fn=operation(root,name,info)
     samples=[];results=[]
     if not profile:

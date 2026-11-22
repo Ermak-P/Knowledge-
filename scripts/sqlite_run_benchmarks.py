@@ -27,7 +27,7 @@ WRITES={'prepare','binding-read','application-read','new','journal-writes','outb
 
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--baseline-python',type=Path,required=True);p.add_argument('--candidate-python',type=Path,required=True);p.add_argument('--work-root',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--only',nargs='*');a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--baseline-python',type=Path,required=True);p.add_argument('--candidate-python',type=Path,required=True);p.add_argument('--work-root',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--only',nargs='*');p.add_argument('--journal-index-profile',choices=['none','ordinary'],default='none');a=p.parse_args()
     a.work_root.mkdir(parents=True,exist_ok=True);a.output.mkdir(parents=True,exist_ok=True)
     driver=HERE/'sqlite_benchmark.py';rows=[]
     def command(py,args,target):
@@ -47,7 +47,7 @@ def main():
             parts=[count//2,count-count//2];values={'baseline':[],'candidate':[]};result_ids={'baseline':[],'candidate':[]};commands=[];last={}
             for block,n in enumerate(parts):
                 for label,py in [('baseline',a.baseline_python),('candidate',a.candidate_python)]:
-                    variant='ordinary' if label=='candidate' and kind=='journal' else 'none'
+                    variant=a.journal_index_profile if label=='candidate' and kind=='journal' else 'none'
                     result,cmd=command(py,['sample','--root',root,'--operation',operation,'--count',n,'--index-variant',variant],out/f'{operation}-{label}-{block}.json')
                     values[label]+=result['samples_seconds'];result_ids[label]+=result['logical_results'];commands.append(cmd);last[label]=result
             equivalent=set(result_ids['baseline'])==set(result_ids['candidate'])
@@ -61,5 +61,5 @@ def main():
             if not equivalent:raise RuntimeError('logical result mismatch: '+name+'/'+operation)
         profiled={'operations':'records','queue':'prepare','legacy':'duplicate','journal':'outbox'}[kind]
         for label,py in [('baseline',a.baseline_python),('candidate',a.candidate_python)]:
-            command(py,['profile','--root',root,'--operation',profiled,'--index-variant','ordinary' if label=='candidate' and kind=='journal' else 'none'],out/f'profile-{label}.json')
+            command(py,['profile','--root',root,'--operation',profiled,'--index-variant',a.journal_index_profile if label=='candidate' and kind=='journal' else 'none'],out/f'profile-{label}.json')
 if __name__=='__main__':main()
