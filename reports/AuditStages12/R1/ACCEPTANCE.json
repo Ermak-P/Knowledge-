@@ -1,0 +1,799 @@
+{
+  "schema": "audit-stages12-review-r1-acceptance-v1",
+  "reviewed_head": "7eb3c8089ddf4a7f6f1434a95d9e307f8e8e6c9b",
+  "source_commit": "60bb809fe9e586bcc7ae12a995210c49eefa71b9",
+  "source_identity": "390759b7ea7ffdb1043ad460cb11423bee31f4e2f51130bf4cc5b38b2f9fc413",
+  "verdict": "R1 CORRECTIONS INSTALLED VERIFIED / REAL HOST PENDING",
+  "qualification": {
+    "local": "PASS_PORTABLE",
+    "ci": {
+      "evidence_commit": "ab141e0b995e5ecf35086acdf732c3c711cfa5e7",
+      "code_commit": "60bb809fe9e586bcc7ae12a995210c49eefa71b9",
+      "source_identity": "390759b7ea7ffdb1043ad460cb11423bee31f4e2f51130bf4cc5b38b2f9fc413",
+      "platforms": {},
+      "artifact_code_executed": false
+    }
+  },
+  "tests": {
+    "tests": 343,
+    "passed": 332,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 11
+  },
+  "findings": {
+    "R1": {
+      "aud": [
+        "AUD-02"
+      ],
+      "tests": [
+        "test_audit_review_r1.WholeSource.test_review_and_unlisted_clauses_cannot_grant_through_public_ingress",
+        "test_audit_review_r1.WholeSource.test_historical_weak_grant_replay_revalidates_without_normalizer",
+        "test_audit_review_r1.WholeSource.test_positive_stopped_grant_and_ordinary_clarification_stay_usable",
+        "test_audit_review_r1.WholeSource.test_valid_template_grant_survives_resolved_host_and_cli_replay"
+      ],
+      "change": "Closed whole-message grant grammar and current-source replay; valid binding/template grants retained.",
+      "installed": "PASS",
+      "native": "PENDING",
+      "real_host": "NOT_RUN"
+    },
+    "R2": {
+      "aud": [
+        "AUD-02"
+      ],
+      "tests": [
+        "test_audit_review_r1.WholeSource.test_conditional_clear_keeps_denial_across_replay_restart_then_unconditional_clear",
+        "test_audit_review_r1.WholeSource.test_historical_conditional_clear_receipt_is_sanitized"
+      ],
+      "change": "Conditional clear is refused even for intent=none; historical receipt controls revalidated, later unconditional clear supported.",
+      "installed": "PASS",
+      "native": "PENDING",
+      "real_host": "NOT_RUN"
+    },
+    "R3": {
+      "aud": [
+        "AUD-05",
+        "AUD-09"
+      ],
+      "tests": [
+        "test_audit_review_r1.CurrentKnowledge.test_p4_optional_tool_does_not_reverse_initial_legacy_refusal_in_any_role",
+        "test_audit_review_r1.CurrentKnowledge.test_fresh_process_resume_projects_cached_receipt_and_old_history",
+        "test_audit_review_r1.CurrentKnowledge.test_fresh_p1_optional_tool_keeps_dependencies_and_diagnostics",
+        "test_audit_review_r1.CurrentKnowledge.test_task_v1_http_and_core_legacy_reads_remain_available"
+      ],
+      "change": "One P4 current-fact validation for automatic, broker, cached receipt and new-request history projection; core/task-v1 preserved.",
+      "installed": "PASS",
+      "native": "PENDING",
+      "real_host": "NOT_RUN"
+    }
+  },
+  "rows": [
+    {
+      "id": "S1-01",
+      "scenario": "Real permission refusal, no false retirement and restored coverage",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_stage1.EnumerationBoundaries.test_real_permission_refusal_never_retires_live_claim_and_recovers"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py",
+        "identity": "uid=1000; os.scandir genuinely raises PermissionError; chmod restored in finally"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "S1-02",
+      "scenario": "Enumeration/disappearance faults and durable chunk identity",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_stage1.EnumerationBoundaries.test_enumeration_fault_and_disappearance_are_durable_gaps"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "S1-03",
+      "scenario": "Execution and maintenance snapshots refuse incomplete scope",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_stage1.EnumerationBoundaries.test_real_permission_refusal_never_retires_live_claim_and_recovers"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "S1-04",
+      "scenario": "EN/RU public catalog, semantic, CLI and host authorization",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_stage1.CatalogAuthorization.test_public_catalog_ingress_cannot_bypass_deny_wins",
+          "test_audit_stage1.PublicAuthorizationMatrix.test_cli_catalog_semantic_and_host_share_the_authorization_boundary",
+          "test_audit_review_r1.WholeSource.test_review_and_unlisted_clauses_cannot_grant_through_public_ingress"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "S1-05",
+      "scenario": "Wrong schema-valid proposal, quotes/past/unknown limiter, resource and allowlist boundaries",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_stage1.PublicAuthorizationMatrix.test_cli_catalog_semantic_and_host_share_the_authorization_boundary",
+          "test_audit_review_r1.WholeSource.test_review_and_unlisted_clauses_cannot_grant_through_public_ingress",
+          "test_audit_review_r1.WholeSource.test_historical_weak_grant_replay_revalidates_without_normalizer"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "S1-06",
+      "scenario": "Positive stopped exactly one start, ready none, running never restart",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_stage1.PublicAuthorizationMatrix.test_positive_catalog_ready_and_stopped_contracts",
+          "test_audit_review_r1.WholeSource.test_positive_stopped_grant_and_ordinary_clarification_stay_usable",
+          "test_audit_review_r1.WholeSource.test_valid_template_grant_survives_resolved_host_and_cli_replay"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "S1-07",
+      "scenario": "Every transfer durable phase, fresh CLI replay and idempotence",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_stage1.TransferFaultMatrix.test_durable_phases_both_directions_and_active_unbound"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "S1-08",
+      "scenario": "Both scope directions, active/unbound and concurrent correction CAS",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_stage1.TransferFaultMatrix.test_concurrent_correction_blocks_transfer_without_overwrite",
+          "test_audit_stage1.TransferFaultMatrix.test_before_intent_is_not_an_authorization_and_unbound_target_is_supported"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "S2-01",
+      "scenario": "Unavailable/malformed normalizer safe chat and real installed Node hook",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_stage2.DegradedSessions.test_outage_chat_is_safe_and_preserves_current_controls",
+          "test_audit_stage2.DegradedSessions.test_installed_node_hook_accepts_degraded_chat_and_keeps_session_binding",
+          "test_audit_stage2.DegradedRecovery.test_fresh_process_recovery_preserves_format_and_binds_original_intent"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "S2-02",
+      "scenario": "No lost restriction/format/grant, broker effects blocked, read allowed",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_stage2.DegradedRecovery.test_pending_effects_block_but_reading_and_existing_grants_survive",
+          "test_audit_stage2.DegradedRecovery.test_fresh_process_recovery_preserves_format_and_binds_original_intent"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "S2-03",
+      "scenario": "Delayed result/replay does not clear newer denial; fresh process and hash integrity",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_stage2.DegradedRecovery.test_late_clear_and_replay_cannot_override_newer_denial",
+          "test_audit_stage2.DegradedRecovery.test_sensitive_operator_resolution_and_envelope_integrity",
+          "test_audit_review_r1.WholeSource.test_conditional_clear_keeps_denial_across_replay_restart_then_unconditional_clear",
+          "test_audit_review_r1.WholeSource.test_historical_conditional_clear_receipt_is_sanitized"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "S2-04",
+      "scenario": "Sensitive raw text omitted, uncertainty visible, operator hash-bound resolution",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_stage2.DegradedSessions.test_sensitive_outage_never_persists_raw_payload",
+          "test_audit_stage2.DegradedRecovery.test_sensitive_operator_resolution_and_envelope_integrity"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "S2-05",
+      "scenario": "Fresh-process installed behavior depends on automatic fact; disabled control fails independently",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_review_r1.CurrentKnowledge.test_p4_optional_tool_does_not_reverse_initial_legacy_refusal_in_any_role"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log",
+          "installed-trial/result.json",
+          "installed-trial/enabled-requests.json"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py",
+        "limitation": "Controlled HTTP provider; real SQLite/files/process checks and independent oracle; no live-model quality claim"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "S2-06",
+      "scenario": "Two items, repair attempts, diagnosis Planning, independent final Reviewer",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_stage2.P4Delivery.test_initial_and_fresh_roles_receive_architecture_without_tool_lookup",
+          "test_audit_stage2.P4Delivery.test_diagnosis_and_repair_attempts_receive_current_independent_slices",
+          "test_audit_review_r1.CurrentKnowledge.test_p4_optional_tool_does_not_reverse_initial_legacy_refusal_in_any_role",
+          "test_audit_review_r1.CurrentKnowledge.test_fresh_p1_optional_tool_keeps_dependencies_and_diagnostics"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log",
+          "installed-trial/result.json",
+          "installed-trial/enabled-requests.json"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "S2-07",
+      "scenario": "JSON reload/cache invalidation; fresh resume preserves saved request and single edit",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_stage2.DeliveryBoundaries.test_fresh_process_resume_preserves_delivery_and_saved_provider_response",
+          "test_audit_stage2.DeliveryBoundaries.test_durable_cache_reuse_and_evidence_store_config_invalidation",
+          "test_audit_review_r1.CurrentKnowledge.test_fresh_process_resume_projects_cached_receipt_and_old_history"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "S2-08",
+      "scenario": "Retrieval counter follows delivery/invalidation rather than ordinary tool rounds",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_stage2.DeliveryBoundaries.test_retrieval_count_follows_events_not_tool_rounds"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "S2-09",
+      "scenario": "Parent/child item cap and transitive depth/ref closure",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_stage2.RetrievalContracts.test_dependency_closure_and_item_budget_are_explicit",
+          "test_audit_stage2.GraphDiagnostics.test_stale_parent_and_transitive_depth_remain_explicit"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "S2-10",
+      "scenario": "Changed parent propagates, filtered conflict edge remains without stale statement",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_stage2.GraphDiagnostics.test_stale_parent_and_transitive_depth_remain_explicit",
+          "test_audit_stage2.GraphDiagnostics.test_filtered_conflict_partner_retains_edge_without_stale_statement"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "S2-11",
+      "scenario": "Absent/no-match/status/lifecycle/corrupt/missing/unverifiable/blocked distinguished",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_stage2.RetrievalContracts.test_absent_is_distinct_and_corruption_remains_error",
+          "test_audit_stage2.GraphDiagnostics.test_status_lifecycle_and_dependency_missing_are_not_no_match"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "S2-12",
+      "scenario": "Actual Unicode CLI/MCP bytes, compact TextContent only, whole provider cap",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_stage2.GraphDiagnostics.test_actual_cli_and_mcp_unicode_byte_caps",
+          "test_audit_stage2.DeliveryBoundaries.test_retrieval_count_follows_events_not_tool_rounds"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "C-01",
+      "scenario": "Standalone Knowledge without Harness/MCP reads unchanged nonempty baseline DB/history/receipts/pending plan",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_audit_review_r1.CurrentKnowledge.test_task_v1_http_and_core_legacy_reads_remain_available"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log",
+          "standalone/result.json",
+          "local/knowledge-only-smoke.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": [],
+        "scope": "Native core/legacy regressions, kit independence smoke and existing-store upgrades. The additional byte-identical standalone two-receipt DB probe ran on Linux."
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "C-02",
+      "scenario": "Old task/run formats, saved response, lost pointer and unknown outcomes preserved",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [
+          "test_persistent_reviewed.ReviewedInstructions.test_committed_intent_replay_recovers_missing_host_pending_pointer",
+          "test_audit_stage2.DeliveryBoundaries.test_fresh_process_resume_preserves_delivery_and_saved_provider_response",
+          "test_audit_review_r1.CurrentKnowledge.test_fresh_process_resume_projects_cached_receipt_and_old_history",
+          "test_audit_review_r1.CurrentKnowledge.test_task_v1_http_and_core_legacy_reads_remain_available"
+        ],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "C-03",
+      "scenario": "Existing encoding/grants/gates/cancel/automatic test/TRX regressions and qualification",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    },
+    {
+      "id": "C-04",
+      "scenario": "Transferred wheel kit installed outside checkout; installed trial/plugin/API; install/uninstall/reinstall",
+      "implemented": true,
+      "isolated_installed": {
+        "status": "PASS",
+        "profile": "Linux Python 3.12 installed source-bound kit",
+        "test_ids": [],
+        "evidence": [
+          "local/run.json",
+          "local/tests.json",
+          "local/regressions.log"
+        ],
+        "command": ".venv/bin/python -B scripts/verify_p4.py"
+      },
+      "native_windows": {
+        "status": "PENDING",
+        "evidence": []
+      },
+      "real_host": {
+        "status": "NOT_RUN",
+        "reason": "Real OpenCode/local-model acceptance remains separate; no compatible host executable in the available cloud profile",
+        "evidence": [
+          "../host-validation.json"
+        ]
+      }
+    }
+  ]
+}

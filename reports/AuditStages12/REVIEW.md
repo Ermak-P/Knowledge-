@@ -1,3 +1,5 @@
+> Historical packet: independent review R1 requested changes to this source. The current correction, qualification and acceptance matrix are in [R1/REVIEW.md](R1/REVIEW.md). Original results below are retained as historical evidence.
+
 # Этапы аудита 1–2: пакет для независимого ревью
 
 Вердикт: **этапы 1–2 готовы к независимому ревью; установленная поставка прошла
