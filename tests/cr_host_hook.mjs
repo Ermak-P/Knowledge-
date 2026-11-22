@@ -1,0 +1,22 @@
+import { pathToFileURL } from "node:url";
+import { readFile, access } from "node:fs/promises";
+import path from "node:path";
+const [asset, root, marker] = process.argv.slice(2);
+const plugin = (await import(pathToFileURL(asset))).default;
+const hook = await plugin({ directory: root });
+const output = { parts: [] };
+await hook["command.execute.before"]({ command: "update-by-CR", sessionID: "native-hook-fixture", arguments: `https://github.com/synthetic/project/issues/7 https://github.com/synthetic/project/pull/8 $(touch ${marker})` }, output);
+if (!output.parts[0].text.includes('"state":"awaiting_answers"') || !output.parts[0].text.includes('"missing":[]')) throw new Error("Argument handling failed");
+const message = { message: { role: "user", id: "real-user-1" }, parts: [{ type: "text", text: "User explanation in the foreground / Объяснение пользователя" }] };
+await hook["chat.message"]({ sessionID: "native-hook-fixture", messageID: "real-user-1" }, message);
+if (!message.parts.some(p => p.synthetic && p.text.includes('"turn":"real-user-1"'))) throw new Error("User turn not bound");
+if (!message.parts.filter(p => p.synthetic).every(p => p.messageID === "real-user-1")) throw new Error("Native message ownership is missing");
+const empty = { parts: [] };
+await hook["command.execute.before"]({ command: "update-by-CR", sessionID: "links-only", arguments: "" }, empty);
+const links = { message: { role: "user", id: "links-1" }, parts: [{ type: "text", text: "https://github.com/synthetic/project/issues/7 https://github.com/synthetic/project/pull/8" }] };
+await hook["chat.message"]({ sessionID: "links-only", messageID: "links-1" }, links);
+if (!links.parts.some(p => p.synthetic && p.text.includes('"missing":[]'))) throw new Error("Conversation links were lost");
+if (links.parts.some(p => p.synthetic && p.text.includes("Actual user-turn reference"))) throw new Error("Source ingress treated as an interview answer");
+let exists = true;try { await access(marker); } catch { exists = false; }
+if (exists) throw new Error("Arguments executed as shell code");
+console.log(JSON.stringify({ profile: "published-native-hook-contract", command: "update-by-CR", argument_transport: "JSON stdin, shell:false", real_user_turn_bound: true, no_argument_execution: true }));

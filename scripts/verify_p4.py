@@ -4,7 +4,7 @@ from pathlib import Path
 from build_p4 import VERSION
 ROOT=Path(__file__).resolve().parents[1]
 FOLDERS=('packages','scripts','tests','docs/P4','release/p4-kit','examples/p4','.github/workflows','inputs')
-EXTRA=('tasks/Knowledge-Harness-SQLite-Optimization-Codex-Task.md','tasks/Knowledge-Audit-Stages-1-2-Review-R1.md','tasks/Knowledge-Harness-Audit-Stages-1-2-Codex-Task.md','tasks/Knowledge-Harness-Persistent-Instructions-R2-Denial-Preservation-Codex-Task.md','tasks/Knowledge-Harness-Persistent-Instructions-R1-Fixes-Codex-Task.md','tasks/Knowledge-Harness-Persistent-Instructions-Codex-Task-1.md','tasks/Knowledge-Harness-Persistent-Instructions-Codex-Task.md','tasks/Harness-Automatic-Test-Discovery-Review-R1.md','tasks/Harness-Automatic-Test-Discovery-Codex-Task.md','requirements-dev.lock','.gitattributes','.gitignore','README.md','START-HERE.md','reports/P4/TASK.md','tasks/Knowledge-Harness-P4-Review-R1.md','tasks/Knowledge-Harness-P4-Review-R2.md','tasks/Knowledge-Harness-Integrated-Fixes-Codex-Task.md','reports/P4/runs/d68c9865460a4fcbab2bdbaaa466f072/distribution/knowledge-harness-0.4.0rc3.zip','reports/P3/runs/c72e6b4fcb41419cb5ff40a61a506466/distribution/knowledge-harness-0.3.0rc1.zip')
+EXTRA=('tasks/Knowledge-Update-by-CR-Codex-Task.md','tasks/Knowledge-Harness-SQLite-Optimization-Codex-Task.md','tasks/Knowledge-Audit-Stages-1-2-Review-R1.md','tasks/Knowledge-Harness-Audit-Stages-1-2-Codex-Task.md','tasks/Knowledge-Harness-Persistent-Instructions-R2-Denial-Preservation-Codex-Task.md','tasks/Knowledge-Harness-Persistent-Instructions-R1-Fixes-Codex-Task.md','tasks/Knowledge-Harness-Persistent-Instructions-Codex-Task-1.md','tasks/Knowledge-Harness-Persistent-Instructions-Codex-Task.md','tasks/Harness-Automatic-Test-Discovery-Review-R1.md','tasks/Harness-Automatic-Test-Discovery-Codex-Task.md','requirements-dev.lock','.gitattributes','.gitignore','README.md','START-HERE.md','reports/P4/TASK.md','tasks/Knowledge-Harness-P4-Review-R1.md','tasks/Knowledge-Harness-P4-Review-R2.md','tasks/Knowledge-Harness-Integrated-Fixes-Codex-Task.md','reports/P4/runs/d68c9865460a4fcbab2bdbaaa466f072/distribution/knowledge-harness-0.4.0rc3.zip','reports/P3/runs/c72e6b4fcb41419cb5ff40a61a506466/distribution/knowledge-harness-0.3.0rc1.zip')
 def source():
     paths=[p for folder in FOLDERS for p in (ROOT/folder).rglob('*')]+[ROOT/p for p in EXTRA]
     return {p.relative_to(ROOT).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(set(paths)) if p.is_file() and not any(x in p.parts for x in ('__pycache__','build','dist')) and not any(x.endswith('.egg-info') for x in p.parts)}
@@ -72,9 +72,11 @@ if __name__=='__main__':main()
             command('dotnet-application',[py,'-I','-X','utf8','-B',ROOT/'scripts/p4_application.py','--output',out/'application'],base)
             # Knowledge independence is exercised by this route, with no Harness/MCP install in its venv.
             independent=base/'knowledge-only'
+            command('update-by-cr-dialogue-replay',[py,'-I','-X','utf8','-B',ROOT/'scripts/update_cr_trial.py','--output',out/'update-by-cr'],base)
             command('audit-stages12-delivery',[py,'-I','-X','utf8','-B',ROOT/'scripts/audit_stages12_trial.py','--output',out/'audit-stages12-delivery'],base)
             command('knowledge-only-install',[sys.executable,transfer/'install.py','install','--env',independent,'--profile','knowledge'],base)
             command('knowledge-only-smoke',[py_at(independent),'-I','-c','import knowledge,importlib.util;assert knowledge.__version__=='+repr(VERSION)+';assert importlib.util.find_spec("harness") is None;assert importlib.util.find_spec("mcp") is None;print("Independent core works")'],base)
+            command('update-by-cr-knowledge-only',[py_at(independent),'-I','-X','utf8','-B',ROOT/'scripts/update_cr_independent.py','--output',out/'update-by-cr-independent'],base)
             if os.name=='nt':
                 command('native-launcher',[py,'-I','-X','utf8','-B',ROOT/'scripts/p4_native.py',kit,out/'native'],base)
                 state['platform'].update(json.loads((out/'native/result.json').read_text()))

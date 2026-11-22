@@ -161,6 +161,8 @@ class Store:
                 db.close()
 
     def _check_control(self, db):
+        from .cr_workflow import validate_workflows
+        validate_workflows(db,self.project.identity)
         from .operations import validated_view
         validated_view(db)
         from .transfers import PREFIX,validate as validate_transfer
@@ -447,10 +449,11 @@ class Store:
                 'receipts':[{'fingerprint':i,'plan':loads(p)} for i,p in db.execute('SELECT plan,payload FROM receipts ORDER BY plan')]}
 
     def export(self):
+        from .cr_workflow import export_workflows
         with self.connection() as db:
             return {'ok':True,'records':self._records(db),
                     'queue':[{'id':i,'payload':loads(p),'status':s,'binding':b} for i,p,s,b in db.execute('SELECT * FROM queue ORDER BY id')],
-                    'history':[loads(p) for p, in db.execute('SELECT payload FROM history ORDER BY sequence')],**self._export_extension(db)}
+                    'history':[loads(p) for p, in db.execute('SELECT payload FROM history ORDER BY sequence')],**self._export_extension(db),**export_workflows(self,db)}
 
     def lookup(self, kind, identifier):
         require(kind in GROUPS, 'unsupported-record-kind')

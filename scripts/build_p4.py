@@ -35,6 +35,9 @@ def main():
     shutil.copytree(ROOT/'examples/p4',kit/'examples',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__','*.pyc','bin','obj'))
     host=kit/'host';host.mkdir(exist_ok=True)
     shutil.copyfile(ROOT/'packages/knowledge/src/knowledge/host/opencode.mjs',host/'opencode.mjs')
+    shutil.copyfile(ROOT/'packages/knowledge/src/knowledge/host/cr_opencode.mjs',host/'cr_opencode.mjs')
+    commands=kit/'commands';commands.mkdir(exist_ok=True)
+    shutil.copyfile(ROOT/'packages/knowledge/src/knowledge/host/commands/update-by-CR.md',commands/'update-by-CR.md')
     for package in ('knowledge','harness'):
         license=next((p for p in (ROOT/'packages'/package).glob('*LICENSE*')),None)
         if license:shutil.copyfile(license,kit/(package+'-LICENSE'))
