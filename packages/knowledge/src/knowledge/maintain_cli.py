@@ -5,7 +5,7 @@ from .util import KnowledgeError,loads,read_text,canonical_json,emit_json
 
 def main():
     p=argparse.ArgumentParser(description='Approved Knowledge/Harness maintenance')
-    p.add_argument('command',choices=['backup-preview','upgrade-preview','restore-preview','apply','status','recover','doctor'])
+    p.add_argument('command',choices=['backup-preview','upgrade-preview','restore-preview','index-upgrade-preview','index-rollback-preview','apply','status','recover','doctor'])
     p.add_argument('--root',required=True);p.add_argument('--destination');p.add_argument('--archive');p.add_argument('--recovery');p.add_argument('--input',type=Path);p.add_argument('--approve')
     a=p.parse_args()
     try:

@@ -1,0 +1,32 @@
+{
+  "attempts": [
+    {
+      "status": "FAIL",
+      "command": [
+        "/tmp/sqlite-final-runtime/bin/python",
+        "-I",
+        "scripts/sqlite_index_lab.py",
+        "--root",
+        "/tmp/sqlite-ready-benchmarks/queue-10k-committed",
+        "--output",
+        "reports/SQLiteOptimization/indexes/queue-10k-committed.json"
+      ],
+      "reason": "DML diagnostic expects an ACKNOWLEDGED empty plan; rare fixture intentionally has COMMITTED instead. No product operation failed.",
+      "log": "rare-committed-dml-attempt-failed.log",
+      "sha256": "1c92e7803c63382c9a056d81b8e0d30dce453b80beb99c59b91b2b1d1006c75f"
+    },
+    {
+      "status": "PASS",
+      "command": [
+        "python3",
+        "reports/SQLiteOptimization/plan_index_reads.py",
+        "--root",
+        "/tmp/sqlite-ready-benchmarks/queue-10k-committed",
+        "--output",
+        "reports/SQLiteOptimization/indexes/plans-rare.json"
+      ],
+      "evidence": "plans-rare.json",
+      "canonical_rows_changed": false
+    }
+  ]
+}

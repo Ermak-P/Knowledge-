@@ -67,7 +67,9 @@ def local_path(project,relative,write=False):
 
 
 class Journal:
-    def __init__(self,root):
+    def __init__(self,root,*,index_outbox=False):
+        require(type(index_outbox) is bool,'invalid-index-profile')
+        self.index_outbox=index_outbox
         self.project=Project(root);self.base=self.project.root/'.harness';safe_tree(self.base)
         self.path=self.base/'runs.sqlite3'
         from knowledge.coordination import gate
@@ -87,6 +89,11 @@ class Journal:
             if not new:
                 tables={r[0] for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
                 require({'meta','runs','events','actions','outbox','cancels'}<=tables,'harness-state-incomplete-preserve-and-restore')
+                require(dict(db.execute('SELECT key,value FROM meta'))=={'version':'1','project':self.project.identity},'harness-state-version-or-project-mismatch')
+                if self.index_outbox:
+                    from knowledge.sqlite_indexes import check
+                    require(check(db),'explicit-index-maintenance-required')
+                return # Existing journals are validated, never migrated on reads.
             db.execute('CREATE TABLE IF NOT EXISTS meta(key TEXT PRIMARY KEY,value TEXT)')
             old=dict(db.execute('SELECT key,value FROM meta'))
             if old:require(old=={'version':'1','project':self.project.identity},'harness-state-version-or-project-mismatch')
@@ -98,6 +105,9 @@ class Journal:
             db.execute('CREATE TABLE IF NOT EXISTS actions(run TEXT,id TEXT,payload TEXT,PRIMARY KEY(run,id))')
             db.execute('CREATE TABLE IF NOT EXISTS outbox(id TEXT PRIMARY KEY,run TEXT,payload TEXT)')
             db.execute('CREATE TABLE IF NOT EXISTS cancels(run TEXT PRIMARY KEY,at REAL)')
+            if self.index_outbox:
+                from knowledge.sqlite_indexes import create
+                create(db)
     @contextmanager
     def db(self):
         from knowledge.coordination import gate

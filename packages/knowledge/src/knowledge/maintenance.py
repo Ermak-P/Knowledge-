@@ -151,15 +151,18 @@ def absent_destination(path,root):
     return path
 
 def preview(root,operation,destination=None,archive=None,recovery=None):
-    require(operation in ('backup','upgrade','restore'),'unsupported-maintenance-operation')
+    require(operation in ('backup','upgrade','restore','index-upgrade','index-rollback'),'unsupported-maintenance-operation')
     with frozen(root) as project:
         state,_=snapshot(project,operation=='restore')
         value=dict(version=1,operation=operation,project=project.identity,root=str(project.root),state=state,product=__version__)
-        if operation in ('backup','upgrade'):value['destination']=str(absent_destination(destination,project.root))
+        if operation in ('backup','upgrade','index-upgrade','index-rollback'):value['destination']=str(absent_destination(destination,project.root))
         else:
             manifest,_=read_backup(archive,project)
             value.update(archive=str(Path(archive).absolute()),archive_sha256=sha(Path(archive).read_bytes()),manifest=manifest,recovery=str(absent_destination(recovery,project.root)))
         if operation=='upgrade':value['transition']={'from':state['product_state'].get('product') if state['product_state'] else None,'to':__version__,'formats_unchanged':True}
+        if operation.startswith('index-'):
+            from . import sqlite_indexes
+            value['index_state']=sqlite_indexes.identity(project)
         return {'ok':True,'preview':value,'fingerprint':fingerprint(value),'quiescence':'execution lease, exclusive gate; ordinary writers/readers refused during apply','relocation':'root-bound state; package transfer and fresh-project initialization supported'}
 
 def create_backup(project,path,state,files):
@@ -229,11 +232,15 @@ def apply(root,value,approval):
     require(approval==fingerprint(value),'maintenance-approval-required')
     with frozen(root) as project:
         require(value['project']==project.identity and value['root']==str(project.root) and value['product']==__version__,'maintenance-project-or-version-mismatch')
-        op=value['operation'];require(op in ('backup','upgrade','restore'),'unsupported-maintenance-operation')
+        op=value['operation'];require(op in ('backup','upgrade','restore','index-upgrade','index-rollback'),'unsupported-maintenance-operation')
         state,files=snapshot(project,op=='restore')
         for path in (project.root/'.maintenance/transactions').glob('*/journal.json'):
             prior=loads(read_text(path))
             if prior.get('status')=='COMPLETED' and prior.get('preview')==value and prior.get('approval')==approval:
+                if op.startswith('index-'):
+                    from .sqlite_indexes import unchanged
+                    unchanged(project,value)
+                    return dict(ok=True,status='COMPLETED',result='already-completed',transaction=prior['id'])
                 expected=prior.get('desired_files',value['state']['files'])
                 require(state['files']==expected and state['source']==value['state']['source'],'stale-maintenance-preview')
                 return dict(ok=True,status='COMPLETED',result='already-completed',transaction=prior['id'])
@@ -241,7 +248,7 @@ def apply(root,value,approval):
         if op=='backup':return dict(ok=True,operation=op,backup=create_backup(project,value['destination'],state,files))
         txn=uuid.uuid4().hex;base=project.root/'.maintenance/transactions'/txn;base.mkdir(parents=True);safe_path(base)
         journal=dict(version=1,id=txn,operation=op,project=project.identity,status='PREPARED',preview=value,approval=approval)
-        if op=='upgrade':
+        if op in ('upgrade','index-upgrade','index-rollback'):
             journal['backup']=create_backup(project,value['destination'],state,files)
         else:
             require(sha(Path(value['archive']).read_bytes())==value['archive_sha256'],'backup-changed-after-preview')
@@ -263,6 +270,9 @@ def _finish(project,journal,base):
         safe_tree(Path(journal['saved']))
     require(value.get('product') in SUPPORTED_PRODUCTS,'unsupported-maintenance-journal-product')
     require(journal['version']==1 and journal['project']==project.identity and journal['approval']==fingerprint(value),'invalid-maintenance-journal')
+    if journal['operation'] in ('index-upgrade','index-rollback'):
+        from .sqlite_indexes import finish
+        return finish(project,journal,base)
     if journal['operation']=='restore':
         for folder in ('.knowledge','.harness'):
             staged=base/'staged'/folder;saved=Path(journal['saved'])/folder

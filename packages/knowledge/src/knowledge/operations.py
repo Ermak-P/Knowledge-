@@ -16,6 +16,7 @@ from .project import Project, safe_path, safe_tree
 from .store import Store, create_tables, normalized
 from .coordination import gate
 from .util import KnowledgeError, canonical_json, digest, loads, require
+from .sqlite_snapshot import view
 
 VERSION = '1'
 SCOPES = ('project', 'shared')
@@ -78,19 +79,8 @@ class OperationalStore(Store):
         if not self.path.exists():
             return {'state': 'absent', 'records': []}
         with self.connection() as db:
-            records=current(db)
-            signals={};bindings={}
-            if enabled(db):
-                for payload, in db.execute('SELECT payload FROM operational_events ORDER BY rowid'):
-                    result=loads(payload)['result']
-                    record=next((r for r in records if r['id']==result.get('id')),None)
-                    if record is None or record['revision']!=result.get('revision'):continue
-                    if 'binding_state' in result:
-                        old=bindings.get(result['id'])
-                        if old is None or result['binding_state'].get('sequence',0)>=old.get('sequence',0):bindings[result['id']]=result['binding_state']
-                    if 'application' in result:
-                        signals[result['id']]=result['application']
-            return {'state': 'available', 'records': records, 'signals':signals,'bindings':bindings}
+            data=validated_view(db)
+            return deepcopy({'state':'available','records':data['records'],'signals':data['signals'],'bindings':data['bindings']})
 
     def history(self, identifier):
         with self.connection() as db:
@@ -121,24 +111,44 @@ def validate_record(record):
 
 
 def current(db):
-    if not enabled(db): return []
+    return deepcopy(validated_view(db)['records'])
+
+
+def validated_view(db):
+    return view(db,'operational',lambda:_validated_view(db))
+
+
+def _validated_view(db):
+    result={'records':[],'by_id':{},'signals':{},'bindings':{}}
+    if not enabled(db):return result
+    histories={}
+    for identifier,revision,payload in db.execute('SELECT id,revision,payload FROM operational_history ORDER BY id,revision'):
+        histories.setdefault(identifier,[]).append((revision,payload))
     rows = []
     for identifier, revision, payload in db.execute('SELECT id,revision,payload FROM operational_current ORDER BY id'):
         value = loads(payload); validate_record(value)
         require(value['id'] == identifier and value['revision'] == revision, 'operational-identity-mismatch')
-        history = list(db.execute('SELECT revision,payload FROM operational_history WHERE id=? ORDER BY revision', (identifier,)))
+        history = histories.pop(identifier,[])
         require([r for r,p in history] == list(range(1,revision+1)) and history[-1][1] == payload, 'operational-history-mismatch')
-        for r,p in history:
+        for r,p in history[:-1]:
             old = loads(p);validate_record(old)
             require(old['id'] == identifier and old['revision'] == r, 'operational-history-mismatch')
         rows.append(value)
-    require(db.execute('SELECT count(DISTINCT id) FROM operational_history').fetchone()[0] == len(rows), 'orphan-operational-history')
-    for event_id,payload in db.execute('SELECT id,payload FROM operational_events'):
+    require(not histories, 'orphan-operational-history')
+    by_id={r['id']:r for r in rows}
+    for event_id,payload in db.execute('SELECT id,payload FROM operational_events ORDER BY rowid'):
         event=loads(payload)
         require(isinstance(event,dict) and isinstance(event.get('request'),str) and len(event['request'])==64 and isinstance(event.get('result'),dict),'corrupt-operational-event')
-        result=event['result']
-        require(any(r['id']==result.get('id') and r['revision']>=result.get('revision',0) for r in rows),'orphan-operational-event')
-    return rows
+        event_result=event['result'];identifier=event_result.get('id')
+        record=by_id.get(identifier) if isinstance(identifier,str) else None
+        require(record is not None and record['revision']>=event_result.get('revision',0),'orphan-operational-event')
+        if record['revision']!=event_result.get('revision'):continue
+        if 'binding_state' in event_result:
+            old=result['bindings'].get(record['id']);binding=event_result['binding_state']
+            if old is None or binding.get('sequence',0)>=old.get('sequence',0):result['bindings'][record['id']]=binding
+        if 'application' in event_result:result['signals'][record['id']]=event_result['application']
+    result.update(records=rows,by_id=by_id)
+    return result
 
 
 def validate_binding(trigger, behavior):
@@ -336,11 +346,9 @@ def binding_event(root,record,shared,state,reason=None,**observed):
     require(state in ('observed','attempted','verified','blocked'),'invalid-binding-state')
     store=OperationalStore(root,record['scope'],shared)
     with store.connection(True) as db:
-        require(any(r['id']==record['id'] and r['revision']==record['revision'] for r in current(db)),'instruction-revision-conflict')
-        previous={}
-        for payload, in db.execute('SELECT payload FROM operational_events ORDER BY rowid'):
-            result=loads(payload)['result'];value=result.get('binding_state')
-            if result.get('id')==record['id'] and result.get('revision')==record['revision'] and value and value.get('sequence',0)>=previous.get('sequence',0):previous=value
+        data=validated_view(db);stored=data['by_id'].get(record['id'])
+        require(stored and stored['revision']==record['revision'],'instruction-revision-conflict')
+        previous=deepcopy(data['bindings'].get(record['id']) or {})
         # Windows wall-clock ticks may coincide; time may also move backwards.
         # Order state by a revision-scoped counter allocated inside this write.
         value={**previous,**observed,'sequence':previous.get('sequence',0)+1,'at':time.time(),'state':state,'reason':reason}
