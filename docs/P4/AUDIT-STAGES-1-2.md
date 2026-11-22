@@ -159,3 +159,8 @@ A real host/model trial remains a separate acceptance step; use
 [PERSISTENT-INSTRUCTIONS-LIVE-HOST.md](PERSISTENT-INSTRUCTIONS-LIVE-HOST.md) and its
 installed driver with isolated owned fixtures. No user services or databases were
 used by these tests.
+
+Legacy P0 stores remain readable through the core and task-v1 contracts. Their
+confidence flag alone has no lifecycle revision/current freshness proof; P4
+withholds such text with `knowledge-lifecycle-upgrade-required` and a supported
+upgrade/review next step. It never upgrades or rewrites the old store implicitly.

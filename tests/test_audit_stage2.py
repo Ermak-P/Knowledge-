@@ -80,6 +80,22 @@ class DegradedSessions(unittest.TestCase):
             state=read_session(root,'sensitive');self.assertNotIn(text,canonical_json(state));self.assertTrue(state['pending'])
 
 class P4Delivery(unittest.TestCase):
+    def test_legacy_store_is_readable_but_unverified_text_is_not_delivered_as_current(self):
+        from p2_fixtures import final
+        bodies=[]
+        with tempfile.TemporaryDirectory() as tmp,http_provider(lambda body:bodies.append(body) or final()) as endpoint:
+            root=project(tmp);store=Store(root);store.init()
+            statement='ImprovedFeature requires an unverified historical threshold.'
+            store.submit(addition('legacy.feature',statement));approve(store)
+            before=hashlib.sha256(store.path.read_bytes()).hexdigest()
+            configure(root,configuration(endpoint),True);task=p4task();task.update(kind='read-only',writable=[],recipes=[])
+            result=start(root,task);self.assertTrue(result['ok'],result)
+            value=json.loads(bodies[0]['messages'][0]['content'])['knowledge']
+            self.assertFalse(value['available']);self.assertEqual(value['reason'],'knowledge-lifecycle-upgrade-required')
+            self.assertNotIn(statement,canonical_json(value));self.assertFalse(store.status()['p1'])
+            self.assertEqual(store.context('ImprovedFeature')['claims'][0]['statement'],statement)
+            self.assertEqual(hashlib.sha256(store.path.read_bytes()).hexdigest(),before)
+
     def test_initial_and_fresh_roles_receive_architecture_without_tool_lookup(self):
         with tempfile.TemporaryDirectory() as tmp,http_provider(Decisions()) as endpoint:
             root=project(tmp);configure(root,configuration(endpoint),True)
