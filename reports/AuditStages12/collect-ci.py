@@ -20,12 +20,15 @@ for platform in ('Linux','Windows'):
   path=PurePosixPath(c['log']);assert not path.is_absolute() and len(path.parts)==1
   data=read(prefix+'run/'+c['log']);assert hashlib.sha256(data).hexdigest()==c['sha256'];(target/c['log']).write_bytes(data)
  tests=json.loads(read(prefix+'run/tests.json')) if prefix+'run/tests.json' in paths else None
+ if run['status'] in ('PASS_NATIVE','PASS_PORTABLE'):
+  assert tests and tests['success'] and tests['failed']==tests['errors']==0
+  assert all(v=='PASS' for v in run['checks'].values()) and all(c['returncode']==0 for c in run['commands'])
  for name,value in [('receipt.json',receipt),('run.json',run),('tests.json',tests)]:
   (target/name).write_text(json.dumps(value,indent=2)+'\n')
  release_path=prefix+'run/distribution/knowledge-harness-0.5.0rc1/RELEASE.json';release=json.loads(read(release_path));local=json.loads((localdir/'RELEASE.json').read_text())
  assert release['source_identity']==expected['source_identity'] and release['files']==local['files']
  with zipfile.ZipFile(localdir/'knowledge-harness-0.5.0rc1.zip') as archive:
-  for name,wanted in local['files'].items():assert hashlib.sha256(archive.read('knowledge-harness-0.5.0rc1/'+name)).hexdigest()==wanted
+  for name,wanted in local['files'].items():assert hashlib.sha256(archive.read(name)).hexdigest()==wanted
  for name,wanted in release['files'].items():
   path=PurePosixPath(name);assert not path.is_absolute() and '..' not in path.parts
   assert hashlib.sha256(read(prefix+'run/distribution/knowledge-harness-0.5.0rc1/'+name)).hexdigest()==wanted
@@ -34,6 +37,6 @@ for platform in ('Linux','Windows'):
  for name in ('result.json','enabled-requests.json','control-requests.json','enabled-run.json','control-run.json'):
   if trialpath+name in paths:
    directory=target/'installed-trial';directory.mkdir(exist_ok=True);(directory/name).write_bytes(read(trialpath+name))
- platforms[platform]={'status':run['status'],'url':receipt['url'],'tests':tests['tests'] if tests else None,'passed':tests['passed'] if tests else None,'skipped':tests['skipped'] if tests else None,'commands':len(run['commands']),'source_and_all_log_hashes_validated':True,'delivered_kit_matches_all_ci_content_hashes':True}
+ platforms[platform]={'status':run['status'],'url':receipt['url'],'tests':tests['tests'] if tests else None,'passed':tests['passed'] if tests else None,'failed':tests['failed'] if tests else None,'errors':tests['errors'] if tests else None,'skipped':tests['skipped'] if tests else None,'commands':len(run['commands']),'source_and_all_log_hashes_validated':True,'delivered_kit_matches_all_ci_content_hashes':True}
 value={'evidence_commit':evidence,'code_commit':code,'source_identity':expected['source_identity'],'platforms':platforms,'artifact_code_executed':False}
 (out/'validation.json').write_text(json.dumps(value,indent=2)+'\n');print(json.dumps(value,indent=2))

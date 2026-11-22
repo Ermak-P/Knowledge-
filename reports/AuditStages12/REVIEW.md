@@ -1,7 +1,7 @@
 # Этапы аудита 1–2: пакет для независимого ревью
 
-Вердикт: **реализовано; установленная поставка проверена; настоящая модель/host
-ещё не приняты**. Выполнены AUD-01/02/03/04/05/07/09. Merge, deployment и rollout
+Вердикт: **этапы 1–2 готовы к независимому ревью; установленная поставка прошла
+portable/native qualification; проверка настоящего host/модели остаётся отдельным этапом**. Выполнены AUD-01/02/03/04/05/07/09. Merge, deployment и rollout
 не выполнялись. Все проекты/SQLite/shared roots и process fixtures принадлежат
 испытаниям; пользовательские базы, Docker daemon и контейнеры не затрагивались.
 
@@ -93,8 +93,8 @@ SHA-256 SQLite совпадают до/после чтения новой вер
 | Профиль | Итог | PASS / SKIP tests | Команд |
 |---|---|---|---|
 | Local Linux | PASS_PORTABLE | 322 / 11 | 23 |
-| CI Linux | NOT RETAINED | — / — | — |
-| Native Windows | NOT RETAINED | — / — | — |
+| CI Linux | PASS_PORTABLE | 322 / 11 | 23 |
+| Native Windows | PASS_NATIVE | 333 / 0 | 24 |
 
 Локально всего 333 tests: 322 PASS, 0 FAIL,
 0 ERROR, 11 native-only SKIP. Ни один прежний тест не
