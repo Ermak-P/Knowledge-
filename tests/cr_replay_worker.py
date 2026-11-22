@@ -22,5 +22,7 @@ def main():
             parameters[key]=number
         preserve.extend(re.findall(r'Preserve / Сохранить: ([^.]+)',statement))
         reasons.extend(re.findall(r'Reason / Причина: ([^.]+)',statement))
-    print(json.dumps(dict(profile='controlled-fresh-planner',input_task=task,retrieved=context,plan=dict(parameters=parameters,preserve=preserve,reasons=reasons)),ensure_ascii=False))
+    # ASCII JSON transport survives native Windows console/pipe code pages;
+    # json.loads restores the original Unicode task and retrieved statements.
+    print(json.dumps(dict(profile='controlled-fresh-planner',input_task=task,retrieved=context,plan=dict(parameters=parameters,preserve=preserve,reasons=reasons))))
 if __name__=='__main__':main()
