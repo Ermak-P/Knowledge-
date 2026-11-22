@@ -5,7 +5,7 @@ import re
 from . import legacy_validator as kb
 from .util import canonical_json, digest, canonical_source
 
-VERSION = 'context-engine-v1'
+VERSION = 'context-engine-v2'
 CONFIRMED = 'CONFIRMED'
 DEFAULT_MAX_TOKENS = 2000
 DEFAULT_MAX_ITEMS = 10
@@ -245,6 +245,7 @@ class ContextEngine:
             doc['reasons'] = reasons
             candidates.append((round(sum(breakdown.values()), 6), claim['id'], doc))
         candidates.sort(key=lambda item: (-item[0], item[1]))
+        self.candidate_ids=frozenset(item[1] for item in candidates)
 
         fingerprint = 'sha256:' + digest({
             'claims': sorted(claims, key=canonical_json),
@@ -297,6 +298,7 @@ class ContextEngine:
             entry = {'id': claim['id'], 'status': claim['status'],
                      'confirmed': claim['status'] == CONFIRMED, 'type': claim['type'],
                      'statement': claim['statement'], 'last_verified': claim['last_verified'],
+                     'depends_on':list(claim['depends_on']), 'revision':claim.get('_p1',{}).get('revision'),
                      'provenance': claim['provenance'], 'evidence_ids': claim['evidence'], 'conflicts_with': claim['conflicts_with']}
             if '_p1' in claim:entry['current']=claim['_p1']
             if not compact:

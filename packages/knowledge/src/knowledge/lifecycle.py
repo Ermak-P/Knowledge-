@@ -171,25 +171,31 @@ def history(store,identifier):
         return {'ok':True,'id':identifier,'revisions':[loads(p) for p, in db.execute('SELECT payload FROM revisions WHERE id=? ORDER BY revision',(identifier,))]}
 
 
-def active(store,db,records):
+def active(store,db,records,diagnostics=False):
     if not enabled(db):return records
     states=latest(db)
     from .discovery import freshness,analysis_scope,DISCOVERY_METHODS
-    # Only syntax-discovered evidence needs global ambiguity analysis. Reviewed
-    # and migrated evidence is validated directly against its supporting file;
-    # unrelated repository contents cannot strengthen or invalidate that proof.
     evidence={e['id']:e for e in records['evidence']}
     needs_scope=any(evidence[i].get('provenance',{}).get('method') in DISCOVERY_METHODS
-                    for c in records['claims'] if states[c['id']]['lifecycle']=='active'
-                    for i in c['evidence'] if i in evidence)
+        for c in records['claims'] if states[c['id']]['lifecycle']=='active' for i in c['evidence'] if i in evidence)
     scope=analysis_scope(store.project.root) if needs_scope else None
-    allowed={c['id'] for c in records['claims'] if states[c['id']]['lifecycle']=='active' and freshness(store.project.root,c,records,scope)['trusted']}
+    checks={c['id']:freshness(store.project.root,c,records,scope) for c in records['claims'] if states[c['id']]['lifecycle']=='active'}
+    allowed={i for i,check in checks.items() if check['trusted']}
     while True:
         filtered={c['id'] for c in records['claims'] if c['id'] in allowed and all(d in allowed for d in c['depends_on'])}
         if filtered==allowed:break
         allowed=filtered
-    return dict(claims=[dict(c,conflicts_with=[i for i in c['conflicts_with'] if i in allowed],_p1={'lifecycle':'active','revision':states[c['id']]['revision'],'freshness':freshness(store.project.root,c,records,scope)}) for c in records['claims'] if c['id'] in allowed],evidence=records['evidence'],
-                relationships=[r for r in records['relationships'] if states[r['id']]['lifecycle']=='active' and r['from'] in allowed and r['to'] in allowed])
+    result=dict(claims=[dict(c,_p1={'lifecycle':'active','revision':states[c['id']]['revision'],'freshness':checks[c['id']]}) for c in records['claims'] if c['id'] in allowed],
+        evidence=records['evidence'],relationships=[r for r in records['relationships'] if states[r['id']]['lifecycle']=='active' and r['from'] in allowed and r['to'] in allowed])
+    if diagnostics:
+        result['_excluded']=[]
+        for c in records['claims']:
+            if c['id'] in allowed:continue
+            state=states[c['id']];check=checks.get(c['id'])
+            reason='lifecycle-'+state['lifecycle'] if state['lifecycle']!='active' else 'dependency-filtered' if check and check['trusted'] else 'evidence-filtered'
+            if check and 'not-analyzed' in check.get('evidence',{}).values():reason='blocked-source-scope'
+            result['_excluded'].append({'claim':c,'revision':state['revision'],'lifecycle':state['lifecycle'],'reason':reason,'freshness':check})
+    return result
 
 
 def validate_model(records,states):

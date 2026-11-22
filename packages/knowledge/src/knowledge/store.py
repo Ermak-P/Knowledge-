@@ -456,32 +456,8 @@ class Store:
         return {'ok':True,'result':'found' if item else 'no-match','record':item}
 
     def context(self, task, max_bytes=16000, max_items=10, include_unconfirmed=False):
-        require(isinstance(task,str) and bool(task.strip()) and len(task)<=10000, 'invalid-query')
-        require(type(max_bytes) is int and 256 <= max_bytes <= 1000000, 'invalid-byte-budget')
-        require(type(max_items) is int and 1<=max_items<=100, 'invalid-item-limit')
-        require(type(include_unconfirmed) is bool, 'invalid-status-policy')
-        with self.connection() as db:
-            records = life.active(self,db,self._records(db))
-        result = ContextEngine().assemble(records,task,max_tokens=max_bytes//4,
-                                           max_items=max_items,include_unconfirmed=include_unconfirmed,compact=True)
-        # Enforce actual serialized UTF-8 bytes, including the final diagnostics.
-        # Refresh counts after trimming; never report a removed claim as returned.
-        while True:
-            for _ in range(3):
-                result['budget']['estimated_tokens']=max(1,len(canonical_json(result).encode())//4)
-            if len(canonical_json(result).encode())<=max_bytes:
-                return result
-            if not result['claims']:
-                return {'ok':True,'result':'budget-too-small','claims':[],'evidence':[],'conflicts':[]}
-            result['claims'].pop()
-            ids = {e for c in result['claims'] for e in c['evidence_ids']}
-            result['evidence'] = [e for e in result['evidence'] if e['id'] in ids]
-            selected = {c['id'] for c in result['claims']}
-            result['conflicts'] = [c for c in result['conflicts'] if c['claim_id'] in selected]
-            result['truncation'].update(returned=len(result['claims']),
-                dropped=result['truncation']['candidates']-len(result['claims']),reason='byte-budget')
-            if not result['claims']:
-                result['result']='budget-exhausted'
+        from .context_delivery import context
+        return context(self,task,max_bytes,max_items,include_unconfirmed)
 
 
 

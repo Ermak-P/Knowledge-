@@ -47,15 +47,8 @@ def ingest(root,text,message_id,policy,reply_to=None):
     try:
         result,metadata=normalize(text,policy.get('bindings',[]),policy['normalizer'],previous,policy.get('procedure_templates',[]),environment)
     except KnowledgeError as error:
-        if not op.TEACHING.search(text):raise
-        candidates=[i for i,b in enumerate(policy.get('bindings',[])) if any(re.search(r'(?<!\w)'+re.escape(alias)+r'(?!\w)',text,re.I) for alias in b['aliases'])]
-        result={'intent':'teach','scope':previous['scope'] if previous else 'shared' if op.SHARED.search(text) else 'project',
-            'scope_explicit':False,'binding':candidates[0] if len(candidates)==1 else None,'summary':(previous or {}).get('normalized') or text,
-            'applicability':{},'authorize_recovery':bool(op.ALLOW.search(text)),'revoke_recovery':False,'parameters':{},'parameter_quotes':{},
-            'unsupported':[error.code],'format_changes':[],
-            'question':'Намерение сохранено без исполнения. Нужна работающая локальная нормализация или явная operator-привязка.',
-            'current_start':'unchanged'}
-        metadata={'method':'local-model','state':'unavailable','error':error.code}
+        from .ingress_failure import degraded
+        return degraded(root,text,message_id,policy,previous,error)
     from .startup_authorization import restriction as current_restriction,startup
     result['current_start']=current_restriction(text,result['current_start'])
     restriction={'deny':'no-service-start','clear-denial':'clear-service-start-denial','unchanged':None}[result['current_start']]

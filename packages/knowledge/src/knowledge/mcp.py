@@ -30,13 +30,13 @@ def create_server(root,shared_root=None):
         value=call(store.context,task,max_bytes,max_items,include_unconfirmed)
         # Text only: no duplicate structuredContent payload. JSON-RPC envelope is
         # outside the application budget; this exact UTF-8 text is inside it.
-        return CallToolResult(content=[TextContent(type='text',text=canonical_json(value))])
+        return bounded(value,max_bytes)
 
     def bounded(value,max_bytes):
         if type(max_bytes) is not int or not 256<=max_bytes<=1000000:
             value={'ok':False,'error':'invalid-byte-budget'}
         elif len(canonical_json(value).encode())>max_bytes:
-            value={'ok':True,'result':'budget-too-small','records':[]}
+            value={'ok':False,'error':value.get('error','retrieval-error'),'details_truncated':True} if value.get('ok') is False else {'ok':True,'result':'budget-too-small','records':[],'partial':True}
         return CallToolResult(content=[TextContent(type='text',text=canonical_json(value))])
 
     @server.tool()

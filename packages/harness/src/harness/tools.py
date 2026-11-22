@@ -96,6 +96,9 @@ class Broker:
             self.j.action(self.r['id'],action_id,previous)
         rt.fault('tool-intent')
         try:
+            if name in ('patch','recipe') and self.r.get('host_session'):
+                from .host_ingress import guard
+                guard(self.j.project.root,self.r['host_session'],name)
             if name in ('checkpoint','continuation'):
                 from .p4 import memory_tool
                 result=memory_tool(self,name,args)
@@ -293,5 +296,7 @@ class Broker:
 
 def knowledge(root,task,limit):
     from knowledge.store import Store
-    try:return {'ok':True,'available':True,'context':Store(root).context(task,max_bytes=max(256,limit-200))}
+    try:
+        value=Store(root).context(task,max_bytes=max(256,limit-200))
+        return {'ok':True,'available':value.get('result')!='store-absent','reason':'knowledge-absent' if value.get('result')=='store-absent' else None,'context':value}
     except KnowledgeError as e:return {'ok':False,'available':False,'reason':e.code}

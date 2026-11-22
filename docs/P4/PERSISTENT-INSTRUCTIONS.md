@@ -410,3 +410,5 @@ wheels по обычному установочному процессу. Не �
 сохраняются для повторной установки. Поддерживаемые backups копируют всю project
 SQLite; shared базу резервируйте отдельно под её maintenance gate/SQLite backup,
 не копированием открытого файла. Никакой bulk migration при установке не выполняется.
+
+Current audit-stage contracts: [AUDIT-STAGES-1-2.md](AUDIT-STAGES-1-2.md) covers source gaps, transfer/degraded recovery, bounded graph diagnostics and automatic P4 delivery.

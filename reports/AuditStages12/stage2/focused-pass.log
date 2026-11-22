@@ -1,0 +1,50 @@
+test_fresh_process_recovery_preserves_format_and_binds_original_intent (test_audit_stage2.DegradedRecovery.test_fresh_process_recovery_preserves_format_and_binds_original_intent) ... ok
+test_late_clear_and_replay_cannot_override_newer_denial (test_audit_stage2.DegradedRecovery.test_late_clear_and_replay_cannot_override_newer_denial) ... ok
+test_pending_effects_block_but_reading_and_existing_grants_survive (test_audit_stage2.DegradedRecovery.test_pending_effects_block_but_reading_and_existing_grants_survive) ... ok
+test_sensitive_operator_resolution_and_envelope_integrity (test_audit_stage2.DegradedRecovery.test_sensitive_operator_resolution_and_envelope_integrity) ... ok
+test_installed_node_hook_accepts_degraded_chat_and_keeps_session_binding (test_audit_stage2.DegradedSessions.test_installed_node_hook_accepts_degraded_chat_and_keeps_session_binding) ... FAIL
+test_outage_chat_is_safe_and_preserves_current_controls (test_audit_stage2.DegradedSessions.test_outage_chat_is_safe_and_preserves_current_controls) ... ok
+test_sensitive_outage_never_persists_raw_payload (test_audit_stage2.DegradedSessions.test_sensitive_outage_never_persists_raw_payload) ... ok
+test_durable_cache_reuse_and_evidence_store_config_invalidation (test_audit_stage2.DeliveryBoundaries.test_durable_cache_reuse_and_evidence_store_config_invalidation) ... ok
+test_fresh_process_resume_preserves_delivery_and_saved_provider_response (test_audit_stage2.DeliveryBoundaries.test_fresh_process_resume_preserves_delivery_and_saved_provider_response) ... ok
+test_retrieval_count_follows_events_not_tool_rounds (test_audit_stage2.DeliveryBoundaries.test_retrieval_count_follows_events_not_tool_rounds) ... ok
+test_actual_cli_and_mcp_unicode_byte_caps (test_audit_stage2.GraphDiagnostics.test_actual_cli_and_mcp_unicode_byte_caps) ... ok
+test_stale_parent_and_transitive_depth_remain_explicit (test_audit_stage2.GraphDiagnostics.test_stale_parent_and_transitive_depth_remain_explicit) ... ok
+test_status_lifecycle_and_dependency_missing_are_not_no_match (test_audit_stage2.GraphDiagnostics.test_status_lifecycle_and_dependency_missing_are_not_no_match) ... ok
+test_initial_and_fresh_roles_receive_architecture_without_tool_lookup (test_audit_stage2.P4Delivery.test_initial_and_fresh_roles_receive_architecture_without_tool_lookup) ... ok
+test_absent_is_distinct_and_corruption_remains_error (test_audit_stage2.RetrievalContracts.test_absent_is_distinct_and_corruption_remains_error) ... ok
+test_dependency_closure_and_item_budget_are_explicit (test_audit_stage2.RetrievalContracts.test_dependency_closure_and_item_budget_are_explicit) ... ok
+test_filtered_facts_are_explained_without_stale_statements (test_audit_stage2.RetrievalContracts.test_filtered_facts_are_explained_without_stale_statements) ... ok
+
+======================================================================
+FAIL: test_installed_node_hook_accepts_degraded_chat_and_keeps_session_binding (test_audit_stage2.DegradedSessions.test_installed_node_hook_accepts_degraded_chat_and_keeps_session_binding)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/tests/test_audit_stage2.py", line 63, in test_installed_node_hook_accepts_degraded_chat_and_keeps_session_binding
+    self.assertEqual(child.returncode,0,child.stderr);self.assertTrue(json.loads(child.stdout)['ok'])
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok(output.parts.some(p => p.synthetic && /unavailable|normaliz|degraded/i.test(p.text)))
+
+    at file:///workspace/Knowledge-/tests/audit_degraded_hook.mjs:9:8
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.22.1
+
+
+----------------------------------------------------------------------
+Ran 17 tests in 6.764s
+
+FAILED (failures=1)
