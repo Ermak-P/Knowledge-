@@ -1,5 +1,6 @@
 """Public SQLite integrity, snapshot lifetime and physical-index maintenance."""
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import closing
 from copy import deepcopy
 import hashlib
 import json
@@ -31,7 +32,7 @@ class SQLiteOptimization(unittest.TestCase):
         return m.preview(self.root,operation,Path(self.tmp.name)/(suffix+'.zip'))
     def apply(self,p):return m.apply(self.root,p['preview'],p['fingerprint'])
     def mutate(self,sql,args=()):
-        with sqlite3.connect(self.store.path) as db:db.execute(sql,args)
+        with closing(sqlite3.connect(self.store.path)) as db, db:db.execute(sql,args)
     def lookup(self):return op.lookup(self.root,{'tool':'patch','name':'Fixture.cs'},{},shared=self.shared)
 
     def test_snapshot_bulk_audit_once_and_detached_public_results(self):
@@ -69,7 +70,7 @@ class SQLiteOptimization(unittest.TestCase):
             self.assertEqual(op.current(db)[0]['status'],'active')
 
     def test_plain_connections_never_reuse_a_view(self):
-        with sqlite3.connect(self.store.path) as db:
+        with closing(sqlite3.connect(self.store.path)) as db, db:
             op.current(db);db.execute('UPDATE operational_current SET payload=?',('{}',))
             with self.assertRaises(KnowledgeError):op.current(db)
             db.rollback()
@@ -122,7 +123,7 @@ class SQLiteOptimization(unittest.TestCase):
         def write(i):return op.binding_event(self.root,self.record,self.shared,'verified')['sequence']
         with ThreadPoolExecutor(3) as pool:values=list(pool.map(write,range(3)))
         self.assertEqual(sorted(values),[1,2,3])
-        with sqlite3.connect(self.store.path) as db:
+        with closing(sqlite3.connect(self.store.path)) as db, db:
             db.execute('BEGIN IMMEDIATE')
             with self.assertRaisesRegex(KnowledgeError,'store-busy-retry'):write(4)
 
@@ -145,7 +146,7 @@ class SQLiteOptimization(unittest.TestCase):
         with store.connection() as db:item=json.loads(db.execute("SELECT payload FROM queue WHERE id='legacy-pending'").fetchone()[0])
         result=store.submit(item);self.assertEqual(result['candidate'],'legacy-pending');self.assertEqual(result['result'],'duplicate')
         first=addition('new','New fixture');store.submit(first);self.assertEqual(store.submit(first)['result'],'duplicate')
-        with sqlite3.connect(store.path) as db:db.execute('UPDATE queue SET payload=? WHERE id=?',(canonical_json(addition('wrong','Wrong payload')),digest(first)))
+        with closing(sqlite3.connect(store.path)) as db, db:db.execute('UPDATE queue SET payload=? WHERE id=?',(canonical_json(addition('wrong','Wrong payload')),digest(first)))
         with self.assertRaises(KnowledgeError):store.submit(first)
 
     def test_new_journal_index_and_existing_reads_do_not_migrate(self):
@@ -206,7 +207,7 @@ class SQLiteOptimization(unittest.TestCase):
         journal=Journal(self.root)
         # An ordinary predecessor writer needs no knowledge of this physical
         # index; SQLite maintains it transactionally on inserts/updates.
-        with sqlite3.connect(journal.path) as db:
+        with closing(sqlite3.connect(journal.path)) as db, db:
             db.execute('INSERT INTO outbox VALUES (?,?,?)',('old','run','{"state":"pending"}'))
             db.execute('UPDATE outbox SET run=? WHERE id=?',('other','old'))
         self.assertEqual(journal.outbox('run'),{});self.assertEqual(journal.outbox('other')['old']['state'],'pending')
