@@ -1,0 +1,413 @@
+{
+  "dataset": {
+    "version": 1,
+    "root": "/tmp/sqlite-ready-benchmarks/queue-10k-1",
+    "kind": "queue",
+    "size": 10000,
+    "events": 0,
+    "pending": 1,
+    "revisions": 3,
+    "shared": "/tmp/sqlite-ready-benchmarks/queue-10k-1-shared-absent",
+    "committed": false,
+    "duplicate": {
+      "version": 2,
+      "operation": "batch",
+      "operations": [
+        {
+          "action": "add",
+          "kind": "evidence",
+          "id": "fixture.evidence.0",
+          "expected": 0,
+          "payload": {
+            "id": "fixture.evidence.0",
+            "type": "direct-technical",
+            "status": "active",
+            "source": "Fixture.cs",
+            "provenance": {
+              "actor": "synthetic-benchmark",
+              "method": "fixture"
+            },
+            "captured_at": "2026-11-22T00:00:00Z",
+            "location": "Fixture.cs#L1",
+            "description": "Synthetic fixture declaration.",
+            "substantiates": []
+          },
+          "successor": null
+        }
+      ],
+      "reason": "fixture-0",
+      "source": null
+    },
+    "new": {
+      "version": 2,
+      "operation": "batch",
+      "operations": [
+        {
+          "action": "add",
+          "kind": "evidence",
+          "id": "fixture.evidence.10000",
+          "expected": 0,
+          "payload": {
+            "id": "fixture.evidence.10000",
+            "type": "direct-technical",
+            "status": "active",
+            "source": "Fixture.cs",
+            "provenance": {
+              "actor": "synthetic-benchmark",
+              "method": "fixture"
+            },
+            "captured_at": "2026-11-22T00:00:00Z",
+            "location": "Fixture.cs#L1",
+            "description": "Synthetic fixture declaration.",
+            "substantiates": []
+          },
+          "successor": null
+        }
+      ],
+      "reason": "fixture-10000",
+      "source": null
+    },
+    "databases": {
+      ".knowledge/store.sqlite3": {
+        "history": "e30fbf0ad08d33a054535b23793c044214fe19bd1af0d9a55a1b2bf83cad815a",
+        "metadata": "ddc612bccef07e33c65686c229f1ab7e2ebcbd4d6830ecc9021e4fb90bebdb49",
+        "plans": "78ccfc3cbfcb0dcfa5568a2eb0cff55e5be9a1c2bb7d9247e104cc4517b70977",
+        "queue": "6601ee538b480910d2a2e9198536ee50a12f2adcb6bdaca176adeac6353716f3",
+        "receipts": "d2456b0c2d36afc256ee9cd9f6ae37f5cfb9665c0193579b03af6395c1ffb905",
+        "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "snapshot_sha256": {
+      ".knowledge/store.sqlite3": "3bc37364958df1dc89b68577b5e8f321c6d5d705b852487edf7193876bf6343f"
+    }
+  },
+  "inventory": {
+    ".knowledge/store.sqlite3": {
+      "baseline": {
+        "sqlite": "3.53.1",
+        "page_size": 4096,
+        "page_count": 1936,
+        "freelist_count": 15,
+        "journal_mode": "delete",
+        "synchronous": 2,
+        "schema": [
+          [
+            "index",
+            "sqlite_autoindex_metadata_1",
+            "metadata",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_plans_1",
+            "plans",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_queue_1",
+            "queue",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_receipts_1",
+            "receipts",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_records_1",
+            "records",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_revisions_1",
+            "revisions",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_scans_1",
+            "scans",
+            null
+          ],
+          [
+            "table",
+            "history",
+            "history",
+            "CREATE TABLE history(sequence INTEGER PRIMARY KEY, payload TEXT NOT NULL)"
+          ],
+          [
+            "table",
+            "metadata",
+            "metadata",
+            "CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL)"
+          ],
+          [
+            "table",
+            "plans",
+            "plans",
+            "CREATE TABLE plans(id TEXT PRIMARY KEY, payload TEXT NOT NULL, status TEXT NOT NULL)"
+          ],
+          [
+            "table",
+            "queue",
+            "queue",
+            "CREATE TABLE queue(id TEXT PRIMARY KEY, payload TEXT NOT NULL, status TEXT NOT NULL, binding TEXT)"
+          ],
+          [
+            "table",
+            "receipts",
+            "receipts",
+            "CREATE TABLE receipts(plan TEXT PRIMARY KEY,payload TEXT NOT NULL)"
+          ],
+          [
+            "table",
+            "records",
+            "records",
+            "CREATE TABLE records(id TEXT PRIMARY KEY, kind TEXT NOT NULL, payload TEXT NOT NULL)"
+          ],
+          [
+            "table",
+            "reviews",
+            "reviews",
+            "CREATE TABLE reviews(sequence INTEGER PRIMARY KEY,payload TEXT NOT NULL)"
+          ],
+          [
+            "table",
+            "revisions",
+            "revisions",
+            "CREATE TABLE revisions(id TEXT, revision INTEGER, payload TEXT NOT NULL, PRIMARY KEY(id,revision))"
+          ],
+          [
+            "table",
+            "scans",
+            "scans",
+            "CREATE TABLE scans(id TEXT PRIMARY KEY,payload TEXT NOT NULL)"
+          ]
+        ],
+        "indexes": {
+          "history": [],
+          "metadata": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_metadata_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "key",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "plans": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_plans_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "id",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "queue": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_queue_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "id",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "receipts": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_receipts_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "plan",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "records": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_records_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "id",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "reviews": [],
+          "revisions": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_revisions_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "id",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  1,
+                  "revision",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  2,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "scans": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_scans_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "id",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  "policy": "raw SQL diagnostics; copied snapshots retain original identity; no product effects"
+}

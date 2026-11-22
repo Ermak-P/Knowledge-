@@ -1,0 +1,3835 @@
+{
+  "driver_sha256": "12218a7d82f4ef1aebb4f0b3ca9bb5185f6c16da9c38c75934c545260c77cb86",
+  "common_driver_sha256": "3be67aa55e604469cb58eaceaaa5c4339317d06f3951c805d8ea53cbe7536d0b",
+  "fixture_source_sha256": "1313be10fd4e67d223fc82211cfc6c1e2b3b2d98d5312276531eaf0b0ee2c513",
+  "index_profile": "ordinary",
+  "results": [
+    {
+      "dataset": "journal-1k",
+      "operation": "outbox",
+      "count_each": 20,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "outbox",
+            "--count",
+            "10",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/outbox-baseline-0.json"
+          ],
+          "seconds": 0.1345372200012207
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "outbox",
+            "--count",
+            "10",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/outbox-candidate-0.json"
+          ],
+          "seconds": 0.15286469459533691
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "outbox",
+            "--count",
+            "10",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/outbox-baseline-1.json"
+          ],
+          "seconds": 0.17533183097839355
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "outbox",
+            "--count",
+            "10",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/outbox-candidate-1.json"
+          ],
+          "seconds": 0.1591336727142334
+        }
+      ],
+      "baseline": {
+        "median": 0.0008314950027852319,
+        "p95": 0.0010055070015368983,
+        "samples_seconds": [
+          0.0009405489981872961,
+          0.0010802710021380335,
+          0.0008300430054077879,
+          0.0008198569994419813,
+          0.0008537679968867451,
+          0.000884455002960749,
+          0.0007825009961379692,
+          0.0008079190010903403,
+          0.0008759720076341182,
+          0.0008801280055195093,
+          0.0010055070015368983,
+          0.0008401480008615181,
+          0.0008807690028334036,
+          0.000832947000162676,
+          0.0007814390119165182,
+          0.000783531999331899,
+          0.0007411289989249781,
+          0.0007605179998790845,
+          0.0007942189986351877,
+          0.0007737280102446675
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "d78ab89c711dce33d01141fed41b7ef1574d24e69275b6ca1872768c228e5c33",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 1769472,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "5c9d9dba241ed8aaa182391db29fc6d94d02cbd2d4fd59aafc2f64f1cd608fcf",
+              "meta": "d14b78673b5d3bcdb3eb1c08b6b81c26e02eccc8b6772132e44b6f1f873739d6",
+              "outbox": "256700301afe64f6f6a6341356e58356a614580b68857d2882ad5e1a426c2e16",
+              "runs": "45dfe119bbc5186505ed551a2e3bacf36ef80630289b60af8bf3c6423b975b8a"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.0009391025014338084,
+        "p95": 0.0015733339969301596,
+        "samples_seconds": [
+          0.0010500349890207872,
+          0.0009528880036668852,
+          0.001123034002375789,
+          0.0012955850106664002,
+          0.0007639230025233701,
+          0.0009835439996095374,
+          0.0011205009941477329,
+          0.0008758720068726689,
+          0.000807107993750833,
+          0.0007629120082128793,
+          0.001216995995491743,
+          0.0015733339969301596,
+          0.0008292219863506034,
+          0.003003683013957925,
+          0.0008043039997573942,
+          0.0010330689983675256,
+          0.0007745589973637834,
+          0.0008905839931685477,
+          0.0008392669988097623,
+          0.0009253169992007315
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "d78ab89c711dce33d01141fed41b7ef1574d24e69275b6ca1872768c228e5c33",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 1789952,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "5c9d9dba241ed8aaa182391db29fc6d94d02cbd2d4fd59aafc2f64f1cd608fcf",
+              "meta": "d14b78673b5d3bcdb3eb1c08b6b81c26e02eccc8b6772132e44b6f1f873739d6",
+              "outbox": "256700301afe64f6f6a6341356e58356a614580b68857d2882ad5e1a426c2e16",
+              "runs": "45dfe119bbc5186505ed551a2e3bacf36ef80630289b60af8bf3c6423b975b8a"
+            }
+          }
+        }
+      },
+      "speedup": 0.8854145330416192
+    },
+    {
+      "dataset": "journal-1k",
+      "operation": "absent-outbox",
+      "count_each": 20,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "absent-outbox",
+            "--count",
+            "10",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/absent-outbox-baseline-0.json"
+          ],
+          "seconds": 0.1421189308166504
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "absent-outbox",
+            "--count",
+            "10",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/absent-outbox-candidate-0.json"
+          ],
+          "seconds": 0.127943754196167
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "absent-outbox",
+            "--count",
+            "10",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/absent-outbox-baseline-1.json"
+          ],
+          "seconds": 0.13296866416931152
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "absent-outbox",
+            "--count",
+            "10",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/absent-outbox-candidate-1.json"
+          ],
+          "seconds": 0.13793087005615234
+        }
+      ],
+      "baseline": {
+        "median": 0.0007324455000343733,
+        "p95": 0.000942201993893832,
+        "samples_seconds": [
+          0.000942201993893832,
+          0.000787958997534588,
+          0.0007371630053967237,
+          0.0007163210102589801,
+          0.0006820900016464293,
+          0.0007077379996189848,
+          0.0008331970020662993,
+          0.0007277279946720228,
+          0.000684662998537533,
+          0.000713956993422471,
+          0.0008512140047969297,
+          0.0007682799914618954,
+          0.0008861980022629723,
+          0.0008466069994028658,
+          0.0007104620017344132,
+          0.0007383940101135522,
+          0.0007054349989630282,
+          0.0007025099912425503,
+          0.0006869470089441165,
+          0.0010093129967572168
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "d78ab89c711dce33d01141fed41b7ef1574d24e69275b6ca1872768c228e5c33",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 1769472,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "5c9d9dba241ed8aaa182391db29fc6d94d02cbd2d4fd59aafc2f64f1cd608fcf",
+              "meta": "d14b78673b5d3bcdb3eb1c08b6b81c26e02eccc8b6772132e44b6f1f873739d6",
+              "outbox": "256700301afe64f6f6a6341356e58356a614580b68857d2882ad5e1a426c2e16",
+              "runs": "45dfe119bbc5186505ed551a2e3bacf36ef80630289b60af8bf3c6423b975b8a"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.0007169919990701601,
+        "p95": 0.0008050650067161769,
+        "samples_seconds": [
+          0.0008050650067161769,
+          0.0007258859986905009,
+          0.0006808070029364899,
+          0.0007176229992182925,
+          0.0007956009940244257,
+          0.0007397370063699782,
+          0.0006879779975861311,
+          0.0007051439897622913,
+          0.0007194049976533279,
+          0.0006723440019413829,
+          0.0008146900072460994,
+          0.0007072370062815025,
+          0.0007086800032993779,
+          0.0007006779924267903,
+          0.00072768799145706,
+          0.000765355012845248,
+          0.0007163609989220276,
+          0.000693276000674814,
+          0.0007238620019052178,
+          0.0006614890007767826
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "d78ab89c711dce33d01141fed41b7ef1574d24e69275b6ca1872768c228e5c33",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 1789952,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "5c9d9dba241ed8aaa182391db29fc6d94d02cbd2d4fd59aafc2f64f1cd608fcf",
+              "meta": "d14b78673b5d3bcdb3eb1c08b6b81c26e02eccc8b6772132e44b6f1f873739d6",
+              "outbox": "256700301afe64f6f6a6341356e58356a614580b68857d2882ad5e1a426c2e16",
+              "runs": "45dfe119bbc5186505ed551a2e3bacf36ef80630289b60af8bf3c6423b975b8a"
+            }
+          }
+        }
+      },
+      "speedup": 1.0215532404604992
+    },
+    {
+      "dataset": "journal-1k",
+      "operation": "status",
+      "count_each": 20,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "status",
+            "--count",
+            "10",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/status-baseline-0.json"
+          ],
+          "seconds": 0.1915900707244873
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "status",
+            "--count",
+            "10",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/status-candidate-0.json"
+          ],
+          "seconds": 0.17698311805725098
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "status",
+            "--count",
+            "10",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/status-baseline-1.json"
+          ],
+          "seconds": 0.1871178150177002
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "status",
+            "--count",
+            "10",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/status-candidate-1.json"
+          ],
+          "seconds": 0.18849825859069824
+        }
+      ],
+      "baseline": {
+        "median": 0.004832257502130233,
+        "p95": 0.005600250995485112,
+        "samples_seconds": [
+          0.004932422991259955,
+          0.004668055000365712,
+          0.0050857449969043955,
+          0.005229381000390276,
+          0.005776657999376766,
+          0.005189701012568548,
+          0.004899944004137069,
+          0.005477515995153226,
+          0.004971902002580464,
+          0.004839633998926729,
+          0.0048248810053337365,
+          0.00471248100802768,
+          0.0046685249981237575,
+          0.005600250995485112,
+          0.0045808120048604906,
+          0.0047868630063021556,
+          0.004545850999420509,
+          0.004610868010786362,
+          0.004794665990630165,
+          0.0047928220010362566
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "d78ab89c711dce33d01141fed41b7ef1574d24e69275b6ca1872768c228e5c33",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 1769472,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "5c9d9dba241ed8aaa182391db29fc6d94d02cbd2d4fd59aafc2f64f1cd608fcf",
+              "meta": "d14b78673b5d3bcdb3eb1c08b6b81c26e02eccc8b6772132e44b6f1f873739d6",
+              "outbox": "256700301afe64f6f6a6341356e58356a614580b68857d2882ad5e1a426c2e16",
+              "runs": "45dfe119bbc5186505ed551a2e3bacf36ef80630289b60af8bf3c6423b975b8a"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.004143237500102259,
+        "p95": 0.005103300994960591,
+        "samples_seconds": [
+          0.0043876510026166216,
+          0.004143333004321903,
+          0.0040723150013946,
+          0.004055299999890849,
+          0.003963631999795325,
+          0.003982540001743473,
+          0.004173207998974249,
+          0.0039902319986140355,
+          0.003976439998950809,
+          0.0040055450081126764,
+          0.005441671994049102,
+          0.005103300994960591,
+          0.004670037000323646,
+          0.0045083129953127354,
+          0.0040468969964422286,
+          0.004174018002231605,
+          0.00423813599627465,
+          0.004605199996149167,
+          0.0041431419958826154,
+          0.0040562310023233294
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "d78ab89c711dce33d01141fed41b7ef1574d24e69275b6ca1872768c228e5c33",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 1789952,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "5c9d9dba241ed8aaa182391db29fc6d94d02cbd2d4fd59aafc2f64f1cd608fcf",
+              "meta": "d14b78673b5d3bcdb3eb1c08b6b81c26e02eccc8b6772132e44b6f1f873739d6",
+              "outbox": "256700301afe64f6f6a6341356e58356a614580b68857d2882ad5e1a426c2e16",
+              "runs": "45dfe119bbc5186505ed551a2e3bacf36ef80630289b60af8bf3c6423b975b8a"
+            }
+          }
+        }
+      },
+      "speedup": 1.1662999048475904
+    },
+    {
+      "dataset": "journal-1k",
+      "operation": "journal-reads",
+      "count_each": 20,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "journal-reads",
+            "--count",
+            "10",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/journal-reads-baseline-0.json"
+          ],
+          "seconds": 0.15832901000976562
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "journal-reads",
+            "--count",
+            "10",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/journal-reads-candidate-0.json"
+          ],
+          "seconds": 0.16448163986206055
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "journal-reads",
+            "--count",
+            "10",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/journal-reads-baseline-1.json"
+          ],
+          "seconds": 0.1520676612854004
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "journal-reads",
+            "--count",
+            "10",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/journal-reads-candidate-1.json"
+          ],
+          "seconds": 0.2237551212310791
+        }
+      ],
+      "baseline": {
+        "median": 0.002795163010887336,
+        "p95": 0.003081670991377905,
+        "samples_seconds": [
+          0.0029923260008217767,
+          0.0027692590083461255,
+          0.0027350070013199,
+          0.0029157399985706434,
+          0.0029270779923535883,
+          0.002702128011151217,
+          0.0027019169938284904,
+          0.0028210670134285465,
+          0.002740315001574345,
+          0.0028769820055458695,
+          0.0029686199995921925,
+          0.002745953999692574,
+          0.0026684070035116747,
+          0.0035577389935497195,
+          0.003081670991377905,
+          0.0030233319994295016,
+          0.002917182006058283,
+          0.002740005002124235,
+          0.002695317001780495,
+          0.002687075990252197
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "d78ab89c711dce33d01141fed41b7ef1574d24e69275b6ca1872768c228e5c33",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 1769472,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "5c9d9dba241ed8aaa182391db29fc6d94d02cbd2d4fd59aafc2f64f1cd608fcf",
+              "meta": "d14b78673b5d3bcdb3eb1c08b6b81c26e02eccc8b6772132e44b6f1f873739d6",
+              "outbox": "256700301afe64f6f6a6341356e58356a614580b68857d2882ad5e1a426c2e16",
+              "runs": "45dfe119bbc5186505ed551a2e3bacf36ef80630289b60af8bf3c6423b975b8a"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.0030023705039639026,
+        "p95": 0.021446123995701782,
+        "samples_seconds": [
+          0.003091214006417431,
+          0.0029851150029571727,
+          0.002948720008134842,
+          0.0030196260049706325,
+          0.0028759909910149872,
+          0.0028082380013074726,
+          0.0028621689998544753,
+          0.0028099300106987357,
+          0.003406891002668999,
+          0.002871763994335197,
+          0.0046382990112761036,
+          0.0323515909985872,
+          0.021446123995701782,
+          0.009448358992813155,
+          0.0030680100026074797,
+          0.0028497309976955876,
+          0.0030770739977015182,
+          0.0029677779966732487,
+          0.002855548998923041,
+          0.0030412690102821216
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "d78ab89c711dce33d01141fed41b7ef1574d24e69275b6ca1872768c228e5c33",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 1789952,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "5c9d9dba241ed8aaa182391db29fc6d94d02cbd2d4fd59aafc2f64f1cd608fcf",
+              "meta": "d14b78673b5d3bcdb3eb1c08b6b81c26e02eccc8b6772132e44b6f1f873739d6",
+              "outbox": "256700301afe64f6f6a6341356e58356a614580b68857d2882ad5e1a426c2e16",
+              "runs": "45dfe119bbc5186505ed551a2e3bacf36ef80630289b60af8bf3c6423b975b8a"
+            }
+          }
+        }
+      },
+      "speedup": 0.9309853687934253
+    },
+    {
+      "dataset": "journal-1k",
+      "operation": "journal-writes",
+      "count_each": 3,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "journal-writes",
+            "--count",
+            "1",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/journal-writes-baseline-0.json"
+          ],
+          "seconds": 0.14805936813354492
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "journal-writes",
+            "--count",
+            "1",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/journal-writes-candidate-0.json"
+          ],
+          "seconds": 0.14228415489196777
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "journal-writes",
+            "--count",
+            "2",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/journal-writes-baseline-1.json"
+          ],
+          "seconds": 0.15405869483947754
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "journal-writes",
+            "--count",
+            "2",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/journal-writes-candidate-1.json"
+          ],
+          "seconds": 0.14912939071655273
+        }
+      ],
+      "baseline": {
+        "median": 0.009444743001949973,
+        "p95": 0.01087793598708231,
+        "samples_seconds": [
+          0.009444743001949973,
+          0.01087793598708231,
+          0.008684115993673913
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "d78ab89c711dce33d01141fed41b7ef1574d24e69275b6ca1872768c228e5c33",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 1769472,
+            "logical": {
+              "actions": "3a0e9f0032306ccd6db681a80e40b657497affba620bcd674ef4fd66b69b3952",
+              "cancels": "7ad242c98c6d6b2f3c3f81bf1ecbcd58a41bfcc50020ff3be6192146f02da647",
+              "events": "fb2931ad3d136da2891e7eb88054b8c99b5efbcfab18d1165edc9a1a281f7b03",
+              "meta": "d14b78673b5d3bcdb3eb1c08b6b81c26e02eccc8b6772132e44b6f1f873739d6",
+              "outbox": "256700301afe64f6f6a6341356e58356a614580b68857d2882ad5e1a426c2e16",
+              "runs": "45dfe119bbc5186505ed551a2e3bacf36ef80630289b60af8bf3c6423b975b8a"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.008647679002024233,
+        "p95": 0.009447947988519445,
+        "samples_seconds": [
+          0.009447947988519445,
+          0.008584114009863697,
+          0.008647679002024233
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "d78ab89c711dce33d01141fed41b7ef1574d24e69275b6ca1872768c228e5c33",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 1789952,
+            "logical": {
+              "actions": "3a0e9f0032306ccd6db681a80e40b657497affba620bcd674ef4fd66b69b3952",
+              "cancels": "524dadf533bc5323d3a1071c8bbc265cf327588ff97e48d93f4a06ad59d71bb6",
+              "events": "4b114b340cd6fb9e02c174abcfe719dc77233075d16ec32ba8d873201ff146d7",
+              "meta": "d14b78673b5d3bcdb3eb1c08b6b81c26e02eccc8b6772132e44b6f1f873739d6",
+              "outbox": "256700301afe64f6f6a6341356e58356a614580b68857d2882ad5e1a426c2e16",
+              "runs": "45dfe119bbc5186505ed551a2e3bacf36ef80630289b60af8bf3c6423b975b8a"
+            }
+          }
+        }
+      },
+      "speedup": 1.092170858763278
+    },
+    {
+      "dataset": "journal-1k",
+      "operation": "outbox-write",
+      "count_each": 3,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "outbox-write",
+            "--count",
+            "1",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/outbox-write-baseline-0.json"
+          ],
+          "seconds": 0.144791841506958
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "outbox-write",
+            "--count",
+            "1",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/outbox-write-candidate-0.json"
+          ],
+          "seconds": 0.14160561561584473
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "outbox-write",
+            "--count",
+            "2",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/outbox-write-baseline-1.json"
+          ],
+          "seconds": 0.15199828147888184
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "outbox-write",
+            "--count",
+            "2",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/outbox-write-candidate-1.json"
+          ],
+          "seconds": 0.16258621215820312
+        }
+      ],
+      "baseline": {
+        "median": 0.008633989011286758,
+        "p95": 0.01015021200873889,
+        "samples_seconds": [
+          0.008633989011286758,
+          0.008436400006758049,
+          0.01015021200873889
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "d78ab89c711dce33d01141fed41b7ef1574d24e69275b6ca1872768c228e5c33",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 1773568,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "49fb346ad8e9e6d21ae0ec59337f5d29f0dc8215e4f62170761edea78c536e92",
+              "meta": "d14b78673b5d3bcdb3eb1c08b6b81c26e02eccc8b6772132e44b6f1f873739d6",
+              "outbox": "7e223760a944cfbe49f6f7d795895743622737aa8084132710843b1421105082",
+              "runs": "1230df621acb83cfba37757450dfe61834c84d55e2b2dd96bfa206e306a48a20"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.009193514008074999,
+        "p95": 0.009594718998414464,
+        "samples_seconds": [
+          0.008720499012270011,
+          0.009594718998414464,
+          0.009193514008074999
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "d78ab89c711dce33d01141fed41b7ef1574d24e69275b6ca1872768c228e5c33",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 1794048,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "03265a728a643de0e462fc1e1a861e40916d554f71f5a7e17bfcdcb6c539f009",
+              "meta": "d14b78673b5d3bcdb3eb1c08b6b81c26e02eccc8b6772132e44b6f1f873739d6",
+              "outbox": "7e223760a944cfbe49f6f7d795895743622737aa8084132710843b1421105082",
+              "runs": "1230df621acb83cfba37757450dfe61834c84d55e2b2dd96bfa206e306a48a20"
+            }
+          }
+        }
+      },
+      "speedup": 0.9391391587268165
+    },
+    {
+      "dataset": "journal-1k",
+      "operation": "capture-retry",
+      "count_each": 3,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "capture-retry",
+            "--count",
+            "1",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/capture-retry-baseline-0.json"
+          ],
+          "seconds": 0.14650177955627441
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "capture-retry",
+            "--count",
+            "1",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/capture-retry-candidate-0.json"
+          ],
+          "seconds": 0.1495068073272705
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "capture-retry",
+            "--count",
+            "2",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/capture-retry-baseline-1.json"
+          ],
+          "seconds": 0.14888596534729004
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-1k",
+            "--operation",
+            "capture-retry",
+            "--count",
+            "2",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-1k/capture-retry-candidate-1.json"
+          ],
+          "seconds": 0.1462092399597168
+        }
+      ],
+      "baseline": {
+        "median": 0.00598878700111527,
+        "p95": 0.006258894994971342,
+        "samples_seconds": [
+          0.006258894994971342,
+          0.005915007001021877,
+          0.00598878700111527
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "d78ab89c711dce33d01141fed41b7ef1574d24e69275b6ca1872768c228e5c33",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 1769472,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "5c9d9dba241ed8aaa182391db29fc6d94d02cbd2d4fd59aafc2f64f1cd608fcf",
+              "meta": "d14b78673b5d3bcdb3eb1c08b6b81c26e02eccc8b6772132e44b6f1f873739d6",
+              "outbox": "256700301afe64f6f6a6341356e58356a614580b68857d2882ad5e1a426c2e16",
+              "runs": "45dfe119bbc5186505ed551a2e3bacf36ef80630289b60af8bf3c6423b975b8a"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.004999103999580257,
+        "p95": 0.005002709003747441,
+        "samples_seconds": [
+          0.004999103999580257,
+          0.004543525996268727,
+          0.005002709003747441
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "d78ab89c711dce33d01141fed41b7ef1574d24e69275b6ca1872768c228e5c33",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 1789952,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "5c9d9dba241ed8aaa182391db29fc6d94d02cbd2d4fd59aafc2f64f1cd608fcf",
+              "meta": "d14b78673b5d3bcdb3eb1c08b6b81c26e02eccc8b6772132e44b6f1f873739d6",
+              "outbox": "256700301afe64f6f6a6341356e58356a614580b68857d2882ad5e1a426c2e16",
+              "runs": "45dfe119bbc5186505ed551a2e3bacf36ef80630289b60af8bf3c6423b975b8a"
+            }
+          }
+        }
+      },
+      "speedup": 1.1979720769198061
+    },
+    {
+      "dataset": "journal-10k",
+      "operation": "outbox",
+      "count_each": 5,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "outbox",
+            "--count",
+            "2",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/outbox-baseline-0.json"
+          ],
+          "seconds": 0.303966760635376
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "outbox",
+            "--count",
+            "2",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/outbox-candidate-0.json"
+          ],
+          "seconds": 0.2917001247406006
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "outbox",
+            "--count",
+            "3",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/outbox-baseline-1.json"
+          ],
+          "seconds": 0.30390453338623047
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "outbox",
+            "--count",
+            "3",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/outbox-candidate-1.json"
+          ],
+          "seconds": 0.30736231803894043
+        }
+      ],
+      "baseline": {
+        "median": 0.00943104199541267,
+        "p95": 0.014135742996586487,
+        "samples_seconds": [
+          0.010741901001892984,
+          0.00943104199541267,
+          0.014135742996586487,
+          0.00938725599553436,
+          0.008796014008112252
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "8bd7ab13b1ab5ccc43d4be082546270c7c7726d6768846ee4172dee5bf8baae1",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 17235968,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "687c489ad01218c7f358965ef7f78fe65691b2c8192d234e238721920a885975",
+              "meta": "259e40e675d5104d5a19eba63cddba516ce129d9aa719a4bbefcca0d43d1af60",
+              "outbox": "4982291fead77258b7a629f95bb8bb9470678406c478300d1286a02522ef8b45",
+              "runs": "4fac5768bc8e9733f39aac3f36719c95760ffe51b36cc51a8d8c07b6dd7b6f89"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.007681611998123117,
+        "p95": 0.007762043998809531,
+        "samples_seconds": [
+          0.007681611998123117,
+          0.006682634993921965,
+          0.007762043998809531,
+          0.007741512992652133,
+          0.007129828998586163
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "8bd7ab13b1ab5ccc43d4be082546270c7c7726d6768846ee4172dee5bf8baae1",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 17399808,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "687c489ad01218c7f358965ef7f78fe65691b2c8192d234e238721920a885975",
+              "meta": "259e40e675d5104d5a19eba63cddba516ce129d9aa719a4bbefcca0d43d1af60",
+              "outbox": "4982291fead77258b7a629f95bb8bb9470678406c478300d1286a02522ef8b45",
+              "runs": "4fac5768bc8e9733f39aac3f36719c95760ffe51b36cc51a8d8c07b6dd7b6f89"
+            }
+          }
+        }
+      },
+      "speedup": 1.2277425620712161
+    },
+    {
+      "dataset": "journal-10k",
+      "operation": "absent-outbox",
+      "count_each": 5,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "absent-outbox",
+            "--count",
+            "2",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/absent-outbox-baseline-0.json"
+          ],
+          "seconds": 0.3078150749206543
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "absent-outbox",
+            "--count",
+            "2",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/absent-outbox-candidate-0.json"
+          ],
+          "seconds": 0.3142242431640625
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "absent-outbox",
+            "--count",
+            "3",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/absent-outbox-baseline-1.json"
+          ],
+          "seconds": 0.3922097682952881
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "absent-outbox",
+            "--count",
+            "3",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/absent-outbox-candidate-1.json"
+          ],
+          "seconds": 0.304638147354126
+        }
+      ],
+      "baseline": {
+        "median": 0.008002947011846118,
+        "p95": 0.009513616998447105,
+        "samples_seconds": [
+          0.00921081900014542,
+          0.008002947011846118,
+          0.009513616998447105,
+          0.007580920006148517,
+          0.006930828996701166
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "8bd7ab13b1ab5ccc43d4be082546270c7c7726d6768846ee4172dee5bf8baae1",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 17235968,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "687c489ad01218c7f358965ef7f78fe65691b2c8192d234e238721920a885975",
+              "meta": "259e40e675d5104d5a19eba63cddba516ce129d9aa719a4bbefcca0d43d1af60",
+              "outbox": "4982291fead77258b7a629f95bb8bb9470678406c478300d1286a02522ef8b45",
+              "runs": "4fac5768bc8e9733f39aac3f36719c95760ffe51b36cc51a8d8c07b6dd7b6f89"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.007832079005311243,
+        "p95": 0.007852210008422844,
+        "samples_seconds": [
+          0.007852210008422844,
+          0.007850316003896296,
+          0.007689774996833876,
+          0.007832079005311243,
+          0.006471396001870744
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "8bd7ab13b1ab5ccc43d4be082546270c7c7726d6768846ee4172dee5bf8baae1",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 17399808,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "687c489ad01218c7f358965ef7f78fe65691b2c8192d234e238721920a885975",
+              "meta": "259e40e675d5104d5a19eba63cddba516ce129d9aa719a4bbefcca0d43d1af60",
+              "outbox": "4982291fead77258b7a629f95bb8bb9470678406c478300d1286a02522ef8b45",
+              "runs": "4fac5768bc8e9733f39aac3f36719c95760ffe51b36cc51a8d8c07b6dd7b6f89"
+            }
+          }
+        }
+      },
+      "speedup": 1.0218164304036006
+    },
+    {
+      "dataset": "journal-10k",
+      "operation": "status",
+      "count_each": 5,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "status",
+            "--count",
+            "2",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/status-baseline-0.json"
+          ],
+          "seconds": 0.4095273017883301
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "status",
+            "--count",
+            "2",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/status-candidate-0.json"
+          ],
+          "seconds": 0.3721771240234375
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "status",
+            "--count",
+            "3",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/status-baseline-1.json"
+          ],
+          "seconds": 0.4339900016784668
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "status",
+            "--count",
+            "3",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/status-candidate-1.json"
+          ],
+          "seconds": 0.502023458480835
+        }
+      ],
+      "baseline": {
+        "median": 0.042865776995313354,
+        "p95": 0.0470397269964451,
+        "samples_seconds": [
+          0.0470397269964451,
+          0.04025199299212545,
+          0.04312371800187975,
+          0.042865776995313354,
+          0.037400739995064214
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "8bd7ab13b1ab5ccc43d4be082546270c7c7726d6768846ee4172dee5bf8baae1",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 17235968,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "687c489ad01218c7f358965ef7f78fe65691b2c8192d234e238721920a885975",
+              "meta": "259e40e675d5104d5a19eba63cddba516ce129d9aa719a4bbefcca0d43d1af60",
+              "outbox": "4982291fead77258b7a629f95bb8bb9470678406c478300d1286a02522ef8b45",
+              "runs": "4fac5768bc8e9733f39aac3f36719c95760ffe51b36cc51a8d8c07b6dd7b6f89"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.033688037990941666,
+        "p95": 0.11006831200211309,
+        "samples_seconds": [
+          0.033688037990941666,
+          0.03160284100158606,
+          0.03508126000815537,
+          0.0317602890136186,
+          0.11006831200211309
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "8bd7ab13b1ab5ccc43d4be082546270c7c7726d6768846ee4172dee5bf8baae1",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 17399808,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "687c489ad01218c7f358965ef7f78fe65691b2c8192d234e238721920a885975",
+              "meta": "259e40e675d5104d5a19eba63cddba516ce129d9aa719a4bbefcca0d43d1af60",
+              "outbox": "4982291fead77258b7a629f95bb8bb9470678406c478300d1286a02522ef8b45",
+              "runs": "4fac5768bc8e9733f39aac3f36719c95760ffe51b36cc51a8d8c07b6dd7b6f89"
+            }
+          }
+        }
+      },
+      "speedup": 1.272433170695173
+    },
+    {
+      "dataset": "journal-10k",
+      "operation": "journal-reads",
+      "count_each": 5,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "journal-reads",
+            "--count",
+            "2",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/journal-reads-baseline-0.json"
+          ],
+          "seconds": 0.3376893997192383
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "journal-reads",
+            "--count",
+            "2",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/journal-reads-candidate-0.json"
+          ],
+          "seconds": 0.3465554714202881
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "journal-reads",
+            "--count",
+            "3",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/journal-reads-baseline-1.json"
+          ],
+          "seconds": 0.35425734519958496
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "journal-reads",
+            "--count",
+            "3",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/journal-reads-candidate-1.json"
+          ],
+          "seconds": 0.36937975883483887
+        }
+      ],
+      "baseline": {
+        "median": 0.02415833699342329,
+        "p95": 0.028520478997961618,
+        "samples_seconds": [
+          0.028520478997961618,
+          0.023944845001096837,
+          0.027100766994408332,
+          0.023603719993843697,
+          0.02415833699342329
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "8bd7ab13b1ab5ccc43d4be082546270c7c7726d6768846ee4172dee5bf8baae1",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 17235968,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "687c489ad01218c7f358965ef7f78fe65691b2c8192d234e238721920a885975",
+              "meta": "259e40e675d5104d5a19eba63cddba516ce129d9aa719a4bbefcca0d43d1af60",
+              "outbox": "4982291fead77258b7a629f95bb8bb9470678406c478300d1286a02522ef8b45",
+              "runs": "4fac5768bc8e9733f39aac3f36719c95760ffe51b36cc51a8d8c07b6dd7b6f89"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.026291185000445694,
+        "p95": 0.028839771010098048,
+        "samples_seconds": [
+          0.028839771010098048,
+          0.0261754499952076,
+          0.02882935499656014,
+          0.026291185000445694,
+          0.024841528007527813
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "8bd7ab13b1ab5ccc43d4be082546270c7c7726d6768846ee4172dee5bf8baae1",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 17399808,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "687c489ad01218c7f358965ef7f78fe65691b2c8192d234e238721920a885975",
+              "meta": "259e40e675d5104d5a19eba63cddba516ce129d9aa719a4bbefcca0d43d1af60",
+              "outbox": "4982291fead77258b7a629f95bb8bb9470678406c478300d1286a02522ef8b45",
+              "runs": "4fac5768bc8e9733f39aac3f36719c95760ffe51b36cc51a8d8c07b6dd7b6f89"
+            }
+          }
+        }
+      },
+      "speedup": 0.9188759271601395
+    },
+    {
+      "dataset": "journal-10k",
+      "operation": "journal-writes",
+      "count_each": 3,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "journal-writes",
+            "--count",
+            "1",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/journal-writes-baseline-0.json"
+          ],
+          "seconds": 0.3523590564727783
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "journal-writes",
+            "--count",
+            "1",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/journal-writes-candidate-0.json"
+          ],
+          "seconds": 0.4758608341217041
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "journal-writes",
+            "--count",
+            "2",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/journal-writes-baseline-1.json"
+          ],
+          "seconds": 0.43299293518066406
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "journal-writes",
+            "--count",
+            "2",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/journal-writes-candidate-1.json"
+          ],
+          "seconds": 0.4484741687774658
+        }
+      ],
+      "baseline": {
+        "median": 0.04668079399561975,
+        "p95": 0.04778850499133114,
+        "samples_seconds": [
+          0.04502340400358662,
+          0.04778850499133114,
+          0.04668079399561975
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "8bd7ab13b1ab5ccc43d4be082546270c7c7726d6768846ee4172dee5bf8baae1",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 17235968,
+            "logical": {
+              "actions": "3a0e9f0032306ccd6db681a80e40b657497affba620bcd674ef4fd66b69b3952",
+              "cancels": "8640bce488cfded3f90c68eaf8db93e403814e068faf09f559bbd31e6d4c197d",
+              "events": "cc4895b689172bb3dcf27e0afb0a9529781f183655447bc9ed6cbcdf97c0f2d4",
+              "meta": "259e40e675d5104d5a19eba63cddba516ce129d9aa719a4bbefcca0d43d1af60",
+              "outbox": "4982291fead77258b7a629f95bb8bb9470678406c478300d1286a02522ef8b45",
+              "runs": "4fac5768bc8e9733f39aac3f36719c95760ffe51b36cc51a8d8c07b6dd7b6f89"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.04584231899934821,
+        "p95": 0.046324795999680646,
+        "samples_seconds": [
+          0.045674676992348395,
+          0.04584231899934821,
+          0.046324795999680646
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "8bd7ab13b1ab5ccc43d4be082546270c7c7726d6768846ee4172dee5bf8baae1",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 17399808,
+            "logical": {
+              "actions": "3a0e9f0032306ccd6db681a80e40b657497affba620bcd674ef4fd66b69b3952",
+              "cancels": "257d3790342ffb01bfb84433ebc2fd93b5507e93d6c2a1e9554d706a571d6920",
+              "events": "abe3bf70d72aeac868b2a949984a3a5316e49a76ee6714bf348daef9eaf9a0cd",
+              "meta": "259e40e675d5104d5a19eba63cddba516ce129d9aa719a4bbefcca0d43d1af60",
+              "outbox": "4982291fead77258b7a629f95bb8bb9470678406c478300d1286a02522ef8b45",
+              "runs": "4fac5768bc8e9733f39aac3f36719c95760ffe51b36cc51a8d8c07b6dd7b6f89"
+            }
+          }
+        }
+      },
+      "speedup": 1.0182904140666065
+    },
+    {
+      "dataset": "journal-10k",
+      "operation": "outbox-write",
+      "count_each": 3,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "outbox-write",
+            "--count",
+            "1",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/outbox-write-baseline-0.json"
+          ],
+          "seconds": 0.37442946434020996
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "outbox-write",
+            "--count",
+            "1",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/outbox-write-candidate-0.json"
+          ],
+          "seconds": 0.406963586807251
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "outbox-write",
+            "--count",
+            "2",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/outbox-write-baseline-1.json"
+          ],
+          "seconds": 0.5093302726745605
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "outbox-write",
+            "--count",
+            "2",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/outbox-write-candidate-1.json"
+          ],
+          "seconds": 0.4650852680206299
+        }
+      ],
+      "baseline": {
+        "median": 0.04487540900299791,
+        "p95": 0.04607734399905894,
+        "samples_seconds": [
+          0.04487540900299791,
+          0.04607734399905894,
+          0.04309043599641882
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "8bd7ab13b1ab5ccc43d4be082546270c7c7726d6768846ee4172dee5bf8baae1",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 17240064,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "4bac659c99245c69896fffa496e6972d57dd6bbb8c8870a98440756205d14c27",
+              "meta": "259e40e675d5104d5a19eba63cddba516ce129d9aa719a4bbefcca0d43d1af60",
+              "outbox": "5dd441d1e2aed5ec89cc29c04aadf2bcaa45635fcc0e8ad718b2ed584587a818",
+              "runs": "cc87f185c634700fee78afb2eb82c6b8213205190e99b4f3146f2dc5973a03a3"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.04147868399741128,
+        "p95": 0.042074212004081346,
+        "samples_seconds": [
+          0.042074212004081346,
+          0.04061453898611944,
+          0.04147868399741128
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "8bd7ab13b1ab5ccc43d4be082546270c7c7726d6768846ee4172dee5bf8baae1",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 17403904,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "534de0a33bc348d014c97b6152617d3fcb11e472399a648a89fc8a79b8ac05b0",
+              "meta": "259e40e675d5104d5a19eba63cddba516ce129d9aa719a4bbefcca0d43d1af60",
+              "outbox": "5dd441d1e2aed5ec89cc29c04aadf2bcaa45635fcc0e8ad718b2ed584587a818",
+              "runs": "cc87f185c634700fee78afb2eb82c6b8213205190e99b4f3146f2dc5973a03a3"
+            }
+          }
+        }
+      },
+      "speedup": 1.0818908576221613
+    },
+    {
+      "dataset": "journal-10k",
+      "operation": "capture-retry",
+      "count_each": 3,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "capture-retry",
+            "--count",
+            "1",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/capture-retry-baseline-0.json"
+          ],
+          "seconds": 0.37401843070983887
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "capture-retry",
+            "--count",
+            "1",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/capture-retry-candidate-0.json"
+          ],
+          "seconds": 0.37604403495788574
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "capture-retry",
+            "--count",
+            "2",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/capture-retry-baseline-1.json"
+          ],
+          "seconds": 0.5067229270935059
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-10k",
+            "--operation",
+            "capture-retry",
+            "--count",
+            "2",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-10k/capture-retry-candidate-1.json"
+          ],
+          "seconds": 0.39933300018310547
+        }
+      ],
+      "baseline": {
+        "median": 0.04792081601044629,
+        "p95": 0.05117670900654048,
+        "samples_seconds": [
+          0.04589606000808999,
+          0.05117670900654048,
+          0.04792081601044629
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "8bd7ab13b1ab5ccc43d4be082546270c7c7726d6768846ee4172dee5bf8baae1",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 17235968,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "687c489ad01218c7f358965ef7f78fe65691b2c8192d234e238721920a885975",
+              "meta": "259e40e675d5104d5a19eba63cddba516ce129d9aa719a4bbefcca0d43d1af60",
+              "outbox": "4982291fead77258b7a629f95bb8bb9470678406c478300d1286a02522ef8b45",
+              "runs": "4fac5768bc8e9733f39aac3f36719c95760ffe51b36cc51a8d8c07b6dd7b6f89"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.030433895997703075,
+        "p95": 0.03163732300163247,
+        "samples_seconds": [
+          0.03163732300163247,
+          0.028889275999972597,
+          0.030433895997703075
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "8bd7ab13b1ab5ccc43d4be082546270c7c7726d6768846ee4172dee5bf8baae1",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 17399808,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "687c489ad01218c7f358965ef7f78fe65691b2c8192d234e238721920a885975",
+              "meta": "259e40e675d5104d5a19eba63cddba516ce129d9aa719a4bbefcca0d43d1af60",
+              "outbox": "4982291fead77258b7a629f95bb8bb9470678406c478300d1286a02522ef8b45",
+              "runs": "4fac5768bc8e9733f39aac3f36719c95760ffe51b36cc51a8d8c07b6dd7b6f89"
+            }
+          }
+        }
+      },
+      "speedup": 1.5745869675727022
+    },
+    {
+      "dataset": "journal-30k",
+      "operation": "outbox",
+      "count_each": 3,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "outbox",
+            "--count",
+            "1",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/outbox-baseline-0.json"
+          ],
+          "seconds": 0.7660820484161377
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "outbox",
+            "--count",
+            "1",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/outbox-candidate-0.json"
+          ],
+          "seconds": 0.928347110748291
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "outbox",
+            "--count",
+            "2",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/outbox-baseline-1.json"
+          ],
+          "seconds": 0.7661526203155518
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "outbox",
+            "--count",
+            "2",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/outbox-candidate-1.json"
+          ],
+          "seconds": 0.9221522808074951
+        }
+      ],
+      "baseline": {
+        "median": 0.027482231991598383,
+        "p95": 0.02853466100350488,
+        "samples_seconds": [
+          0.027482231991598383,
+          0.02853466100350488,
+          0.027481911005452275
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "3af7940b374a49010ae03f7e8aeb0064367894fabb5880e38ed7bdb92c9765a8",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 51580928,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "2acc48a58d50845db516ec53fd25524d805e226473548eef16c9d0059f57d51e",
+              "meta": "37b349cc954aca45e65817a10946ad5dfa21a08030af01ffc3da9267769824f2",
+              "outbox": "ec6d8815a86eb84751b56400d84e73d9bdae975ee14aa782f2fbeabe479080b3",
+              "runs": "bd3e9f3502c66cadec3cb8b55d22bf7389a85c41c65b9f10cb4e63a1a8aa9517"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.02506100900063757,
+        "p95": 0.02806354900531005,
+        "samples_seconds": [
+          0.02274108699930366,
+          0.02806354900531005,
+          0.02506100900063757
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "3af7940b374a49010ae03f7e8aeb0064367894fabb5880e38ed7bdb92c9765a8",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 52064256,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "2acc48a58d50845db516ec53fd25524d805e226473548eef16c9d0059f57d51e",
+              "meta": "37b349cc954aca45e65817a10946ad5dfa21a08030af01ffc3da9267769824f2",
+              "outbox": "ec6d8815a86eb84751b56400d84e73d9bdae975ee14aa782f2fbeabe479080b3",
+              "runs": "bd3e9f3502c66cadec3cb8b55d22bf7389a85c41c65b9f10cb4e63a1a8aa9517"
+            }
+          }
+        }
+      },
+      "speedup": 1.0966131487722308
+    },
+    {
+      "dataset": "journal-30k",
+      "operation": "absent-outbox",
+      "count_each": 3,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "absent-outbox",
+            "--count",
+            "1",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/absent-outbox-baseline-0.json"
+          ],
+          "seconds": 0.7259330749511719
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "absent-outbox",
+            "--count",
+            "1",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/absent-outbox-candidate-0.json"
+          ],
+          "seconds": 0.713716983795166
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "absent-outbox",
+            "--count",
+            "2",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/absent-outbox-baseline-1.json"
+          ],
+          "seconds": 0.8916225433349609
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "absent-outbox",
+            "--count",
+            "2",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/absent-outbox-candidate-1.json"
+          ],
+          "seconds": 0.7232816219329834
+        }
+      ],
+      "baseline": {
+        "median": 0.027509594001458026,
+        "p95": 0.027611897996393964,
+        "samples_seconds": [
+          0.027509594001458026,
+          0.027611897996393964,
+          0.027001577996998094
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "3af7940b374a49010ae03f7e8aeb0064367894fabb5880e38ed7bdb92c9765a8",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 51580928,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "2acc48a58d50845db516ec53fd25524d805e226473548eef16c9d0059f57d51e",
+              "meta": "37b349cc954aca45e65817a10946ad5dfa21a08030af01ffc3da9267769824f2",
+              "outbox": "ec6d8815a86eb84751b56400d84e73d9bdae975ee14aa782f2fbeabe479080b3",
+              "runs": "bd3e9f3502c66cadec3cb8b55d22bf7389a85c41c65b9f10cb4e63a1a8aa9517"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.022458972001913935,
+        "p95": 0.022479273000499234,
+        "samples_seconds": [
+          0.022479273000499234,
+          0.022458972001913935,
+          0.02201240899739787
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "3af7940b374a49010ae03f7e8aeb0064367894fabb5880e38ed7bdb92c9765a8",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 52064256,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "2acc48a58d50845db516ec53fd25524d805e226473548eef16c9d0059f57d51e",
+              "meta": "37b349cc954aca45e65817a10946ad5dfa21a08030af01ffc3da9267769824f2",
+              "outbox": "ec6d8815a86eb84751b56400d84e73d9bdae975ee14aa782f2fbeabe479080b3",
+              "runs": "bd3e9f3502c66cadec3cb8b55d22bf7389a85c41c65b9f10cb4e63a1a8aa9517"
+            }
+          }
+        }
+      },
+      "speedup": 1.2248821539611734
+    },
+    {
+      "dataset": "journal-30k",
+      "operation": "status",
+      "count_each": 3,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "status",
+            "--count",
+            "1",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/status-baseline-0.json"
+          ],
+          "seconds": 1.1218006610870361
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "status",
+            "--count",
+            "1",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/status-candidate-0.json"
+          ],
+          "seconds": 0.8906848430633545
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "status",
+            "--count",
+            "2",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/status-baseline-1.json"
+          ],
+          "seconds": 1.1926441192626953
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "status",
+            "--count",
+            "2",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/status-candidate-1.json"
+          ],
+          "seconds": 1.0128474235534668
+        }
+      ],
+      "baseline": {
+        "median": 0.1481049739959417,
+        "p95": 0.1501109499949962,
+        "samples_seconds": [
+          0.1481049739959417,
+          0.1501109499949962,
+          0.14112425800703932
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "3af7940b374a49010ae03f7e8aeb0064367894fabb5880e38ed7bdb92c9765a8",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 51580928,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "2acc48a58d50845db516ec53fd25524d805e226473548eef16c9d0059f57d51e",
+              "meta": "37b349cc954aca45e65817a10946ad5dfa21a08030af01ffc3da9267769824f2",
+              "outbox": "ec6d8815a86eb84751b56400d84e73d9bdae975ee14aa782f2fbeabe479080b3",
+              "runs": "bd3e9f3502c66cadec3cb8b55d22bf7389a85c41c65b9f10cb4e63a1a8aa9517"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.11295070200867485,
+        "p95": 0.114858061002451,
+        "samples_seconds": [
+          0.114858061002451,
+          0.11295070200867485,
+          0.1104000229970552
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "3af7940b374a49010ae03f7e8aeb0064367894fabb5880e38ed7bdb92c9765a8",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 52064256,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "2acc48a58d50845db516ec53fd25524d805e226473548eef16c9d0059f57d51e",
+              "meta": "37b349cc954aca45e65817a10946ad5dfa21a08030af01ffc3da9267769824f2",
+              "outbox": "ec6d8815a86eb84751b56400d84e73d9bdae975ee14aa782f2fbeabe479080b3",
+              "runs": "bd3e9f3502c66cadec3cb8b55d22bf7389a85c41c65b9f10cb4e63a1a8aa9517"
+            }
+          }
+        }
+      },
+      "speedup": 1.3112355333972774
+    },
+    {
+      "dataset": "journal-30k",
+      "operation": "journal-reads",
+      "count_each": 3,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "journal-reads",
+            "--count",
+            "1",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/journal-reads-baseline-0.json"
+          ],
+          "seconds": 0.802025318145752
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "journal-reads",
+            "--count",
+            "1",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/journal-reads-candidate-0.json"
+          ],
+          "seconds": 0.9088094234466553
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "journal-reads",
+            "--count",
+            "2",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/journal-reads-baseline-1.json"
+          ],
+          "seconds": 0.9106845855712891
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "journal-reads",
+            "--count",
+            "2",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/journal-reads-candidate-1.json"
+          ],
+          "seconds": 1.0229179859161377
+        }
+      ],
+      "baseline": {
+        "median": 0.08804376800253522,
+        "p95": 0.08864786000049207,
+        "samples_seconds": [
+          0.0879347419977421,
+          0.08864786000049207,
+          0.08804376800253522
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "3af7940b374a49010ae03f7e8aeb0064367894fabb5880e38ed7bdb92c9765a8",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 51580928,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "2acc48a58d50845db516ec53fd25524d805e226473548eef16c9d0059f57d51e",
+              "meta": "37b349cc954aca45e65817a10946ad5dfa21a08030af01ffc3da9267769824f2",
+              "outbox": "ec6d8815a86eb84751b56400d84e73d9bdae975ee14aa782f2fbeabe479080b3",
+              "runs": "bd3e9f3502c66cadec3cb8b55d22bf7389a85c41c65b9f10cb4e63a1a8aa9517"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.08926330700342078,
+        "p95": 0.09278294000250753,
+        "samples_seconds": [
+          0.08834807699895464,
+          0.09278294000250753,
+          0.08926330700342078
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "3af7940b374a49010ae03f7e8aeb0064367894fabb5880e38ed7bdb92c9765a8",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 52064256,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "2acc48a58d50845db516ec53fd25524d805e226473548eef16c9d0059f57d51e",
+              "meta": "37b349cc954aca45e65817a10946ad5dfa21a08030af01ffc3da9267769824f2",
+              "outbox": "ec6d8815a86eb84751b56400d84e73d9bdae975ee14aa782f2fbeabe479080b3",
+              "runs": "bd3e9f3502c66cadec3cb8b55d22bf7389a85c41c65b9f10cb4e63a1a8aa9517"
+            }
+          }
+        }
+      },
+      "speedup": 0.9863377344865922
+    },
+    {
+      "dataset": "journal-30k",
+      "operation": "journal-writes",
+      "count_each": 3,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "journal-writes",
+            "--count",
+            "1",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/journal-writes-baseline-0.json"
+          ],
+          "seconds": 0.9484527111053467
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "journal-writes",
+            "--count",
+            "1",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/journal-writes-candidate-0.json"
+          ],
+          "seconds": 1.040902853012085
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "journal-writes",
+            "--count",
+            "2",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/journal-writes-baseline-1.json"
+          ],
+          "seconds": 1.2190053462982178
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "journal-writes",
+            "--count",
+            "2",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/journal-writes-candidate-1.json"
+          ],
+          "seconds": 1.3758418560028076
+        }
+      ],
+      "baseline": {
+        "median": 0.14160785199783277,
+        "p95": 0.1542606160073774,
+        "samples_seconds": [
+          0.13369596199481748,
+          0.1542606160073774,
+          0.14160785199783277
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "3af7940b374a49010ae03f7e8aeb0064367894fabb5880e38ed7bdb92c9765a8",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 51580928,
+            "logical": {
+              "actions": "3a0e9f0032306ccd6db681a80e40b657497affba620bcd674ef4fd66b69b3952",
+              "cancels": "b3d527453a54675b19dbe1c67e49fa4cc39282977b7677b12b470a36425b9b75",
+              "events": "94fac1bdd1868282c24c509830a9caa05f881b4145068c96313ea1cff56b7b5a",
+              "meta": "37b349cc954aca45e65817a10946ad5dfa21a08030af01ffc3da9267769824f2",
+              "outbox": "ec6d8815a86eb84751b56400d84e73d9bdae975ee14aa782f2fbeabe479080b3",
+              "runs": "bd3e9f3502c66cadec3cb8b55d22bf7389a85c41c65b9f10cb4e63a1a8aa9517"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.1450024560035672,
+        "p95": 0.1457018799992511,
+        "samples_seconds": [
+          0.13732342600997072,
+          0.1450024560035672,
+          0.1457018799992511
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "3af7940b374a49010ae03f7e8aeb0064367894fabb5880e38ed7bdb92c9765a8",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 52064256,
+            "logical": {
+              "actions": "3a0e9f0032306ccd6db681a80e40b657497affba620bcd674ef4fd66b69b3952",
+              "cancels": "b6589f60eae41b9e4a57a2d3b6145ca90528a40d3deea74d240f16855b635256",
+              "events": "68b9f6a4c49fc4f5c68fe9a0f9241bf0d92e98c39541dcf810a23bfcbd8c4769",
+              "meta": "37b349cc954aca45e65817a10946ad5dfa21a08030af01ffc3da9267769824f2",
+              "outbox": "ec6d8815a86eb84751b56400d84e73d9bdae975ee14aa782f2fbeabe479080b3",
+              "runs": "bd3e9f3502c66cadec3cb8b55d22bf7389a85c41c65b9f10cb4e63a1a8aa9517"
+            }
+          }
+        }
+      },
+      "speedup": 0.9765893344203016
+    },
+    {
+      "dataset": "journal-30k",
+      "operation": "outbox-write",
+      "count_each": 3,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "outbox-write",
+            "--count",
+            "1",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/outbox-write-baseline-0.json"
+          ],
+          "seconds": 1.1615691184997559
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "outbox-write",
+            "--count",
+            "1",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/outbox-write-candidate-0.json"
+          ],
+          "seconds": 1.066840648651123
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "outbox-write",
+            "--count",
+            "2",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/outbox-write-baseline-1.json"
+          ],
+          "seconds": 1.3058898448944092
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "outbox-write",
+            "--count",
+            "2",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/outbox-write-candidate-1.json"
+          ],
+          "seconds": 1.369448184967041
+        }
+      ],
+      "baseline": {
+        "median": 0.12292033300036564,
+        "p95": 0.18391700499341823,
+        "samples_seconds": [
+          0.12164752000535373,
+          0.12292033300036564,
+          0.18391700499341823
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "3af7940b374a49010ae03f7e8aeb0064367894fabb5880e38ed7bdb92c9765a8",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 51589120,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "008850c82495654a12de4301744a28892cb425b91371f7e94a83a2c6945bc2d8",
+              "meta": "37b349cc954aca45e65817a10946ad5dfa21a08030af01ffc3da9267769824f2",
+              "outbox": "50b6bdee03e975d8c0df94797e5338d4fe1f8d1303b76e3f13cb93ba7b93dbf4",
+              "runs": "86c7ddad5eaa8f4e26445a0f291ae6ca9ca370459bf59e6e4ff96a1b5684b7ba"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.13407932300469838,
+        "p95": 0.13642242999048904,
+        "samples_seconds": [
+          0.12580462598998565,
+          0.13407932300469838,
+          0.13642242999048904
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "3af7940b374a49010ae03f7e8aeb0064367894fabb5880e38ed7bdb92c9765a8",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 52072448,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "e5194d14c39dc342a3cd3aa92fdf67db1cffbc2595672ef3cd33941eb4bb320a",
+              "meta": "37b349cc954aca45e65817a10946ad5dfa21a08030af01ffc3da9267769824f2",
+              "outbox": "50b6bdee03e975d8c0df94797e5338d4fe1f8d1303b76e3f13cb93ba7b93dbf4",
+              "runs": "86c7ddad5eaa8f4e26445a0f291ae6ca9ca370459bf59e6e4ff96a1b5684b7ba"
+            }
+          }
+        }
+      },
+      "speedup": 0.916773222341362
+    },
+    {
+      "dataset": "journal-30k",
+      "operation": "capture-retry",
+      "count_each": 3,
+      "equivalent_results": true,
+      "commands": [
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "capture-retry",
+            "--count",
+            "1",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/capture-retry-baseline-0.json"
+          ],
+          "seconds": 1.3702576160430908
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "capture-retry",
+            "--count",
+            "1",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/capture-retry-candidate-0.json"
+          ],
+          "seconds": 1.1303141117095947
+        },
+        {
+          "command": [
+            "/tmp/audit-r1-tool-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "capture-retry",
+            "--count",
+            "2",
+            "--index-variant",
+            "none",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/capture-retry-baseline-1.json"
+          ],
+          "seconds": 1.3168444633483887
+        },
+        {
+          "command": [
+            "/tmp/sqlite-final-runtime/bin/python",
+            "-I",
+            "-B",
+            "/workspace/Knowledge-/reports/SQLiteOptimization/owned_journal_driver.py",
+            "sample",
+            "--root",
+            "/tmp/sqlite-owned-final/journal-30k",
+            "--operation",
+            "capture-retry",
+            "--count",
+            "2",
+            "--index-variant",
+            "ordinary",
+            "--output",
+            "reports/SQLiteOptimization/indexed-benchmarks/journal-30k/capture-retry-candidate-1.json"
+          ],
+          "seconds": 1.2496337890625
+        }
+      ],
+      "baseline": {
+        "median": 0.16188591699756216,
+        "p95": 0.16232835499977227,
+        "samples_seconds": [
+          0.16232835499977227,
+          0.1616096500074491,
+          0.16188591699756216
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/audit-r1-tool-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "3af7940b374a49010ae03f7e8aeb0064367894fabb5880e38ed7bdb92c9765a8",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 51585024,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "2acc48a58d50845db516ec53fd25524d805e226473548eef16c9d0059f57d51e",
+              "meta": "37b349cc954aca45e65817a10946ad5dfa21a08030af01ffc3da9267769824f2",
+              "outbox": "ec6d8815a86eb84751b56400d84e73d9bdae975ee14aa782f2fbeabe479080b3",
+              "runs": "bd3e9f3502c66cadec3cb8b55d22bf7389a85c41c65b9f10cb4e63a1a8aa9517"
+            }
+          }
+        }
+      },
+      "candidate": {
+        "median": 0.09179418999701738,
+        "p95": 0.1519526979973307,
+        "samples_seconds": [
+          0.09048699800041504,
+          0.1519526979973307,
+          0.09179418999701738
+        ],
+        "runtime": {
+          "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+          "sqlite": "3.53.1",
+          "os": "Linux-6.18.57-x86_64-with-glibc2.41",
+          "knowledge": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+          "harness": "/tmp/sqlite-final-runtime/lib/python3.12/site-packages/harness/__init__.py"
+        },
+        "databases": {
+          ".knowledge/store.sqlite3": {
+            "bytes": 69632,
+            "logical": {
+              "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "metadata": "3af7940b374a49010ae03f7e8aeb0064367894fabb5880e38ed7bdb92c9765a8",
+              "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+              "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+            }
+          },
+          ".harness/runs.sqlite3": {
+            "bytes": 52068352,
+            "logical": {
+              "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+              "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+              "events": "2acc48a58d50845db516ec53fd25524d805e226473548eef16c9d0059f57d51e",
+              "meta": "37b349cc954aca45e65817a10946ad5dfa21a08030af01ffc3da9267769824f2",
+              "outbox": "ec6d8815a86eb84751b56400d84e73d9bdae975ee14aa782f2fbeabe479080b3",
+              "runs": "bd3e9f3502c66cadec3cb8b55d22bf7389a85c41c65b9f10cb4e63a1a8aa9517"
+            }
+          }
+        }
+      },
+      "speedup": 1.7635747644030872
+    }
+  ]
+}

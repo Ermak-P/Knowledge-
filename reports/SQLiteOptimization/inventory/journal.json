@@ -1,0 +1,951 @@
+{
+  "dataset": {
+    "version": 1,
+    "root": "/tmp/sqlite-owned-final/journal-30k",
+    "kind": "journal",
+    "size": 30000,
+    "runs": 10000,
+    "events": 30000,
+    "pending": 0,
+    "revisions": 0,
+    "shared": "/tmp/sqlite-owned-final/journal-30k-shared-absent",
+    "committed": false,
+    "all_owners_validated": true,
+    "queued_candidate": "97c5f4e64a6eadaad9115611f0ef2c3c6f899489bbaf0cca90bf344e9f92714b",
+    "databases": {
+      ".knowledge/store.sqlite3": {
+        "history": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "metadata": "3af7940b374a49010ae03f7e8aeb0064367894fabb5880e38ed7bdb92c9765a8",
+        "plans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "queue": "c2ce4161d24143b156a38dd6eb02e6d77048b9e95227b7955d3b05c37e4ef484",
+        "receipts": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      ".harness/runs.sqlite3": {
+        "actions": "6c3875ca85c8a4024826e045dec12490f645a5b645fbf08f368f0a6d9a44d37d",
+        "cancels": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "events": "2acc48a58d50845db516ec53fd25524d805e226473548eef16c9d0059f57d51e",
+        "meta": "37b349cc954aca45e65817a10946ad5dfa21a08030af01ffc3da9267769824f2",
+        "outbox": "ec6d8815a86eb84751b56400d84e73d9bdae975ee14aa782f2fbeabe479080b3",
+        "runs": "bd3e9f3502c66cadec3cb8b55d22bf7389a85c41c65b9f10cb4e63a1a8aa9517"
+      }
+    },
+    "snapshot_sha256": {
+      ".knowledge/store.sqlite3": "63dc596b53241cebb5fb00b890a9ea685938049cc950b2bb9788c059b078dd7e",
+      ".harness/runs.sqlite3": "ddca0f0c549f37a9cc07dc6961ce1e9e7a183214490e44160dbd62c09b24a9c1"
+    }
+  },
+  "inventory": {
+    ".knowledge/store.sqlite3": {
+      "baseline": {
+        "sqlite": "3.53.1",
+        "page_size": 4096,
+        "page_count": 17,
+        "freelist_count": 0,
+        "journal_mode": "delete",
+        "synchronous": 2,
+        "schema": [
+          [
+            "index",
+            "sqlite_autoindex_metadata_1",
+            "metadata",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_plans_1",
+            "plans",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_queue_1",
+            "queue",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_receipts_1",
+            "receipts",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_records_1",
+            "records",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_revisions_1",
+            "revisions",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_scans_1",
+            "scans",
+            null
+          ],
+          [
+            "table",
+            "history",
+            "history",
+            "CREATE TABLE history(sequence INTEGER PRIMARY KEY, payload TEXT NOT NULL)"
+          ],
+          [
+            "table",
+            "metadata",
+            "metadata",
+            "CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT NOT NULL)"
+          ],
+          [
+            "table",
+            "plans",
+            "plans",
+            "CREATE TABLE plans(id TEXT PRIMARY KEY, payload TEXT NOT NULL, status TEXT NOT NULL)"
+          ],
+          [
+            "table",
+            "queue",
+            "queue",
+            "CREATE TABLE queue(id TEXT PRIMARY KEY, payload TEXT NOT NULL, status TEXT NOT NULL, binding TEXT)"
+          ],
+          [
+            "table",
+            "receipts",
+            "receipts",
+            "CREATE TABLE receipts(plan TEXT PRIMARY KEY,payload TEXT NOT NULL)"
+          ],
+          [
+            "table",
+            "records",
+            "records",
+            "CREATE TABLE records(id TEXT PRIMARY KEY, kind TEXT NOT NULL, payload TEXT NOT NULL)"
+          ],
+          [
+            "table",
+            "reviews",
+            "reviews",
+            "CREATE TABLE reviews(sequence INTEGER PRIMARY KEY,payload TEXT NOT NULL)"
+          ],
+          [
+            "table",
+            "revisions",
+            "revisions",
+            "CREATE TABLE revisions(id TEXT, revision INTEGER, payload TEXT NOT NULL, PRIMARY KEY(id,revision))"
+          ],
+          [
+            "table",
+            "scans",
+            "scans",
+            "CREATE TABLE scans(id TEXT PRIMARY KEY,payload TEXT NOT NULL)"
+          ]
+        ],
+        "indexes": {
+          "history": [],
+          "metadata": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_metadata_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "key",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "plans": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_plans_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "id",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "queue": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_queue_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "id",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "receipts": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_receipts_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "plan",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "records": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_records_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "id",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "reviews": [],
+          "revisions": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_revisions_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "id",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  1,
+                  "revision",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  2,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "scans": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_scans_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "id",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    },
+    ".harness/runs.sqlite3": {
+      "baseline": {
+        "sqlite": "3.53.1",
+        "page_size": 4096,
+        "page_count": 12593,
+        "freelist_count": 0,
+        "journal_mode": "delete",
+        "synchronous": 2,
+        "schema": [
+          [
+            "index",
+            "sqlite_autoindex_actions_1",
+            "actions",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_cancels_1",
+            "cancels",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_events_1",
+            "events",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_meta_1",
+            "meta",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_outbox_1",
+            "outbox",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_runs_1",
+            "runs",
+            null
+          ],
+          [
+            "table",
+            "actions",
+            "actions",
+            "CREATE TABLE actions(run TEXT,id TEXT,payload TEXT,PRIMARY KEY(run,id))"
+          ],
+          [
+            "table",
+            "cancels",
+            "cancels",
+            "CREATE TABLE cancels(run TEXT PRIMARY KEY,at REAL)"
+          ],
+          [
+            "table",
+            "events",
+            "events",
+            "CREATE TABLE events(run TEXT,sequence INTEGER,payload TEXT,PRIMARY KEY(run,sequence))"
+          ],
+          [
+            "table",
+            "meta",
+            "meta",
+            "CREATE TABLE meta(key TEXT PRIMARY KEY,value TEXT)"
+          ],
+          [
+            "table",
+            "outbox",
+            "outbox",
+            "CREATE TABLE outbox(id TEXT PRIMARY KEY,run TEXT,payload TEXT)"
+          ],
+          [
+            "table",
+            "runs",
+            "runs",
+            "CREATE TABLE runs(id TEXT PRIMARY KEY,payload TEXT NOT NULL)"
+          ]
+        ],
+        "indexes": {
+          "actions": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_actions_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "run",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  1,
+                  "id",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  2,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "cancels": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_cancels_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "run",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "events": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_events_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "run",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  1,
+                  "sequence",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  2,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "meta": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_meta_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "key",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "outbox": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_outbox_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "id",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "runs": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_runs_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "id",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ]
+        }
+      },
+      "opt_in": {
+        "sqlite": "3.53.1",
+        "page_size": 4096,
+        "page_count": 12711,
+        "freelist_count": 0,
+        "journal_mode": "delete",
+        "synchronous": 2,
+        "schema": [
+          [
+            "index",
+            "ix_outbox_run",
+            "outbox",
+            "CREATE INDEX ix_outbox_run ON outbox(run)"
+          ],
+          [
+            "index",
+            "sqlite_autoindex_actions_1",
+            "actions",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_cancels_1",
+            "cancels",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_events_1",
+            "events",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_meta_1",
+            "meta",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_outbox_1",
+            "outbox",
+            null
+          ],
+          [
+            "index",
+            "sqlite_autoindex_runs_1",
+            "runs",
+            null
+          ],
+          [
+            "table",
+            "actions",
+            "actions",
+            "CREATE TABLE actions(run TEXT,id TEXT,payload TEXT,PRIMARY KEY(run,id))"
+          ],
+          [
+            "table",
+            "cancels",
+            "cancels",
+            "CREATE TABLE cancels(run TEXT PRIMARY KEY,at REAL)"
+          ],
+          [
+            "table",
+            "events",
+            "events",
+            "CREATE TABLE events(run TEXT,sequence INTEGER,payload TEXT,PRIMARY KEY(run,sequence))"
+          ],
+          [
+            "table",
+            "meta",
+            "meta",
+            "CREATE TABLE meta(key TEXT PRIMARY KEY,value TEXT)"
+          ],
+          [
+            "table",
+            "outbox",
+            "outbox",
+            "CREATE TABLE outbox(id TEXT PRIMARY KEY,run TEXT,payload TEXT)"
+          ],
+          [
+            "table",
+            "runs",
+            "runs",
+            "CREATE TABLE runs(id TEXT PRIMARY KEY,payload TEXT NOT NULL)"
+          ]
+        ],
+        "indexes": {
+          "actions": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_actions_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "run",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  1,
+                  "id",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  2,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "cancels": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_cancels_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "run",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "events": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_events_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "run",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  1,
+                  "sequence",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  2,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "meta": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_meta_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "key",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "outbox": [
+            {
+              "index_list": [
+                0,
+                "ix_outbox_run",
+                0,
+                "c",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  1,
+                  "run",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            },
+            {
+              "index_list": [
+                1,
+                "sqlite_autoindex_outbox_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "id",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ],
+          "runs": [
+            {
+              "index_list": [
+                0,
+                "sqlite_autoindex_runs_1",
+                1,
+                "pk",
+                0
+              ],
+              "index_xinfo": [
+                [
+                  0,
+                  0,
+                  "id",
+                  0,
+                  "BINARY",
+                  1
+                ],
+                [
+                  1,
+                  -1,
+                  null,
+                  0,
+                  "BINARY",
+                  0
+                ]
+              ]
+            }
+          ]
+        }
+      },
+      "index_allocated_bytes": 483328
+    }
+  },
+  "policy": "raw SQL diagnostics; copied snapshots retain original identity; no product effects"
+}

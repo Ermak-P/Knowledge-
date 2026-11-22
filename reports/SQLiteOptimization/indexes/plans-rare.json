@@ -1,0 +1,202 @@
+{
+  "sqlite": "3.53.1",
+  "dataset": {
+    "version": 1,
+    "root": "/tmp/sqlite-ready-benchmarks/queue-10k-committed",
+    "kind": "queue",
+    "size": 10000,
+    "events": 0,
+    "pending": 1,
+    "revisions": 3,
+    "shared": "/tmp/sqlite-ready-benchmarks/queue-10k-committed-shared-absent",
+    "committed": true,
+    "duplicate": {
+      "version": 2,
+      "operation": "batch",
+      "operations": [
+        {
+          "action": "add",
+          "kind": "evidence",
+          "id": "fixture.evidence.0",
+          "expected": 0,
+          "payload": {
+            "id": "fixture.evidence.0",
+            "type": "direct-technical",
+            "status": "active",
+            "source": "Fixture.cs",
+            "provenance": {
+              "actor": "synthetic-benchmark",
+              "method": "fixture"
+            },
+            "captured_at": "2026-11-22T00:00:00Z",
+            "location": "Fixture.cs#L1",
+            "description": "Synthetic fixture declaration.",
+            "substantiates": []
+          },
+          "successor": null
+        }
+      ],
+      "reason": "fixture-0",
+      "source": null
+    },
+    "new": {
+      "version": 2,
+      "operation": "batch",
+      "operations": [
+        {
+          "action": "add",
+          "kind": "evidence",
+          "id": "fixture.evidence.10000",
+          "expected": 0,
+          "payload": {
+            "id": "fixture.evidence.10000",
+            "type": "direct-technical",
+            "status": "active",
+            "source": "Fixture.cs",
+            "provenance": {
+              "actor": "synthetic-benchmark",
+              "method": "fixture"
+            },
+            "captured_at": "2026-11-22T00:00:00Z",
+            "location": "Fixture.cs#L1",
+            "description": "Synthetic fixture declaration.",
+            "substantiates": []
+          },
+          "successor": null
+        }
+      ],
+      "reason": "fixture-10000",
+      "source": null
+    },
+    "databases": {
+      ".knowledge/store.sqlite3": {
+        "history": "cfa0f8c4ef615204907a1b7b04cb39a424a9a704eacf14f89eb7770fb5e70b61",
+        "metadata": "fb9dff6ad6efbc52d697a274acc3a34b873b438a28e6abe8354f45e993b8cb2e",
+        "plans": "718f520f4c5cec746477697f87f9106f9438690b1320de904e52e07ab9114b7a",
+        "queue": "6601ee538b480910d2a2e9198536ee50a12f2adcb6bdaca176adeac6353716f3",
+        "receipts": "59e7bcd230a03d54e7737d803c41edbf82db9203fd6135fb69cdcbd29dbfc759",
+        "records": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "reviews": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "revisions": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "scans": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "snapshot_sha256": {
+      ".knowledge/store.sqlite3": "0a6d02f09225dc91d6e55f7ae23de9c362debcc0e722fca143b31f2d878500cc"
+    }
+  },
+  "experiments": [
+    {
+      "index": "none",
+      "ddl": null,
+      "rows": 1,
+      "plan": [
+        [
+          4,
+          0,
+          224,
+          "SCAN plans USING INDEX sqlite_autoindex_plans_1"
+        ]
+      ],
+      "samples_seconds": [
+        0.00022598099894821644,
+        0.00015809800243005157,
+        0.0001340220042038709,
+        0.000139670999487862,
+        0.00017257098807021976,
+        0.00017316101002506912,
+        0.0001940829970408231,
+        0.000137187002110295,
+        0.00012077200517524034,
+        0.00011844799155369401,
+        0.0001175070065073669,
+        0.00011825899127870798,
+        0.00020286599465180188,
+        0.00012370699550956488,
+        0.00017668699729256332,
+        0.0001268619962502271,
+        0.00011633599933702499,
+        0.00011741700291167945,
+        0.00011542400170583278,
+        0.00011644599726423621
+      ],
+      "median": 0.000130442000227049,
+      "bytes": 7929856
+    },
+    {
+      "index": "ordinary",
+      "ddl": "CREATE INDEX ix_lab ON plans(status,id)",
+      "rows": 1,
+      "plan": [
+        [
+          3,
+          0,
+          55,
+          "SEARCH plans USING COVERING INDEX ix_lab (status=?)"
+        ]
+      ],
+      "samples_seconds": [
+        4.6670029405504465e-06,
+        3.6059936974197626e-06,
+        3.3249962143599987e-06,
+        3.716006176546216e-06,
+        3.4050026442855597e-06,
+        3.325010766275227e-06,
+        3.345005097799003e-06,
+        3.4050026442855597e-06,
+        3.555003786459565e-06,
+        3.455003025010228e-06,
+        3.596011083573103e-06,
+        3.1849922379478812e-06,
+        3.3750111469998956e-06,
+        3.435008693486452e-06,
+        3.1849922379478812e-06,
+        2.6200010324828327e-05,
+        3.635010216385126e-06,
+        3.355002263560891e-06,
+        3.2039970392361283e-06,
+        3.8660073187202215e-06
+      ],
+      "median": 3.420005668886006e-06,
+      "bytes": 7966720
+    },
+    {
+      "index": "partial",
+      "ddl": "CREATE INDEX ix_lab ON plans(id) WHERE status='COMMITTED'",
+      "rows": 1,
+      "plan": [
+        [
+          3,
+          0,
+          202,
+          "SCAN plans USING COVERING INDEX ix_lab"
+        ]
+      ],
+      "samples_seconds": [
+        4.4769985834136605e-06,
+        3.796012606471777e-06,
+        3.5749981179833412e-06,
+        6.139991455711424e-06,
+        3.7150020943954587e-06,
+        3.4259865060448647e-06,
+        3.245004336349666e-06,
+        3.1740055419504642e-06,
+        3.15399665851146e-06,
+        3.0750088626518846e-06,
+        3.5660050343722105e-06,
+        3.4149998100474477e-06,
+        3.5150005714967847e-06,
+        3.355002263560891e-06,
+        3.335007932037115e-06,
+        3.163993824273348e-06,
+        3.1340023269876838e-06,
+        3.364999429322779e-06,
+        3.3050018828362226e-06,
+        3.163993824273348e-06
+      ],
+      "median": 3.360000846441835e-06,
+      "bytes": 7929856
+    }
+  ],
+  "canonical_rows_changed": false
+}
