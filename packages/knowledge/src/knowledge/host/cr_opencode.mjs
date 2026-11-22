@@ -39,7 +39,9 @@ export default async function UpdateByCR({ directory }) {
       let current = await call("resume", { session: active.get(input.sessionID) });
       if (current.missing.length && /https:\/\//.test(text)) {
         current = await call("start", { session: current.session, arguments: text, host_session: input.sessionID, language: settings.language || "auto" });
+        active.set(input.sessionID, current.session);
         output.parts.push({ ...part(input.sessionID, "CR link progress: " + JSON.stringify(current)), messageID: output.message.id });
+        return;
       }
       // Command templates and pasted source exports are not interview answers.
       // Capture user turns only after analysis has produced actual questions or

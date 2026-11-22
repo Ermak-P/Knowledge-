@@ -93,6 +93,13 @@ class Workflow:
         if new:life.upgrade(self.store,life.upgrade_preview(self.store)['fingerprint'])
         with self.store.connection(True) as db:
             states=[loads(p) for p, in db.execute('SELECT value FROM metadata WHERE key LIKE ?',(PREFIX+'%',))]
+            if session:
+                draft=next((s for s in states if s['id']==session),None)
+                if draft is not None and draft['source'] is None:
+                    combined={**draft['links'],**links}
+                    completed=[s for s in states if s['id']!=session and len(combined)==2 and s['links']==combined]
+                    require(len(completed)<=1,'ucr-ambiguous-session')
+                    if completed:session=completed[0]['id']
             matches=[s for s in states if s['id']==session] if session else [s for s in states if s['links']==links] if len(links)==2 else [s for s in states if host_session and s['host_session']==host_session]
             require(len(matches)<=1,'ucr-ambiguous-session')
             if session:require(matches,'ucr-unknown-session')

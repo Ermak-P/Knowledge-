@@ -162,6 +162,12 @@ Only corrected candidates owned by this workflow can be explicitly superseded by
 its preparation. Retained obsolete pending work can require explicit operator
 disposition; no broad queue approval is inferred from the command invocation.
 
+The host must reobserve CR/PR metadata before final preparation/apply and submit
+changed snapshots through `sources`; exports have only their recorded observation
+authority. Local source/Knowledge fingerprints are checked by the backend on
+every continuation. Remote services are not polled inside a write transaction,
+and no background tracker subscription or offline remote-freshness proof is claimed.
+
 After concrete review, exact-plan approval is durably recorded before normal
 Store.apply; commit/ack crashes resume idempotently. Canonical IDs/revisions and a
 normal context/lookup readback are returned. Partial coverage, skipped reasons and

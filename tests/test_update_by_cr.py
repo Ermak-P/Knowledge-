@@ -116,6 +116,10 @@ class UpdateByCR(unittest.TestCase):
     def test_repeated_completed_command_is_deduplicated(self):
         saved=self.save();before=self.w.store.export()['revisions'];again=self.w.start(cr=self.snapshot['cr']['url'],pr=self.snapshot['pr']['url'])
         self.assertEqual(again['session'],saved['session']);self.assertEqual(again['receipt'],saved['receipt']);self.assertEqual(before,self.w.store.export()['revisions'])
+        draft=self.w.start(host_session='new-chat',language='ru')
+        continued=self.w.start(session=draft['session'],arguments=self.snapshot['cr']['url']+' '+self.snapshot['pr']['url'],host_session='new-chat')
+        self.assertEqual(continued['session'],saved['session']);self.assertEqual(continued['receipt'],saved['receipt'])
+        self.assertEqual(self.w.start(cr=self.snapshot['cr']['url'],pr=self.snapshot['pr']['url'])['session'],saved['session'])
     def test_changed_head_invalidates_analysis_keeps_bound_answers(self):
         s=self.ready();old=self.w.get(s['session']);(self.root/'Retry.cs').write_text('public class Revised {}\n');git(self.root,'add','.');git(self.root,'commit','-m','synthetic force-push replacement')
         self.assertEqual(self.w.resume(s['session'])['state'],'stale')

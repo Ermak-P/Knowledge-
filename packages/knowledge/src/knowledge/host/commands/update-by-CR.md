@@ -52,6 +52,9 @@ text into shell blocks. The backend also has the `knowledge-update-cr` entrypoin
    in a new chat use `/update-by-CR --resume SESSION_ID` to rebind the foreground.
    When the user stops, `finish` preserves unresolved points without inventing why.
 6. `prepare` creates validated ordinary candidates and a concrete exact plan. It
+   requires a fresh source observation: reobserve CR/PR metadata with the available
+   provider tools, or confirm the supplied export's observation scope. Submit any
+   changed snapshot through `sources` and reassess; never reuse a stale approval.
    refuses unrelated pending candidates; resolve them independently, never silently
    defer or approve them. Show the reviewed delta, confidence, applicability, open
    points and fresh fingerprint. Only the user's explicit approval of THAT plan
