@@ -6,6 +6,8 @@ candidate/plan/apply/acknowledge APIs. No new database, inference dependency or
 application rollout is introduced.
 
 Implementation revision: `b57f5e8c26992c5bd95cf8d22b46f1a9f485187d`.
+Final CI qualification revision: `e39642bb3feb61d8355b06ffa88fb4e01244ff16`
+(validation note only; identical product/test bytes).
 Source identity: `4ce84bd346cad8fa0bd3177617c7b718984372524556b37360ebf3fddb34a0b0`.
 Started clean at reviewed head `3c9d1ed6aa`; current main was checked at
 `b1e88a848`. Work remains on `codex/update-by-cr`, in place, without worktrees,
@@ -62,8 +64,19 @@ Windows 400 PASS), retained in `qualification/ci-intermediate`.
 The [final-source full local qualification](qualification-final/run.json) is
 **PASS_PORTABLE**, all **25 commands PASS**, unchanged inputs. Its 401 tests
 include the additional legacy-plan guard: **390 PASS, 11 Windows-only SKIP**.
-Final-source CI receipts remain pending; intermediate results are not relabelled
-as final.
+Final-source [CI qualification](ci/validation.json),
+[run 45130888194](https://github.com/Ermak-P/Knowledge-/actions/runs/45130888194),
+passes both platforms:
+
+| Platform | Status | Tests | Commands |
+| --- | --- | --- | --- |
+| Linux | PASS_PORTABLE | 390 PASS, 11 Windows-only SKIP; 0 failures/errors | 25 PASS |
+| Native Windows / PowerShell 5.1 | PASS_NATIVE | 401 PASS, no skips/failures/errors | 26 PASS |
+
+The qualification commit adds only a validation note; all 251 declared source
+assets, source identity, wheel/ZIP bytes and test logic are unchanged from
+`b57f5e8c26`. Every source/log/release-asset hash was verified. Both ledgers report
+unchanged inputs. Intermediate and failed attempts remain separately retained.
 
 The additional regression constructs a valid pre-R1 pending plan through normal
 Store APIs. Before the final guard it reproduced the unsafe write
@@ -94,6 +107,14 @@ unchanged by R1. Its isolated repeat passed in 1.286 seconds
 (`local/platform-retry.log`); the complete official route then passed unchanged.
 The failed full ledger remains retained
 and is not labelled PASS.
+
+The first final-code Windows CI attempt is retained under
+`failures/ci-b57-first/`: all 39 affected tests passed, while an unchanged
+persistent-instructions concurrent shared-root test raised
+`unsafe-filesystem-object` (400 PASS, 1 ERROR). No safety guard or test was
+weakened. REST rerun requests returned Forbidden; the validation-note push
+triggered the existing complete route with the same source identity. Its
+successful Linux/native Windows results are the final receipts above.
 
 Live-model semantic replay is **NOT_RUN**. R1 includes both installed hook/CLI
 checks and a real native OpenCode 1.19.6 run with a controlled responder. These

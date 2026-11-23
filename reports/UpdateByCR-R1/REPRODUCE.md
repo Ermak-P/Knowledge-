@@ -2,6 +2,8 @@
 
 Use implementation revision `b57f5e8c26992c5bd95cf8d22b46f1a9f485187d`,
 Python 3.12, Git, Node and the existing .NET SDKs from the normal qualification.
+CI qualification revision `e39642bb3feb61d8355b06ffa88fb4e01244ff16` adds only
+the validation checkpoint note; its declared source and package bytes are identical.
 
 ```text
 python scripts/setup_p3.py
@@ -40,7 +42,7 @@ CI results are retrieved as data without executing artifact code:
 
 ```text
 git fetch origin p4-ci-evidence
-python reports/UpdateByCR-R1/collect_ci.py --commit b57f5e8c26992c5bd95cf8d22b46f1a9f485187d --source reports/UpdateByCR-R1/source.json --distribution reports/UpdateByCR-R1/distribution --output reports/UpdateByCR-R1/ci
+python reports/UpdateByCR-R1/collect_ci.py --commit e39642bb3feb61d8355b06ffa88fb4e01244ff16 --source reports/UpdateByCR-R1/source.json --distribution reports/UpdateByCR-R1/distribution --output reports/UpdateByCR-R1/ci
 python reports/UpdateByCR-R1/verify_packet.py
 ```
 
