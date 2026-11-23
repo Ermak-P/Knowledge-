@@ -1,6 +1,6 @@
 # Reproduce R1
 
-Use implementation revision `e60b7e48d45297fdf772b03ab393c7a1fe87d347`,
+Use implementation revision `b57f5e8c26992c5bd95cf8d22b46f1a9f485187d`,
 Python 3.12, Git, Node and the existing .NET SDKs from the normal qualification.
 
 ```text
@@ -16,11 +16,11 @@ and Knowledge-only checks. The R1 methods are part of full test discovery.
 Do not reinstall an environment while its tests are running.
 
 The delivered [ZIP](distribution/knowledge-harness-0.5.0rc1.zip) has SHA-256
-`9e13e47c34c1cfe52907319638907242584313128ad21a9f5ac3ca6f433a4b8d`.
+`7cb633e1823e36e3436dd43a19529ca36002717a922850d4e657ba4fbd121090`.
 `distribution/RELEASE.json` seals every asset. Rebuild and install outside checkout:
 
 ```text
-.venv/bin/python scripts/build_p4.py --output /tmp/ucr-r1-kit --source-id c991f29783a792714d0f837dd199f856eed1eb093df0ecabb6ae3cea148ec245
+.venv/bin/python scripts/build_p4.py --output /tmp/ucr-r1-kit --source-id 4ce84bd346cad8fa0bd3177617c7b718984372524556b37360ebf3fddb34a0b0
 python /tmp/ucr-r1-kit/knowledge-harness-0.5.0rc1/install.py install --env /tmp/ucr-r1-independent --profile knowledge
 /tmp/ucr-r1-independent/bin/python -I -B /absolute/repo/reports/UpdateByCR-R1/fixed_probes.py --output /tmp/ucr-r1-probes
 ```
@@ -40,7 +40,7 @@ CI results are retrieved as data without executing artifact code:
 
 ```text
 git fetch origin p4-ci-evidence
-python reports/UpdateByCR-R1/collect_ci.py --commit e60b7e48d45297fdf772b03ab393c7a1fe87d347 --source reports/UpdateByCR-R1/source.json --distribution reports/UpdateByCR-R1/distribution --output reports/UpdateByCR-R1/ci
+python reports/UpdateByCR-R1/collect_ci.py --commit b57f5e8c26992c5bd95cf8d22b46f1a9f485187d --source reports/UpdateByCR-R1/source.json --distribution reports/UpdateByCR-R1/distribution --output reports/UpdateByCR-R1/ci
 python reports/UpdateByCR-R1/verify_packet.py
 ```
 

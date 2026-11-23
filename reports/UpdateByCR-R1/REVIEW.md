@@ -5,8 +5,8 @@ keeps the existing command/backend split, record schemas and normal
 candidate/plan/apply/acknowledge APIs. No new database, inference dependency or
 application rollout is introduced.
 
-Implementation revision: `e60b7e48d45297fdf772b03ab393c7a1fe87d347`.
-Source identity: `c991f29783a792714d0f837dd199f856eed1eb093df0ecabb6ae3cea148ec245`.
+Implementation revision: `b57f5e8c26992c5bd95cf8d22b46f1a9f485187d`.
+Source identity: `4ce84bd346cad8fa0bd3177617c7b718984372524556b37360ebf3fddb34a0b0`.
 Started clean at reviewed head `3c9d1ed6aa`; current main was checked at
 `b1e88a848`. Work remains on `codex/update-by-cr`, in place, without worktrees,
 merges, user IPM writes or global OpenCode/model changes.
@@ -29,25 +29,42 @@ are preserved.
 
 ## Executed checks
 
-* **38 focused tests PASS**: the existing 27 and 11 new R1 regression methods.
+* **39 focused tests PASS**: the existing 27 and 12 R1 regression methods.
   [Focused log](local/focused.log).
-* **11 installed Knowledge-only R1 probes PASS**, with neither Harness nor MCP
+* **401 final-source full installed Linux regressions PASS**: 390 PASS,
+  11 Windows-only SKIP, no failures/errors
+  ([raw results](local/full-tests.json), [log](local/full-regressions.log)).
+* **400 intermediate installed Linux regressions PASS** at `e60b7e48d4`:
+  389 PASS, 11 Windows-only SKIP, no failures/errors
+  ([raw test results](qualification/tests.json), [log](qualification/regressions.log)).
+* **12 installed Knowledge-only R1 probes PASS**, with neither Harness nor MCP
   available. [Result](fixed-probes/result.json). The captured JSON per method
   contains actual before/after records, canonical receipts, default/optional
   context, queue dispositions, revision history and retained workflow state.
   These execute normal installed APIs in synthetic Git projects outside checkout.
 * [Installed byte proof](installed-bytes.json) verifies all **61** packaged assets
   against the exact Git revision and two installations outside checkout.
-  ZIP SHA-256: `9e13e47c34c1cfe52907319638907242584313128ad21a9f5ac3ca6f433a4b8d`.
+  ZIP SHA-256: `7cb633e1823e36e3436dd43a19529ca36002717a922850d4e657ba4fbd121090`.
 * The sequential-native test invokes the **published plugin hooks and installed
   CLI through Node**, starts the next pair in the same chat, repeats without
   arguments, recreates the plugin, and explicitly resumes B. A's receipt remains
   independently accessible. This is a hook/backend contract test, not a new
   native OpenCode UI or live-model run.
 
-The full installed Linux route and source-bound Linux/native Windows qualification
-are running. Their final ledgers and status will be retained in this packet;
-focused results do not substitute for native Windows qualification.
+The intermediate installed Linux route at `e60b7e48d4` is **PASS_PORTABLE**, all **25 commands PASS**,
+with unchanged inputs ([complete raw run](qualification/run.json)). It includes
+upgrade/recovery, .NET behavior, Knowledge-only, uninstall/reinstall and the full
+400-test suite. Its source-bound CI also passes both platforms (Linux 389 PASS/11 SKIP,
+Windows 400 PASS), retained in `qualification/ci-intermediate`. A final-source
+401-test qualification includes the additional legacy-plan guard. Its final
+receipts remain pending; intermediate results are not relabelled as final.
+
+The additional regression constructs a valid pre-R1 pending plan through normal
+Store APIs. Before the final guard it reproduced the unsafe write
+(`failures/legacy-plan-before-guard.log`). Apply now refuses it, interrupted
+prepared recovery clears stale approval without a canonical write, and explicit
+source reobservation replaces its owned candidate safely. Already committed
+history is never rewritten automatically.
 
 ## Raw proof by finding
 
@@ -68,8 +85,8 @@ The first full installed Linux attempt ran all 400 tests but hit one
 `harness-busy` error while the existing supervisor-death test polled SQLite during
 startup (`failures/qualification-first/`). Harness and that platform test were
 unchanged by R1. Its isolated repeat passed in 1.286 seconds
-(`local/platform-retry.log`); the complete official route is being repeated
-without implementation or test changes. The failed full ledger remains retained
+(`local/platform-retry.log`); the complete official route then passed unchanged.
+The failed full ledger remains retained
 and is not labelled PASS.
 
 Live-model semantic replay and a new native OpenCode UI run are **NOT_RUN** in R1.
