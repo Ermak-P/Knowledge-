@@ -282,10 +282,8 @@ function(root,{root/'current.json':b'new',root/'command.md':b'new'})
 
 class MachineMcpTests(unittest.TestCase):
     def test_real_stdio_roots_select_two_stores_and_reject_ambiguity(self):
-        import asyncio
-        from mcp import ClientSession, StdioServerParameters
-        from mcp.client.stdio import stdio_client
-        from mcp.types import ListRootsResult, Root
+        import queue
+        import threading
         from fixtures import addition
         with tempfile.TemporaryDirectory() as tmp:
             install, first = fixture(tmp)
@@ -295,27 +293,55 @@ class MachineMcpTests(unittest.TestCase):
                 store.submit(addition('machine.common', text))
                 plan = store.prepare(); store.apply(plan['fingerprint'], plan['fingerprint']); store.acknowledge(plan['fingerprint'])
             roots = [first]
-            async def list_roots(context): return ListRootsResult(roots=[Root(uri=p.as_uri()) for p in roots])
-            async def exercise():
-                import anyio
-                verified = False
+            # Exercise both directions of the actual wire protocol. In SDK 1.30
+            # a Windows client stream-close race can replace an assertion/error
+            # with BrokenResourceError; this peer preserves the exact response.
+            messages = queue.Queue(); roots_requests = []
+            with tempfile.TemporaryFile() as errors:
+                process = subprocess.Popen([sys.executable, '-I', '-B', '-X', 'utf8', '-m', 'knowledge.machine_mcp', '--installation', str(install)],
+                                           stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=errors)
+                def reader():
+                    for line in process.stdout: messages.put(line)
+                    messages.put(None)
+                thread = threading.Thread(target=reader, daemon=True); thread.start()
+                def send(value):
+                    process.stdin.write((json.dumps({'jsonrpc': '2.0', **value}) + '\n').encode('utf-8')); process.stdin.flush()
+                def request(identifier, method, params):
+                    send({'id': identifier, 'method': method, 'params': params})
+                    deadline = time.monotonic() + 20
+                    while True:
+                        line = messages.get(timeout=max(.001, deadline - time.monotonic()))
+                        self.assertIsNotNone(line, 'MCP server exited before responding to ' + method)
+                        value = json.loads(line)
+                        self.assertEqual(value['jsonrpc'], '2.0')
+                        if value.get('method') == 'roots/list':
+                            roots_requests.append(value['id'])
+                            send({'id': value['id'], 'result': {'roots': [{'uri': p.as_uri()} for p in roots]}})
+                        elif value.get('id') == identifier:
+                            self.assertNotIn('error', value, value)
+                            return value['result']
+                        else:
+                            self.assertNotIn('id', value, value)
                 try:
-                    async with asyncio.timeout(30):
-                        async with stdio_client(StdioServerParameters(command=sys.executable, args=['-I', '-B', '-m', 'knowledge.machine_mcp', '--installation', str(install)])) as (reader, writer):
-                            async with ClientSession(reader, writer, list_roots_callback=list_roots) as session:
-                                await session.initialize()
-                                for directory, text in ((first, 'FIRST unique'), (second, 'SECOND unique')):
-                                    roots[:] = [directory]
-                                    value = await session.call_tool('knowledge_get_claim', {'identifier': 'machine.common'})
-                                    self.assertIn(text, value.content[0].text)
-                                roots[:] = [first, second]
-                                value = await session.call_tool('knowledge_get_claim', {'identifier': 'machine.common'})
-                                self.assertEqual(json.loads(value.content[0].text)['error'], 'ambiguous-or-missing-workspace-roots')
-                                verified = True
-                except* anyio.BrokenResourceError:
-                    if not verified: raise
-                    print('MCP SDK 1.30 teardown race handled after all RPC assertions passed', file=sys.stderr)
-            asyncio.run(exercise())
+                    initialized = request(101, 'initialize', {'protocolVersion': '2025-11-25', 'clientInfo': {'name': 'knowledge-wire-test', 'version': '1'}, 'capabilities': {'roots': {}}})
+                    self.assertIn('tools', initialized['capabilities'])
+                    send({'method': 'notifications/initialized'})
+                    self.assertEqual(len(request(102, 'tools/list', {})['tools']), 4)
+                    for identifier, directory, text in ((103, first, 'FIRST unique'), (104, second, 'SECOND unique')):
+                        roots[:] = [directory]
+                        value = request(identifier, 'tools/call', {'name': 'knowledge_get_claim', 'arguments': {'identifier': 'machine.common'}})
+                        self.assertFalse(value.get('isError'), value)
+                        self.assertIn(text, value['content'][0]['text'])
+                    roots[:] = [first, second]
+                    value = request(105, 'tools/call', {'name': 'knowledge_get_claim', 'arguments': {'identifier': 'machine.common'}})
+                    self.assertEqual(json.loads(value['content'][0]['text'])['error'], 'ambiguous-or-missing-workspace-roots')
+                    self.assertEqual(len(roots_requests), 3)
+                finally:
+                    process.stdin.close()
+                    try: process.wait(timeout=5)
+                    except subprocess.TimeoutExpired: process.kill(); process.wait(timeout=5)
+                    thread.join(timeout=5); process.stdout.close()
+                    errors.seek(0); print(errors.read().decode('utf-8', errors='replace'), file=sys.stderr)
 
 
 class ReviewedCandidateTests(unittest.TestCase):
