@@ -389,3 +389,16 @@ class IncrementalIdentityTests(unittest.TestCase):
             self.assertEqual(set(result['coverage']), {'Новый файл.cs'})
             self.assertFalse(result['identity_verification']['complete'])
             self.assertFalse(result['candidates'])
+
+class PublicationSnapshotTests(unittest.TestCase):
+    def test_edit_before_journal_capture_is_preserved(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); provider = root / 'provider.json'
+            provider.write_bytes(b'factory default')
+            expected = {provider: installer['sha'](provider), root / 'current.json': None}
+            provider.write_bytes(b'user edit after the publication decision')
+            with self.assertRaisesRegex(installer['InstallError'], 'Concurrent edit before'):
+                installer['transaction'](root, {provider: b'new factory', root / 'current.json': b'new'}, expected_before=expected)
+            self.assertEqual(provider.read_bytes(), b'user edit after the publication decision')
+            self.assertFalse((root / 'current.json').exists())
+            self.assertFalse((root / 'transaction.json').exists())

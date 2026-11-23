@@ -86,13 +86,14 @@ def main():
         previous = {name: (runtime / name).read_bytes() for name in ('current.json', 'knowledge-machine-install.json', 'launch.py')}
         # Real staging/handshake, then a transaction fault. Rollback must retain
         # the previous actual installed interpreter and global registration.
+        previous_factory_bytes = (kit / 'default-provider.json').read_bytes()
         factory['provider']['model'] = 'fault-factory-demo'; write(kit / 'default-provider.json', factory)
         manifest['files']['default-provider.json'] = sha(kit / 'default-provider.json'); write(kit / 'RELEASE.json', manifest)
         namespace = runpy.run_path(str(kit / 'machine-install.py'))
         with_env = dict(os.environ)
         try:
             os.environ.update(env)
-            try: namespace['install'](kit, runtime, fail_after=8)
+            try: namespace['install'](kit, runtime, fail_after=9)
             except namespace['InstallError'] as error: assert 'Injected' in str(error), str(error)
             else: raise AssertionError('Transaction fault did not occur')
         finally:
@@ -101,6 +102,27 @@ def main():
         assert read(provider) == custom and shared.read_bytes() == b'preserve user memory'
         command('previous-generation-still-operates', [py_at(runtime / 'bootstrap'), '-I', runtime / 'launch.py', 'mcp', '--self-test'], env, cwd)
         result['checks']['failed_update_rolls_back_and_previous_mcp_operates'] = 'PASS'
+        # A user edits the previously unmodified factory config after the
+        # publication decision but before journal capture. Preserve that edit.
+        provider.write_bytes(previous_factory_bytes)
+        concurrent = {'provider': {**factory['provider'], 'model': 'concurrent-user-edit'}}
+        original_transaction = namespace['install'].__globals__['transaction']
+        def scheduled(root, updates, fail_after=None, **controls):
+            assert provider in updates
+            write(provider, concurrent)
+            return original_transaction(root, updates, fail_after, **controls)
+        try:
+            os.environ.update(env)
+            namespace['install'].__globals__['transaction'] = scheduled
+            try: namespace['install'](kit, runtime)
+            except namespace['InstallError'] as error: assert 'Concurrent edit before' in str(error), str(error)
+            else: raise AssertionError('Concurrent user edit was overwritten')
+        finally:
+            namespace['install'].__globals__['transaction'] = original_transaction
+            os.environ.clear(); os.environ.update(with_env)
+        assert read(provider) == concurrent
+        assert all((runtime / name).read_bytes() == payload for name, payload in previous.items())
+        result['checks']['concurrent_user_edit_before_publication_preserved'] = 'PASS'
         for path in (runtime / 'logs').iterdir(): shutil.copyfile(path, a.output / ('ready-install-' + path.name))
         # A source-only checkout with an arbitrary name, invoked from another
         # CWD. No setup/build is run by the user/trial before the launcher.
@@ -127,8 +149,10 @@ def main():
         assert changed.startswith('UPDATED')
         new_current = read(standalone / 'current.json'); assert current['source_identity'] != new_current['source_identity']
         installed_python = py_at(standalone / new_current['runtime'])
-        imported = command('installed-changed-code', [installed_python, '-I', '-c', 'import knowledge,hashlib; from pathlib import Path; assert knowledge.MACHINE_INSTALL_TEST=="changed-source-bytes"; print(hashlib.sha256(Path(knowledge.__file__).read_bytes()).hexdigest())'], source_env, cwd)
+        imported = command('installed-changed-code', [installed_python, '-I', '-c', 'import knowledge,hashlib,importlib.util; from pathlib import Path; assert importlib.util.find_spec("harness") is None; assert knowledge.MACHINE_INSTALL_TEST=="changed-source-bytes"; print(hashlib.sha256(Path(knowledge.__file__).read_bytes()).hexdigest())'], source_env, cwd)
         assert imported.strip() == changed_source_hash
+        assert (standalone / 'README.md').is_file() and (standalone / new_current['runtime'] / 'docs/AutomaticInstallation-RU.md').is_file()
+        result['checks']['standalone_without_harness_and_installed_instructions'] = 'PASS'
         result['checks']['same_version_new_source_bytes_delivered'] = 'PASS'
         shutil.rmtree(source)
         command('source-deleted-mcp', [py_at(standalone / 'bootstrap'), '-I', standalone / 'launch.py', 'mcp', '--self-test'], source_env, cwd)

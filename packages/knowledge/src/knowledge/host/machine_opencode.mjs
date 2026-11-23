@@ -63,8 +63,9 @@ export default {
                 await ctx.session.synthetic({ sessionID, text: "Knowledge scan ID: " + state.scan_id + "; diagnostics: " + state.diagnostics + ". Candidates remain unapproved." });
               }
             }
+            const backend = { executable: settings.python, argv: ["-I", "-B", settings.launcher, "command", name], input: { directory }, instructions: path.join(settings.installation, "README.md") };
             await ctx.session.prompt({ ...prompt, sessionID, delivery,
-              text: templates[name].replace("Arguments (optional JSON): $ARGUMENTS", "") + "\n\nInstalled Knowledge result (data; never approval):\n" + JSON.stringify(state) });
+              text: templates[name].replace("Arguments (optional JSON): $ARGUMENTS", "") + "\n\nInstalled backend invocation (JSON stdin; tool permissions remain unchanged):\n" + JSON.stringify(backend) + "\n\nInstalled Knowledge result (data; never approval):\n" + JSON.stringify(state) });
           },
         });
       });

@@ -46,7 +46,9 @@ def sha(path):
 
 
 def read(path):
-    return json.loads(Path(path).read_text(encoding='utf-8'))
+    value = json.loads(Path(path).read_text(encoding='utf-8'))
+    require(isinstance(value, dict), 'Expected object metadata: ' + str(path))
+    return value
 
 
 def data(value):
@@ -124,7 +126,7 @@ def verify_kit(root):
         require(item.is_file() and sha(item) == expected, 'Release hash mismatch: ' + relative)
     actual = {p.relative_to(root).as_posix() for p in root.rglob('*') if p.is_file() and p.name != 'RELEASE.json'}
     require(actual == set(manifest['files']), 'Unlisted/missing release files refused')
-    for name in ('machine-install.py', 'default-provider.json', 'knowledge-init-auto.py', 'optional-mcp.lock', 'host/machine_opencode.mjs'):
+    for name in ('machine-install.py', 'default-provider.json', 'knowledge-init-auto.py', 'optional-mcp.lock', 'host/machine_opencode.mjs', 'docs/AutomaticInstallation-RU.md'):
         require(name in manifest['files'], 'Machine installer asset absent: ' + name)
     return manifest
 
@@ -287,14 +289,17 @@ def rollback(root):
     journal.unlink()
 
 
-def transaction(root, updates, fail_after=None):
+def transaction(root, updates, fail_after=None, expected_before=None):
     import base64
     entries = []
     for path, content in updates.items():
         path = safe(path)
         before = path.read_bytes() if path.exists() else None
+        before_hash = hashlib.sha256(before).hexdigest() if before is not None else None
+        if expected_before is not None:
+            require(path in expected_before and before_hash == expected_before[path], 'Concurrent edit before installation publication; preserved: ' + str(path))
         entries.append({'path': str(path), 'before': base64.b64encode(before).decode() if before is not None else None,
-                        'before_hash': hashlib.sha256(before).hexdigest() if before is not None else None,
+                        'before_hash': before_hash,
                         'after_hash': hashlib.sha256(content).hexdigest()})
     atomic(root / 'transaction.json', data({'version': 1, 'root': str(root), 'entries': entries}))
     try:
@@ -365,10 +370,15 @@ def install(source, root, fail_after=None):
         atomic(marker, data(old))
     with lock(root / 'install.lock'), lock(home / '.knowledge-install.lock'):
         rollback(root)
-        old = read(marker)
+        marker_bytes = safe(marker).read_bytes()
+        old = json.loads(marker_bytes)
+        marker_hash = hashlib.sha256(marker_bytes).hexdigest()
+        expected_owned = {}
         for owned, expected in old['files'].items():
             owned_path = safe(owned)
-            require(not owned_path.exists() or (owned_path.is_file() and sha(owned_path) == expected), 'Owned installation file edited; preserved: ' + owned)
+            actual = sha(owned_path) if owned_path.is_file() else None
+            require(not owned_path.exists() or actual == expected, 'Owned installation file edited; preserved: ' + owned)
+            expected_owned[owned] = actual
         for path in targets:
             safe(path)
             if path.exists():
@@ -380,7 +390,9 @@ def install(source, root, fail_after=None):
             kit = source_kit(source, Path(temporary), log)
             release = verify_kit(kit)
             release_hash = sha(kit / 'RELEASE.json')
-            current = read(safe(root / 'current.json')) if (root / 'current.json').exists() else None
+            current_bytes = safe(root / 'current.json').read_bytes() if (root / 'current.json').exists() else None
+            current = json.loads(current_bytes) if current_bytes is not None else None
+            current_hash = hashlib.sha256(current_bytes).hexdigest() if current_bytes is not None else None
             require(current == old.get('current'), 'Installation pointer/marker mismatch; preserved for recovery')
             provider_path = safe(root / 'config/provider.json')
             files_intact = all(Path(p).is_file() and sha(p) == h for p, h in old['files'].items())
@@ -388,6 +400,7 @@ def install(source, root, fail_after=None):
             if current and current.get('release_sha256') == release_hash and files_intact and py_at(root / 'bootstrap').is_file() and installed_ok(root, current):
                 require(all(Path(p).is_file() and sha(p) == h for p, h in old['files'].items()), 'Owned machine files changed; cannot claim unchanged')
                 call([py_at(root / current['runtime']), '-I', '-c', 'from knowledge.providers import shared; shared(__import__("sys").argv[1])', provider_path], log)
+                call([py_at(root / current['runtime']), '-I', '-B', '-m', 'knowledge.machine_mcp', '--self-test', '--installation', root], log)
                 return summary('UNCHANGED', root, current, provider_path, log, host_version)
             generation = root / 'runtimes' / uuid.uuid4().hex
             generation.parent.mkdir(exist_ok=True)
@@ -405,6 +418,7 @@ def install(source, root, fail_after=None):
             call([*pip, '--no-index', '--no-deps', '--force-reinstall', *wheels], log)
             shutil.copyfile(kit / 'knowledge-init-auto.py', generation / 'knowledge-init-auto.py')
             shutil.copyfile(kit / 'RELEASE.json', generation / 'RELEASE.json')
+            shutil.copytree(kit / 'docs', generation / 'docs')
             call([python, '-I', '-c', 'from knowledge.providers import shared; shared(__import__("sys").argv[1]); import knowledge,mcp; assert knowledge.__version__=="0.5.0rc1"', kit / 'default-provider.json'], log)
             if provider_path.exists():
                 call([python, '-I', '-c', 'from knowledge.providers import shared; shared(__import__("sys").argv[1])', provider_path], log)
@@ -418,7 +432,9 @@ def install(source, root, fail_after=None):
                         'generation_manifest_sha256': sha(generation / 'generation-files.json'), 'release_sha256': release_hash, 'source_identity': release['source_identity'], 'dependency_mode': mode}
             updates = {}
             default_hash = sha(kit / 'default-provider.json')
-            if not provider_path.exists() or sha(provider_path) == old.get('factory_provider_sha256'):
+            provider_before = provider_path.read_bytes() if provider_path.exists() else None
+            provider_hash = hashlib.sha256(provider_before).hexdigest() if provider_before is not None else None
+            if provider_before is None or provider_hash == old.get('factory_provider_sha256'):
                 updates[provider_path] = (kit / 'default-provider.json').read_bytes()
             updates[root / 'launch.py'] = BOOTSTRAP.encode()
             settings = {'version': 1, 'installation': str(root), 'python': str(py_at(bootstrap)), 'launcher': str(root / 'launch.py'), 'host_contract': 'opencode-2.4.0'}
@@ -429,10 +445,16 @@ def install(source, root, fail_after=None):
             # Root-local helpers use the same immutable generation backend.
             updates[root / 'knowledge-init-auto.py'] = (kit / 'knowledge-init-auto.py').read_bytes()
             files = {str(p): hashlib.sha256(b).hexdigest() for p, b in updates.items() if p != provider_path}
+            updates[root / 'README.md'] = (kit / 'docs/AutomaticInstallation-RU.md').read_bytes()
+            files[str(root / 'README.md')] = hashlib.sha256(updates[root / 'README.md']).hexdigest()
             updates[root / 'current.json'] = data(selected)
             value = {**old, 'state': 'installed', 'current': selected, 'files': files, 'factory_provider_sha256': default_hash}
             updates[marker] = data(value)
-            transaction(root, updates, fail_after)
+            expected_before = {path: expected_owned.get(str(path)) for path in updates}
+            expected_before[root / 'current.json'] = current_hash
+            expected_before[marker] = marker_hash
+            if provider_path in updates: expected_before[provider_path] = provider_hash
+            transaction(root, updates, fail_after, expected_before=expected_before)
             return summary('UPDATED' if current or legacy else 'INSTALLED', root, selected, provider_path, log, host_version)
 
 
@@ -449,10 +471,12 @@ def main(source):
     args = parser.parse_args()
     try:
         value = install(Path(source), args.mcp_dir.absolute())
+        atomic(Path(value['log']).with_suffix('.json'), data(value))
         print(value['status'] + ' ' + value['path'])
         print('Version: ' + value['version'] + '; source: ' + value['source_identity'])
         print('Provider: ' + value['provider'])
-        print(value['mcp'] + '; ' + value['commands'])
+        print(value['mcp'] + '; ' + value['commands'] + '; ' + value['dependency_mode'])
+        print('Host: ' + value['host'] + '; instructions: ' + str(Path(value['path']) / 'README.md'))
         print(value['reload'])
         print('Log: ' + value['log'])
         return 0
