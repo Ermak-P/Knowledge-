@@ -70,10 +70,12 @@ def start(folder, root, scope, binding, max_files=100, resume=False, fresh=False
             # A terminal error/unknown outcome requires explicit observation and
             # resume. Normal repeated successful calls can verify current source.
             require(old['state'] == 'COMPLETED' or resume or fresh, 'scan-recovery-required', old)
+            if old['state'] != 'COMPLETED' and old.get('chunk_started', True) and not (folder / 'checkpoint.json').exists():
+                require(fresh, 'scan-outcome-observation-required', {'root': str(root), 'next_action': 'Use knowledge.cli scan-status for this root and inspect diagnostics before choosing explicit fresh; no automatic new scan.'})
         previous_success = metadata.exists() and old['state'] == 'COMPLETED'
         require(type(max_files) is int and 1 <= max_files <= 10000, 'invalid-scan-bound')
         state = {'version': 1, 'job': uuid.uuid4().hex, 'root': str(root), 'scope': scope, 'binding': binding,
-                 'max_files': max_files, 'previous_success': previous_success or fresh, 'state': 'STARTING', 'pid': os.getpid(), 'diagnostics': str(folder)}
+                 'max_files': max_files, 'resume': resume, 'chunk_started': False, 'previous_success': previous_success or fresh, 'state': 'STARTING', 'pid': os.getpid(), 'diagnostics': str(folder)}
         write_json(metadata, state)
         log = (folder / 'progress.log').open('ab')
         try:
@@ -112,8 +114,10 @@ def worker(folder):
         from .store import Store
         store = Store(state['root'])
         before = {row['id'] for row in store.status()['queue']}
+        state['chunk_started'] = True
+        write_json(folder / 'job.json', state)
         run(state['root'], folder, max_files=state['max_files'], fresh=fresh,
-            base=scope.get('base'), head=scope.get('head'), incremental=scope['kind'] == 'incremental')
+            base=scope.get('base'), head=scope.get('head'), incremental=scope['kind'] == 'incremental', retry_blocked=bool(state.get('resume') and checkpoint.exists() and not fresh))
         after = {row['id'] for row in store.status()['queue']}
         observed = loads((folder / 'last-result.json').read_text(encoding='utf-8'))
         reconciliation = observed['reconciliation']

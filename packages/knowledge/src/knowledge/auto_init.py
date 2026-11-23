@@ -46,7 +46,7 @@ def inside(path, root):
 
 
 def run(root, output, scan_id=None, max_files=100, max_calls=10000,
-        command_timeout=600, fresh=False, base=None, head=None, incremental=False):
+        command_timeout=600, fresh=False, base=None, head=None, incremental=False, retry_blocked=False):
     root = Path(root).resolve(strict=True)
     if not root.is_dir():
         raise ScanError('--root must be an existing project directory.')
@@ -65,6 +65,8 @@ def run(root, output, scan_id=None, max_files=100, max_calls=10000,
         scan_id = saved.get('scan_id')
         if not isinstance(scan_id, str) or not scan_id.strip():
             raise ScanError('Invalid checkpoint scan_id; inspect checkpoint.json.')
+    if retry_blocked and (not scan_id or fresh):
+        raise ScanError('--retry-blocked requires the observed scan ID/checkpoint and cannot be combined with --fresh.')
     print('Knowledge scan helper 1.1', flush=True)
     print('Project: ' + str(root), flush=True)
     print('Diagnostics: ' + str(output), flush=True)
@@ -75,6 +77,8 @@ def run(root, output, scan_id=None, max_files=100, max_calls=10000,
     for number in range(1, max_calls + 1):
         command = [sys.executable, '-I', '-B', '-X', 'utf8', '-m', 'knowledge.cli', 'knowledge-init',
                    '--root', str(root), '--max-files', str(max_files)]
+        if number == 1 and retry_blocked:
+            command.append('--retry-blocked')
         if incremental:
             command.append('--incremental')
         if base is not None:
@@ -169,6 +173,7 @@ def main():
     parser.add_argument('--root', required=True, help='Existing project directory')
     parser.add_argument('--base')
     parser.add_argument('--head')
+    parser.add_argument('--retry-blocked', action='store_true', help='Explicitly retry eligible transient read failures of the observed scan once; never bypass snapshot errors')
     parser.add_argument('--incremental', action='store_true')
     parser.add_argument('--scan-id', help='Continue an already started scan')
     parser.add_argument('--max-files', type=positive, default=100)
@@ -187,7 +192,7 @@ def main():
     output = args.output or str(base / 'Knowledge' / 'scan-helper' / key)
     try:
         return run(args.root, output, args.scan_id, args.max_files, args.max_calls,
-                   args.command_timeout, args.fresh, args.base, args.head, args.incremental)
+                   args.command_timeout, args.fresh, args.base, args.head, args.incremental, args.retry_blocked)
     except KeyboardInterrupt:
         print('\nInterrupted. Inspect diagnostics/scan-status before resuming; '
               'a completed chunk remains durable.', file=sys.stderr)

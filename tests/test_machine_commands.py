@@ -402,3 +402,21 @@ class PublicationSnapshotTests(unittest.TestCase):
             self.assertEqual(provider.read_bytes(), b'user edit after the publication decision')
             self.assertFalse((root / 'current.json').exists())
             self.assertFalse((root / 'transaction.json').exists())
+
+class BlockedRecoveryTests(unittest.TestCase):
+    def test_transient_read_failure_resumes_same_snapshot_id_through_real_cli(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            install, root = fixture(tmp, 3)
+            store = Store(root); store.init(); lifecycle.upgrade(store, lifecycle.upgrade_preview(store)['fingerprint'])
+            original = discovery.inventory(root)['identity']
+            with patch.object(discovery, 'extract', side_effect=OSError('temporary source read failure')):
+                failed = discovery.scan(store, max_files=1)
+            output = install / 'blocked-recovery'
+            with self.assertRaisesRegex(ScanError, 'Coverage is blocked'):
+                run(root, output, scan_id=failed['id'], max_files=1)
+            self.assertEqual(run(root, output, max_files=1, retry_blocked=True), 0)
+            result = json.loads((output / 'last-result.json').read_text())
+            self.assertTrue(result['complete'])
+            self.assertEqual(result['id'], failed['id'])
+            self.assertEqual(discovery.inventory(root)['identity'], original)
+            self.assertTrue(result['reconciliation']['complete'])

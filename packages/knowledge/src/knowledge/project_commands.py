@@ -125,6 +125,7 @@ def job_summary(folder, binding, provider):
 
 def execute(command, installation, directory, value):
     require(isinstance(value, dict) and set(value) <= {'roots', 'directory', 'action', 'approve', 'plan', 'upgrade_approval', 'migration_approval', 'base', 'head', 'max_files', 'candidates', 'resume', 'fresh'}, 'invalid-command-input')
+    require(all(key not in value or type(value[key]) is bool for key in ('resume', 'fresh')), 'invalid-recovery-controls')
     installation = installation_at(installation)
     root = resolve_root(directory, value.get('roots'))
     require(not root.is_relative_to(installation) and not installation.is_relative_to(root), 'installation-and-project-must-be-separate')

@@ -341,8 +341,9 @@ def incremental_scope(db,state):
             'complete':state['complete'] and not missing}
 
 
-def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incremental=False):
+def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incremental=False,retry_blocked=False):
     require(type(max_files) is int and 1<=max_files<=10000,'invalid-scan-bound')
+    require(not retry_blocked or (scan_id is not None and not restart),'retry-blocked-requires-current-scan-id')
     snap=inventory(store.project.root,base,head)
     selected=None
     if incremental:
@@ -366,6 +367,12 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incre
             if incremental and not row:
                 state.update(incremental=True,scope_paths=sorted(selected))
                 state['coverage']={p:e for p,e in state['coverage'].items() if p in selected}
+        retried=0
+        if retry_blocked:
+            for path,entry in state['coverage'].items():
+                original=state['snapshot']['files'][path]
+                if entry['status']=='blocked' and original['status']!='blocked' and original.get('hash') is not None:
+                    entry.update(status='not-analyzed',reason='explicit retry after observation');retried+=1
         pending=sorted((p for p,e in state['coverage'].items() if e['status']=='not-analyzed'),key=lambda p:(not p.endswith(('.csproj','.cs')),p))
         extracted_this_call=[]
         for path in pending[:max_files]:
@@ -396,7 +403,7 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incre
         state['work']={'version':1,'extracted_this_call':len(extracted_this_call),'paths_this_call':extracted_this_call,
                        'durable_extracted_files':sum(e['status'] not in ('not-analyzed','blocked') for e in state['coverage'].values()),
                        'remaining_files':sum(e['status']=='not-analyzed' for e in state['coverage'].values()),
-                       'enumeration_and_hashing':'whole-snapshot; distinct from bounded extraction'}
+                       'enumeration_and_hashing':'whole-snapshot; distinct from bounded extraction',**({'retried_blocked_files':retried} if retry_blocked else {})}
         records=store._records(db)
         changed={e['id'] for e in records['evidence'] if fresh_evidence(store.project.root,e,scope) not in ('unchanged','anchor-valid-file-changed')}
         owners={c['id'] for c in records['claims'] if changed.intersection(c['evidence'])}
