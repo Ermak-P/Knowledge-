@@ -48,16 +48,22 @@ are preserved.
 * The sequential-native test invokes the **published plugin hooks and installed
   CLI through Node**, starts the next pair in the same chat, repeats without
   arguments, recreates the plugin, and explicitly resumes B. A's receipt remains
-  independently accessible. This is a hook/backend contract test, not a new
-  native OpenCode UI or live-model run.
+  independently accessible. The separate [real OpenCode 1.19.6 R1 run](native/result.json) also passes
+  the complete controlled interview/save, starts B in the same native session,
+  repeats without arguments, explicitly resumes B and preserves A's receipt.
+  Raw native messages and logs are retained; the responder is controlled.
 
 The intermediate installed Linux route at `e60b7e48d4` is **PASS_PORTABLE**, all **25 commands PASS**,
 with unchanged inputs ([complete raw run](qualification/run.json)). It includes
 upgrade/recovery, .NET behavior, Knowledge-only, uninstall/reinstall and the full
 400-test suite. Its source-bound CI also passes both platforms (Linux 389 PASS/11 SKIP,
-Windows 400 PASS), retained in `qualification/ci-intermediate`. A final-source
-401-test qualification includes the additional legacy-plan guard. Its final
-receipts remain pending; intermediate results are not relabelled as final.
+Windows 400 PASS), retained in `qualification/ci-intermediate`.
+
+The [final-source full local qualification](qualification-final/run.json) is
+**PASS_PORTABLE**, all **25 commands PASS**, unchanged inputs. Its 401 tests
+include the additional legacy-plan guard: **390 PASS, 11 Windows-only SKIP**.
+Final-source CI receipts remain pending; intermediate results are not relabelled
+as final.
 
 The additional regression constructs a valid pre-R1 pending plan through normal
 Store APIs. Before the final guard it reproduced the unsafe write
@@ -89,9 +95,9 @@ unchanged by R1. Its isolated repeat passed in 1.286 seconds
 The failed full ledger remains retained
 and is not labelled PASS.
 
-Live-model semantic replay and a new native OpenCode UI run are **NOT_RUN** in R1.
-The original controlled-host evidence remains in `reports/UpdateByCR`; this
-packet reports its own narrower hook/backend checks explicitly. No live tracker
+Live-model semantic replay is **NOT_RUN**. R1 includes both installed hook/CLI
+checks and a real native OpenCode 1.19.6 run with a controlled responder. These
+verify protocol and persistence behavior, not arbitrary-model decision equivalence. No live tracker
 or production data mutation is claimed. There is no unrelated SQLite work.
 
 [Reproduction](REPRODUCE.md) includes the official installed qualification routes

@@ -47,3 +47,14 @@ python reports/UpdateByCR-R1/verify_packet.py
 The collector checks the requested commit, every source hash, each command log
 and every package asset. An empty platform map is pending evidence, not PASS.
 `ARTIFACTS.json` and `verify_packet.py` verify the complete retained packet.
+
+Optional real native controlled profile, using the official OpenCode 1.19.6
+Linux binary verified by `native/provenance.json`:
+
+```text
+/tmp/ucr-r1-independent/bin/python -I -B reports/UpdateByCR-R1/native_r1_probe.py --python /tmp/ucr-r1-independent/bin/python --opencode /absolute/opencode --output /tmp/ucr-r1-native
+```
+
+The probe isolates project/XDG/npm configuration, runs a loopback controlled
+responder, and terminates it and its host when done. It does not configure a
+live model or change global host settings.

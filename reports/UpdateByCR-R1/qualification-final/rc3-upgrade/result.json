@@ -1,0 +1,226 @@
+{
+  "status": "PASS",
+  "prior_zip_sha256": "2dfa6ebb450acfe7549197681c9091544e5e9e7f54214832c56c7eb3611f69ef",
+  "rows": [
+    {
+      "phase": "before-first-patch",
+      "status": "PASS",
+      "prior": "0.4.0rc3",
+      "current": "0.5.0rc1",
+      "delivery_retry_http_delta": 0,
+      "delivery_retry_edits_or_processes": 0,
+      "candidate_count": 1,
+      "source_bytes_preserved_on_retry": true,
+      "commands": [
+        {
+          "label": "install-rc3",
+          "argv": [
+            "/tmp/p4-installed-uvri10wr/runtime/bin/python",
+            "/tmp/integrated-upgrade-4c0kal5a/rc3/install.py",
+            "install",
+            "--env",
+            "/tmp/integrated-upgrade-4c0kal5a/runtime"
+          ],
+          "returncode": 0,
+          "log": "before-first-patch-install-rc3.log"
+        },
+        {
+          "label": "configure-rc3",
+          "argv": [
+            "/tmp/integrated-upgrade-4c0kal5a/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "configure",
+            "--root",
+            "/tmp/integrated-upgrade-4c0kal5a/project",
+            "--input",
+            "/tmp/integrated-upgrade-4c0kal5a/runner.json",
+            "--init-knowledge"
+          ],
+          "returncode": 0,
+          "log": "before-first-patch-configure-rc3.log"
+        },
+        {
+          "label": "interrupted-rc3",
+          "argv": [
+            "/tmp/integrated-upgrade-4c0kal5a/runtime/bin/python",
+            "-I",
+            "-X",
+            "utf8",
+            "-B",
+            "/workspace/Knowledge-/tests/integrated_cli_worker.py",
+            "--die",
+            "before-first-patch",
+            "--",
+            "run",
+            "--root",
+            "/tmp/integrated-upgrade-4c0kal5a/project",
+            "--input",
+            "/tmp/integrated-upgrade-4c0kal5a/task.json"
+          ],
+          "returncode": 73,
+          "log": "before-first-patch-interrupted-rc3.log"
+        },
+        {
+          "label": "install-correction",
+          "argv": [
+            "/tmp/p4-installed-uvri10wr/runtime/bin/python",
+            "/workspace/Knowledge-/reports/P4/runs/8eda60f36a05426a941c9abc93580d83/distribution/knowledge-harness-0.5.0rc1/install.py",
+            "install",
+            "--env",
+            "/tmp/integrated-upgrade-4c0kal5a/runtime"
+          ],
+          "returncode": 0,
+          "log": "before-first-patch-install-correction.log"
+        },
+        {
+          "label": "doctor",
+          "argv": [
+            "/tmp/p4-installed-uvri10wr/runtime/bin/python",
+            "/workspace/Knowledge-/reports/P4/runs/8eda60f36a05426a941c9abc93580d83/distribution/knowledge-harness-0.5.0rc1/install.py",
+            "doctor",
+            "--env",
+            "/tmp/integrated-upgrade-4c0kal5a/runtime"
+          ],
+          "returncode": 0,
+          "log": "before-first-patch-doctor.log"
+        },
+        {
+          "label": "delivery-retry",
+          "argv": [
+            "/tmp/integrated-upgrade-4c0kal5a/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "capture-retry",
+            "--root",
+            "/tmp/integrated-upgrade-4c0kal5a/project",
+            "--run-id",
+            "6b3aec39ad1a407e9b672a33b172fe92"
+          ],
+          "returncode": 1,
+          "log": "before-first-patch-delivery-retry.log"
+        },
+        {
+          "label": "execution-resume",
+          "argv": [
+            "/tmp/integrated-upgrade-4c0kal5a/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "resume",
+            "--root",
+            "/tmp/integrated-upgrade-4c0kal5a/project",
+            "--run-id",
+            "6b3aec39ad1a407e9b672a33b172fe92"
+          ],
+          "returncode": 0,
+          "log": "before-first-patch-execution-resume.log"
+        }
+      ]
+    },
+    {
+      "phase": "capture-after-submit",
+      "status": "PASS",
+      "prior": "0.4.0rc3",
+      "current": "0.5.0rc1",
+      "delivery_retry_http_delta": 0,
+      "delivery_retry_edits_or_processes": 0,
+      "candidate_count": 1,
+      "source_bytes_preserved_on_retry": true,
+      "commands": [
+        {
+          "label": "install-rc3",
+          "argv": [
+            "/tmp/p4-installed-uvri10wr/runtime/bin/python",
+            "/tmp/integrated-upgrade-m8q_ab34/rc3/install.py",
+            "install",
+            "--env",
+            "/tmp/integrated-upgrade-m8q_ab34/runtime"
+          ],
+          "returncode": 0,
+          "log": "capture-after-submit-install-rc3.log"
+        },
+        {
+          "label": "configure-rc3",
+          "argv": [
+            "/tmp/integrated-upgrade-m8q_ab34/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "configure",
+            "--root",
+            "/tmp/integrated-upgrade-m8q_ab34/project",
+            "--input",
+            "/tmp/integrated-upgrade-m8q_ab34/runner.json",
+            "--init-knowledge"
+          ],
+          "returncode": 0,
+          "log": "capture-after-submit-configure-rc3.log"
+        },
+        {
+          "label": "interrupted-rc3",
+          "argv": [
+            "/tmp/integrated-upgrade-m8q_ab34/runtime/bin/python",
+            "-I",
+            "-X",
+            "utf8",
+            "-B",
+            "/workspace/Knowledge-/tests/integrated_cli_worker.py",
+            "--die",
+            "capture-after-submit",
+            "--",
+            "run",
+            "--root",
+            "/tmp/integrated-upgrade-m8q_ab34/project",
+            "--input",
+            "/tmp/integrated-upgrade-m8q_ab34/task.json"
+          ],
+          "returncode": 73,
+          "log": "capture-after-submit-interrupted-rc3.log"
+        },
+        {
+          "label": "install-correction",
+          "argv": [
+            "/tmp/p4-installed-uvri10wr/runtime/bin/python",
+            "/workspace/Knowledge-/reports/P4/runs/8eda60f36a05426a941c9abc93580d83/distribution/knowledge-harness-0.5.0rc1/install.py",
+            "install",
+            "--env",
+            "/tmp/integrated-upgrade-m8q_ab34/runtime"
+          ],
+          "returncode": 0,
+          "log": "capture-after-submit-install-correction.log"
+        },
+        {
+          "label": "doctor",
+          "argv": [
+            "/tmp/p4-installed-uvri10wr/runtime/bin/python",
+            "/workspace/Knowledge-/reports/P4/runs/8eda60f36a05426a941c9abc93580d83/distribution/knowledge-harness-0.5.0rc1/install.py",
+            "doctor",
+            "--env",
+            "/tmp/integrated-upgrade-m8q_ab34/runtime"
+          ],
+          "returncode": 0,
+          "log": "capture-after-submit-doctor.log"
+        },
+        {
+          "label": "delivery-retry",
+          "argv": [
+            "/tmp/integrated-upgrade-m8q_ab34/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "capture-retry",
+            "--root",
+            "/tmp/integrated-upgrade-m8q_ab34/project",
+            "--run-id",
+            "ac90f3444ec7481c8e24c677ff767da0"
+          ],
+          "returncode": 0,
+          "log": "capture-after-submit-delivery-retry.log"
+        }
+      ]
+    }
+  ]
+}
