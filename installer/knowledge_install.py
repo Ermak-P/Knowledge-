@@ -113,6 +113,87 @@ def call(argv, log, cwd=None):
     require(result.returncode == 0, 'Build/install/verification failed; see ' + str(log))
 
 
+def work_path(path, log):
+    """Expand only an existing owned temporary directory, preserving identity.
+
+    GetLongPathNameW expands 8.3 aliases without changing TEMP/TMP or weakening
+    the installed product's spelling, reparse-point or ownership policies.
+    """
+    original = Path(path).absolute()
+    try:
+        require('..' not in original.parts, 'Temporary path contains parent traversal')
+        if os.name == 'nt':
+            require(not str(original).startswith(('\\\\', '//')), 'UNC/device temporary paths are unsupported')
+        original = safe(original)
+        before = original.stat()
+        full = original
+        if os.name == 'nt':
+            import ctypes
+            from ctypes import wintypes
+            kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+            expand = kernel.GetLongPathNameW
+            expand.argtypes = [wintypes.LPCWSTR, wintypes.LPWSTR, wintypes.DWORD]
+            expand.restype = wintypes.DWORD
+            size = expand(str(original), None, 0)
+            if not size: raise ctypes.WinError(ctypes.get_last_error())
+            buffer = ctypes.create_unicode_buffer(size)
+            written = expand(str(original), buffer, size)
+            if not written: raise ctypes.WinError(ctypes.get_last_error())
+            require(written < size, 'Temporary path changed while expanding its name')
+            full = safe(Path(buffer.value))
+            require(full.is_absolute() and '..' not in full.parts, 'Expanded temporary path is not an absolute safe spelling')
+            require(os.path.samestat(before, full.stat()), 'Expanded temporary path has a different filesystem identity')
+            # Recheck both spellings before a builder or provider reads them.
+            safe(original); safe(full)
+        diagnostic = {'stage': 'temporary-path', 'path': str(original), 'expanded_path': str(full), 'identity_preserved': True}
+    except (InstallError, OSError) as error:
+        diagnostic = {'stage': 'temporary-path', 'path': str(original), 'reason': str(error), 'log': str(log)}
+        with log.open('ab') as stream: stream.write(data(diagnostic))
+        raise InstallError('Temporary path rejected: ' + json.dumps(diagnostic, ensure_ascii=True)) from error
+    with log.open('ab') as stream: stream.write(data(diagnostic))
+    return full
+
+
+def validate_provider(python, path, log):
+    """Return only path/error metadata from the installed validator, never JSON contents."""
+    code = '''import json, sys, traceback
+from knowledge.providers import shared
+from knowledge.util import KnowledgeError
+try:
+    shared(sys.argv[1])
+    import knowledge, mcp
+    if knowledge.__version__ != "0.5.0rc1": raise RuntimeError("runtime-version-mismatch")
+except (KnowledgeError, OSError, ValueError, RuntimeError) as error:
+    traceback.print_tb(error.__traceback__, file=sys.stderr)
+    value = {"ok": False, "path": sys.argv[1], "reason": getattr(error, "code", type(error).__name__)}
+    details = getattr(error, "details", None)
+    if getattr(error, "code", None) == "unsupported-windows-path" and isinstance(details, dict):
+        value["path_reason"] = details.get("reason")
+    print(json.dumps(value, ensure_ascii=True))
+    raise SystemExit(1)
+print(json.dumps({"ok": True, "path": sys.argv[1]}, ensure_ascii=True))
+'''
+    with log.open('ab') as stream:
+        stream.write(data({'stage': 'provider-validation', 'path': str(path), 'log': str(log)})); stream.flush()
+        try:
+            result = subprocess.run([str(python), '-I', '-B', '-X', 'utf8', '-c', code, str(path)],
+                                    stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=stream)
+        except OSError as error:
+            raise InstallError('Provider validator could not start; path: ' + json.dumps(str(path), ensure_ascii=True) + '; reason: ' + type(error).__name__ + '; Log: ' + str(log)) from error
+        stream.write(result.stdout)
+    if result.returncode:
+        reason = 'validator-process-failed'
+        try:
+            failure = json.loads(result.stdout)
+            # Only controlled metadata is exposed, even if the validator fails.
+            if failure.get('ok') is False and failure.get('path') == str(path):
+                reason = failure['reason']
+                if failure.get('path_reason'): reason += ' (' + failure['path_reason'] + ')'
+        except (ValueError, TypeError, KeyError, AttributeError):
+            pass
+        raise InstallError('Provider path: ' + json.dumps(str(path), ensure_ascii=True) + '; reason: ' + reason + '; Log: ' + str(log))
+
+
 def verify_kit(root):
     safe(root)
     manifest = read(root / 'RELEASE.json')
@@ -387,7 +468,7 @@ def install(source, root, fail_after=None):
         log.parent.mkdir(exist_ok=True)
         log.touch()
         with tempfile.TemporaryDirectory(prefix='knowledge-install-') as temporary:
-            kit = source_kit(source, Path(temporary), log)
+            kit = source_kit(source, work_path(temporary, log), log)
             release = verify_kit(kit)
             release_hash = sha(kit / 'RELEASE.json')
             current_bytes = safe(root / 'current.json').read_bytes() if (root / 'current.json').exists() else None
@@ -399,7 +480,7 @@ def install(source, root, fail_after=None):
             require(not current or provider_path.is_file(), 'Shared provider is missing; restore config/provider.json from your backup, then rerun.')
             if current and current.get('release_sha256') == release_hash and files_intact and py_at(root / 'bootstrap').is_file() and installed_ok(root, current):
                 require(all(Path(p).is_file() and sha(p) == h for p, h in old['files'].items()), 'Owned machine files changed; cannot claim unchanged')
-                call([py_at(root / current['runtime']), '-I', '-c', 'from knowledge.providers import shared; shared(__import__("sys").argv[1])', provider_path], log)
+                validate_provider(py_at(root / current['runtime']), provider_path, log)
                 call([py_at(root / current['runtime']), '-I', '-B', '-m', 'knowledge.machine_mcp', '--self-test', '--installation', root], log)
                 return summary('UNCHANGED', root, current, provider_path, log, host_version)
             generation = root / 'runtimes' / uuid.uuid4().hex
@@ -419,9 +500,9 @@ def install(source, root, fail_after=None):
             shutil.copyfile(kit / 'knowledge-init-auto.py', generation / 'knowledge-init-auto.py')
             shutil.copyfile(kit / 'RELEASE.json', generation / 'RELEASE.json')
             shutil.copytree(kit / 'docs', generation / 'docs')
-            call([python, '-I', '-c', 'from knowledge.providers import shared; shared(__import__("sys").argv[1]); import knowledge,mcp; assert knowledge.__version__=="0.5.0rc1"', kit / 'default-provider.json'], log)
+            validate_provider(python, kit / 'default-provider.json', log)
             if provider_path.exists():
-                call([python, '-I', '-c', 'from knowledge.providers import shared; shared(__import__("sys").argv[1])', provider_path], log)
+                validate_provider(python, provider_path, log)
             # A real stdio transport check, with no project and no model.
             call([python, '-I', '-m', 'knowledge.machine_mcp', '--self-test', '--installation', root], log)
             atomic(generation / 'generation-files.json', data(inventory(generation)))
