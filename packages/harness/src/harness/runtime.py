@@ -10,6 +10,8 @@ import uuid
 from knowledge.project import Project,safe_path,safe_tree
 from knowledge.util import require,KnowledgeError,canonical_json,loads,digest,read_text
 
+SHARED_PROVIDER_CONFIG=1
+
 ROLES=('Main','Planning','Coding','Building','Testing','Reviewing')
 TOOLS={'Main':('read','search','knowledge','delegate','status','capability'),
        'Planning':('read','search','knowledge','capability'),
@@ -204,7 +206,9 @@ def config(root):
 
 
 def validate_config(value):
-    require(isinstance(value,dict) and {'version','provider','recipes','limits','capture'}<=set(value)<=({'version','provider','recipes','limits','capture','dotnet','memory'} if value.get('version')==2 else {'version','provider','recipes','limits','capture','memory'}),'invalid-runner-config')
+    from knowledge.providers import resolve_runner
+    value=resolve_runner(value)
+    require(isinstance(value,dict) and {'version','provider','recipes','limits','capture'}<=set(value)<=({'version','provider','recipes','limits','capture','dotnet','memory','provider_reference'} if value.get('version')==2 else {'version','provider','recipes','limits','capture','memory','provider_reference'}),'invalid-runner-config')
     if 'memory' in value:
         from .instructions import validate_policy
         validate_policy(value['memory'])
@@ -255,7 +259,7 @@ def validate_config(value):
 
 
 def configure(root,value,initialize_knowledge=False):
-    journal=Journal(root);validate_config(value)
+    journal=Journal(root);effective=validate_config(value)
     with Lease(journal):
         path=journal.base/'runner.json';safe_path(path)
         temporary=journal.base/('config-'+uuid.uuid4().hex+'.tmp');temporary.write_text(canonical_json(value),encoding='utf-8');os.replace(temporary,path)
@@ -264,7 +268,7 @@ def configure(root,value,initialize_knowledge=False):
             from knowledge import lifecycle
             s=Store(root)
             if not s.path.exists():s.init();lifecycle.upgrade(s,lifecycle.upgrade_preview(s)['fingerprint'])
-    return {'ok':True,'configuration':digest(value)}
+    return {'ok':True,'configuration':digest(effective)}
 
 
 def recipe_inputs(project,configuration,task):

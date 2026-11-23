@@ -24,6 +24,7 @@ def parser():
     p.add_argument('--max-files',type=int,default=50)
     p.add_argument('--base')
     p.add_argument('--head')
+    p.add_argument('--incremental',action='store_true')
     p.add_argument('--restart',action='store_true')
     p.add_argument('--disposition',choices=['pending','rejected','deferred'])
     p.add_argument('--reason')
@@ -66,10 +67,10 @@ def execute(a):
         preview=life.upgrade_preview(store)
         if not preview['already_upgraded']:
             return {'ok':False,'error':'upgrade-required','preview':preview}
-        result=discovery.scan(store,a.scan_id,a.max_files,a.base,a.head,a.restart)
+        result=discovery.scan(store,a.scan_id,a.max_files,a.base,a.head,a.restart,a.incremental)
         result['reconciliation']=discovery.reconcile(store,result['id'])
         return result
-    if a.command in ('scan','knowledge-candidates-update'):return discovery.scan(store,a.scan_id,a.max_files,a.base,a.head,a.restart)
+    if a.command in ('scan','knowledge-candidates-update'):return discovery.scan(store,a.scan_id,a.max_files,a.base,a.head,a.restart,a.incremental)
     if a.command=='knowledge-candidates-push':return store.apply(a.plan,a.approve) if a.approve else store.prepare()
     if a.command=='version':
         return {'ok':True,'version':__version__,'candidate_version':1,'store_format':'knowledge-sqlite-v1','operations':['add'],'v2_operations':['add','update','retire','supersede','reactivate','relationship-change'],'candidate_versions':[1,2],'discovery':True,'runner':False}
