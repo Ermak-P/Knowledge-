@@ -16,10 +16,12 @@ from .util import canonical_json,digest,fingerprint,loads,read_text,require,Know
 PREFIX='update-by-cr:'
 STATES={'awaiting_links','awaiting_sources','analyzing','awaiting_answers','ready_for_review','preparing','awaiting_approval','persisting','saved','partial_saved','blocked','stale'}
 CATEGORIES={'implementation','requirement','decision','alternative','nonchange','applicability','verification','open'}
+COMPLETED={'saved','partial_saved'}
 
 
 def now():return datetime.now(timezone.utc).isoformat()
 def fault(phase):pass
+def is_completed(state):return state['state'] in COMPLETED or state['state']=='stale' and state['receipt'] is not None
 def source_hash(snapshot):return digest({k:v for k,v in snapshot.items() if k!='observed_at'})
 def sealed(state):
     value=deepcopy(state);value.pop('seal',None);value['seal']=digest(value);return value
@@ -101,22 +103,25 @@ class Workflow:
                     require(len(completed)<=1,'ucr-ambiguous-session')
                     if completed:session=completed[0]['id']
             matches=[s for s in states if s['id']==session] if session else [s for s in states if s['links']==links] if len(links)==2 else [s for s in states if host_session and s['host_session']==host_session]
+            if not session and len(links)!=2 and len(matches)>1:
+                active=[s for s in matches if not is_completed(s)]
+                if len(active)==1:matches=active
             require(len(matches)<=1,'ucr-ambiguous-session')
             if session:require(matches,'ucr-unknown-session')
             if matches:
                 state=deepcopy(matches[0]);require(state['state']!='persisting' or not links or links==state['links'],'ucr-recover-before-new-input')
                 require(all(k not in state['links'] or state['links'][k]==v for k,v in links.items()),'ucr-links-changed-start-new-session')
                 state['links'].update(links);state['revision']+=1
-                if host_session:
-                    for other in states:
-                        if other['id']!=state['id'] and other['host_session']==host_session:
-                            require(other['source'] is None,'ucr-host-already-has-active-workflow')
-                            other['host_session']=None;other['revision']+=1
-                            db.execute('UPDATE metadata SET value=? WHERE key=?',(canonical_json(sealed(other)),PREFIX+other['id']))
-                    state['host_session']=host_session
                 if state['state']=='awaiting_links' and len(state['links'])==2:state['state']='awaiting_sources'
             else:
                 state=dict(version=1,id=uuid.uuid4().hex,project=self.store.project.identity,revision=1,host_session=host_session,language=language,links=links,state='awaiting_sources' if len(links)==2 else 'awaiting_links',source=None,binding=None,knowledge_base=None,map=[],questions=[],answers={},turns={},history=[],proposal=None,approved=None,receipt=None,artifacts=[],closed=False)
+            if host_session:
+                for other in states:
+                    if other['id']!=state['id'] and other['host_session']==host_session:
+                        require(other['source'] is None or is_completed(other),'ucr-host-already-has-active-workflow')
+                        other['host_session']=None;other['revision']+=1
+                        db.execute('UPDATE metadata SET value=? WHERE key=?',(canonical_json(sealed(other)),PREFIX+other['id']))
+                state['host_session']=host_session
             state=sealed(state);validate_state(state,self.store.project.identity)
             db.execute('INSERT INTO metadata VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',(PREFIX+state['id'],canonical_json(state)))
         return self.view(state)
@@ -173,9 +178,7 @@ class Workflow:
                 require(not any(g.get('reason')=='reported-diff-file-coverage-mismatch' for g in inspection['gaps']),'ucr-nonchange-coverage-incomplete')
                 for a in item['anchors']:
                     if a['role'] in ('neighbor','contract'):
-                        before=src.git(self.root,'show',state['source']['pr']['base']+':'+a['path'])
-                        after=src.git(self.root,'show',state['source']['pr']['head']+':'+a['path'])
-                        require(before==after,'ucr-nonchange-not-established')
+                        src.nonchange(self.root,a,state['source'])
             if item['reason'] is not None:
                 r=item['reason'];require(isinstance(r,dict) and set(r)=={'text','refs'} and r['text'] and isinstance(r['refs'],list) and r['refs'] and all(ref in known for ref in r['refs']),'ucr-unsourced-reason');src.text(r['text'],4000)
             elif item['category'] in ('decision','alternative','nonchange'):
@@ -191,6 +194,7 @@ class Workflow:
             questions.insert(0,dict(id=digest([source_hash(state['source']),'association']),item=None,kind='association',text=('Источник PR не подтверждает связь с этим CR. Вы подтверждаете, что эти ссылки относятся к одной задаче?' if state['language']=='ru' else 'The PR source does not establish its association with this CR. Do you confirm these links belong to the same change?'),anchor=state['links']['pr']))
         def change(s):
             s['history'].append(dict(event='analysis-coverage',gaps=inspection['gaps'],actual_changed=inspection['actual_changed']))
+            if s['proposal']:s['history'].append(dict(event='proposal-superseded',proposal=s['proposal']))
             s.update(map=mapped,questions=questions,proposal=None,approved=None,receipt=None)
             s['state']='awaiting_answers' if any(q['id'] not in s['answers'] for q in questions) else 'ready_for_review'
         return self.view(self._change(sid,expected,change))
@@ -237,9 +241,12 @@ class Workflow:
         known=self._known(state);source=state['source'];ops=[];artifacts=[];claims=[]
         with self.store.connection() as db:
             records=self.store._records(db);states=life.latest(db);existing={r['id']:r for g,rs in records.items() for r in rs}
-        merged=source['pr']['status']=='merged';scope=('reviewed target '+source['target']['commit']) if merged else ('unmerged PR proposal '+source['pr']['head']+'; not target behavior')
+        merged=source['pr']['status']=='merged';scope=('reviewed target '+source['target']['commit']) if merged else ('unmerged PR proposal '+source['pr']['url']+' @ '+source['pr']['head']+'; not target behavior')
+        if not merged:
+            require(all(i['existing_id'] is None and i['change']=='upsert' for i in state['map']),'ucr-unmerged-target-mutation-refused',{'resolution':'Save branch proposals with automatic scoped IDs; existing-ID updates and retirement require a merged PR present on the target.'})
         for item in state['map']:
-            identifier=item['existing_id'] or 'ucr.'+digest([state['project'],state['links']['cr']])[:16]+'.'+item['key']
+            automatic=('ucr.'+digest([state['project'],state['links']['cr']])[:16] if merged else 'ucr.proposal.'+digest([state['project'],state['links']['cr'],state['links']['pr']])[:16])+'.'+item['key']
+            identifier=item['existing_id'] or automatic
             old=existing.get(identifier);require(not item['existing_id'] or old is not None,'ucr-existing-record-missing')
             q=next((q for q in state['questions'] if q['item']==item['key'] and q['kind']=='reason'),None);answer=state['answers'].get(q['id']) if q else None
             unresolved=q is not None and (answer is None or answer['kind'] in ('unknown','skip'))
@@ -276,7 +283,8 @@ class Workflow:
         for op in ops:
             require(op['id'] not in unique or unique[op['id']]==op,'ucr-conflicting-proposed-identity');unique[op['id']]=op
         retirements='; '.join(i['existing_id']+': '+i['reason']['text'] for i in state['map'] if i['change']=='retire')
-        return life.batch(list(unique.values()),'Reviewed /update-by-CR '+state['links']['cr']+(' — retirement evidence: '+retirements if retirements else ''),state['binding']),artifacts,claims
+        reason='Reviewed /update-by-CR '+state['links']['cr']+'; interview '+state['id']+' revision '+str(state['revision'])
+        return life.batch(list(unique.values()),reason+(' — retirement evidence: '+retirements if retirements else ''),state['binding']),artifacts,claims
     def prepare(self,sid,expected):
         state=self.get(sid);require(state['revision']==expected,'ucr-session-cas-conflict');self._fresh(state)
         if state['state']=='awaiting_approval':return self.view(state)
@@ -285,22 +293,37 @@ class Workflow:
         require(all(q['id'] in state['answers'] for q in state['questions'] if q['kind']=='association'),'ucr-association-confirmation-required')
         proposal,artifacts,claims=self._build(state)
         # Isolate the CR by refusing, never silently deferring/approving other work.
-        old_cid=state['proposal']['candidate'] if state['proposal'] else None
+        owned=self._owned_proposals(state)
         with self.store.connection() as db:
             pending=[cid for cid, in db.execute("SELECT id FROM queue WHERE status='pending'")]
-        if old_cid in pending:
-            life.dispose(self.store,old_cid,'deferred','Superseded by a corrected answer in its owning CR workflow');pending.remove(old_cid)
-        require(not pending,'ucr-unrelated-pending-candidates',{'candidates':pending,'resolution':'Review/apply/acknowledge those candidates independently through normal APIs, or explicitly choose their dispositions; this workflow never approves or changes them.'})
+        unrelated=[cid for cid in pending if cid not in owned]
+        require(not unrelated,'ucr-unrelated-pending-candidates',{'candidates':unrelated,'resolution':'Review/apply/acknowledge those candidates independently through normal APIs, or explicitly choose their dispositions; this workflow never approves or changes them.'})
         cid=digest(proposal)
-        def staged(s):s.update(state='preparing',artifacts=list({a['path']:a for a in s['artifacts']+artifacts}.values()),proposal=dict(candidate=cid,plan=None,claims=claims,payload=proposal),approved=None)
+        def staged(s):
+            if s['proposal']:s['history'].append(dict(event='proposal-superseded',proposal=s['proposal']))
+            s.update(state='preparing',artifacts=list({a['path']:a for a in s['artifacts']+artifacts}.values()),proposal=dict(candidate=cid,plan=None,claims=claims,payload=proposal),approved=None)
         state=self._change(sid,expected,staged)
         fault('preparation-intent')
         return self._prepare_finish(state)
+    def _owned_proposals(self,state):
+        proposals=[state['proposal']]+[h.get('proposal') for h in state['history'] if h.get('event') in ('source-stale','proposal-superseded')]
+        owned={}
+        for proposal in proposals:
+            if proposal is None:continue
+            require(isinstance(proposal,dict) and isinstance(proposal.get('payload'),dict) and proposal.get('candidate')==digest(proposal['payload']),'ucr-corrupt-proposal-ownership')
+            owned[proposal['candidate']]=proposal['payload']
+        return owned
     def _prepare_finish(self,state):
         self._fresh(state);sid=state['id'];cid=state['proposal']['candidate']
+        owned=self._owned_proposals(state)
         with self.store.connection() as db:
-            pending=[i for i, in db.execute("SELECT id FROM queue WHERE status='pending'")]
-        require(set(pending)<={cid},'ucr-unrelated-pending-candidates',{'candidates':[i for i in pending if i!=cid]})
+            pending={i:loads(payload) for i,payload in db.execute("SELECT id,payload FROM queue WHERE status='pending'")}
+        require(set(pending)<=owned.keys(),'ucr-unrelated-pending-candidates',{'candidates':[i for i in pending if i not in owned]})
+        for old,payload in pending.items():
+            require(payload==owned[old],'ucr-candidate-ownership-mismatch')
+            if old!=cid:
+                life.dispose(self.store,old,'deferred','Superseded by refreshed sources or analysis in its owning CR workflow')
+                fault('owned-candidate-deferred')
         record=self.store.submit(state['proposal']['payload']);require(record['candidate']==cid and record['status']=='pending','ucr-candidate-disposition-changed')
         fault('candidate-queued')
         plan=self.store.prepare();require(set(plan['candidates'])=={cid},'ucr-planning-isolation-conflict');require(plan['ok'],'ucr-knowledge-plan-blocked',plan['blocked'])

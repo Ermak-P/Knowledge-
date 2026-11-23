@@ -111,10 +111,14 @@ switch/reset/merge or execution of source-discussion commands is performed.
 
 `inspect` reads base/head/target Git blobs with hooks/textconv disabled and bounded
 surrounding files. It reports source/diff coverage gaps. `analyze` verifies every
-anchor. Full-file nonchanges require equal base/head bytes; unsupported unchanged
-subregions inside an otherwise changed file need separate scoped analysis instead
-of a false full-file nonchange. Model/source calls and user waits are outside SQL
-transactions.
+anchor. Nonchanges compare the pinned excerpt at both PR base and head, and with
+the selected target/head anchor. Other members in that file may change. By default
+the same path/range is compared; an optional `comparison` mapping pins separate
+`base` and `head` ranges when a member moves. Each has path, revision, start, end;
+revisions must equal the corresponding PR SHA. Equal excerpts and range lengths
+are required. Whole-file hashes and inspected surrounding code remain evidence;
+a scoped range does not assert unchangedness outside that range. Model/source
+calls and user waits are outside SQL transactions.
 
 ## Reviewable decision map
 
@@ -125,7 +129,9 @@ explicit evidence-supported `retire`). Categories: implementation, requirement,
 decision, alternative, nonchange, applicability, verification, open.
 
 Anchors are `{path,revision,start,end,role}`; role is implementation, neighbor,
-test or contract. References address captured sources: `cr:title`, `cr:req:ID`,
+test or contract, with optional `comparison:{base:{path,revision,start,end},
+head:{path,revision,start,end}}` for neighbor/contract anchors. References address
+captured sources: `cr:title`, `cr:req:ID`,
 `cr:discussion:ID`, `cr:attachment:ID`, `pr:description`, `pr:discussion:ID`,
 `pr:check:ID`, or current fresh `knowledge:CLAIM_ID@REVISION`. Unknown reasons in
 decision/alternative/nonchange items produce concrete anchored questions. Existing
@@ -142,6 +148,11 @@ treated as a filesystem path. Merged target claims additionally cite hash-bound
 current code files; source changes withhold stale facts through normal freshness.
 Unmerged/closed PR material is visibly branch-scoped and unconfirmed; it is not
 asserted as current target behavior. Use include_unconfirmed to inspect it.
+Its automatic `ucr.proposal.*` identity is scoped to project, CR, PR and decision
+key, separately from the stable target `ucr.*` identity. Unmerged existing-ID
+updates and retirements refuse with `ucr-unmerged-target-mutation-refused` before
+queue/canonical writes. A later merged PR present on the selected target can
+update/retire the target identity normally, retaining revision history.
 
 ## Persistence, compatibility and recovery
 
@@ -158,9 +169,16 @@ candidate/plan without reasking the interview. If unrelated candidates are pendi
 the workflow reports the conflict and the normal independent review/apply/acknowledge
 or explicit-disposition resolution; it never changes their dispositions. Stale
 source/Knowledge invalidates analysis and approval, preserving bound answer history.
-Only corrected candidates owned by this workflow can be explicitly superseded by
-its preparation. Retained obsolete pending work can require explicit operator
-disposition; no broad queue approval is inferred from the command invocation.
+Source refresh and reanalysis retain superseded candidate payloads/ownership in
+bounded workflow history. Replacement preparation records its durable intent
+before deferring only those owned pending candidates through the normal lifecycle.
+A crash after disposition resumes idempotently. Truly unrelated candidates still
+block preparation without queue changes; no broad approval is inferred.
+
+A native chat has one active workflow binding. Starting the next CR detaches the
+completed historical binding, preserving its receipt/history and explicit resume.
+This also covers completed receipts marked stale after later source changes.
+An unfinished sourced interview still requires resolution before rebinding the chat.
 
 The host must reobserve CR/PR metadata before final preparation/apply and submit
 changed snapshots through `sources`; exports have only their recorded observation

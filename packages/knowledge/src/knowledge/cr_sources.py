@@ -129,7 +129,8 @@ def checkout(root,snapshot):
 
 
 def anchor(root,value,snapshot):
-    require(isinstance(value,dict) and set(value)=={'path','revision','start','end','role'},'ucr-invalid-anchor')
+    fields={'path','revision','start','end','role'}
+    require(isinstance(value,dict) and fields<=set(value)<=fields|{'comparison'},'ucr-invalid-anchor')
     path=relative(value['path']);require(value['revision'] in (snapshot['pr']['base'],snapshot['pr']['head'],snapshot['target']['commit']),'ucr-anchor-revision-mismatch')
     require(type(value['start']) is int and type(value['end']) is int and 1<=value['start']<=value['end']<=value['start']+100,'ucr-invalid-anchor-range')
     require(value['role'] in ('implementation','neighbor','test','contract'),'ucr-invalid-anchor-role')
@@ -137,7 +138,22 @@ def anchor(root,value,snapshot):
     try:lines=data.decode('utf-8-sig').splitlines()
     except UnicodeError:raise KnowledgeError('ucr-code-not-utf8')
     require(value['end']<=len(lines),'ucr-anchor-range-missing');excerpt='\n'.join(lines[value['start']-1:value['end']]);text(excerpt,16000)
-    return {**value,'hash':'sha256:'+hashlib.sha256(data).hexdigest(),'excerpt':excerpt}
+    result={k:value[k] for k in fields};result.update(hash='sha256:'+hashlib.sha256(data).hexdigest(),excerpt=excerpt)
+    if 'comparison' in value:
+        mapping=value['comparison'];require(isinstance(mapping,dict) and set(mapping)=={'base','head'} and value['role'] in ('neighbor','contract'),'ucr-invalid-nonchange-comparison')
+        result['comparison']={}
+        for side in ('base','head'):
+            mapped=mapping[side];require(isinstance(mapped,dict) and set(mapped)=={'path','revision','start','end'} and mapped['revision']==snapshot['pr'][side],'ucr-invalid-nonchange-comparison')
+            result['comparison'][side]=anchor(root,{**mapped,'role':value['role']},snapshot)
+    return result
+
+
+def nonchange(root,value,snapshot):
+    """Prove the pinned excerpt, including explicit mappings across moved ranges."""
+    ranges=value.get('comparison')
+    if ranges is None:
+        ranges={side:anchor(root,{k:value[k] for k in ('path','start','end','role')}|{'revision':snapshot['pr'][side]},snapshot) for side in ('base','head')}
+    require(all(a['excerpt']==value['excerpt'] and a['end']-a['start']==value['end']-value['start'] for a in ranges.values()),'ucr-nonchange-not-established')
 
 
 def inspect(root,snapshot,paths=()):
