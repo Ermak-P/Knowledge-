@@ -1,0 +1,2438 @@
+{
+  "events": [],
+  "final": {
+    "target_commit": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf",
+    "retry_source": "public static class Retry { public const int MaxAttempts = 5; }\n",
+    "records": {
+      "claims": [
+        {
+          "conflicts_with": [],
+          "depends_on": [],
+          "evidence": [
+            "ucr.evidence.37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e",
+            "ucr.code.a191d32ba5fce40c102362eebe9fb60e3f365cbd6131ea8fe95ec1b41cb94573"
+          ],
+          "id": "ucr.22a54a6e0f5a7be9.deadline",
+          "last_verified": "2026-11-22",
+          "provenance": {
+            "actor": "reviewed-CR-workflow",
+            "method": "update-by-cr-v1"
+          },
+          "statement": "Preserve the caller deadline of 120 ms When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Do not extend the public caller deadline. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf. Terms: deadline, timeout, срок.",
+          "status": "CONFIRMED",
+          "type": "architecture"
+        },
+        {
+          "conflicts_with": [],
+          "depends_on": [],
+          "evidence": [
+            "ucr.evidence.d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946",
+            "ucr.code.ed4e2f875f813828f82999f617484e627cd226b2abb7db1c76d2fdac100afdfc"
+          ],
+          "id": "ucr.22a54a6e0f5a7be9.retry-limit",
+          "last_verified": "2026-11-22",
+          "provenance": {
+            "actor": "reviewed-CR-workflow",
+            "method": "update-by-cr-v1"
+          },
+          "statement": "Prefer five total transient operation attempts When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Bound work within the caller deadline. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf. Terms: retry, transient, повтор, ошибка.",
+          "status": "CONFIRMED",
+          "type": "architecture"
+        },
+        {
+          "conflicts_with": [],
+          "depends_on": [],
+          "evidence": [
+            "ucr.evidence.c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d",
+            "ucr.code.c87dd8c3507fa04ea4cd7264da3feb77611c097d777dac0f8fe229850e956acd"
+          ],
+          "id": "ucr.22a54a6e0f5a7be9.transport-owner",
+          "last_verified": "2026-11-22",
+          "provenance": {
+            "actor": "reviewed-CR-workflow",
+            "method": "update-by-cr-v1"
+          },
+          "statement": "Leave the independent packet recovery in Transport unchanged When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Do not multiply operation retries by changing packet recovery ownership. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf. Terms: transport, retry, повтор.",
+          "status": "CONFIRMED",
+          "type": "architecture"
+        }
+      ],
+      "evidence": [
+        {
+          "captured_at": "2026-11-22T12:00:00Z",
+          "content_hash": "sha256:8d55f129e7adfe5ca882cc48614d8ee34a468b36511270d663ba54de3e23aab7",
+          "description": "public static class Caller { public const int DeadlineMs = 120; }",
+          "id": "ucr.code.a191d32ba5fce40c102362eebe9fb60e3f365cbd6131ea8fe95ec1b41cb94573",
+          "location": {
+            "reference": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf:Caller.cs#L1-L1"
+          },
+          "provenance": {
+            "actor": "pinned-git-code",
+            "method": "update-by-cr-code-v1"
+          },
+          "source": "Caller.cs",
+          "status": "active",
+          "substantiates": [
+            "ucr.22a54a6e0f5a7be9.deadline"
+          ],
+          "type": "direct-technical"
+        },
+        {
+          "captured_at": "2026-11-22T12:00:00Z",
+          "content_hash": "sha256:afe6dfa80995b47b959c65bbc75466ae9c71d6a87e65e8d1281a502a7e2406ba",
+          "description": "public static class Transport { public const int PacketAttempts = 2; }",
+          "id": "ucr.code.c87dd8c3507fa04ea4cd7264da3feb77611c097d777dac0f8fe229850e956acd",
+          "location": {
+            "reference": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf:Transport.cs#L1-L1"
+          },
+          "provenance": {
+            "actor": "pinned-git-code",
+            "method": "update-by-cr-code-v1"
+          },
+          "source": "Transport.cs",
+          "status": "active",
+          "substantiates": [
+            "ucr.22a54a6e0f5a7be9.transport-owner"
+          ],
+          "type": "direct-technical"
+        },
+        {
+          "captured_at": "2026-11-22T12:00:00Z",
+          "content_hash": "sha256:4a2d959c976321a4d7c8285ef87b81624db5f787d1426ae226317d2ec23ebc44",
+          "description": "public static class Retry { public const int MaxAttempts = 5; }",
+          "id": "ucr.code.ed4e2f875f813828f82999f617484e627cd226b2abb7db1c76d2fdac100afdfc",
+          "location": {
+            "reference": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf:Retry.cs#L1-L1"
+          },
+          "provenance": {
+            "actor": "pinned-git-code",
+            "method": "update-by-cr-code-v1"
+          },
+          "source": "Retry.cs",
+          "status": "active",
+          "substantiates": [
+            "ucr.22a54a6e0f5a7be9.retry-limit"
+          ],
+          "type": "direct-technical"
+        },
+        {
+          "captured_at": "2026-11-22T12:00:00Z",
+          "content_hash": "sha256:37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e",
+          "description": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+          "id": "ucr.evidence.37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e",
+          "location": {
+            "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | deadline"
+          },
+          "provenance": {
+            "actor": "user-CR-interview",
+            "method": "update-by-cr-v1"
+          },
+          "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e.json",
+          "status": "active",
+          "substantiates": [
+            "ucr.22a54a6e0f5a7be9.deadline"
+          ],
+          "type": "direct-authoritative"
+        },
+        {
+          "captured_at": "2026-11-22T12:00:00Z",
+          "content_hash": "sha256:c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d",
+          "description": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+          "id": "ucr.evidence.c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d",
+          "location": {
+            "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | transport-owner"
+          },
+          "provenance": {
+            "actor": "user-CR-interview",
+            "method": "update-by-cr-v1"
+          },
+          "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d.json",
+          "status": "active",
+          "substantiates": [
+            "ucr.22a54a6e0f5a7be9.transport-owner"
+          ],
+          "type": "direct-authoritative"
+        },
+        {
+          "captured_at": "2026-11-22T12:00:00Z",
+          "content_hash": "sha256:d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946",
+          "description": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+          "id": "ucr.evidence.d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946",
+          "location": {
+            "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | retry-limit"
+          },
+          "provenance": {
+            "actor": "user-CR-interview",
+            "method": "update-by-cr-v1"
+          },
+          "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946.json",
+          "status": "active",
+          "substantiates": [
+            "ucr.22a54a6e0f5a7be9.retry-limit"
+          ],
+          "type": "direct-authoritative"
+        }
+      ],
+      "relationships": []
+    },
+    "revisions": [
+      {
+        "captured_at": "2026-11-23T07:06:00.744624+00:00",
+        "id": "ucr.22a54a6e0f5a7be9.deadline",
+        "kind": "claims",
+        "lifecycle": "active",
+        "plan": "sha256:271b2315c8848d8632d332e4f862c4f87006ba9f4ac33d464c4a9a14d92dd175",
+        "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7; interview 57083ccf52f14f38a4c950646819fe1e revision 15",
+        "record": {
+          "conflicts_with": [],
+          "depends_on": [],
+          "evidence": [
+            "ucr.evidence.37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e",
+            "ucr.code.a191d32ba5fce40c102362eebe9fb60e3f365cbd6131ea8fe95ec1b41cb94573"
+          ],
+          "id": "ucr.22a54a6e0f5a7be9.deadline",
+          "last_verified": "2026-11-22",
+          "provenance": {
+            "actor": "reviewed-CR-workflow",
+            "method": "update-by-cr-v1"
+          },
+          "statement": "Preserve the caller deadline of 120 ms When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Do not extend the public caller deadline. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf. Terms: deadline, timeout, срок.",
+          "status": "CONFIRMED",
+          "type": "architecture"
+        },
+        "revision": 1,
+        "source": {
+          "identity": "1c189ba3351ecc6c2b891d4f4443ee7c48ec90fb8d5ffa1b36045393f3c85eb2",
+          "kind": "committed",
+          "revision": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf"
+        },
+        "successor": null,
+        "verified_at": null
+      },
+      {
+        "captured_at": "2026-11-23T07:06:00.744341+00:00",
+        "id": "ucr.22a54a6e0f5a7be9.retry-limit",
+        "kind": "claims",
+        "lifecycle": "active",
+        "plan": "sha256:271b2315c8848d8632d332e4f862c4f87006ba9f4ac33d464c4a9a14d92dd175",
+        "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7; interview 57083ccf52f14f38a4c950646819fe1e revision 15",
+        "record": {
+          "conflicts_with": [],
+          "depends_on": [],
+          "evidence": [
+            "ucr.evidence.d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946",
+            "ucr.code.ed4e2f875f813828f82999f617484e627cd226b2abb7db1c76d2fdac100afdfc"
+          ],
+          "id": "ucr.22a54a6e0f5a7be9.retry-limit",
+          "last_verified": "2026-11-22",
+          "provenance": {
+            "actor": "reviewed-CR-workflow",
+            "method": "update-by-cr-v1"
+          },
+          "statement": "Prefer five total transient operation attempts When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Bound work within the caller deadline. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf. Terms: retry, transient, повтор, ошибка.",
+          "status": "CONFIRMED",
+          "type": "architecture"
+        },
+        "revision": 1,
+        "source": {
+          "identity": "1c189ba3351ecc6c2b891d4f4443ee7c48ec90fb8d5ffa1b36045393f3c85eb2",
+          "kind": "committed",
+          "revision": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf"
+        },
+        "successor": null,
+        "verified_at": null
+      },
+      {
+        "captured_at": "2026-11-23T07:06:00.744497+00:00",
+        "id": "ucr.22a54a6e0f5a7be9.transport-owner",
+        "kind": "claims",
+        "lifecycle": "active",
+        "plan": "sha256:271b2315c8848d8632d332e4f862c4f87006ba9f4ac33d464c4a9a14d92dd175",
+        "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7; interview 57083ccf52f14f38a4c950646819fe1e revision 15",
+        "record": {
+          "conflicts_with": [],
+          "depends_on": [],
+          "evidence": [
+            "ucr.evidence.c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d",
+            "ucr.code.c87dd8c3507fa04ea4cd7264da3feb77611c097d777dac0f8fe229850e956acd"
+          ],
+          "id": "ucr.22a54a6e0f5a7be9.transport-owner",
+          "last_verified": "2026-11-22",
+          "provenance": {
+            "actor": "reviewed-CR-workflow",
+            "method": "update-by-cr-v1"
+          },
+          "statement": "Leave the independent packet recovery in Transport unchanged When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Do not multiply operation retries by changing packet recovery ownership. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf. Terms: transport, retry, повтор.",
+          "status": "CONFIRMED",
+          "type": "architecture"
+        },
+        "revision": 1,
+        "source": {
+          "identity": "1c189ba3351ecc6c2b891d4f4443ee7c48ec90fb8d5ffa1b36045393f3c85eb2",
+          "kind": "committed",
+          "revision": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf"
+        },
+        "successor": null,
+        "verified_at": null
+      },
+      {
+        "captured_at": "2026-11-23T07:06:00.744582+00:00",
+        "id": "ucr.code.a191d32ba5fce40c102362eebe9fb60e3f365cbd6131ea8fe95ec1b41cb94573",
+        "kind": "evidence",
+        "lifecycle": "active",
+        "plan": "sha256:271b2315c8848d8632d332e4f862c4f87006ba9f4ac33d464c4a9a14d92dd175",
+        "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7; interview 57083ccf52f14f38a4c950646819fe1e revision 15",
+        "record": {
+          "captured_at": "2026-11-22T12:00:00Z",
+          "content_hash": "sha256:8d55f129e7adfe5ca882cc48614d8ee34a468b36511270d663ba54de3e23aab7",
+          "description": "public static class Caller { public const int DeadlineMs = 120; }",
+          "id": "ucr.code.a191d32ba5fce40c102362eebe9fb60e3f365cbd6131ea8fe95ec1b41cb94573",
+          "location": {
+            "reference": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf:Caller.cs#L1-L1"
+          },
+          "provenance": {
+            "actor": "pinned-git-code",
+            "method": "update-by-cr-code-v1"
+          },
+          "source": "Caller.cs",
+          "status": "active",
+          "substantiates": [
+            "ucr.22a54a6e0f5a7be9.deadline"
+          ],
+          "type": "direct-technical"
+        },
+        "revision": 1,
+        "source": {
+          "identity": "1c189ba3351ecc6c2b891d4f4443ee7c48ec90fb8d5ffa1b36045393f3c85eb2",
+          "kind": "committed",
+          "revision": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf"
+        },
+        "successor": null,
+        "verified_at": null
+      },
+      {
+        "captured_at": "2026-11-23T07:06:00.744452+00:00",
+        "id": "ucr.code.c87dd8c3507fa04ea4cd7264da3feb77611c097d777dac0f8fe229850e956acd",
+        "kind": "evidence",
+        "lifecycle": "active",
+        "plan": "sha256:271b2315c8848d8632d332e4f862c4f87006ba9f4ac33d464c4a9a14d92dd175",
+        "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7; interview 57083ccf52f14f38a4c950646819fe1e revision 15",
+        "record": {
+          "captured_at": "2026-11-22T12:00:00Z",
+          "content_hash": "sha256:afe6dfa80995b47b959c65bbc75466ae9c71d6a87e65e8d1281a502a7e2406ba",
+          "description": "public static class Transport { public const int PacketAttempts = 2; }",
+          "id": "ucr.code.c87dd8c3507fa04ea4cd7264da3feb77611c097d777dac0f8fe229850e956acd",
+          "location": {
+            "reference": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf:Transport.cs#L1-L1"
+          },
+          "provenance": {
+            "actor": "pinned-git-code",
+            "method": "update-by-cr-code-v1"
+          },
+          "source": "Transport.cs",
+          "status": "active",
+          "substantiates": [
+            "ucr.22a54a6e0f5a7be9.transport-owner"
+          ],
+          "type": "direct-technical"
+        },
+        "revision": 1,
+        "source": {
+          "identity": "1c189ba3351ecc6c2b891d4f4443ee7c48ec90fb8d5ffa1b36045393f3c85eb2",
+          "kind": "committed",
+          "revision": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf"
+        },
+        "successor": null,
+        "verified_at": null
+      },
+      {
+        "captured_at": "2026-11-23T07:06:00.744265+00:00",
+        "id": "ucr.code.ed4e2f875f813828f82999f617484e627cd226b2abb7db1c76d2fdac100afdfc",
+        "kind": "evidence",
+        "lifecycle": "active",
+        "plan": "sha256:271b2315c8848d8632d332e4f862c4f87006ba9f4ac33d464c4a9a14d92dd175",
+        "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7; interview 57083ccf52f14f38a4c950646819fe1e revision 15",
+        "record": {
+          "captured_at": "2026-11-22T12:00:00Z",
+          "content_hash": "sha256:4a2d959c976321a4d7c8285ef87b81624db5f787d1426ae226317d2ec23ebc44",
+          "description": "public static class Retry { public const int MaxAttempts = 5; }",
+          "id": "ucr.code.ed4e2f875f813828f82999f617484e627cd226b2abb7db1c76d2fdac100afdfc",
+          "location": {
+            "reference": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf:Retry.cs#L1-L1"
+          },
+          "provenance": {
+            "actor": "pinned-git-code",
+            "method": "update-by-cr-code-v1"
+          },
+          "source": "Retry.cs",
+          "status": "active",
+          "substantiates": [
+            "ucr.22a54a6e0f5a7be9.retry-limit"
+          ],
+          "type": "direct-technical"
+        },
+        "revision": 1,
+        "source": {
+          "identity": "1c189ba3351ecc6c2b891d4f4443ee7c48ec90fb8d5ffa1b36045393f3c85eb2",
+          "kind": "committed",
+          "revision": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf"
+        },
+        "successor": null,
+        "verified_at": null
+      },
+      {
+        "captured_at": "2026-11-23T07:06:00.744542+00:00",
+        "id": "ucr.evidence.37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e",
+        "kind": "evidence",
+        "lifecycle": "active",
+        "plan": "sha256:271b2315c8848d8632d332e4f862c4f87006ba9f4ac33d464c4a9a14d92dd175",
+        "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7; interview 57083ccf52f14f38a4c950646819fe1e revision 15",
+        "record": {
+          "captured_at": "2026-11-22T12:00:00Z",
+          "content_hash": "sha256:37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e",
+          "description": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+          "id": "ucr.evidence.37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e",
+          "location": {
+            "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | deadline"
+          },
+          "provenance": {
+            "actor": "user-CR-interview",
+            "method": "update-by-cr-v1"
+          },
+          "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e.json",
+          "status": "active",
+          "substantiates": [
+            "ucr.22a54a6e0f5a7be9.deadline"
+          ],
+          "type": "direct-authoritative"
+        },
+        "revision": 1,
+        "source": {
+          "identity": "1c189ba3351ecc6c2b891d4f4443ee7c48ec90fb8d5ffa1b36045393f3c85eb2",
+          "kind": "committed",
+          "revision": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf"
+        },
+        "successor": null,
+        "verified_at": null
+      },
+      {
+        "captured_at": "2026-11-23T07:06:00.744408+00:00",
+        "id": "ucr.evidence.c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d",
+        "kind": "evidence",
+        "lifecycle": "active",
+        "plan": "sha256:271b2315c8848d8632d332e4f862c4f87006ba9f4ac33d464c4a9a14d92dd175",
+        "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7; interview 57083ccf52f14f38a4c950646819fe1e revision 15",
+        "record": {
+          "captured_at": "2026-11-22T12:00:00Z",
+          "content_hash": "sha256:c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d",
+          "description": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+          "id": "ucr.evidence.c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d",
+          "location": {
+            "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | transport-owner"
+          },
+          "provenance": {
+            "actor": "user-CR-interview",
+            "method": "update-by-cr-v1"
+          },
+          "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d.json",
+          "status": "active",
+          "substantiates": [
+            "ucr.22a54a6e0f5a7be9.transport-owner"
+          ],
+          "type": "direct-authoritative"
+        },
+        "revision": 1,
+        "source": {
+          "identity": "1c189ba3351ecc6c2b891d4f4443ee7c48ec90fb8d5ffa1b36045393f3c85eb2",
+          "kind": "committed",
+          "revision": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf"
+        },
+        "successor": null,
+        "verified_at": null
+      },
+      {
+        "captured_at": "2026-11-23T07:06:00.744176+00:00",
+        "id": "ucr.evidence.d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946",
+        "kind": "evidence",
+        "lifecycle": "active",
+        "plan": "sha256:271b2315c8848d8632d332e4f862c4f87006ba9f4ac33d464c4a9a14d92dd175",
+        "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7; interview 57083ccf52f14f38a4c950646819fe1e revision 15",
+        "record": {
+          "captured_at": "2026-11-22T12:00:00Z",
+          "content_hash": "sha256:d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946",
+          "description": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+          "id": "ucr.evidence.d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946",
+          "location": {
+            "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | retry-limit"
+          },
+          "provenance": {
+            "actor": "user-CR-interview",
+            "method": "update-by-cr-v1"
+          },
+          "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946.json",
+          "status": "active",
+          "substantiates": [
+            "ucr.22a54a6e0f5a7be9.retry-limit"
+          ],
+          "type": "direct-authoritative"
+        },
+        "revision": 1,
+        "source": {
+          "identity": "1c189ba3351ecc6c2b891d4f4443ee7c48ec90fb8d5ffa1b36045393f3c85eb2",
+          "kind": "committed",
+          "revision": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf"
+        },
+        "successor": null,
+        "verified_at": null
+      }
+    ],
+    "queue": [
+      {
+        "id": "24362c17c3e2960a7808078cd5cf38f19034154d43bfd54220fef6b7de7be748",
+        "status": "deferred",
+        "binding": null
+      },
+      {
+        "id": "8da16ad1d7612aa37d2518119d431a23cca742683249af2bf045a3bdc190951e",
+        "status": "imported",
+        "binding": "sha256:271b2315c8848d8632d332e4f862c4f87006ba9f4ac33d464c4a9a14d92dd175"
+      }
+    ],
+    "default_context": {
+      "command": "context",
+      "ok": true,
+      "engine_version": "context-engine-v2",
+      "result": "matches",
+      "message": null,
+      "claims": [
+        {
+          "id": "ucr.22a54a6e0f5a7be9.retry-limit",
+          "status": "CONFIRMED",
+          "confirmed": true,
+          "type": "architecture",
+          "statement": "Prefer five total transient operation attempts When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Bound work within the caller deadline. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf. Terms: retry, transient, повтор, ошибка.",
+          "last_verified": "2026-11-22",
+          "depends_on": [],
+          "revision": 1,
+          "provenance": {
+            "actor": "reviewed-CR-workflow",
+            "method": "update-by-cr-v1"
+          },
+          "evidence_ids": [
+            "ucr.evidence.d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946",
+            "ucr.code.ed4e2f875f813828f82999f617484e627cd226b2abb7db1c76d2fdac100afdfc"
+          ],
+          "conflicts_with": [],
+          "current": {
+            "lifecycle": "active",
+            "revision": 1,
+            "freshness": {
+              "trusted": true,
+              "evidence": {
+                "ucr.evidence.d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946": "unchanged",
+                "ucr.code.ed4e2f875f813828f82999f617484e627cd226b2abb7db1c76d2fdac100afdfc": "unchanged"
+              },
+              "policy": "all supporting evidence current; confidence unchanged"
+            }
+          }
+        },
+        {
+          "id": "ucr.22a54a6e0f5a7be9.deadline",
+          "status": "CONFIRMED",
+          "confirmed": true,
+          "type": "architecture",
+          "statement": "Preserve the caller deadline of 120 ms When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Do not extend the public caller deadline. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf. Terms: deadline, timeout, срок.",
+          "last_verified": "2026-11-22",
+          "depends_on": [],
+          "revision": 1,
+          "provenance": {
+            "actor": "reviewed-CR-workflow",
+            "method": "update-by-cr-v1"
+          },
+          "evidence_ids": [
+            "ucr.evidence.37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e",
+            "ucr.code.a191d32ba5fce40c102362eebe9fb60e3f365cbd6131ea8fe95ec1b41cb94573"
+          ],
+          "conflicts_with": [],
+          "current": {
+            "lifecycle": "active",
+            "revision": 1,
+            "freshness": {
+              "trusted": true,
+              "evidence": {
+                "ucr.evidence.37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e": "unchanged",
+                "ucr.code.a191d32ba5fce40c102362eebe9fb60e3f365cbd6131ea8fe95ec1b41cb94573": "unchanged"
+              },
+              "policy": "all supporting evidence current; confidence unchanged"
+            }
+          }
+        },
+        {
+          "id": "ucr.22a54a6e0f5a7be9.transport-owner",
+          "status": "CONFIRMED",
+          "confirmed": true,
+          "type": "architecture",
+          "statement": "Leave the independent packet recovery in Transport unchanged When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Do not multiply operation retries by changing packet recovery ownership. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf. Terms: transport, retry, повтор.",
+          "last_verified": "2026-11-22",
+          "depends_on": [],
+          "revision": 1,
+          "provenance": {
+            "actor": "reviewed-CR-workflow",
+            "method": "update-by-cr-v1"
+          },
+          "evidence_ids": [
+            "ucr.evidence.c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d",
+            "ucr.code.c87dd8c3507fa04ea4cd7264da3feb77611c097d777dac0f8fe229850e956acd"
+          ],
+          "conflicts_with": [],
+          "current": {
+            "lifecycle": "active",
+            "revision": 1,
+            "freshness": {
+              "trusted": true,
+              "evidence": {
+                "ucr.evidence.c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d": "unchanged",
+                "ucr.code.c87dd8c3507fa04ea4cd7264da3feb77611c097d777dac0f8fe229850e956acd": "unchanged"
+              },
+              "policy": "all supporting evidence current; confidence unchanged"
+            }
+          }
+        }
+      ],
+      "evidence": [
+        {
+          "id": "ucr.evidence.d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946",
+          "provenance": {
+            "actor": "user-CR-interview",
+            "method": "update-by-cr-v1"
+          },
+          "status": "active",
+          "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946.json",
+          "location": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | retry-limit"
+        },
+        {
+          "id": "ucr.code.ed4e2f875f813828f82999f617484e627cd226b2abb7db1c76d2fdac100afdfc",
+          "provenance": {
+            "actor": "pinned-git-code",
+            "method": "update-by-cr-code-v1"
+          },
+          "status": "active",
+          "source": "Retry.cs",
+          "location": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf:Retry.cs#L1-L1"
+        },
+        {
+          "id": "ucr.evidence.37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e",
+          "provenance": {
+            "actor": "user-CR-interview",
+            "method": "update-by-cr-v1"
+          },
+          "status": "active",
+          "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e.json",
+          "location": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | deadline"
+        },
+        {
+          "id": "ucr.code.a191d32ba5fce40c102362eebe9fb60e3f365cbd6131ea8fe95ec1b41cb94573",
+          "provenance": {
+            "actor": "pinned-git-code",
+            "method": "update-by-cr-code-v1"
+          },
+          "status": "active",
+          "source": "Caller.cs",
+          "location": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf:Caller.cs#L1-L1"
+        },
+        {
+          "id": "ucr.evidence.c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d",
+          "provenance": {
+            "actor": "user-CR-interview",
+            "method": "update-by-cr-v1"
+          },
+          "status": "active",
+          "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d.json",
+          "location": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | transport-owner"
+        },
+        {
+          "id": "ucr.code.c87dd8c3507fa04ea4cd7264da3feb77611c097d777dac0f8fe229850e956acd",
+          "provenance": {
+            "actor": "pinned-git-code",
+            "method": "update-by-cr-code-v1"
+          },
+          "status": "active",
+          "source": "Transport.cs",
+          "location": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf:Transport.cs#L1-L1"
+        }
+      ],
+      "conflicts": [],
+      "truncation": {
+        "candidates": 3,
+        "returned": 3,
+        "dropped": 0,
+        "reason": null
+      },
+      "budget": {
+        "max_tokens": 4000,
+        "estimated_tokens": 1745,
+        "estimation": "utf8-bytes/4"
+      },
+      "view": "compact",
+      "knowledge_base": {
+        "fingerprint": "sha256:3e71d148ce806536fce5e8ce82486c513a7854f5a410922499b286013134d973"
+      },
+      "delivery_version": 2,
+      "diagnostics": {
+        "store": "available",
+        "selection": "matches",
+        "filtered": [],
+        "filtered_count": 0,
+        "omitted": 0
+      },
+      "dependencies": {
+        "version": 1,
+        "max_depth": 4,
+        "complete": true,
+        "references": [],
+        "max_references": 128,
+        "omitted": 0
+      },
+      "partial": false
+    },
+    "optional_context": {
+      "command": "context",
+      "ok": true,
+      "engine_version": "context-engine-v2",
+      "result": "matches",
+      "message": null,
+      "claims": [
+        {
+          "id": "ucr.22a54a6e0f5a7be9.retry-limit",
+          "status": "CONFIRMED",
+          "confirmed": true,
+          "type": "architecture",
+          "statement": "Prefer five total transient operation attempts When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Bound work within the caller deadline. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf. Terms: retry, transient, повтор, ошибка.",
+          "last_verified": "2026-11-22",
+          "depends_on": [],
+          "revision": 1,
+          "provenance": {
+            "actor": "reviewed-CR-workflow",
+            "method": "update-by-cr-v1"
+          },
+          "evidence_ids": [
+            "ucr.evidence.d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946",
+            "ucr.code.ed4e2f875f813828f82999f617484e627cd226b2abb7db1c76d2fdac100afdfc"
+          ],
+          "conflicts_with": [],
+          "current": {
+            "lifecycle": "active",
+            "revision": 1,
+            "freshness": {
+              "trusted": true,
+              "evidence": {
+                "ucr.evidence.d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946": "unchanged",
+                "ucr.code.ed4e2f875f813828f82999f617484e627cd226b2abb7db1c76d2fdac100afdfc": "unchanged"
+              },
+              "policy": "all supporting evidence current; confidence unchanged"
+            }
+          }
+        },
+        {
+          "id": "ucr.22a54a6e0f5a7be9.deadline",
+          "status": "CONFIRMED",
+          "confirmed": true,
+          "type": "architecture",
+          "statement": "Preserve the caller deadline of 120 ms When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Do not extend the public caller deadline. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf. Terms: deadline, timeout, срок.",
+          "last_verified": "2026-11-22",
+          "depends_on": [],
+          "revision": 1,
+          "provenance": {
+            "actor": "reviewed-CR-workflow",
+            "method": "update-by-cr-v1"
+          },
+          "evidence_ids": [
+            "ucr.evidence.37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e",
+            "ucr.code.a191d32ba5fce40c102362eebe9fb60e3f365cbd6131ea8fe95ec1b41cb94573"
+          ],
+          "conflicts_with": [],
+          "current": {
+            "lifecycle": "active",
+            "revision": 1,
+            "freshness": {
+              "trusted": true,
+              "evidence": {
+                "ucr.evidence.37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e": "unchanged",
+                "ucr.code.a191d32ba5fce40c102362eebe9fb60e3f365cbd6131ea8fe95ec1b41cb94573": "unchanged"
+              },
+              "policy": "all supporting evidence current; confidence unchanged"
+            }
+          }
+        },
+        {
+          "id": "ucr.22a54a6e0f5a7be9.transport-owner",
+          "status": "CONFIRMED",
+          "confirmed": true,
+          "type": "architecture",
+          "statement": "Leave the independent packet recovery in Transport unchanged When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Do not multiply operation retries by changing packet recovery ownership. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf. Terms: transport, retry, повтор.",
+          "last_verified": "2026-11-22",
+          "depends_on": [],
+          "revision": 1,
+          "provenance": {
+            "actor": "reviewed-CR-workflow",
+            "method": "update-by-cr-v1"
+          },
+          "evidence_ids": [
+            "ucr.evidence.c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d",
+            "ucr.code.c87dd8c3507fa04ea4cd7264da3feb77611c097d777dac0f8fe229850e956acd"
+          ],
+          "conflicts_with": [],
+          "current": {
+            "lifecycle": "active",
+            "revision": 1,
+            "freshness": {
+              "trusted": true,
+              "evidence": {
+                "ucr.evidence.c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d": "unchanged",
+                "ucr.code.c87dd8c3507fa04ea4cd7264da3feb77611c097d777dac0f8fe229850e956acd": "unchanged"
+              },
+              "policy": "all supporting evidence current; confidence unchanged"
+            }
+          }
+        }
+      ],
+      "evidence": [
+        {
+          "id": "ucr.evidence.d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946",
+          "provenance": {
+            "actor": "user-CR-interview",
+            "method": "update-by-cr-v1"
+          },
+          "status": "active",
+          "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946.json",
+          "location": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | retry-limit"
+        },
+        {
+          "id": "ucr.code.ed4e2f875f813828f82999f617484e627cd226b2abb7db1c76d2fdac100afdfc",
+          "provenance": {
+            "actor": "pinned-git-code",
+            "method": "update-by-cr-code-v1"
+          },
+          "status": "active",
+          "source": "Retry.cs",
+          "location": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf:Retry.cs#L1-L1"
+        },
+        {
+          "id": "ucr.evidence.37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e",
+          "provenance": {
+            "actor": "user-CR-interview",
+            "method": "update-by-cr-v1"
+          },
+          "status": "active",
+          "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e.json",
+          "location": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | deadline"
+        },
+        {
+          "id": "ucr.code.a191d32ba5fce40c102362eebe9fb60e3f365cbd6131ea8fe95ec1b41cb94573",
+          "provenance": {
+            "actor": "pinned-git-code",
+            "method": "update-by-cr-code-v1"
+          },
+          "status": "active",
+          "source": "Caller.cs",
+          "location": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf:Caller.cs#L1-L1"
+        },
+        {
+          "id": "ucr.evidence.c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d",
+          "provenance": {
+            "actor": "user-CR-interview",
+            "method": "update-by-cr-v1"
+          },
+          "status": "active",
+          "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d.json",
+          "location": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | transport-owner"
+        },
+        {
+          "id": "ucr.code.c87dd8c3507fa04ea4cd7264da3feb77611c097d777dac0f8fe229850e956acd",
+          "provenance": {
+            "actor": "pinned-git-code",
+            "method": "update-by-cr-code-v1"
+          },
+          "status": "active",
+          "source": "Transport.cs",
+          "location": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf:Transport.cs#L1-L1"
+        }
+      ],
+      "conflicts": [],
+      "truncation": {
+        "candidates": 3,
+        "returned": 3,
+        "dropped": 0,
+        "reason": null
+      },
+      "budget": {
+        "max_tokens": 4000,
+        "estimated_tokens": 1745,
+        "estimation": "utf8-bytes/4"
+      },
+      "view": "compact",
+      "knowledge_base": {
+        "fingerprint": "sha256:3e71d148ce806536fce5e8ce82486c513a7854f5a410922499b286013134d973"
+      },
+      "delivery_version": 2,
+      "diagnostics": {
+        "store": "available",
+        "selection": "matches",
+        "filtered": [],
+        "filtered_count": 0,
+        "omitted": 0
+      },
+      "dependencies": {
+        "version": 1,
+        "max_depth": 4,
+        "complete": true,
+        "references": [],
+        "max_references": 128,
+        "omitted": 0
+      },
+      "partial": false
+    },
+    "workflow_sessions": {
+      "version": 1,
+      "sessions": [
+        {
+          "state": {
+            "answers": {
+              "8be66000db46ef83419ef514e2372861f6c91ddfc99bbe7b6854d89b4280908d": {
+                "binding": "1cbc75b3234ba624bb989289298f0dc959a0c06d37d118e7737e454a3af31185",
+                "delivery_id": "answer-8be66000db46ef83419ef514e2372861f6c91ddfc99bbe7b6854d89b4280908d",
+                "kind": "historical_reason",
+                "source": "user-message",
+                "text": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+                "turn": null
+              },
+              "9aec8a3d9ac4697e03574732980f89823fe48cd7fdf04a90271443f534b8e6f3": {
+                "binding": "1cbc75b3234ba624bb989289298f0dc959a0c06d37d118e7737e454a3af31185",
+                "delivery_id": "answer-9aec8a3d9ac4697e03574732980f89823fe48cd7fdf04a90271443f534b8e6f3",
+                "kind": "historical_reason",
+                "source": "user-message",
+                "text": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+                "turn": null
+              },
+              "d095ba55fa87c0664959da20236f3b0d8a8b454886aca4867debe787a9dba86a": {
+                "binding": "1cbc75b3234ba624bb989289298f0dc959a0c06d37d118e7737e454a3af31185",
+                "delivery_id": "answer-d095ba55fa87c0664959da20236f3b0d8a8b454886aca4867debe787a9dba86a",
+                "kind": "historical_reason",
+                "source": "user-message",
+                "text": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+                "turn": null
+              }
+            },
+            "approved": "sha256:271b2315c8848d8632d332e4f862c4f87006ba9f4ac33d464c4a9a14d92dd175",
+            "artifacts": [
+              {
+                "hash": "sha256:e130829e743044fd53bda1cd5e16f53542d41533e482e653d14d37c3e715ed4c",
+                "path": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/e130829e743044fd53bda1cd5e16f53542d41533e482e653d14d37c3e715ed4c.json"
+              },
+              {
+                "hash": "sha256:37674ead80beb1bf4c0b30877975bf1496c74c3fdc0fa5c5c297b3b69976afc2",
+                "path": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/37674ead80beb1bf4c0b30877975bf1496c74c3fdc0fa5c5c297b3b69976afc2.json"
+              },
+              {
+                "hash": "sha256:21c545a96f641b4602f1394c3f50eb3fc21451ff5e3500b3a4438d8914c1d602",
+                "path": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/21c545a96f641b4602f1394c3f50eb3fc21451ff5e3500b3a4438d8914c1d602.json"
+              },
+              {
+                "hash": "sha256:d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946",
+                "path": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946.json"
+              },
+              {
+                "hash": "sha256:c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d",
+                "path": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d.json"
+              },
+              {
+                "hash": "sha256:37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e",
+                "path": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e.json"
+              }
+            ],
+            "binding": {
+              "identity": "1c189ba3351ecc6c2b891d4f4443ee7c48ec90fb8d5ffa1b36045393f3c85eb2",
+              "kind": "committed",
+              "revision": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf"
+            },
+            "closed": false,
+            "history": [
+              {
+                "actual_changed": [
+                  "Retry.cs"
+                ],
+                "event": "analysis-coverage",
+                "gaps": []
+              },
+              {
+                "answers": {
+                  "2c5c5cb07ce6f8c5d8d87fbca7aabd03fd95c889fd60e5eb4ed1a7f67b4a27b8": {
+                    "binding": "c18f7c91c80cbde10e64a29b04d9218f2c536f535d1a633b504ec606de68743e",
+                    "delivery_id": "answer-2c5c5cb07ce6f8c5d8d87fbca7aabd03fd95c889fd60e5eb4ed1a7f67b4a27b8",
+                    "kind": "historical_reason",
+                    "source": "user-message",
+                    "text": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+                    "turn": null
+                  },
+                  "6bb54d9bcf8e438472034d86d49636bd416d537f660ea0cbf620cce2bd9a4d55": {
+                    "binding": "c18f7c91c80cbde10e64a29b04d9218f2c536f535d1a633b504ec606de68743e",
+                    "delivery_id": "answer-6bb54d9bcf8e438472034d86d49636bd416d537f660ea0cbf620cce2bd9a4d55",
+                    "kind": "historical_reason",
+                    "source": "user-message",
+                    "text": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+                    "turn": null
+                  },
+                  "d0095a688431b465c765cbcf5ea8c23d99020b8be5b80e85a9bc7237cbf95a90": {
+                    "binding": "c18f7c91c80cbde10e64a29b04d9218f2c536f535d1a633b504ec606de68743e",
+                    "delivery_id": "answer-d0095a688431b465c765cbcf5ea8c23d99020b8be5b80e85a9bc7237cbf95a90",
+                    "kind": "historical_reason",
+                    "source": "user-message",
+                    "text": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+                    "turn": null
+                  }
+                },
+                "event": "source-stale",
+                "proposal": {
+                  "candidate": "24362c17c3e2960a7808078cd5cf38f19034154d43bfd54220fef6b7de7be748",
+                  "claims": [
+                    "ucr.22a54a6e0f5a7be9.retry-limit",
+                    "ucr.22a54a6e0f5a7be9.transport-owner",
+                    "ucr.22a54a6e0f5a7be9.deadline"
+                  ],
+                  "payload": {
+                    "operation": "batch",
+                    "operations": [
+                      {
+                        "action": "add",
+                        "expected": 0,
+                        "id": "ucr.evidence.e130829e743044fd53bda1cd5e16f53542d41533e482e653d14d37c3e715ed4c",
+                        "kind": "evidence",
+                        "payload": {
+                          "captured_at": "2026-11-22T12:00:00Z",
+                          "content_hash": "sha256:e130829e743044fd53bda1cd5e16f53542d41533e482e653d14d37c3e715ed4c",
+                          "description": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+                          "id": "ucr.evidence.e130829e743044fd53bda1cd5e16f53542d41533e482e653d14d37c3e715ed4c",
+                          "location": {
+                            "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | retry-limit"
+                          },
+                          "provenance": {
+                            "actor": "user-CR-interview",
+                            "method": "update-by-cr-v1"
+                          },
+                          "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/e130829e743044fd53bda1cd5e16f53542d41533e482e653d14d37c3e715ed4c.json",
+                          "status": "active",
+                          "substantiates": [
+                            "ucr.22a54a6e0f5a7be9.retry-limit"
+                          ],
+                          "type": "direct-authoritative"
+                        },
+                        "successor": null
+                      },
+                      {
+                        "action": "add",
+                        "expected": 0,
+                        "id": "ucr.code.6c6a4b4e82d8be62e28bec24a37fef29891750f9615c5b203f170b945a157a22",
+                        "kind": "evidence",
+                        "payload": {
+                          "captured_at": "2026-11-22T12:00:00Z",
+                          "content_hash": "sha256:3dabb194f48970df2248b236966a25f6be45313670bb6a33d10814e165703ef6",
+                          "description": "public static class Retry { public const int MaxAttempts = 4; }",
+                          "id": "ucr.code.6c6a4b4e82d8be62e28bec24a37fef29891750f9615c5b203f170b945a157a22",
+                          "location": {
+                            "reference": "f88cf601a91a3179bcf405ac151f4b3edf11db79:Retry.cs#L1-L1"
+                          },
+                          "provenance": {
+                            "actor": "pinned-git-code",
+                            "method": "update-by-cr-code-v1"
+                          },
+                          "source": "Retry.cs",
+                          "status": "active",
+                          "substantiates": [
+                            "ucr.22a54a6e0f5a7be9.retry-limit"
+                          ],
+                          "type": "direct-technical"
+                        },
+                        "successor": null
+                      },
+                      {
+                        "action": "add",
+                        "expected": 0,
+                        "id": "ucr.22a54a6e0f5a7be9.retry-limit",
+                        "kind": "claims",
+                        "payload": {
+                          "conflicts_with": [],
+                          "depends_on": [],
+                          "evidence": [
+                            "ucr.evidence.e130829e743044fd53bda1cd5e16f53542d41533e482e653d14d37c3e715ed4c",
+                            "ucr.code.6c6a4b4e82d8be62e28bec24a37fef29891750f9615c5b203f170b945a157a22"
+                          ],
+                          "id": "ucr.22a54a6e0f5a7be9.retry-limit",
+                          "last_verified": "2026-11-22",
+                          "provenance": {
+                            "actor": "reviewed-CR-workflow",
+                            "method": "update-by-cr-v1"
+                          },
+                          "statement": "Prefer four total transient operation attempts When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Bound work within the caller deadline. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target f88cf601a91a3179bcf405ac151f4b3edf11db79. Terms: retry, transient, повтор, ошибка.",
+                          "status": "CONFIRMED",
+                          "type": "architecture"
+                        },
+                        "successor": null
+                      },
+                      {
+                        "action": "add",
+                        "expected": 0,
+                        "id": "ucr.evidence.37674ead80beb1bf4c0b30877975bf1496c74c3fdc0fa5c5c297b3b69976afc2",
+                        "kind": "evidence",
+                        "payload": {
+                          "captured_at": "2026-11-22T12:00:00Z",
+                          "content_hash": "sha256:37674ead80beb1bf4c0b30877975bf1496c74c3fdc0fa5c5c297b3b69976afc2",
+                          "description": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+                          "id": "ucr.evidence.37674ead80beb1bf4c0b30877975bf1496c74c3fdc0fa5c5c297b3b69976afc2",
+                          "location": {
+                            "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | transport-owner"
+                          },
+                          "provenance": {
+                            "actor": "user-CR-interview",
+                            "method": "update-by-cr-v1"
+                          },
+                          "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/37674ead80beb1bf4c0b30877975bf1496c74c3fdc0fa5c5c297b3b69976afc2.json",
+                          "status": "active",
+                          "substantiates": [
+                            "ucr.22a54a6e0f5a7be9.transport-owner"
+                          ],
+                          "type": "direct-authoritative"
+                        },
+                        "successor": null
+                      },
+                      {
+                        "action": "add",
+                        "expected": 0,
+                        "id": "ucr.code.41df5519d67b0e21fbdc8c5c8800eaa3c04de50845dc6ffe24ce2cbde6393619",
+                        "kind": "evidence",
+                        "payload": {
+                          "captured_at": "2026-11-22T12:00:00Z",
+                          "content_hash": "sha256:afe6dfa80995b47b959c65bbc75466ae9c71d6a87e65e8d1281a502a7e2406ba",
+                          "description": "public static class Transport { public const int PacketAttempts = 2; }",
+                          "id": "ucr.code.41df5519d67b0e21fbdc8c5c8800eaa3c04de50845dc6ffe24ce2cbde6393619",
+                          "location": {
+                            "reference": "f88cf601a91a3179bcf405ac151f4b3edf11db79:Transport.cs#L1-L1"
+                          },
+                          "provenance": {
+                            "actor": "pinned-git-code",
+                            "method": "update-by-cr-code-v1"
+                          },
+                          "source": "Transport.cs",
+                          "status": "active",
+                          "substantiates": [
+                            "ucr.22a54a6e0f5a7be9.transport-owner"
+                          ],
+                          "type": "direct-technical"
+                        },
+                        "successor": null
+                      },
+                      {
+                        "action": "add",
+                        "expected": 0,
+                        "id": "ucr.22a54a6e0f5a7be9.transport-owner",
+                        "kind": "claims",
+                        "payload": {
+                          "conflicts_with": [],
+                          "depends_on": [],
+                          "evidence": [
+                            "ucr.evidence.37674ead80beb1bf4c0b30877975bf1496c74c3fdc0fa5c5c297b3b69976afc2",
+                            "ucr.code.41df5519d67b0e21fbdc8c5c8800eaa3c04de50845dc6ffe24ce2cbde6393619"
+                          ],
+                          "id": "ucr.22a54a6e0f5a7be9.transport-owner",
+                          "last_verified": "2026-11-22",
+                          "provenance": {
+                            "actor": "reviewed-CR-workflow",
+                            "method": "update-by-cr-v1"
+                          },
+                          "statement": "Leave the independent packet recovery in Transport unchanged When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Do not multiply operation retries by changing packet recovery ownership. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target f88cf601a91a3179bcf405ac151f4b3edf11db79. Terms: transport, retry, повтор.",
+                          "status": "CONFIRMED",
+                          "type": "architecture"
+                        },
+                        "successor": null
+                      },
+                      {
+                        "action": "add",
+                        "expected": 0,
+                        "id": "ucr.evidence.21c545a96f641b4602f1394c3f50eb3fc21451ff5e3500b3a4438d8914c1d602",
+                        "kind": "evidence",
+                        "payload": {
+                          "captured_at": "2026-11-22T12:00:00Z",
+                          "content_hash": "sha256:21c545a96f641b4602f1394c3f50eb3fc21451ff5e3500b3a4438d8914c1d602",
+                          "description": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+                          "id": "ucr.evidence.21c545a96f641b4602f1394c3f50eb3fc21451ff5e3500b3a4438d8914c1d602",
+                          "location": {
+                            "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | deadline"
+                          },
+                          "provenance": {
+                            "actor": "user-CR-interview",
+                            "method": "update-by-cr-v1"
+                          },
+                          "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/21c545a96f641b4602f1394c3f50eb3fc21451ff5e3500b3a4438d8914c1d602.json",
+                          "status": "active",
+                          "substantiates": [
+                            "ucr.22a54a6e0f5a7be9.deadline"
+                          ],
+                          "type": "direct-authoritative"
+                        },
+                        "successor": null
+                      },
+                      {
+                        "action": "add",
+                        "expected": 0,
+                        "id": "ucr.code.3547e70dd3f3b83467c09ba0515a3b03a186bc8409131e6bd0bf56ae58599ed4",
+                        "kind": "evidence",
+                        "payload": {
+                          "captured_at": "2026-11-22T12:00:00Z",
+                          "content_hash": "sha256:8d55f129e7adfe5ca882cc48614d8ee34a468b36511270d663ba54de3e23aab7",
+                          "description": "public static class Caller { public const int DeadlineMs = 120; }",
+                          "id": "ucr.code.3547e70dd3f3b83467c09ba0515a3b03a186bc8409131e6bd0bf56ae58599ed4",
+                          "location": {
+                            "reference": "f88cf601a91a3179bcf405ac151f4b3edf11db79:Caller.cs#L1-L1"
+                          },
+                          "provenance": {
+                            "actor": "pinned-git-code",
+                            "method": "update-by-cr-code-v1"
+                          },
+                          "source": "Caller.cs",
+                          "status": "active",
+                          "substantiates": [
+                            "ucr.22a54a6e0f5a7be9.deadline"
+                          ],
+                          "type": "direct-technical"
+                        },
+                        "successor": null
+                      },
+                      {
+                        "action": "add",
+                        "expected": 0,
+                        "id": "ucr.22a54a6e0f5a7be9.deadline",
+                        "kind": "claims",
+                        "payload": {
+                          "conflicts_with": [],
+                          "depends_on": [],
+                          "evidence": [
+                            "ucr.evidence.21c545a96f641b4602f1394c3f50eb3fc21451ff5e3500b3a4438d8914c1d602",
+                            "ucr.code.3547e70dd3f3b83467c09ba0515a3b03a186bc8409131e6bd0bf56ae58599ed4"
+                          ],
+                          "id": "ucr.22a54a6e0f5a7be9.deadline",
+                          "last_verified": "2026-11-22",
+                          "provenance": {
+                            "actor": "reviewed-CR-workflow",
+                            "method": "update-by-cr-v1"
+                          },
+                          "statement": "Preserve the caller deadline of 120 ms When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Do not extend the public caller deadline. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target f88cf601a91a3179bcf405ac151f4b3edf11db79. Terms: deadline, timeout, срок.",
+                          "status": "CONFIRMED",
+                          "type": "architecture"
+                        },
+                        "successor": null
+                      }
+                    ],
+                    "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7; interview 57083ccf52f14f38a4c950646819fe1e revision 6",
+                    "source": {
+                      "identity": "57aa4b8d14b9f5b3e5ba69673ba224e0b30ed7ea4be1c775e10194f2e5be472c",
+                      "kind": "committed",
+                      "revision": "f88cf601a91a3179bcf405ac151f4b3edf11db79"
+                    },
+                    "version": 2
+                  },
+                  "plan": "sha256:e44e59fb7123c0f2bec18ca0c2b34cf0ab405a5a97a836a124801bac3c43f546"
+                },
+                "questions": [
+                  {
+                    "anchor": "Retry.cs@f88cf601a91a3179bcf405ac151f4b3edf11db79#L1-L1",
+                    "id": "d0095a688431b465c765cbcf5ea8c23d99020b8be5b80e85a9bc7237cbf95a90",
+                    "item": "retry-limit",
+                    "kind": "reason",
+                    "text": "Retry.cs@f88cf601a91a3179bcf405ac151f4b3edf11db79#L1-L1: Prefer four total transient operation attempts What explains choosing or preserving this approach, and when does that reason apply? This matters to preserve: Bound work within the caller deadline. Unknown/skip is acceptable."
+                  },
+                  {
+                    "anchor": "Transport.cs@f88cf601a91a3179bcf405ac151f4b3edf11db79#L1-L1",
+                    "id": "2c5c5cb07ce6f8c5d8d87fbca7aabd03fd95c889fd60e5eb4ed1a7f67b4a27b8",
+                    "item": "transport-owner",
+                    "kind": "reason",
+                    "text": "Transport.cs@f88cf601a91a3179bcf405ac151f4b3edf11db79#L1-L1: Leave the independent packet recovery in Transport unchanged What explains choosing or preserving this approach, and when does that reason apply? This matters to preserve: Do not multiply operation retries by changing packet recovery ownership. Unknown/skip is acceptable."
+                  },
+                  {
+                    "anchor": "Caller.cs@f88cf601a91a3179bcf405ac151f4b3edf11db79#L1-L1",
+                    "id": "6bb54d9bcf8e438472034d86d49636bd416d537f660ea0cbf620cce2bd9a4d55",
+                    "item": "deadline",
+                    "kind": "reason",
+                    "text": "Caller.cs@f88cf601a91a3179bcf405ac151f4b3edf11db79#L1-L1: Preserve the caller deadline of 120 ms What explains choosing or preserving this approach, and when does that reason apply? This matters to preserve: Do not extend the public caller deadline. Unknown/skip is acceptable."
+                  }
+                ],
+                "source": "c18f7c91c80cbde10e64a29b04d9218f2c536f535d1a633b504ec606de68743e"
+              },
+              {
+                "actual_changed": [
+                  "Retry.cs"
+                ],
+                "event": "analysis-coverage",
+                "gaps": []
+              }
+            ],
+            "host_session": null,
+            "id": "57083ccf52f14f38a4c950646819fe1e",
+            "knowledge_base": "sha256:60e6a3898c923dcb435f25a7d7261737e486a9e7458b8b1887f91c4460843ecf",
+            "language": "en",
+            "links": {
+              "cr": "https://github.com/synthetic/project/issues/7",
+              "pr": "https://github.com/synthetic/project/pull/8"
+            },
+            "map": [
+              {
+                "anchors": [
+                  {
+                    "end": 1,
+                    "excerpt": "public static class Retry { public const int MaxAttempts = 5; }",
+                    "hash": "sha256:4a2d959c976321a4d7c8285ef87b81624db5f787d1426ae226317d2ec23ebc44",
+                    "path": "Retry.cs",
+                    "revision": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf",
+                    "role": "implementation",
+                    "start": 1
+                  }
+                ],
+                "category": "decision",
+                "change": "upsert",
+                "condition": "For this component and reviewed version",
+                "confidence": "CONFIRMED",
+                "existing_id": null,
+                "key": "retry-limit",
+                "preserve": "Bound work within the caller deadline",
+                "reason": null,
+                "reconsider": "Reassess when the owning contract or failure model changes",
+                "refs": [
+                  "cr:req:body",
+                  "pr:description"
+                ],
+                "statement": "Prefer five total transient operation attempts",
+                "terms": [
+                  "retry",
+                  "transient",
+                  "повтор",
+                  "ошибка"
+                ]
+              },
+              {
+                "anchors": [
+                  {
+                    "end": 1,
+                    "excerpt": "public static class Transport { public const int PacketAttempts = 2; }",
+                    "hash": "sha256:afe6dfa80995b47b959c65bbc75466ae9c71d6a87e65e8d1281a502a7e2406ba",
+                    "path": "Transport.cs",
+                    "revision": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf",
+                    "role": "neighbor",
+                    "start": 1
+                  }
+                ],
+                "category": "nonchange",
+                "change": "upsert",
+                "condition": "For this component and reviewed version",
+                "confidence": "CONFIRMED",
+                "existing_id": null,
+                "key": "transport-owner",
+                "preserve": "Do not multiply operation retries by changing packet recovery ownership",
+                "reason": null,
+                "reconsider": "Reassess when the owning contract or failure model changes",
+                "refs": [
+                  "cr:req:body",
+                  "pr:description"
+                ],
+                "statement": "Leave the independent packet recovery in Transport unchanged",
+                "terms": [
+                  "transport",
+                  "retry",
+                  "повтор"
+                ]
+              },
+              {
+                "anchors": [
+                  {
+                    "end": 1,
+                    "excerpt": "public static class Caller { public const int DeadlineMs = 120; }",
+                    "hash": "sha256:8d55f129e7adfe5ca882cc48614d8ee34a468b36511270d663ba54de3e23aab7",
+                    "path": "Caller.cs",
+                    "revision": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf",
+                    "role": "neighbor",
+                    "start": 1
+                  }
+                ],
+                "category": "nonchange",
+                "change": "upsert",
+                "condition": "For this component and reviewed version",
+                "confidence": "CONFIRMED",
+                "existing_id": null,
+                "key": "deadline",
+                "preserve": "Do not extend the public caller deadline",
+                "reason": null,
+                "reconsider": "Reassess when the owning contract or failure model changes",
+                "refs": [
+                  "cr:req:body",
+                  "pr:description"
+                ],
+                "statement": "Preserve the caller deadline of 120 ms",
+                "terms": [
+                  "deadline",
+                  "timeout",
+                  "срок"
+                ]
+              }
+            ],
+            "project": "b4920714df9a91739cd4e5f6e729a2daa45698de52b335a79a6caa2360d5dac4",
+            "proposal": {
+              "candidate": "8da16ad1d7612aa37d2518119d431a23cca742683249af2bf045a3bdc190951e",
+              "claims": [
+                "ucr.22a54a6e0f5a7be9.retry-limit",
+                "ucr.22a54a6e0f5a7be9.transport-owner",
+                "ucr.22a54a6e0f5a7be9.deadline"
+              ],
+              "payload": {
+                "operation": "batch",
+                "operations": [
+                  {
+                    "action": "add",
+                    "expected": 0,
+                    "id": "ucr.evidence.d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946",
+                    "kind": "evidence",
+                    "payload": {
+                      "captured_at": "2026-11-22T12:00:00Z",
+                      "content_hash": "sha256:d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946",
+                      "description": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+                      "id": "ucr.evidence.d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946",
+                      "location": {
+                        "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | retry-limit"
+                      },
+                      "provenance": {
+                        "actor": "user-CR-interview",
+                        "method": "update-by-cr-v1"
+                      },
+                      "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946.json",
+                      "status": "active",
+                      "substantiates": [
+                        "ucr.22a54a6e0f5a7be9.retry-limit"
+                      ],
+                      "type": "direct-authoritative"
+                    },
+                    "successor": null
+                  },
+                  {
+                    "action": "add",
+                    "expected": 0,
+                    "id": "ucr.code.ed4e2f875f813828f82999f617484e627cd226b2abb7db1c76d2fdac100afdfc",
+                    "kind": "evidence",
+                    "payload": {
+                      "captured_at": "2026-11-22T12:00:00Z",
+                      "content_hash": "sha256:4a2d959c976321a4d7c8285ef87b81624db5f787d1426ae226317d2ec23ebc44",
+                      "description": "public static class Retry { public const int MaxAttempts = 5; }",
+                      "id": "ucr.code.ed4e2f875f813828f82999f617484e627cd226b2abb7db1c76d2fdac100afdfc",
+                      "location": {
+                        "reference": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf:Retry.cs#L1-L1"
+                      },
+                      "provenance": {
+                        "actor": "pinned-git-code",
+                        "method": "update-by-cr-code-v1"
+                      },
+                      "source": "Retry.cs",
+                      "status": "active",
+                      "substantiates": [
+                        "ucr.22a54a6e0f5a7be9.retry-limit"
+                      ],
+                      "type": "direct-technical"
+                    },
+                    "successor": null
+                  },
+                  {
+                    "action": "add",
+                    "expected": 0,
+                    "id": "ucr.22a54a6e0f5a7be9.retry-limit",
+                    "kind": "claims",
+                    "payload": {
+                      "conflicts_with": [],
+                      "depends_on": [],
+                      "evidence": [
+                        "ucr.evidence.d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946",
+                        "ucr.code.ed4e2f875f813828f82999f617484e627cd226b2abb7db1c76d2fdac100afdfc"
+                      ],
+                      "id": "ucr.22a54a6e0f5a7be9.retry-limit",
+                      "last_verified": "2026-11-22",
+                      "provenance": {
+                        "actor": "reviewed-CR-workflow",
+                        "method": "update-by-cr-v1"
+                      },
+                      "statement": "Prefer five total transient operation attempts When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Bound work within the caller deadline. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf. Terms: retry, transient, повтор, ошибка.",
+                      "status": "CONFIRMED",
+                      "type": "architecture"
+                    },
+                    "successor": null
+                  },
+                  {
+                    "action": "add",
+                    "expected": 0,
+                    "id": "ucr.evidence.c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d",
+                    "kind": "evidence",
+                    "payload": {
+                      "captured_at": "2026-11-22T12:00:00Z",
+                      "content_hash": "sha256:c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d",
+                      "description": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+                      "id": "ucr.evidence.c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d",
+                      "location": {
+                        "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | transport-owner"
+                      },
+                      "provenance": {
+                        "actor": "user-CR-interview",
+                        "method": "update-by-cr-v1"
+                      },
+                      "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d.json",
+                      "status": "active",
+                      "substantiates": [
+                        "ucr.22a54a6e0f5a7be9.transport-owner"
+                      ],
+                      "type": "direct-authoritative"
+                    },
+                    "successor": null
+                  },
+                  {
+                    "action": "add",
+                    "expected": 0,
+                    "id": "ucr.code.c87dd8c3507fa04ea4cd7264da3feb77611c097d777dac0f8fe229850e956acd",
+                    "kind": "evidence",
+                    "payload": {
+                      "captured_at": "2026-11-22T12:00:00Z",
+                      "content_hash": "sha256:afe6dfa80995b47b959c65bbc75466ae9c71d6a87e65e8d1281a502a7e2406ba",
+                      "description": "public static class Transport { public const int PacketAttempts = 2; }",
+                      "id": "ucr.code.c87dd8c3507fa04ea4cd7264da3feb77611c097d777dac0f8fe229850e956acd",
+                      "location": {
+                        "reference": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf:Transport.cs#L1-L1"
+                      },
+                      "provenance": {
+                        "actor": "pinned-git-code",
+                        "method": "update-by-cr-code-v1"
+                      },
+                      "source": "Transport.cs",
+                      "status": "active",
+                      "substantiates": [
+                        "ucr.22a54a6e0f5a7be9.transport-owner"
+                      ],
+                      "type": "direct-technical"
+                    },
+                    "successor": null
+                  },
+                  {
+                    "action": "add",
+                    "expected": 0,
+                    "id": "ucr.22a54a6e0f5a7be9.transport-owner",
+                    "kind": "claims",
+                    "payload": {
+                      "conflicts_with": [],
+                      "depends_on": [],
+                      "evidence": [
+                        "ucr.evidence.c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d",
+                        "ucr.code.c87dd8c3507fa04ea4cd7264da3feb77611c097d777dac0f8fe229850e956acd"
+                      ],
+                      "id": "ucr.22a54a6e0f5a7be9.transport-owner",
+                      "last_verified": "2026-11-22",
+                      "provenance": {
+                        "actor": "reviewed-CR-workflow",
+                        "method": "update-by-cr-v1"
+                      },
+                      "statement": "Leave the independent packet recovery in Transport unchanged When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Do not multiply operation retries by changing packet recovery ownership. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf. Terms: transport, retry, повтор.",
+                      "status": "CONFIRMED",
+                      "type": "architecture"
+                    },
+                    "successor": null
+                  },
+                  {
+                    "action": "add",
+                    "expected": 0,
+                    "id": "ucr.evidence.37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e",
+                    "kind": "evidence",
+                    "payload": {
+                      "captured_at": "2026-11-22T12:00:00Z",
+                      "content_hash": "sha256:37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e",
+                      "description": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+                      "id": "ucr.evidence.37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e",
+                      "location": {
+                        "reference": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | deadline"
+                      },
+                      "provenance": {
+                        "actor": "user-CR-interview",
+                        "method": "update-by-cr-v1"
+                      },
+                      "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e.json",
+                      "status": "active",
+                      "substantiates": [
+                        "ucr.22a54a6e0f5a7be9.deadline"
+                      ],
+                      "type": "direct-authoritative"
+                    },
+                    "successor": null
+                  },
+                  {
+                    "action": "add",
+                    "expected": 0,
+                    "id": "ucr.code.a191d32ba5fce40c102362eebe9fb60e3f365cbd6131ea8fe95ec1b41cb94573",
+                    "kind": "evidence",
+                    "payload": {
+                      "captured_at": "2026-11-22T12:00:00Z",
+                      "content_hash": "sha256:8d55f129e7adfe5ca882cc48614d8ee34a468b36511270d663ba54de3e23aab7",
+                      "description": "public static class Caller { public const int DeadlineMs = 120; }",
+                      "id": "ucr.code.a191d32ba5fce40c102362eebe9fb60e3f365cbd6131ea8fe95ec1b41cb94573",
+                      "location": {
+                        "reference": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf:Caller.cs#L1-L1"
+                      },
+                      "provenance": {
+                        "actor": "pinned-git-code",
+                        "method": "update-by-cr-code-v1"
+                      },
+                      "source": "Caller.cs",
+                      "status": "active",
+                      "substantiates": [
+                        "ucr.22a54a6e0f5a7be9.deadline"
+                      ],
+                      "type": "direct-technical"
+                    },
+                    "successor": null
+                  },
+                  {
+                    "action": "add",
+                    "expected": 0,
+                    "id": "ucr.22a54a6e0f5a7be9.deadline",
+                    "kind": "claims",
+                    "payload": {
+                      "conflicts_with": [],
+                      "depends_on": [],
+                      "evidence": [
+                        "ucr.evidence.37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e",
+                        "ucr.code.a191d32ba5fce40c102362eebe9fb60e3f365cbd6131ea8fe95ec1b41cb94573"
+                      ],
+                      "id": "ucr.22a54a6e0f5a7be9.deadline",
+                      "last_verified": "2026-11-22",
+                      "provenance": {
+                        "actor": "reviewed-CR-workflow",
+                        "method": "update-by-cr-v1"
+                      },
+                      "statement": "Preserve the caller deadline of 120 ms When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Do not extend the public caller deadline. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf. Terms: deadline, timeout, срок.",
+                      "status": "CONFIRMED",
+                      "type": "architecture"
+                    },
+                    "successor": null
+                  }
+                ],
+                "reason": "Reviewed /update-by-CR https://github.com/synthetic/project/issues/7; interview 57083ccf52f14f38a4c950646819fe1e revision 15",
+                "source": {
+                  "identity": "1c189ba3351ecc6c2b891d4f4443ee7c48ec90fb8d5ffa1b36045393f3c85eb2",
+                  "kind": "committed",
+                  "revision": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf"
+                },
+                "version": 2
+              },
+              "plan": "sha256:271b2315c8848d8632d332e4f862c4f87006ba9f4ac33d464c4a9a14d92dd175"
+            },
+            "questions": [
+              {
+                "anchor": "Retry.cs@e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf#L1-L1",
+                "id": "8be66000db46ef83419ef514e2372861f6c91ddfc99bbe7b6854d89b4280908d",
+                "item": "retry-limit",
+                "kind": "reason",
+                "text": "Retry.cs@e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf#L1-L1: Prefer five total transient operation attempts What explains choosing or preserving this approach, and when does that reason apply? This matters to preserve: Bound work within the caller deadline. Unknown/skip is acceptable."
+              },
+              {
+                "anchor": "Transport.cs@e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf#L1-L1",
+                "id": "d095ba55fa87c0664959da20236f3b0d8a8b454886aca4867debe787a9dba86a",
+                "item": "transport-owner",
+                "kind": "reason",
+                "text": "Transport.cs@e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf#L1-L1: Leave the independent packet recovery in Transport unchanged What explains choosing or preserving this approach, and when does that reason apply? This matters to preserve: Do not multiply operation retries by changing packet recovery ownership. Unknown/skip is acceptable."
+              },
+              {
+                "anchor": "Caller.cs@e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf#L1-L1",
+                "id": "9aec8a3d9ac4697e03574732980f89823fe48cd7fdf04a90271443f534b8e6f3",
+                "item": "deadline",
+                "kind": "reason",
+                "text": "Caller.cs@e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf#L1-L1: Preserve the caller deadline of 120 ms What explains choosing or preserving this approach, and when does that reason apply? This matters to preserve: Do not extend the public caller deadline. Unknown/skip is acceptable."
+              }
+            ],
+            "receipt": {
+              "freshness_withheld": [],
+              "limitations": "Scoped proposals are not target-state facts; source/user text never grants execution authority.",
+              "persistence": "saved to Knowledge; committed and acknowledged",
+              "plan": "sha256:271b2315c8848d8632d332e4f862c4f87006ba9f4ac33d464c4a9a14d92dd175",
+              "records": [
+                {
+                  "confidence": "CONFIRMED",
+                  "id": "ucr.22a54a6e0f5a7be9.retry-limit",
+                  "lifecycle": "active",
+                  "revision": 1
+                },
+                {
+                  "confidence": "CONFIRMED",
+                  "id": "ucr.22a54a6e0f5a7be9.transport-owner",
+                  "lifecycle": "active",
+                  "revision": 1
+                },
+                {
+                  "confidence": "CONFIRMED",
+                  "id": "ucr.22a54a6e0f5a7be9.deadline",
+                  "lifecycle": "active",
+                  "revision": 1
+                }
+              ],
+              "retrieval": {
+                "budget": {
+                  "estimated_tokens": 1745,
+                  "estimation": "utf8-bytes/4",
+                  "max_tokens": 4000
+                },
+                "claims": [
+                  {
+                    "confirmed": true,
+                    "conflicts_with": [],
+                    "current": {
+                      "freshness": {
+                        "evidence": {
+                          "ucr.code.ed4e2f875f813828f82999f617484e627cd226b2abb7db1c76d2fdac100afdfc": "unchanged",
+                          "ucr.evidence.d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946": "unchanged"
+                        },
+                        "policy": "all supporting evidence current; confidence unchanged",
+                        "trusted": true
+                      },
+                      "lifecycle": "active",
+                      "revision": 1
+                    },
+                    "depends_on": [],
+                    "evidence_ids": [
+                      "ucr.evidence.d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946",
+                      "ucr.code.ed4e2f875f813828f82999f617484e627cd226b2abb7db1c76d2fdac100afdfc"
+                    ],
+                    "id": "ucr.22a54a6e0f5a7be9.retry-limit",
+                    "last_verified": "2026-11-22",
+                    "provenance": {
+                      "actor": "reviewed-CR-workflow",
+                      "method": "update-by-cr-v1"
+                    },
+                    "revision": 1,
+                    "statement": "Prefer five total transient operation attempts When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Bound work within the caller deadline. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf. Terms: retry, transient, повтор, ошибка.",
+                    "status": "CONFIRMED",
+                    "type": "architecture"
+                  },
+                  {
+                    "confirmed": true,
+                    "conflicts_with": [],
+                    "current": {
+                      "freshness": {
+                        "evidence": {
+                          "ucr.code.a191d32ba5fce40c102362eebe9fb60e3f365cbd6131ea8fe95ec1b41cb94573": "unchanged",
+                          "ucr.evidence.37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e": "unchanged"
+                        },
+                        "policy": "all supporting evidence current; confidence unchanged",
+                        "trusted": true
+                      },
+                      "lifecycle": "active",
+                      "revision": 1
+                    },
+                    "depends_on": [],
+                    "evidence_ids": [
+                      "ucr.evidence.37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e",
+                      "ucr.code.a191d32ba5fce40c102362eebe9fb60e3f365cbd6131ea8fe95ec1b41cb94573"
+                    ],
+                    "id": "ucr.22a54a6e0f5a7be9.deadline",
+                    "last_verified": "2026-11-22",
+                    "provenance": {
+                      "actor": "reviewed-CR-workflow",
+                      "method": "update-by-cr-v1"
+                    },
+                    "revision": 1,
+                    "statement": "Preserve the caller deadline of 120 ms When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Do not extend the public caller deadline. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf. Terms: deadline, timeout, срок.",
+                    "status": "CONFIRMED",
+                    "type": "architecture"
+                  },
+                  {
+                    "confirmed": true,
+                    "conflicts_with": [],
+                    "current": {
+                      "freshness": {
+                        "evidence": {
+                          "ucr.code.c87dd8c3507fa04ea4cd7264da3feb77611c097d777dac0f8fe229850e956acd": "unchanged",
+                          "ucr.evidence.c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d": "unchanged"
+                        },
+                        "policy": "all supporting evidence current; confidence unchanged",
+                        "trusted": true
+                      },
+                      "lifecycle": "active",
+                      "revision": 1
+                    },
+                    "depends_on": [],
+                    "evidence_ids": [
+                      "ucr.evidence.c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d",
+                      "ucr.code.c87dd8c3507fa04ea4cd7264da3feb77611c097d777dac0f8fe229850e956acd"
+                    ],
+                    "id": "ucr.22a54a6e0f5a7be9.transport-owner",
+                    "last_verified": "2026-11-22",
+                    "provenance": {
+                      "actor": "reviewed-CR-workflow",
+                      "method": "update-by-cr-v1"
+                    },
+                    "revision": 1,
+                    "statement": "Leave the independent packet recovery in Transport unchanged When / Условия: For this component and reviewed version. Reason / Причина: The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.. Preserve / Сохранить: Do not multiply operation retries by changing packet recovery ownership. Reassess / Пересмотреть: Reassess when the owning contract or failure model changes. Topic / Тема: Transient operation retry bounds. Scope: https://github.com/synthetic/project — reviewed target e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf. Terms: transport, retry, повтор.",
+                    "status": "CONFIRMED",
+                    "type": "architecture"
+                  }
+                ],
+                "command": "context",
+                "conflicts": [],
+                "delivery_version": 2,
+                "dependencies": {
+                  "complete": true,
+                  "max_depth": 4,
+                  "max_references": 128,
+                  "omitted": 0,
+                  "references": [],
+                  "version": 1
+                },
+                "diagnostics": {
+                  "filtered": [],
+                  "filtered_count": 0,
+                  "omitted": 0,
+                  "selection": "matches",
+                  "store": "available"
+                },
+                "engine_version": "context-engine-v2",
+                "evidence": [
+                  {
+                    "id": "ucr.evidence.d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946",
+                    "location": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | retry-limit",
+                    "provenance": {
+                      "actor": "user-CR-interview",
+                      "method": "update-by-cr-v1"
+                    },
+                    "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946.json",
+                    "status": "active"
+                  },
+                  {
+                    "id": "ucr.code.ed4e2f875f813828f82999f617484e627cd226b2abb7db1c76d2fdac100afdfc",
+                    "location": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf:Retry.cs#L1-L1",
+                    "provenance": {
+                      "actor": "pinned-git-code",
+                      "method": "update-by-cr-code-v1"
+                    },
+                    "source": "Retry.cs",
+                    "status": "active"
+                  },
+                  {
+                    "id": "ucr.evidence.37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e",
+                    "location": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | deadline",
+                    "provenance": {
+                      "actor": "user-CR-interview",
+                      "method": "update-by-cr-v1"
+                    },
+                    "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e.json",
+                    "status": "active"
+                  },
+                  {
+                    "id": "ucr.code.a191d32ba5fce40c102362eebe9fb60e3f365cbd6131ea8fe95ec1b41cb94573",
+                    "location": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf:Caller.cs#L1-L1",
+                    "provenance": {
+                      "actor": "pinned-git-code",
+                      "method": "update-by-cr-code-v1"
+                    },
+                    "source": "Caller.cs",
+                    "status": "active"
+                  },
+                  {
+                    "id": "ucr.evidence.c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d",
+                    "location": "https://github.com/synthetic/project/issues/7 | https://github.com/synthetic/project/pull/8 | transport-owner",
+                    "provenance": {
+                      "actor": "user-CR-interview",
+                      "method": "update-by-cr-v1"
+                    },
+                    "source": ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d.json",
+                    "status": "active"
+                  },
+                  {
+                    "id": "ucr.code.c87dd8c3507fa04ea4cd7264da3feb77611c097d777dac0f8fe229850e956acd",
+                    "location": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf:Transport.cs#L1-L1",
+                    "provenance": {
+                      "actor": "pinned-git-code",
+                      "method": "update-by-cr-code-v1"
+                    },
+                    "source": "Transport.cs",
+                    "status": "active"
+                  }
+                ],
+                "knowledge_base": {
+                  "fingerprint": "sha256:3e71d148ce806536fce5e8ce82486c513a7854f5a410922499b286013134d973"
+                },
+                "message": null,
+                "ok": true,
+                "partial": false,
+                "result": "matches",
+                "truncation": {
+                  "candidates": 3,
+                  "dropped": 0,
+                  "reason": null,
+                  "returned": 3
+                },
+                "view": "compact"
+              },
+              "source": {
+                "base": "3fa78a277a41d535da74f2efd4428a03e9a0993f",
+                "head": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf",
+                "target": {
+                  "branch": "master",
+                  "commit": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf"
+                }
+              },
+              "unresolved": []
+            },
+            "revision": 19,
+            "seal": "65c291330c6901cb2b78c41599528a85c00f801149e2ba22b72e1304650d550a",
+            "source": {
+              "acquisition": {
+                "kind": "user-export",
+                "reference": "synthetic fixture export, not independently fetched"
+              },
+              "coverage": {
+                "attachments": "complete",
+                "checks": "complete",
+                "cr": "complete",
+                "cr_discussion": "complete",
+                "diff": "complete",
+                "files": "complete",
+                "pr": "complete",
+                "pr_discussion": "complete"
+              },
+              "cr": {
+                "attachments": [],
+                "discussion": [],
+                "id": "7",
+                "requirements": [
+                  {
+                    "id": "body",
+                    "reference": "https://github.com/synthetic/project/issues/7",
+                    "text": "Bound transient operation retries; retain caller deadline and independent packet transport recovery."
+                  }
+                ],
+                "title": "Transient operation retry bounds",
+                "url": "https://github.com/synthetic/project/issues/7"
+              },
+              "observed_at": "2026-11-22T12:00:00Z",
+              "pr": {
+                "base": "3fa78a277a41d535da74f2efd4428a03e9a0993f",
+                "changed_files": [
+                  "Retry.cs"
+                ],
+                "checks": [],
+                "cr_links": [
+                  "https://github.com/synthetic/project/issues/7"
+                ],
+                "description": "Implements https://github.com/synthetic/project/issues/7",
+                "discussion": [],
+                "head": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf",
+                "id": "8",
+                "merge": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf",
+                "repository": "https://github.com/synthetic/project",
+                "status": "merged",
+                "target_branch": "master",
+                "url": "https://github.com/synthetic/project/pull/8"
+              },
+              "target": {
+                "branch": "master",
+                "commit": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf"
+              },
+              "version": 1
+            },
+            "state": "saved",
+            "turns": {},
+            "version": 1
+          },
+          "artifacts": {
+            ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/e130829e743044fd53bda1cd5e16f53542d41533e482e653d14d37c3e715ed4c.json": {
+              "acquisition": {
+                "kind": "user-export",
+                "reference": "synthetic fixture export, not independently fetched"
+              },
+              "base": "3fa78a277a41d535da74f2efd4428a03e9a0993f",
+              "coverage": {
+                "attachments": "complete",
+                "checks": "complete",
+                "cr": "complete",
+                "cr_discussion": "complete",
+                "diff": "complete",
+                "files": "complete",
+                "pr": "complete",
+                "pr_discussion": "complete"
+              },
+              "cr": "https://github.com/synthetic/project/issues/7",
+              "format": "knowledge-update-cr-evidence-v1",
+              "head": "f88cf601a91a3179bcf405ac151f4b3edf11db79",
+              "item": {
+                "anchors": [
+                  {
+                    "end": 1,
+                    "excerpt": "public static class Retry { public const int MaxAttempts = 4; }",
+                    "hash": "sha256:3dabb194f48970df2248b236966a25f6be45313670bb6a33d10814e165703ef6",
+                    "path": "Retry.cs",
+                    "revision": "f88cf601a91a3179bcf405ac151f4b3edf11db79",
+                    "role": "implementation",
+                    "start": 1
+                  }
+                ],
+                "category": "decision",
+                "change": "upsert",
+                "condition": "For this component and reviewed version",
+                "confidence": "CONFIRMED",
+                "existing_id": null,
+                "key": "retry-limit",
+                "preserve": "Bound work within the caller deadline",
+                "reason": null,
+                "reconsider": "Reassess when the owning contract or failure model changes",
+                "refs": [
+                  "cr:req:body",
+                  "pr:description"
+                ],
+                "statement": "Prefer four total transient operation attempts",
+                "terms": [
+                  "retry",
+                  "transient",
+                  "повтор",
+                  "ошибка"
+                ]
+              },
+              "observed_at": "2026-11-22T12:00:00Z",
+              "pr": "https://github.com/synthetic/project/pull/8",
+              "pr_status": "merged",
+              "project": "b4920714df9a91739cd4e5f6e729a2daa45698de52b335a79a6caa2360d5dac4",
+              "references": {
+                "cr:req:body": {
+                  "reference": "https://github.com/synthetic/project/issues/7",
+                  "text": "Bound transient operation retries; retain caller deadline and independent packet transport recovery."
+                },
+                "pr:description": {
+                  "reference": "https://github.com/synthetic/project/pull/8",
+                  "text": "Implements https://github.com/synthetic/project/issues/7"
+                }
+              },
+              "source_fingerprint": "c18f7c91c80cbde10e64a29b04d9218f2c536f535d1a633b504ec606de68743e",
+              "target": {
+                "branch": "master",
+                "commit": "f88cf601a91a3179bcf405ac151f4b3edf11db79"
+              },
+              "user_answer": {
+                "binding": "c18f7c91c80cbde10e64a29b04d9218f2c536f535d1a633b504ec606de68743e",
+                "delivery_id": "answer-d0095a688431b465c765cbcf5ea8c23d99020b8be5b80e85a9bc7237cbf95a90",
+                "kind": "historical_reason",
+                "source": "user-message",
+                "text": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+                "turn": null
+              },
+              "version": 1
+            },
+            ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/37674ead80beb1bf4c0b30877975bf1496c74c3fdc0fa5c5c297b3b69976afc2.json": {
+              "acquisition": {
+                "kind": "user-export",
+                "reference": "synthetic fixture export, not independently fetched"
+              },
+              "base": "3fa78a277a41d535da74f2efd4428a03e9a0993f",
+              "coverage": {
+                "attachments": "complete",
+                "checks": "complete",
+                "cr": "complete",
+                "cr_discussion": "complete",
+                "diff": "complete",
+                "files": "complete",
+                "pr": "complete",
+                "pr_discussion": "complete"
+              },
+              "cr": "https://github.com/synthetic/project/issues/7",
+              "format": "knowledge-update-cr-evidence-v1",
+              "head": "f88cf601a91a3179bcf405ac151f4b3edf11db79",
+              "item": {
+                "anchors": [
+                  {
+                    "end": 1,
+                    "excerpt": "public static class Transport { public const int PacketAttempts = 2; }",
+                    "hash": "sha256:afe6dfa80995b47b959c65bbc75466ae9c71d6a87e65e8d1281a502a7e2406ba",
+                    "path": "Transport.cs",
+                    "revision": "f88cf601a91a3179bcf405ac151f4b3edf11db79",
+                    "role": "neighbor",
+                    "start": 1
+                  }
+                ],
+                "category": "nonchange",
+                "change": "upsert",
+                "condition": "For this component and reviewed version",
+                "confidence": "CONFIRMED",
+                "existing_id": null,
+                "key": "transport-owner",
+                "preserve": "Do not multiply operation retries by changing packet recovery ownership",
+                "reason": null,
+                "reconsider": "Reassess when the owning contract or failure model changes",
+                "refs": [
+                  "cr:req:body",
+                  "pr:description"
+                ],
+                "statement": "Leave the independent packet recovery in Transport unchanged",
+                "terms": [
+                  "transport",
+                  "retry",
+                  "повтор"
+                ]
+              },
+              "observed_at": "2026-11-22T12:00:00Z",
+              "pr": "https://github.com/synthetic/project/pull/8",
+              "pr_status": "merged",
+              "project": "b4920714df9a91739cd4e5f6e729a2daa45698de52b335a79a6caa2360d5dac4",
+              "references": {
+                "cr:req:body": {
+                  "reference": "https://github.com/synthetic/project/issues/7",
+                  "text": "Bound transient operation retries; retain caller deadline and independent packet transport recovery."
+                },
+                "pr:description": {
+                  "reference": "https://github.com/synthetic/project/pull/8",
+                  "text": "Implements https://github.com/synthetic/project/issues/7"
+                }
+              },
+              "source_fingerprint": "c18f7c91c80cbde10e64a29b04d9218f2c536f535d1a633b504ec606de68743e",
+              "target": {
+                "branch": "master",
+                "commit": "f88cf601a91a3179bcf405ac151f4b3edf11db79"
+              },
+              "user_answer": {
+                "binding": "c18f7c91c80cbde10e64a29b04d9218f2c536f535d1a633b504ec606de68743e",
+                "delivery_id": "answer-2c5c5cb07ce6f8c5d8d87fbca7aabd03fd95c889fd60e5eb4ed1a7f67b4a27b8",
+                "kind": "historical_reason",
+                "source": "user-message",
+                "text": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+                "turn": null
+              },
+              "version": 1
+            },
+            ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/21c545a96f641b4602f1394c3f50eb3fc21451ff5e3500b3a4438d8914c1d602.json": {
+              "acquisition": {
+                "kind": "user-export",
+                "reference": "synthetic fixture export, not independently fetched"
+              },
+              "base": "3fa78a277a41d535da74f2efd4428a03e9a0993f",
+              "coverage": {
+                "attachments": "complete",
+                "checks": "complete",
+                "cr": "complete",
+                "cr_discussion": "complete",
+                "diff": "complete",
+                "files": "complete",
+                "pr": "complete",
+                "pr_discussion": "complete"
+              },
+              "cr": "https://github.com/synthetic/project/issues/7",
+              "format": "knowledge-update-cr-evidence-v1",
+              "head": "f88cf601a91a3179bcf405ac151f4b3edf11db79",
+              "item": {
+                "anchors": [
+                  {
+                    "end": 1,
+                    "excerpt": "public static class Caller { public const int DeadlineMs = 120; }",
+                    "hash": "sha256:8d55f129e7adfe5ca882cc48614d8ee34a468b36511270d663ba54de3e23aab7",
+                    "path": "Caller.cs",
+                    "revision": "f88cf601a91a3179bcf405ac151f4b3edf11db79",
+                    "role": "neighbor",
+                    "start": 1
+                  }
+                ],
+                "category": "nonchange",
+                "change": "upsert",
+                "condition": "For this component and reviewed version",
+                "confidence": "CONFIRMED",
+                "existing_id": null,
+                "key": "deadline",
+                "preserve": "Do not extend the public caller deadline",
+                "reason": null,
+                "reconsider": "Reassess when the owning contract or failure model changes",
+                "refs": [
+                  "cr:req:body",
+                  "pr:description"
+                ],
+                "statement": "Preserve the caller deadline of 120 ms",
+                "terms": [
+                  "deadline",
+                  "timeout",
+                  "срок"
+                ]
+              },
+              "observed_at": "2026-11-22T12:00:00Z",
+              "pr": "https://github.com/synthetic/project/pull/8",
+              "pr_status": "merged",
+              "project": "b4920714df9a91739cd4e5f6e729a2daa45698de52b335a79a6caa2360d5dac4",
+              "references": {
+                "cr:req:body": {
+                  "reference": "https://github.com/synthetic/project/issues/7",
+                  "text": "Bound transient operation retries; retain caller deadline and independent packet transport recovery."
+                },
+                "pr:description": {
+                  "reference": "https://github.com/synthetic/project/pull/8",
+                  "text": "Implements https://github.com/synthetic/project/issues/7"
+                }
+              },
+              "source_fingerprint": "c18f7c91c80cbde10e64a29b04d9218f2c536f535d1a633b504ec606de68743e",
+              "target": {
+                "branch": "master",
+                "commit": "f88cf601a91a3179bcf405ac151f4b3edf11db79"
+              },
+              "user_answer": {
+                "binding": "c18f7c91c80cbde10e64a29b04d9218f2c536f535d1a633b504ec606de68743e",
+                "delivery_id": "answer-6bb54d9bcf8e438472034d86d49636bd416d537f660ea0cbf620cce2bd9a4d55",
+                "kind": "historical_reason",
+                "source": "user-message",
+                "text": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+                "turn": null
+              },
+              "version": 1
+            },
+            ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/d2275f55134696c7fe4735a470060e1fbe811d6ec862e49e145e7cb7ad59a946.json": {
+              "acquisition": {
+                "kind": "user-export",
+                "reference": "synthetic fixture export, not independently fetched"
+              },
+              "base": "3fa78a277a41d535da74f2efd4428a03e9a0993f",
+              "coverage": {
+                "attachments": "complete",
+                "checks": "complete",
+                "cr": "complete",
+                "cr_discussion": "complete",
+                "diff": "complete",
+                "files": "complete",
+                "pr": "complete",
+                "pr_discussion": "complete"
+              },
+              "cr": "https://github.com/synthetic/project/issues/7",
+              "format": "knowledge-update-cr-evidence-v1",
+              "head": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf",
+              "item": {
+                "anchors": [
+                  {
+                    "end": 1,
+                    "excerpt": "public static class Retry { public const int MaxAttempts = 5; }",
+                    "hash": "sha256:4a2d959c976321a4d7c8285ef87b81624db5f787d1426ae226317d2ec23ebc44",
+                    "path": "Retry.cs",
+                    "revision": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf",
+                    "role": "implementation",
+                    "start": 1
+                  }
+                ],
+                "category": "decision",
+                "change": "upsert",
+                "condition": "For this component and reviewed version",
+                "confidence": "CONFIRMED",
+                "existing_id": null,
+                "key": "retry-limit",
+                "preserve": "Bound work within the caller deadline",
+                "reason": null,
+                "reconsider": "Reassess when the owning contract or failure model changes",
+                "refs": [
+                  "cr:req:body",
+                  "pr:description"
+                ],
+                "statement": "Prefer five total transient operation attempts",
+                "terms": [
+                  "retry",
+                  "transient",
+                  "повтор",
+                  "ошибка"
+                ]
+              },
+              "observed_at": "2026-11-22T12:00:00Z",
+              "pr": "https://github.com/synthetic/project/pull/8",
+              "pr_status": "merged",
+              "project": "b4920714df9a91739cd4e5f6e729a2daa45698de52b335a79a6caa2360d5dac4",
+              "references": {
+                "cr:req:body": {
+                  "reference": "https://github.com/synthetic/project/issues/7",
+                  "text": "Bound transient operation retries; retain caller deadline and independent packet transport recovery."
+                },
+                "pr:description": {
+                  "reference": "https://github.com/synthetic/project/pull/8",
+                  "text": "Implements https://github.com/synthetic/project/issues/7"
+                }
+              },
+              "source_fingerprint": "1cbc75b3234ba624bb989289298f0dc959a0c06d37d118e7737e454a3af31185",
+              "target": {
+                "branch": "master",
+                "commit": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf"
+              },
+              "user_answer": {
+                "binding": "1cbc75b3234ba624bb989289298f0dc959a0c06d37d118e7737e454a3af31185",
+                "delivery_id": "answer-8be66000db46ef83419ef514e2372861f6c91ddfc99bbe7b6854d89b4280908d",
+                "kind": "historical_reason",
+                "source": "user-message",
+                "text": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+                "turn": null
+              },
+              "version": 1
+            },
+            ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/c6a9de258371df9fcb38f8295c2c91776ef868158b509d9e43c7035099fd8c9d.json": {
+              "acquisition": {
+                "kind": "user-export",
+                "reference": "synthetic fixture export, not independently fetched"
+              },
+              "base": "3fa78a277a41d535da74f2efd4428a03e9a0993f",
+              "coverage": {
+                "attachments": "complete",
+                "checks": "complete",
+                "cr": "complete",
+                "cr_discussion": "complete",
+                "diff": "complete",
+                "files": "complete",
+                "pr": "complete",
+                "pr_discussion": "complete"
+              },
+              "cr": "https://github.com/synthetic/project/issues/7",
+              "format": "knowledge-update-cr-evidence-v1",
+              "head": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf",
+              "item": {
+                "anchors": [
+                  {
+                    "end": 1,
+                    "excerpt": "public static class Transport { public const int PacketAttempts = 2; }",
+                    "hash": "sha256:afe6dfa80995b47b959c65bbc75466ae9c71d6a87e65e8d1281a502a7e2406ba",
+                    "path": "Transport.cs",
+                    "revision": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf",
+                    "role": "neighbor",
+                    "start": 1
+                  }
+                ],
+                "category": "nonchange",
+                "change": "upsert",
+                "condition": "For this component and reviewed version",
+                "confidence": "CONFIRMED",
+                "existing_id": null,
+                "key": "transport-owner",
+                "preserve": "Do not multiply operation retries by changing packet recovery ownership",
+                "reason": null,
+                "reconsider": "Reassess when the owning contract or failure model changes",
+                "refs": [
+                  "cr:req:body",
+                  "pr:description"
+                ],
+                "statement": "Leave the independent packet recovery in Transport unchanged",
+                "terms": [
+                  "transport",
+                  "retry",
+                  "повтор"
+                ]
+              },
+              "observed_at": "2026-11-22T12:00:00Z",
+              "pr": "https://github.com/synthetic/project/pull/8",
+              "pr_status": "merged",
+              "project": "b4920714df9a91739cd4e5f6e729a2daa45698de52b335a79a6caa2360d5dac4",
+              "references": {
+                "cr:req:body": {
+                  "reference": "https://github.com/synthetic/project/issues/7",
+                  "text": "Bound transient operation retries; retain caller deadline and independent packet transport recovery."
+                },
+                "pr:description": {
+                  "reference": "https://github.com/synthetic/project/pull/8",
+                  "text": "Implements https://github.com/synthetic/project/issues/7"
+                }
+              },
+              "source_fingerprint": "1cbc75b3234ba624bb989289298f0dc959a0c06d37d118e7737e454a3af31185",
+              "target": {
+                "branch": "master",
+                "commit": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf"
+              },
+              "user_answer": {
+                "binding": "1cbc75b3234ba624bb989289298f0dc959a0c06d37d118e7737e454a3af31185",
+                "delivery_id": "answer-d095ba55fa87c0664959da20236f3b0d8a8b454886aca4867debe787a9dba86a",
+                "kind": "historical_reason",
+                "source": "user-message",
+                "text": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+                "turn": null
+              },
+              "version": 1
+            },
+            ".knowledge/update-cr/57083ccf52f14f38a4c950646819fe1e/37822a13791f314787a7261d5b3f9f68f048b9bb082ba8e32620d81f85221e2e.json": {
+              "acquisition": {
+                "kind": "user-export",
+                "reference": "synthetic fixture export, not independently fetched"
+              },
+              "base": "3fa78a277a41d535da74f2efd4428a03e9a0993f",
+              "coverage": {
+                "attachments": "complete",
+                "checks": "complete",
+                "cr": "complete",
+                "cr_discussion": "complete",
+                "diff": "complete",
+                "files": "complete",
+                "pr": "complete",
+                "pr_discussion": "complete"
+              },
+              "cr": "https://github.com/synthetic/project/issues/7",
+              "format": "knowledge-update-cr-evidence-v1",
+              "head": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf",
+              "item": {
+                "anchors": [
+                  {
+                    "end": 1,
+                    "excerpt": "public static class Caller { public const int DeadlineMs = 120; }",
+                    "hash": "sha256:8d55f129e7adfe5ca882cc48614d8ee34a468b36511270d663ba54de3e23aab7",
+                    "path": "Caller.cs",
+                    "revision": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf",
+                    "role": "neighbor",
+                    "start": 1
+                  }
+                ],
+                "category": "nonchange",
+                "change": "upsert",
+                "condition": "For this component and reviewed version",
+                "confidence": "CONFIRMED",
+                "existing_id": null,
+                "key": "deadline",
+                "preserve": "Do not extend the public caller deadline",
+                "reason": null,
+                "reconsider": "Reassess when the owning contract or failure model changes",
+                "refs": [
+                  "cr:req:body",
+                  "pr:description"
+                ],
+                "statement": "Preserve the caller deadline of 120 ms",
+                "terms": [
+                  "deadline",
+                  "timeout",
+                  "срок"
+                ]
+              },
+              "observed_at": "2026-11-22T12:00:00Z",
+              "pr": "https://github.com/synthetic/project/pull/8",
+              "pr_status": "merged",
+              "project": "b4920714df9a91739cd4e5f6e729a2daa45698de52b335a79a6caa2360d5dac4",
+              "references": {
+                "cr:req:body": {
+                  "reference": "https://github.com/synthetic/project/issues/7",
+                  "text": "Bound transient operation retries; retain caller deadline and independent packet transport recovery."
+                },
+                "pr:description": {
+                  "reference": "https://github.com/synthetic/project/pull/8",
+                  "text": "Implements https://github.com/synthetic/project/issues/7"
+                }
+              },
+              "source_fingerprint": "1cbc75b3234ba624bb989289298f0dc959a0c06d37d118e7737e454a3af31185",
+              "target": {
+                "branch": "master",
+                "commit": "e4f3d2b308e3ed87b336ecb88a5434f0372c1bcf"
+              },
+              "user_answer": {
+                "binding": "1cbc75b3234ba624bb989289298f0dc959a0c06d37d118e7737e454a3af31185",
+                "delivery_id": "answer-9aec8a3d9ac4697e03574732980f89823fe48cd7fdf04a90271443f534b8e6f3",
+                "kind": "historical_reason",
+                "source": "user-message",
+                "text": "The independently owned contract must remain compatible; this is a contextual constraint, not a universal permission.",
+                "turn": null
+              },
+              "version": 1
+            }
+          }
+        }
+      ]
+    }
+  }
+}

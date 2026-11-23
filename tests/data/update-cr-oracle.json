@@ -1,0 +1,12 @@
+{
+  "retry": {
+    "parameters": {"max_attempts": 4, "caller_deadline_ms": 120, "packet_attempts": 2},
+    "preserve": ["packet recovery ownership", "public caller deadline"],
+    "reasons": ["independent", "budget"]
+  },
+  "cache": {
+    "parameters": {"cache_capacity": 32},
+    "preserve": ["сигнатуру Find", "поведение при промахе"],
+    "reasons": ["памяти", "совместимость"]
+  }
+}

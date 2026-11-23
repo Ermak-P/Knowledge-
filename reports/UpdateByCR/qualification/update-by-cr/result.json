@@ -1,0 +1,79 @@
+{
+  "status": "PASS",
+  "profile": "installed-controlled-fresh-planner-and-dotnet-behavior",
+  "live_model": "NOT_RUN; no approved live model is configured by this fixture",
+  "cases": [
+    {
+      "scenario": "retry",
+      "persistence": "saved",
+      "records": [
+        {
+          "id": "ucr.99c08ff0b10adcb4.retry-limit",
+          "revision": 1,
+          "lifecycle": "active",
+          "confidence": "CONFIRMED"
+        },
+        {
+          "id": "ucr.99c08ff0b10adcb4.transport-owner",
+          "revision": 1,
+          "lifecycle": "active",
+          "confidence": "CONFIRMED"
+        },
+        {
+          "id": "ucr.99c08ff0b10adcb4.deadline",
+          "revision": 1,
+          "lifecycle": "active",
+          "confidence": "CONFIRMED"
+        }
+      ],
+      "fresh_process": true,
+      "plan_oracle": "PASS",
+      "behavior_command": [
+        "/workspace/Knowledge-/.local/dotnet/dotnet",
+        "run",
+        "--project",
+        "/tmp/ucr-installed-trial-p0e64w33/retry/project/Replay/Replay.csproj",
+        "--configuration",
+        "Release"
+      ],
+      "behavior_returncode": 0,
+      "behavior_log": "retry-dotnet.log",
+      "behavior_log_sha256": "a3e22f1c2c6776e0a1f388eee78b0ead150f53aec341a49159791bdbaedcdeaa"
+    },
+    {
+      "scenario": "cache",
+      "persistence": "saved",
+      "records": [
+        {
+          "id": "ucr.7137f705d92d603f.capacity",
+          "revision": 1,
+          "lifecycle": "active",
+          "confidence": "CONFIRMED"
+        },
+        {
+          "id": "ucr.7137f705d92d603f.contract",
+          "revision": 1,
+          "lifecycle": "active",
+          "confidence": "CONFIRMED"
+        }
+      ],
+      "fresh_process": true,
+      "plan_oracle": "PASS",
+      "behavior_command": [
+        "/workspace/Knowledge-/.local/dotnet/dotnet",
+        "run",
+        "--project",
+        "/tmp/ucr-installed-trial-p0e64w33/cache/project/Replay/Replay.csproj",
+        "--configuration",
+        "Release"
+      ],
+      "behavior_returncode": 0,
+      "behavior_log": "cache-dotnet.log",
+      "behavior_log_sha256": "a5d7c2b01102ef2be5c10426ba78bcad76161d36f8c422be68cff2734aeca23e"
+    }
+  ],
+  "imports": {
+    "knowledge": "/tmp/p4-installed-vi27he10/runtime/lib/python3.12/site-packages/knowledge/__init__.py",
+    "harness": "/tmp/p4-installed-vi27he10/runtime/lib/python3.12/site-packages/harness/__init__.py"
+  }
+}
