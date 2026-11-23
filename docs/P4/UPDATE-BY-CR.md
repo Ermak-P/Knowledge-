@@ -153,6 +153,10 @@ key, separately from the stable target `ucr.*` identity. Unmerged existing-ID
 updates and retirements refuse with `ucr-unmerged-target-mutation-refused` before
 queue/canonical writes. A later merged PR present on the selected target can
 update/retire the target identity normally, retaining revision history.
+Scope is checked again before apply and prepared-plan recovery. A pre-R1 pending
+plan with unmerged target IDs cannot bypass the separation: resume invalidates
+its approval, and explicit source reobservation archives it for reassessment and
+owned-candidate replacement. Already committed history is not rewritten.
 
 ## Persistence, compatibility and recovery
 

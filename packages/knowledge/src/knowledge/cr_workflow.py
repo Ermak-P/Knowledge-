@@ -23,6 +23,10 @@ def now():return datetime.now(timezone.utc).isoformat()
 def fault(phase):pass
 def is_completed(state):return state['state'] in COMPLETED or state['state']=='stale' and state['receipt'] is not None
 def source_hash(snapshot):return digest({k:v for k,v in snapshot.items() if k!='observed_at'})
+def automatic_claim_id(state,item):
+    merged=state['source']['pr']['status']=='merged'
+    prefix='ucr.'+digest([state['project'],state['links']['cr']])[:16] if merged else 'ucr.proposal.'+digest([state['project'],state['links']['cr'],state['links']['pr']])[:16]
+    return prefix+'.'+item['key']
 def sealed(state):
     value=deepcopy(state);value.pop('seal',None);value['seal']=digest(value);return value
 
@@ -128,7 +132,7 @@ class Workflow:
     def sources(self,sid,snapshot,expected):
         snapshot=src.validate(snapshot);state=self.get(sid);require(state['revision']==expected,'ucr-session-cas-conflict');require(state['state']!='persisting','ucr-recover-before-new-input')
         require(state['links']=={'cr':snapshot['cr']['url'],'pr':snapshot['pr']['url']},'ucr-snapshot-link-mismatch')
-        binding=src.checkout(self.root,snapshot);base=self._base();changed=state['source'] is not None and (source_hash(state['source'])!=source_hash(snapshot) or state['binding']!=binding or state['knowledge_base']!=base)
+        binding=src.checkout(self.root,snapshot);base=self._base();changed=state['source'] is not None and (source_hash(state['source'])!=source_hash(snapshot) or state['binding']!=binding or state['knowledge_base']!=base or not self._proposal_in_scope(state))
         def change(s):
             if changed:
                 s['history'].append(dict(event='source-stale',source=source_hash(s['source']),questions=s['questions'],answers=s['answers'],proposal=s['proposal']))
@@ -245,8 +249,7 @@ class Workflow:
         if not merged:
             require(all(i['existing_id'] is None and i['change']=='upsert' for i in state['map']),'ucr-unmerged-target-mutation-refused',{'resolution':'Save branch proposals with automatic scoped IDs; existing-ID updates and retirement require a merged PR present on the target.'})
         for item in state['map']:
-            automatic=('ucr.'+digest([state['project'],state['links']['cr']])[:16] if merged else 'ucr.proposal.'+digest([state['project'],state['links']['cr'],state['links']['pr']])[:16])+'.'+item['key']
-            identifier=item['existing_id'] or automatic
+            identifier=item['existing_id'] or automatic_claim_id(state,item)
             old=existing.get(identifier);require(not item['existing_id'] or old is not None,'ucr-existing-record-missing')
             q=next((q for q in state['questions'] if q['item']==item['key'] and q['kind']=='reason'),None);answer=state['answers'].get(q['id']) if q else None
             unresolved=q is not None and (answer is None or answer['kind'] in ('unknown','skip'))
@@ -287,7 +290,7 @@ class Workflow:
         return life.batch(list(unique.values()),reason+(' — retirement evidence: '+retirements if retirements else ''),state['binding']),artifacts,claims
     def prepare(self,sid,expected):
         state=self.get(sid);require(state['revision']==expected,'ucr-session-cas-conflict');self._fresh(state)
-        if state['state']=='awaiting_approval':return self.view(state)
+        if state['state']=='awaiting_approval':self._require_proposal_scope(state);return self.view(state)
         if state['state']=='preparing':return self._prepare_finish(state)
         require(state['state']=='ready_for_review' and state['map'],'ucr-interview-not-ready')
         require(all(q['id'] in state['answers'] for q in state['questions'] if q['kind']=='association'),'ucr-association-confirmation-required')
@@ -313,8 +316,15 @@ class Workflow:
             require(isinstance(proposal,dict) and isinstance(proposal.get('payload'),dict) and proposal.get('candidate')==digest(proposal['payload']),'ucr-corrupt-proposal-ownership')
             owned[proposal['candidate']]=proposal['payload']
         return owned
+    def _proposal_in_scope(self,state):
+        if state['source'] is None or state['source']['pr']['status']=='merged' or state['proposal'] is None:return True
+        expected=[automatic_claim_id(state,item) for item in state['map']]
+        return (all(i['existing_id'] is None and i['change']=='upsert' for i in state['map']) and state['proposal']['claims']==expected and
+                all(op['id'] in expected and op['action'] in ('add','update') for op in state['proposal']['payload']['operations'] if op['kind']=='claims'))
+    def _require_proposal_scope(self,state):
+        require(self._proposal_in_scope(state),'ucr-unmerged-target-mutation-refused',{'resolution':'Reobserve sources and reassess this pre-R1 plan; target records cannot be changed by an unmerged proposal.'})
     def _prepare_finish(self,state):
-        self._fresh(state);sid=state['id'];cid=state['proposal']['candidate']
+        self._fresh(state);self._require_proposal_scope(state);sid=state['id'];cid=state['proposal']['candidate']
         owned=self._owned_proposals(state)
         with self.store.connection() as db:
             pending={i:loads(payload) for i,payload in db.execute("SELECT id,payload FROM queue WHERE status='pending'")}
@@ -333,6 +343,7 @@ class Workflow:
     def apply(self,sid,approval,expected):
         state=self.get(sid);require(state['revision']==expected,'ucr-session-cas-conflict');self._fresh(state)
         require(state['state']=='awaiting_approval' and state['proposal']['plan']==approval,'exact-approval-required')
+        self._require_proposal_scope(state)
         state=self._change(sid,expected,lambda s:s.update(state='persisting',approved=approval));fault('approval-recorded')
         return self.recover(sid)
     def recover(self,sid):
@@ -341,7 +352,9 @@ class Workflow:
         require(state['state']=='persisting' and state['approved']==state['proposal']['plan'],'ucr-no-approved-persistence-to-recover')
         pid=state['approved']
         with self.store.connection() as db:plan,status=self.store._plan(db,pid)
-        if status=='PREPARED':self._fresh(state);self.store.apply(pid,pid);fault('canonical-committed')
+        if status=='PREPARED':
+            if not self._proposal_in_scope(state):return self.view(self._change(sid,state['revision'],lambda s:s.update(state='stale',approved=None)))
+            self._fresh(state);self.store.apply(pid,pid);fault('canonical-committed')
         self.store.acknowledge(pid);fault('canonical-acknowledged')
         base=self._base();saved=[];untrusted=[]
         for identifier in state['proposal']['claims']:
@@ -359,6 +372,9 @@ class Workflow:
         state=self.get(sid);self._artifacts(state)
         if state['state']=='persisting':return self.recover(sid)
         if state['state']=='preparing':return self._prepare_finish(state)
+        if not self._proposal_in_scope(state):
+            if state['state']!='stale':state=self._change(sid,state['revision'],lambda s:s.update(state='stale',approved=None))
+            return self.view(state)
         if state['source'] is not None:
             try:self._fresh(state)
             except KnowledgeError as error:

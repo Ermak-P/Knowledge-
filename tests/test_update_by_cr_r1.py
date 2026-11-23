@@ -58,6 +58,20 @@ class UpdateByCRReviewR1(unittest.TestCase):
         saved=self.commit(self.sourced(snap,[value]));self.assertEqual(saved['receipt']['records'][0]['lifecycle'],'retired');self.assertEqual(saved['receipt']['records'][0]['revision'],2)
         self.assertNotIn(cid,[r['id'] for r in self.w.store.context('transient retry attempts',max_items=20)['claims']])
 
+    def test_legacy_unmerged_plan_is_refused_and_recovers_without_target_mutation(self):
+        first=self.commit(self.sourced(self.snapshot));cid=first['receipt']['records'][0]['id'];proposal=self.successor();state=self.sourced(proposal,[self.proposed_item(proposal)])
+        before=self.w.store.lookup('claims',cid);record=deepcopy(before['record']);record.update(statement='Old-format unmerged six-attempt proposal',status='NEEDS_HUMAN_CONFIRMATION',last_verified=None)
+        payload=life.batch([life.op('update','claims',cid,1,record)],'Prepared before R1 scope protection',self.w.get(state['session'])['binding'])
+        queued=self.w.store.submit(payload);plan=self.w.store.prepare()
+        legacy=self.w._change(state['session'],state['revision'],lambda s:s.update(state='awaiting_approval',proposal=dict(candidate=queued['candidate'],plan=plan['fingerprint'],claims=[cid],payload=payload)))
+        with self.assertRaisesRegex(KnowledgeError,'ucr-unmerged-target-mutation-refused'):self.w.apply(state['session'],plan['fingerprint'],legacy['revision'])
+        self.assertEqual(before,self.w.store.lookup('claims',cid))
+        legacy=self.w._change(state['session'],legacy['revision'],lambda s:s.update(state='persisting',approved=plan['fingerprint']))
+        resumed=Workflow(self.root).resume(state['session']);self.assertEqual(resumed['state'],'stale');self.assertIsNone(self.w.get(state['session'])['approved'])
+        self.assertEqual(before,self.w.store.lookup('claims',cid))
+        saved=self.commit(self.sourced(proposal,[self.proposed_item(proposal)]));self.assertNotEqual(saved['receipt']['records'][0]['id'],cid);self.assertEqual(before,self.w.store.lookup('claims',cid))
+        self.assertEqual(next(r for r in self.w.store.status()['queue'] if r['id']==queued['candidate'])['status'],'deferred')
+
     def refreshed(self,head_change=False):
         state=ready(self.w,self.snapshot,decisions(self.snapshot));old=self.w.prepare(state['session'],state['revision']);snap=deepcopy(self.snapshot)
         if head_change:
