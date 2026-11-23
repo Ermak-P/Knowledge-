@@ -26,7 +26,7 @@ Git repositories, SQLite and normal APIs; subprocess cases are identified.
 | UCR-17 | PASS: F `two_roots_and_code_freshness_no_cross_project_authority`, existing-nonempty correction and backup/export tests; full baseline suite exercises shared isolation/current denials/read-only integrity. No schema migration on read. |
 | UCR-18 | PASS: `installed-bytes.json` proves final installed assets; `independent/result.json` demonstrates actual Knowledge-only persistence; actual native host discovery plus installer conflict/removal preservation tests. |
 | UCR-19 | PASS controlled profile: `trial/result.json`, separate fresh process replay JSON and real .NET logs for retry and Russian cache/interface domains. Critical nonchange removal fails the separate oracle. Live-model semantic replay NOT_RUN. |
-| UCR-20 | PASS_PORTABLE: final installed Linux route (`qualification/run.json`) passes all 25 commands and 389 tests (378 PASS, 11 Windows-only SKIP), unchanged source. Separate full local regression also passes. Source-bound CI/native Windows status is in `ci/validation.json`, never inferred from the Linux host test. |
+| UCR-20 | PASS: final-source CI (`ci/validation.json`) is Linux PASS_PORTABLE (378 PASS, 11 Windows-only SKIP, 25 commands) and native Windows/PowerShell 5.1 PASS_NATIVE (389 PASS, no skips, 26 commands). All logs/source/assets verified, unchanged inputs, no failures/errors. Earlier full local Linux qualification is separately retained. |
 
 No row asserts that an arbitrary model will recover the same source diff or that
 fixture CRs were independently fetched. [Review limits and failures](REVIEW.md)

@@ -21,6 +21,15 @@ def main():
             path=PurePosixPath(name);assert not path.is_absolute() and '..' not in path.parts
             assert hashlib.sha256(z.read(name)).hexdigest()==wanted,name
     ci=root/'ci/validation.json'
-    if ci.exists():assert json.loads(ci.read_text())['commit']==source['commit']
+    if ci.exists():
+        validation=json.loads(ci.read_text());assert validation['commit']==source['commit'] and set(validation['platforms'])=={'Linux','Windows'}
+        for profile,status in [('Linux','PASS_PORTABLE'),('Windows','PASS_NATIVE')]:
+            summary=validation['platforms'][profile];assert summary['status']==status and summary['source_and_every_log_and_asset_hash_verified']
+            folder=root/'ci'/profile;run=json.loads((folder/'run.json').read_text());tests=json.loads((folder/'tests.json').read_text())
+            assert run['commit']==source['commit'] and run['source_identity']==source['source_identity'] and run['source']==source['source'] and run['unchanged']
+            assert run['status']==status and all(v=='PASS' for v in run['checks'].values()) and tests['success'] and tests['failed']==tests['errors']==0
+            for command in run['commands']:
+                assert command['returncode']==0 and hashlib.sha256((folder/command['log']).read_bytes()).hexdigest()==command['sha256']
+            assert json.loads((folder/'RELEASE.json').read_text())==release
     print(json.dumps(dict(status='PASS',review_files=len(actual),source_files=len(source['source']),source_identity=source['source_identity'],artifact_code_executed=False)))
 if __name__=='__main__':main()

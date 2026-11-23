@@ -88,8 +88,22 @@ including logs, comparison results, application outputs and installed replay.
 The separate local full regression also passes (`local/full-result.json`).
 That local route ran at `cb8b3d725`, before the replay-pipe encoding correction;
 its source descriptor is retained alongside it. All product wheel bytes are
-identical to the final delivery. Final-source CI Linux/native Windows results
-are recorded in `ci/validation.json` when their receipts become available.
+identical to the final delivery.
+
+Final-source [CI qualification](ci/validation.json),
+[Actions run 45066137182](https://github.com/Ermak-P/Knowledge-/actions/runs/45066137182),
+passes on both platforms:
+
+| Platform | Qualification | Tests | Commands |
+| --- | --- | --- | --- |
+| Linux | PASS_PORTABLE | 378 PASS, 11 Windows-only SKIP; 0 failures/errors | 25 PASS |
+| Native Windows / PowerShell 5.1 | PASS_NATIVE | 389 PASS, 0 SKIP/failures/errors | 26 PASS |
+
+Both receipts bind exactly revision `1a4999fa62` and the final source identity.
+The collector verified all source bytes, every command log and every release
+asset against Git and the delivered ZIP; inputs stayed unchanged. The Windows
+rerun includes the forced-cp1252 Unicode regression guard. Raw ledgers, tests,
+logs, release manifests and receipts are retained under `ci/`.
 The expanded native OpenCode profile uses the final installed wheel.
 
 ## Worked outcome
