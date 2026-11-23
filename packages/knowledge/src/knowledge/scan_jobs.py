@@ -32,7 +32,10 @@ def alive(pid):
             code = wintypes.DWORD()
             return bool(kernel.GetExitCodeProcess(handle, ctypes.byref(code)) and code.value == 259)
         finally: kernel.CloseHandle(handle)
-    try: os.kill(pid, 0); return True
+    try:
+        state = Path('/proc') / str(pid) / 'stat'
+        if state.is_file() and state.read_text().rsplit(')', 1)[1].split()[0] == 'Z': return False
+        os.kill(pid, 0); return True
     except ProcessLookupError: return False
     except PermissionError: return True
 
@@ -41,11 +44,20 @@ def status(folder):
     folder = Path(folder)
     state = loads(safe_path(folder / 'job.json').read_text(encoding='utf-8'))
     require(state.get('version') == 1 and type(state.get('pid')) is int and state['pid'] > 0 and state.get('state') in ('STARTING', 'RUNNING', 'COMPLETED', 'BLOCKED'), 'invalid-scan-job-state')
-    child = _children.get(state['pid'])
+    launcher = folder / 'launcher.json'
+    launched = loads(safe_path(launcher).read_text(encoding='utf-8')) if launcher.exists() else {}
+    launcher_pid = launched.get('pid') if launched.get('job') == state['job'] else None
+    require(launcher_pid is None or (type(launcher_pid) is int and launcher_pid > 0), 'invalid-scan-launcher-state')
+    child = _children.get(launcher_pid)
     if child is not None and child.poll() is not None:
-        del _children[state['pid']]
-    if state['state'] in ('STARTING', 'RUNNING') and not alive(state['pid']):
+        del _children[launcher_pid]
+    living = alive(state['pid']) or (launcher_pid is not None and alive(launcher_pid))
+    if state['state'] in ('STARTING', 'RUNNING') and not living:
         return {**state, 'state': 'OUTCOME_UNKNOWN', 'next_action': 'Observe scan-status and diagnostics; explicitly resume only after determining the outcome.'}
+    if state['state'] in ('COMPLETED', 'BLOCKED') and living:
+        # A Windows venv redirector can outlive its Python worker briefly and
+        # still own stdout. Completion includes releasing both owned processes.
+        state = {**state, 'state': 'RUNNING', 'phase': 'FINALIZING'}
     checkpoint = folder / 'checkpoint.json'
     if checkpoint.exists(): state['scan_id'] = loads(checkpoint.read_text(encoding='utf-8'))['scan_id']
     last = folder / 'last-result.json'
@@ -84,12 +96,13 @@ def start(folder, root, scope, binding, max_files=100, resume=False, fresh=False
                                        stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, close_fds=True, **options)
         finally: log.close()
         _children[process.pid] = process
+        write_json(folder / 'launcher.json', {'version': 1, 'job': state['job'], 'pid': process.pid})
         # The worker writes its own PID before doing anything. Parent waits only
         # for that durable handshake; no scan is tied to this request's deadline.
         import time
         for _ in range(100):
             current = loads(metadata.read_text(encoding='utf-8'))
-            if current['pid'] == process.pid: return current
+            if current['job'] == state['job'] and current['pid'] != state['pid']: return current
             if process.poll() is not None: break
             time.sleep(.02)
         return {**state, 'state': 'STARTING', 'next_action': 'Check status; do not start a second worker.'}

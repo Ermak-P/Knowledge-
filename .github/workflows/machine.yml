@@ -1,0 +1,79 @@
+name: Machine installer native feedback
+on:
+  push:
+    branches: [main, codex/automatic-installer]
+    paths-ignore: ['reports/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Linux machine/host qualification
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          python scripts/setup_p3.py
+          .venv/bin/python scripts/verify_machine.py
+      - name: Windows PowerShell 5.1 machine/host qualification
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:PYTHONUTF8 = '1'
+          $env:PYTHONIOENCODING = 'utf-8'
+          $FixtureTemp = Join-Path $env:RUNNER_TEMP 'knowledge-machine-native-fixtures'
+          New-Item -ItemType Directory -Force -Path $FixtureTemp | Out-Null
+          $env:TEMP = $FixtureTemp
+          $env:TMP = $FixtureTemp
+          $env:TMPDIR = $FixtureTemp
+          python scripts/setup_p3.py
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          & .venv/Scripts/python.exe -X utf8 -B scripts/verify_machine.py
+          exit $LASTEXITCODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: machine-${{ runner.os }}
+          path: |
+            reports/AutomaticInstaller-fast/
+            reports/AutomaticInstaller-diagnostics/
+  publish:
+    needs: smoke
+    if: >-
+      always() && github.repository == 'Ermak-P/Knowledge-' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/automatic-installer')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: machine-*
+          path: retained
+      - name: Retain source-bound native feedback
+        env:
+          P4_CI_LAYOUT: machine-fast
+        run: |
+          for platform in Linux Windows; do
+            rm -rf reports/AutomaticInstaller-fast
+            cp -R "retained/machine-$platform/AutomaticInstaller-fast" reports/AutomaticInstaller-fast
+            P4_CI_PLATFORM="$platform" python scripts/p4_ci_receipt.py
+          done

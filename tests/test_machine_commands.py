@@ -57,7 +57,11 @@ def wait(install, root, command='knowledge-init'):
         if value['state'] not in ('STARTING', 'RUNNING'):
             return value
         time.sleep(.1)
-    raise AssertionError('Durable job did not finish')
+    diagnostics = ROOT / 'reports/AutomaticInstaller-diagnostics' / str(os.getpid()) / (root.name + '-' + command)
+    import shutil
+    diagnostics.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(install / 'state', diagnostics, dirs_exist_ok=True)
+    raise AssertionError('Durable job did not finish: ' + json.dumps(value) + '; diagnostics: ' + str(diagnostics))
 
 
 class SharedProviderTests(unittest.TestCase):
@@ -293,17 +297,24 @@ class MachineMcpTests(unittest.TestCase):
             roots = [first]
             async def list_roots(context): return ListRootsResult(roots=[Root(uri=p.as_uri()) for p in roots])
             async def exercise():
-                async with asyncio.timeout(30):
-                    async with stdio_client(StdioServerParameters(command=sys.executable, args=['-I', '-B', '-m', 'knowledge.machine_mcp', '--installation', str(install)])) as (reader, writer):
-                        async with ClientSession(reader, writer, list_roots_callback=list_roots) as session:
-                            await session.initialize()
-                            for directory, text in ((first, 'FIRST unique'), (second, 'SECOND unique')):
-                                roots[:] = [directory]
+                import anyio
+                verified = False
+                try:
+                    async with asyncio.timeout(30):
+                        async with stdio_client(StdioServerParameters(command=sys.executable, args=['-I', '-B', '-m', 'knowledge.machine_mcp', '--installation', str(install)])) as (reader, writer):
+                            async with ClientSession(reader, writer, list_roots_callback=list_roots) as session:
+                                await session.initialize()
+                                for directory, text in ((first, 'FIRST unique'), (second, 'SECOND unique')):
+                                    roots[:] = [directory]
+                                    value = await session.call_tool('knowledge_get_claim', {'identifier': 'machine.common'})
+                                    self.assertIn(text, value.content[0].text)
+                                roots[:] = [first, second]
                                 value = await session.call_tool('knowledge_get_claim', {'identifier': 'machine.common'})
-                                self.assertIn(text, value.content[0].text)
-                            roots[:] = [first, second]
-                            value = await session.call_tool('knowledge_get_claim', {'identifier': 'machine.common'})
-                            self.assertEqual(json.loads(value.content[0].text)['error'], 'ambiguous-or-missing-workspace-roots')
+                                self.assertEqual(json.loads(value.content[0].text)['error'], 'ambiguous-or-missing-workspace-roots')
+                                verified = True
+                except* anyio.BrokenResourceError:
+                    if not verified: raise
+                    print('MCP SDK 1.30 teardown race handled after all RPC assertions passed', file=sys.stderr)
             asyncio.run(exercise())
 
 
