@@ -1,0 +1,220 @@
+test_explicit_base_head_ranges_support_shifted_contract_and_reject_wrong_pin (__main__.main.<locals>.Captured.test_explicit_base_head_ranges_support_shifted_contract_and_reject_wrong_pin) ... ERROR
+test_explicit_base_head_ranges_support_shifted_contract_and_reject_wrong_pin (__main__.main.<locals>.Captured.test_explicit_base_head_ranges_support_shifted_contract_and_reject_wrong_pin) ... ERROR
+test_explicit_existing_id_and_retirement_cannot_bypass_proposal_scope (__main__.main.<locals>.Captured.test_explicit_existing_id_and_retirement_cannot_bypass_proposal_scope) ... ERROR
+test_explicit_existing_id_and_retirement_cannot_bypass_proposal_scope (__main__.main.<locals>.Captured.test_explicit_existing_id_and_retirement_cannot_bypass_proposal_scope) ... ERROR
+test_head_target_refresh_prepares_and_applies_without_manual_queue_repair (__main__.main.<locals>.Captured.test_head_target_refresh_prepares_and_applies_without_manual_queue_repair) ... ERROR
+test_merged_retirement_still_uses_supported_revision_history (__main__.main.<locals>.Captured.test_merged_retirement_still_uses_supported_revision_history) ... ERROR
+test_merged_retirement_still_uses_supported_revision_history (__main__.main.<locals>.Captured.test_merged_retirement_still_uses_supported_revision_history) ... ERROR
+test_native_hook_sequential_reviews_survive_plugin_restart (__main__.main.<locals>.Captured.test_native_hook_sequential_reviews_survive_plugin_restart) ... ERROR
+test_native_hook_sequential_reviews_survive_plugin_restart (__main__.main.<locals>.Captured.test_native_hook_sequential_reviews_survive_plugin_restart) ... ERROR
+test_open_closed_successors_preserve_target_then_merge_updates_same_history (__main__.main.<locals>.Captured.test_open_closed_successors_preserve_target_then_merge_updates_same_history) ... ERROR
+test_open_closed_successors_preserve_target_then_merge_updates_same_history (__main__.main.<locals>.Captured.test_open_closed_successors_preserve_target_then_merge_updates_same_history) ... ERROR
+test_refresh_never_disposes_unrelated_pending_candidate (__main__.main.<locals>.Captured.test_refresh_never_disposes_unrelated_pending_candidate) ... ERROR
+test_refresh_never_disposes_unrelated_pending_candidate (__main__.main.<locals>.Captured.test_refresh_never_disposes_unrelated_pending_candidate) ... ERROR
+test_refresh_owns_old_candidate_and_recovers_hard_crash_during_disposition (__main__.main.<locals>.Captured.test_refresh_owns_old_candidate_and_recovers_hard_crash_during_disposition) ... ERROR
+test_refresh_roundtrip_does_not_reuse_already_deferred_candidate (__main__.main.<locals>.Captured.test_refresh_roundtrip_does_not_reuse_already_deferred_candidate) ... ERROR
+test_same_chat_binding_is_unique_with_history_resume_and_active_conflict (__main__.main.<locals>.Captured.test_same_chat_binding_is_unique_with_history_resume_and_active_conflict) ... ERROR
+test_same_chat_binding_is_unique_with_history_resume_and_active_conflict (__main__.main.<locals>.Captured.test_same_chat_binding_is_unique_with_history_resume_and_active_conflict) ... ERROR
+test_unchanged_member_in_modified_file_is_saved_and_changed_member_refused (__main__.main.<locals>.Captured.test_unchanged_member_in_modified_file_is_saved_and_changed_member_refused) ... ERROR
+test_unchanged_member_in_modified_file_is_saved_and_changed_member_refused (__main__.main.<locals>.Captured.test_unchanged_member_in_modified_file_is_saved_and_changed_member_refused) ... ERROR
+
+======================================================================
+ERROR: test_explicit_base_head_ranges_support_shifted_contract_and_reject_wrong_pin (__main__.main.<locals>.Captured.test_explicit_base_head_ranges_support_shifted_contract_and_reject_wrong_pin)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/tests/test_update_by_cr_r1.py", line 117, in test_explicit_base_head_ranges_support_shifted_contract_and_reject_wrong_pin
+    state=self.sourced(snap,[value]);mapped=self.w.get(state['session'])['map'][0]['anchors'][0];self.assertEqual(mapped['comparison']['base']['excerpt'],mapped['excerpt']);saved=self.commit(state);self.assertTrue(saved['receipt']['records'])
+                                                                                                                                                                                   ^^^^^^^^^^^^^^^^^^
+  File "/workspace/Knowledge-/reports/UpdateByCR-R1/fixed_probes.py", line 21, in commit
+    before=self.snapshot();saved=super().commit(state);self.events.append(dict(before=before,receipt=saved,after=self.snapshot()));return saved
+           ^^^^^^^^^^^^^^^
+TypeError: 'dict' object is not callable
+
+======================================================================
+ERROR: test_explicit_base_head_ranges_support_shifted_contract_and_reject_wrong_pin (__main__.main.<locals>.Captured.test_explicit_base_head_ranges_support_shifted_contract_and_reject_wrong_pin)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/reports/UpdateByCR-R1/fixed_probes.py", line 23, in tearDown
+    try:captures[self._testMethodName]=dict(events=self.events,final=self.snapshot())
+                                                                     ^^^^^^^^^^^^^^^
+TypeError: 'dict' object is not callable
+
+======================================================================
+ERROR: test_explicit_existing_id_and_retirement_cannot_bypass_proposal_scope (__main__.main.<locals>.Captured.test_explicit_existing_id_and_retirement_cannot_bypass_proposal_scope)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/tests/test_update_by_cr_r1.py", line 46, in test_explicit_existing_id_and_retirement_cannot_bypass_proposal_scope
+    first=self.commit(self.sourced(self.snapshot));cid=first['receipt']['records'][0]['id'];proposal=self.successor();before=self.w.store.export()['records']
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Knowledge-/reports/UpdateByCR-R1/fixed_probes.py", line 21, in commit
+    before=self.snapshot();saved=super().commit(state);self.events.append(dict(before=before,receipt=saved,after=self.snapshot()));return saved
+           ^^^^^^^^^^^^^^^
+TypeError: 'dict' object is not callable
+
+======================================================================
+ERROR: test_explicit_existing_id_and_retirement_cannot_bypass_proposal_scope (__main__.main.<locals>.Captured.test_explicit_existing_id_and_retirement_cannot_bypass_proposal_scope)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/reports/UpdateByCR-R1/fixed_probes.py", line 23, in tearDown
+    try:captures[self._testMethodName]=dict(events=self.events,final=self.snapshot())
+                                                                     ^^^^^^^^^^^^^^^
+TypeError: 'dict' object is not callable
+
+======================================================================
+ERROR: test_head_target_refresh_prepares_and_applies_without_manual_queue_repair (__main__.main.<locals>.Captured.test_head_target_refresh_prepares_and_applies_without_manual_queue_repair)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/reports/UpdateByCR-R1/fixed_probes.py", line 23, in tearDown
+    try:captures[self._testMethodName]=dict(events=self.events,final=self.snapshot())
+                                                                     ^^^^^^^^^^^^^^^
+TypeError: 'dict' object is not callable
+
+======================================================================
+ERROR: test_merged_retirement_still_uses_supported_revision_history (__main__.main.<locals>.Captured.test_merged_retirement_still_uses_supported_revision_history)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/tests/test_update_by_cr_r1.py", line 56, in test_merged_retirement_still_uses_supported_revision_history
+    first=self.commit(self.sourced(self.snapshot));cid=first['receipt']['records'][0]['id'];snap=self.successor();git(self.root,'merge','--ff-only',snap['pr']['head'])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Knowledge-/reports/UpdateByCR-R1/fixed_probes.py", line 21, in commit
+    before=self.snapshot();saved=super().commit(state);self.events.append(dict(before=before,receipt=saved,after=self.snapshot()));return saved
+           ^^^^^^^^^^^^^^^
+TypeError: 'dict' object is not callable
+
+======================================================================
+ERROR: test_merged_retirement_still_uses_supported_revision_history (__main__.main.<locals>.Captured.test_merged_retirement_still_uses_supported_revision_history)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/reports/UpdateByCR-R1/fixed_probes.py", line 23, in tearDown
+    try:captures[self._testMethodName]=dict(events=self.events,final=self.snapshot())
+                                                                     ^^^^^^^^^^^^^^^
+TypeError: 'dict' object is not callable
+
+======================================================================
+ERROR: test_native_hook_sequential_reviews_survive_plugin_restart (__main__.main.<locals>.Captured.test_native_hook_sequential_reviews_survive_plugin_restart)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/tests/test_update_by_cr_r1.py", line 135, in test_native_hook_sequential_reviews_survive_plugin_restart
+    cr_install.install(self.root,python=sys.executable,language='ru');first=self.commit(self.sourced(self.snapshot,host='same-native-chat'))
+                                                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Knowledge-/reports/UpdateByCR-R1/fixed_probes.py", line 21, in commit
+    before=self.snapshot();saved=super().commit(state);self.events.append(dict(before=before,receipt=saved,after=self.snapshot()));return saved
+           ^^^^^^^^^^^^^^^
+TypeError: 'dict' object is not callable
+
+======================================================================
+ERROR: test_native_hook_sequential_reviews_survive_plugin_restart (__main__.main.<locals>.Captured.test_native_hook_sequential_reviews_survive_plugin_restart)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/reports/UpdateByCR-R1/fixed_probes.py", line 23, in tearDown
+    try:captures[self._testMethodName]=dict(events=self.events,final=self.snapshot())
+                                                                     ^^^^^^^^^^^^^^^
+TypeError: 'dict' object is not callable
+
+======================================================================
+ERROR: test_open_closed_successors_preserve_target_then_merge_updates_same_history (__main__.main.<locals>.Captured.test_open_closed_successors_preserve_target_then_merge_updates_same_history)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/tests/test_update_by_cr_r1.py", line 32, in test_open_closed_successors_preserve_target_then_merge_updates_same_history
+    first=self.commit(self.sourced(self.snapshot));cid=first['receipt']['records'][0]['id'];before=self.w.store.lookup('claims',cid)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Knowledge-/reports/UpdateByCR-R1/fixed_probes.py", line 21, in commit
+    before=self.snapshot();saved=super().commit(state);self.events.append(dict(before=before,receipt=saved,after=self.snapshot()));return saved
+           ^^^^^^^^^^^^^^^
+TypeError: 'dict' object is not callable
+
+======================================================================
+ERROR: test_open_closed_successors_preserve_target_then_merge_updates_same_history (__main__.main.<locals>.Captured.test_open_closed_successors_preserve_target_then_merge_updates_same_history)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/reports/UpdateByCR-R1/fixed_probes.py", line 23, in tearDown
+    try:captures[self._testMethodName]=dict(events=self.events,final=self.snapshot())
+                                                                     ^^^^^^^^^^^^^^^
+TypeError: 'dict' object is not callable
+
+======================================================================
+ERROR: test_refresh_never_disposes_unrelated_pending_candidate (__main__.main.<locals>.Captured.test_refresh_never_disposes_unrelated_pending_candidate)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/tests/test_update_by_cr_r1.py", line 90, in test_refresh_never_disposes_unrelated_pending_candidate
+    life.dispose(self.w.store,other,'deferred','Explicit independent test-user disposition');saved=self.commit(state);self.assertTrue(saved['receipt']['records'])
+                                                                                                   ^^^^^^^^^^^^^^^^^^
+  File "/workspace/Knowledge-/reports/UpdateByCR-R1/fixed_probes.py", line 21, in commit
+    before=self.snapshot();saved=super().commit(state);self.events.append(dict(before=before,receipt=saved,after=self.snapshot()));return saved
+           ^^^^^^^^^^^^^^^
+TypeError: 'dict' object is not callable
+
+======================================================================
+ERROR: test_refresh_never_disposes_unrelated_pending_candidate (__main__.main.<locals>.Captured.test_refresh_never_disposes_unrelated_pending_candidate)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/reports/UpdateByCR-R1/fixed_probes.py", line 23, in tearDown
+    try:captures[self._testMethodName]=dict(events=self.events,final=self.snapshot())
+                                                                     ^^^^^^^^^^^^^^^
+TypeError: 'dict' object is not callable
+
+======================================================================
+ERROR: test_refresh_owns_old_candidate_and_recovers_hard_crash_during_disposition (__main__.main.<locals>.Captured.test_refresh_owns_old_candidate_and_recovers_hard_crash_during_disposition)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/reports/UpdateByCR-R1/fixed_probes.py", line 23, in tearDown
+    try:captures[self._testMethodName]=dict(events=self.events,final=self.snapshot())
+                                                                     ^^^^^^^^^^^^^^^
+TypeError: 'dict' object is not callable
+
+======================================================================
+ERROR: test_refresh_roundtrip_does_not_reuse_already_deferred_candidate (__main__.main.<locals>.Captured.test_refresh_roundtrip_does_not_reuse_already_deferred_candidate)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/reports/UpdateByCR-R1/fixed_probes.py", line 23, in tearDown
+    try:captures[self._testMethodName]=dict(events=self.events,final=self.snapshot())
+                                                                     ^^^^^^^^^^^^^^^
+TypeError: 'dict' object is not callable
+
+======================================================================
+ERROR: test_same_chat_binding_is_unique_with_history_resume_and_active_conflict (__main__.main.<locals>.Captured.test_same_chat_binding_is_unique_with_history_resume_and_active_conflict)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/tests/test_update_by_cr_r1.py", line 122, in test_same_chat_binding_is_unique_with_history_resume_and_active_conflict
+    first=self.commit(self.sourced(self.snapshot,host='same-chat'));sid=first['session'];snap=deepcopy(self.snapshot);snap['cr'].update(url='https://github.com/synthetic/project/issues/10',id='10',title='Followup dispatch budget');snap['pr'].update(url='https://github.com/synthetic/project/pull/11',id='11',cr_links=[snap['cr']['url']])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Knowledge-/reports/UpdateByCR-R1/fixed_probes.py", line 21, in commit
+    before=self.snapshot();saved=super().commit(state);self.events.append(dict(before=before,receipt=saved,after=self.snapshot()));return saved
+           ^^^^^^^^^^^^^^^
+TypeError: 'dict' object is not callable
+
+======================================================================
+ERROR: test_same_chat_binding_is_unique_with_history_resume_and_active_conflict (__main__.main.<locals>.Captured.test_same_chat_binding_is_unique_with_history_resume_and_active_conflict)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/reports/UpdateByCR-R1/fixed_probes.py", line 23, in tearDown
+    try:captures[self._testMethodName]=dict(events=self.events,final=self.snapshot())
+                                                                     ^^^^^^^^^^^^^^^
+TypeError: 'dict' object is not callable
+
+======================================================================
+ERROR: test_unchanged_member_in_modified_file_is_saved_and_changed_member_refused (__main__.main.<locals>.Captured.test_unchanged_member_in_modified_file_is_saved_and_changed_member_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/tests/test_update_by_cr_r1.py", line 110, in test_unchanged_member_in_modified_file_is_saved_and_changed_member_refused
+    snap,value=self.member_change();saved=self.commit(self.sourced(snap,[value]));self.assertTrue(saved['receipt']['records'])
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/Knowledge-/reports/UpdateByCR-R1/fixed_probes.py", line 21, in commit
+    before=self.snapshot();saved=super().commit(state);self.events.append(dict(before=before,receipt=saved,after=self.snapshot()));return saved
+           ^^^^^^^^^^^^^^^
+TypeError: 'dict' object is not callable
+
+======================================================================
+ERROR: test_unchanged_member_in_modified_file_is_saved_and_changed_member_refused (__main__.main.<locals>.Captured.test_unchanged_member_in_modified_file_is_saved_and_changed_member_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/Knowledge-/reports/UpdateByCR-R1/fixed_probes.py", line 23, in tearDown
+    try:captures[self._testMethodName]=dict(events=self.events,final=self.snapshot())
+                                                                     ^^^^^^^^^^^^^^^
+TypeError: 'dict' object is not callable
+
+----------------------------------------------------------------------
+Ran 11 tests in 8.822s
+
+FAILED (errors=19)
+{"status": "FAIL", "profile": "installed-knowledge-only-R1-regressions-with-before-after-state", "tests": 11, "failures": 0, "errors": 19, "knowledge_import": "/tmp/ucr-r1-independent-runtime/lib/python3.12/site-packages/knowledge/__init__.py", "workflow_module_sha256": "7ea5a3191333d8a757bb75a1053c8413028c14f8ce05fe0827ce0aef6903b573", "harness_absent": true, "mcp_absent": true, "scenarios": []}
