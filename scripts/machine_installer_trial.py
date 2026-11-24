@@ -217,7 +217,7 @@ def main():
         old_kit=base/'previous machine kit';old_kit.mkdir()
         with zipfile.ZipFile(previous_archive) as archive:archive.extractall(old_kit)
         upgrade=base/'prior generated launcher';upgrade_env={**env,'XDG_CONFIG_HOME':str(base/'upgrade host')}
-        command('previous-machine-install',[sys.executable,'-I',old_kit/'machine-install.py','--mcp-dir',upgrade],upgrade_env,cwd)
+        command('previous-machine-install',[sys.executable,'-I','-X','utf8',old_kit/'machine-install.py','--mcp-dir',upgrade],upgrade_env,cwd)
         before_bootstrap=(upgrade/'launch.py').read_bytes()
         custom_provider={'provider':{'endpoint':'http://127.0.0.1:12345/v1/chat/completions','model':'user-preserved','evidence':'test-double'}}
         write(upgrade/'config/provider.json',custom_provider);(upgrade/'shared').mkdir();(upgrade/'shared/memory.txt').write_bytes(b'keep prior shared memory')
