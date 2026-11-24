@@ -337,9 +337,19 @@ def _folder_files(base,project):
 def status(root):
     project=Project(root);base=project.root/'.maintenance';safe_tree(base)
     active=base/'active.json'
-    return dict(ok=True,version=1,active=loads(read_text(active)) if active.exists() else None,transactions=[loads(read_text(p)) for p in sorted((base/'transactions').glob('*/journal.json'))])
+    identity=[]
+    for path in sorted(base.glob('identity-*.json')):
+        value=loads(read_text(path));identity.append({'transaction':value['id'],'state':value['state'],'workspace':value['preview']['workspace'],'journal':str(path)})
+    return dict(ok=True,version=1,active=loads(read_text(active)) if active.exists() else None,transactions=[loads(read_text(p)) for p in sorted((base/'transactions').glob('*/journal.json'))],identity_transactions=identity)
 
 def recover(root):
+    # Identity migration uses its own source contract and rollback journal.
+    marker=safe_path(Project(root).root/'.maintenance/active.json')
+    if marker.exists():
+        value=loads(read_text(marker))
+        if value.get('kind')=='sqlite-identity-migration-v1':
+            from .identity_migration import recover as identity_recover
+            return identity_recover(root,value['transaction'])
     with frozen(root,recovery=True) as project:
         fence=project.root/'.maintenance/active.json';require(fence.exists(),'no-maintenance-to-recover')
         value=loads(read_text(fence));require(isinstance(value,dict) and type(value.get('version')) is int and value.get('version')==1 and value.get('project')==project.identity,'unsupported-maintenance-fence')
