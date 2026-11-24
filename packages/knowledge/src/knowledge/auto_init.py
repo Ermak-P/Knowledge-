@@ -16,10 +16,47 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
+from contextlib import contextmanager
 
 
 class ScanError(Exception):
     pass
+
+
+class ScanCancelled(ScanError):
+    pass
+
+
+@contextmanager
+def lease_options(handles):
+    """A committed chunk child retains writer ownership if its worker dies."""
+    if not handles:yield {};return
+    if os.name!='nt':yield {'pass_fds':tuple(handles)};return
+    previous={handle:os.get_handle_inheritable(handle) for handle in handles}
+    try:
+        for handle in handles:os.set_handle_inheritable(handle,True)
+        startup=subprocess.STARTUPINFO();startup.lpAttributeList={'handle_list':list(handles)}
+        yield {'startupinfo':startup,'close_fds':True}
+    finally:
+        for handle,inherited in previous.items():os.set_handle_inheritable(handle,inherited)
+
+
+def read_json(path):
+    """Windows readers share delete so atomic writers can replace metadata."""
+    if os.name != 'nt': return json.loads(Path(path).read_text(encoding='utf-8'))
+    import ctypes
+    import msvcrt
+    from .windows_lock import k, INVALID
+    for attempt in range(20):
+        handle = k.CreateFileW(str(path), 0x80000000, 7, None, 3, 0x80, None)
+        if handle != INVALID: break
+        error = ctypes.WinError(ctypes.get_last_error())
+        if error.winerror not in (5, 32, 33) or attempt == 19: raise error
+        time.sleep(.01)
+    try: fd = msvcrt.open_osfhandle(handle, os.O_RDONLY | os.O_BINARY)
+    except BaseException: k.CloseHandle(handle); raise
+    with os.fdopen(fd, 'r', encoding='utf-8') as stream: return json.load(stream)
 
 
 def short_message(value, limit=240):
@@ -35,7 +72,11 @@ def write_json(path, value):
             stream.write('\n')
             stream.flush()
             os.fsync(stream.fileno())
-        os.replace(temporary, path)
+        for attempt in range(20):
+            try: os.replace(temporary, path); break
+            except PermissionError as error:
+                if os.name != 'nt' or getattr(error,'winerror',None) not in (5,32,33) or attempt == 19: raise
+                time.sleep(.01)
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)
@@ -46,7 +87,8 @@ def inside(path, root):
 
 
 def run(root, output, scan_id=None, max_files=100, max_calls=10000,
-        command_timeout=600, fresh=False, base=None, head=None, incremental=False, retry_blocked=False):
+        command_timeout=600, fresh=False, base=None, head=None, incremental=False, retry_blocked=False,
+        cancel_path=None, cancel_job=None, refresh=False, lease_fds=()):
     root = Path(root).resolve(strict=True)
     if not root.is_dir():
         raise ScanError('--root must be an existing project directory.')
@@ -58,8 +100,13 @@ def run(root, output, scan_id=None, max_files=100, max_calls=10000,
         raise ScanError('Move this helper outside the project, for example C:\\Temp.')
     output.mkdir(parents=True, exist_ok=True)
     checkpoint = output / 'checkpoint.json'
-    if not scan_id and not fresh and checkpoint.exists():
-        saved = json.loads(checkpoint.read_text(encoding='utf-8'))
+    if not scan_id and not fresh and not refresh and checkpoint.exists():
+        saved = read_json(checkpoint)
+        if saved.get('version') == 2:
+            body = {k:v for k,v in saved.items() if k != 'checksum'}
+            if saved.get('checksum') != hashlib.sha256(json.dumps(body,sort_keys=True).encode()).hexdigest():
+                raise ScanError('Corrupt checkpoint checksum; observe scan-status before choosing an explicit fresh scan.')
+        elif saved.get('version') != 1: raise ScanError('Unsupported checkpoint version.')
         if os.path.normcase(saved.get('root', '')) != os.path.normcase(str(root)) or saved.get('scope', {'base': None, 'head': None, 'incremental': False}) != {'base': base, 'head': head, 'incremental': incremental}:
             raise ScanError('Checkpoint belongs to a different root; choose another --output.')
         scan_id = saved.get('scan_id')
@@ -75,10 +122,14 @@ def run(root, output, scan_id=None, max_files=100, max_calls=10000,
     previous = None
     environment = {**os.environ, 'PYTHONUTF8': '1', 'PYTHONIOENCODING': 'utf-8'}
     for number in range(1, max_calls + 1):
+        if cancel_path and Path(cancel_path).exists() and read_json(cancel_path).get('job') == cancel_job:
+            raise ScanCancelled('Scan cancelled at a durable chunk boundary; checkpoint and candidates preserved.')
         command = [sys.executable, '-I', '-B', '-X', 'utf8', '-m', 'knowledge.cli', 'knowledge-init',
                    '--root', str(root), '--max-files', str(max_files)]
         if number == 1 and retry_blocked:
             command.append('--retry-blocked')
+        if number == 1 and fresh:
+            command.append('--restart')
         if incremental:
             command.append('--incremental')
         if base is not None:
@@ -86,9 +137,10 @@ def run(root, output, scan_id=None, max_files=100, max_calls=10000,
         if scan_id:
             command.extend(['--scan-id', scan_id])
         try:
-            process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                     encoding='utf-8', errors='strict', env=environment,
-                                     timeout=command_timeout, check=False)
+            with lease_options(lease_fds) as ownership:
+                process = subprocess.run(command, stdin=subprocess.DEVNULL,stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                         encoding='utf-8', errors='strict', env=environment,
+                                         timeout=command_timeout, check=False,**ownership)
         except subprocess.TimeoutExpired as error:
             # No automatic retry: the child may have committed before timeout.
             write_json(output / 'last-error.json', {
@@ -115,7 +167,9 @@ def run(root, output, scan_id=None, max_files=100, max_calls=10000,
             raise ScanError('CLI changed the scan id unexpectedly; stopped.')
         first_id = scan_id is None
         scan_id = returned_id
-        write_json(checkpoint, {'version': 1, 'root': str(root), 'scan_id': scan_id, 'scope': {'base': base, 'head': head, 'incremental': incremental}})
+        saved = {'version': 2, 'root': str(root), 'scan_id': scan_id, 'scope': {'base': base, 'head': head, 'incremental': incremental}}
+        saved['checksum'] = hashlib.sha256(json.dumps(saved,sort_keys=True).encode()).hexdigest()
+        write_json(checkpoint, saved)
         if first_id:
             print('Scan ID: ' + short_message(scan_id), flush=True)
         complete = result.get('complete')
@@ -131,29 +185,35 @@ def run(root, output, scan_id=None, max_files=100, max_calls=10000,
             raise ScanError('Invalid progress counters; unsupported CLI response.')
         if any(not isinstance(item, dict) for item in coverage.values()):
             raise ScanError('Invalid coverage entries; unsupported CLI response.')
+        write_json(output / 'progress.json', {'version':1,'job':cancel_job,'scan_id':scan_id,
+                   'source':{'identity':snapshot['identity'],'revision':snapshot['revision'],'kind':snapshot['snapshot_kind']},
+                   'complete':result.get('complete',False),'counters':result.get('counters'),
+                   'work':{k:v for k,v in result.get('work',{}).items() if k!='paths_this_call'},
+                   'candidates':len(result.get('candidates',[])), 'gaps':len(result.get('gaps',[])),
+                   'identity_verification':({k:v for k,v in result['identity_verification'].items() if k not in ('missing_files','ambiguous_ids')} |
+                        {'missing_file_count':len(result['identity_verification'].get('missing_files',[])),
+                         'ambiguous_id_count':len(result['identity_verification'].get('ambiguous_ids',[]))}) if result.get('identity_verification') else None})
         blocked = {path: item for path, item in coverage.items() if item.get('status') == 'blocked'}
         coverage_errors = snapshot.get('coverage_errors')
         # Keep redirected/non-interactive output small as well as terminal output.
-        if number == 1 or number % 25 == 0 or complete or blocked or coverage_errors:
+        if number == 1 or number % 25 == 0 or complete or remaining == 0:
             print('Chunk {0}: processed={1}, remaining={2}, extracted={3}, blocked={4}'.format(
                 number, processed, remaining, extracted, len(blocked)), flush=True)
         if blocked or coverage_errors:
             write_json(output / 'coverage-errors.json', {
                 'scan_id': scan_id, 'coverage_errors': coverage_errors, 'blocked': blocked})
-            raise ScanError('Coverage is blocked. See coverage-errors.json; fix the cause '
-                            'before choosing whether to resume or start a fresh scan.')
-        if complete:
+        if complete or remaining == 0:
             if remaining or any(item.get('status') == 'not-analyzed' for item in coverage.values()):
                 raise ScanError('Inconsistent complete=true response; files are still pending.')
             reconciliation = result.get('reconciliation')
-            if not isinstance(reconciliation, dict) or reconciliation.get('ok') is not True or reconciliation.get('complete') is not True or reconciliation.get('scan') != scan_id:
+            if not isinstance(reconciliation, dict) or reconciliation.get('ok') is not True or reconciliation.get('complete') is not complete or reconciliation.get('scan') != scan_id:
                 raise ScanError('Scan finished but reconciliation was not confirmed; inspect last-result.json.')
             gaps = result.get('gaps', [])
-            print('Completed scan: ' + short_message(scan_id), flush=True)
+            print(('Completed scan: ' if complete else 'COMPLETED_WITH_GAPS: ') + short_message(scan_id), flush=True)
             if gaps:
                 print('Review required: {0} lexical ambiguity/gap entries in last-result.json.'.format(len(gaps)), flush=True)
             print('Coverage completion is not semantic completeness. Candidates were not approved/applied.', flush=True)
-            return 0
+            return 0 if complete else 2
         current = (processed, remaining)
         if extracted == 0 or (previous is not None and processed <= previous[0] and remaining >= previous[1]):
             raise ScanError('No extraction progress; stopped to avoid an endless loop. Inspect last-result.json.')
@@ -180,7 +240,7 @@ def main():
     parser.add_argument('--max-calls', type=positive, default=10000)
     parser.add_argument('--command-timeout', type=positive, default=600, help='Seconds per CLI call')
     parser.add_argument('--output', help='Diagnostic directory outside the project')
-    parser.add_argument('--fresh', action='store_true', help='Ignore saved checkpoint; ask Knowledge for the current snapshot scan (does not reset existing scan state)')
+    parser.add_argument('--fresh', action='store_true', help='Create a new execution for the current snapshot; preserve canonical knowledge, candidates and prior scans')
     args = parser.parse_args()
     if args.max_files > 10000:
         parser.error('--max-files cannot exceed 10000')

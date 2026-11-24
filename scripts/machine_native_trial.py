@@ -45,14 +45,67 @@ def main():
     config_home = Path(marker['host_home']).parent
     python = installation / ('bootstrap/Scripts/python.exe' if os.name == 'nt' else 'bootstrap/bin/python')
     requests = []
+    code_mode={'step':0,'paths':{},'verified':False}
+    def objects(value):
+        if isinstance(value,dict):
+            yield value
+            for item in value.values():yield from objects(item)
+        elif isinstance(value,list):
+            for item in value:yield from objects(item)
+        elif isinstance(value,str) and len(value)<2000000:
+            try:parsed=json.loads(value)
+            except (ValueError,TypeError):return
+            if isinstance(parsed,(dict,list)):yield from objects(parsed)
     class Provider(BaseHTTPRequestHandler):
         def log_message(self, *args): pass
         def do_POST(self):
             value = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
-            requests.append({'model': value.get('model'), 'stream': value.get('stream')})
+            requests.append({'model': value.get('model'), 'stream': value.get('stream'),
+                             'tools':[tool.get('function',tool.get('custom',{})).get('name') for tool in value.get('tools',[])]})
+            (args.output/'provider-requests.json').write_text(json.dumps(requests,indent=2)+'\n',encoding='utf-8')
             text = 'Controlled host transport fixture. Inspect the durable Knowledge result; no live-model quality claim.'
             chunk = {'id': 'fixture', 'object': 'chat.completion.chunk', 'created': 0, 'model': 'fixture', 'choices': [{'index': 0, 'delta': {'role': 'assistant', 'content': text}, 'finish_reason': None}]}
             ending = {**chunk, 'choices': [{'index': 0, 'delta': {}, 'finish_reason': 'stop'}]}
+            execute=next((tool for tool in value.get('tools',[]) if tool.get('function',{}).get('name')=='execute'),None)
+            script=None
+            if execute and code_mode['step']==0:
+                (args.output/'execute-schema.json').write_text(json.dumps(execute,indent=2)+'\n',encoding='utf-8')
+                if execute:
+                    script='return await search({namespace:"knowledge_machine",limit:30});';code_mode['step']=1
+                else:code_mode['error']='execute tool not advertised'
+            elif execute and code_mode['step']==1:
+                replies=[message.get('content') for message in value.get('messages',[]) if message.get('role')=='tool']
+                (args.output/'codemode-search-reply.json').write_text(json.dumps(replies,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+                paths={row['path'].split('.')[-1]:row['path'] for row in objects(replies)
+                       if isinstance(row.get('path'),str) and re.fullmatch(r'tools\.knowledge_machine\.[a-zA-Z0-9_]+',row['path'])}
+                code_mode['paths']=paths
+                code_mode['denied_tools_hidden']=all(name not in paths for name in ('knowledge_instructions','knowledge_submit_candidates'))
+                needed=['knowledge_capabilities','knowledge_scan','knowledge_scan_diagnostics','knowledge_source_read','knowledge_plan']
+                if all(name in paths for name in needed):
+                    script=('const result={capabilities:await '+paths['knowledge_capabilities']+'({}),'
+                            'scan:await '+paths['knowledge_scan']+'({action:"status"}),'
+                            'diagnostics:await '+paths['knowledge_scan_diagnostics']+'({section:"coverage",limit:2}),'
+                            'source:await '+paths['knowledge_source_read']+'({path:"Example.cs",max_lines:3}),'
+                            'plan:await '+paths['knowledge_plan']+'({action:"prepare"})};'
+                            'return result;')
+                    code_mode['step']=2
+                else:code_mode['error']='Required MCP tools absent from actual Code Mode search'
+            elif execute and code_mode['step']==2:
+                replies=[message.get('content') for message in value.get('messages',[]) if message.get('role')=='tool']
+                (args.output/'codemode-call-reply.json').write_text(json.dumps(replies,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+                results=list(objects(replies))
+                code_mode['verified']=any(row.get('contract')=='knowledge-machine-v2' for row in results)
+                code_mode['permission_denied']=code_mode.get('denied_tools_hidden',False) and any('knowledge_instructions' in row.get('tools',[]) and 'knowledge_submit_candidates' in row.get('tools',[]) for row in results)
+                code_mode['scan_observed']=any(row.get('coverage_complete') is True for row in results)
+                code_mode['source_read']=any(row.get('path')=='Example.cs' and row.get('content_hash') for row in results)
+                code_mode['plan_prepared']=any(row.get('state')=='AWAITING_EXACT_APPROVAL' for row in results)
+                code_mode['step']=3
+            if script is not None:
+                properties=execute.get('function',{}).get('parameters',{}).get('properties',{}) if execute else {}
+                field='code' if 'code' in properties else 'input'
+                call={'index':0,'id':'fixture-code-'+str(code_mode['step']),'type':'function','function':{'name':'execute','arguments':json.dumps({field:script})}}
+                chunk={**chunk,'choices':[{'index':0,'delta':{'role':'assistant','tool_calls':[call]},'finish_reason':None}]}
+                ending={**ending,'choices':[{'index':0,'delta':{},'finish_reason':'tool_calls'}]}
             body = ('data: ' + json.dumps(chunk) + '\n\ndata: ' + json.dumps(ending) + '\n\ndata: [DONE]\n\n').encode()
             self.send_response(200); self.send_header('Content-Type', 'text/event-stream'); self.send_header('Content-Length', str(len(body))); self.end_headers(); self.wfile.write(body)
     provider = ThreadingHTTPServer(('127.0.0.1', 0), Provider)
@@ -65,6 +118,11 @@ def main():
         for argv in (['git', 'init', str(root)], ['git', '-C', str(root), 'add', '.'], ['git', '-C', str(root), '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-m', 'fixture']):
             subprocess.run(argv, check=True, capture_output=True)
         (root / 'opencode.json').write_text(json.dumps({'$schema': 'https://opencode.ai/config.json', 'update': 'disable', 'model': 'fixture/fixture', 'providers': {'fixture': {'package': '@opencode/ai/providers/openai-compatible', 'name': 'Controlled fixture', 'settings': {'baseURL': f'http://127.0.0.1:{provider.server_port}/v1', 'apiKey': 'fixture-not-a-secret'}, 'models': {'fixture': {'name': 'fixture', 'limit': {'context': 64000, 'output': 2048}}}}}}))
+        config=json.loads((root/'opencode.json').read_text())
+        config['permissions']=[{'action':'knowledge_machine_'+name,'resource':'*','effect':'allow'} for name in
+                               ('knowledge_capabilities','knowledge_scan','knowledge_scan_diagnostics','knowledge_source_read','knowledge_plan')]
+        config['permissions'].extend({'action':'knowledge_machine_'+name,'resource':'*','effect':'deny'} for name in ('knowledge_instructions','knowledge_submit_candidates'))
+        (root/'opencode.json').write_text(json.dumps(config),encoding='utf-8')
         subprocess.run(['git', '-C', str(root), 'add', 'opencode.json'], check=True, capture_output=True)
         subprocess.run(['git', '-C', str(root), '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-m', 'controlled host configuration'], check=True, capture_output=True)
         env = {**os.environ, 'XDG_CONFIG_HOME': str(config_home), 'XDG_DATA_HOME': str(base / 'data'), 'XDG_STATE_HOME': str(base / 'state'), 'XDG_CACHE_HOME': str(base / 'cache'), 'npm_config_cache': str(base / 'npm'), 'NPM_CONFIG_CACHE': str(base / 'npm'), 'OPENCODE_DISABLE_AUTOUPDATE': '1', 'OPENCODE_DISABLE_MODELS_FETCH': '1'}
@@ -131,6 +189,12 @@ def main():
             def command(name, arguments=''):
                 return api('/api/session/' + session['id'] + '/command', {'name': name, 'text': arguments})
             command('knowledge-init')
+            deadline=time.monotonic()+40
+            while code_mode['step']<3 and time.monotonic()<deadline:time.sleep(.05)
+            result['code_mode']=code_mode
+            assert code_mode.get('verified') and code_mode.get('permission_denied') and code_mode.get('scan_observed') and code_mode.get('source_read') and code_mode.get('plan_prepared'),code_mode
+            result['checks']['real_code_mode_search_and_mcp_operations']='PASS'
+            result['checks']['real_code_mode_permission_denial_enforced']='PASS'
             result['init'] = wait('knowledge-init')
             assert result['init']['coverage_complete'] and result['init']['semantic_status'] == 'PARTIAL'
             result['checks']['init_native_hook_and_durable_scan'] = 'PASS'
@@ -156,6 +220,12 @@ def main():
             messages = api('/api/session/' + session['id'] + '/message')
             (args.output / 'messages.json').write_text(json.dumps(messages, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
             result['checks']['no_project_command_copy'] = 'PASS'
+            try:command('knowledge-candidates-update',json.dumps({'candidates':[],'allow_test_double':True}))
+            except RuntimeError as error:
+                result['native_permission_denial']=str(error)
+                assert re.search(r'deni|permission|reject',str(error),re.I),str(error)
+            else:raise AssertionError('Native command bypassed host MCP permission denial')
+            result['checks']['native_command_host_permission_enforced']='PASS'
             assert not (root / '.opencode').exists()
         finally:
             host.terminate()

@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -83,25 +84,43 @@ def main():
         assert changed.startswith('UPDATED') and (runtime / 'current.json').read_bytes() != old
         assert read(provider) == custom and shared.read_bytes() == b'preserve user memory' and unrelated.read_bytes() == original_host
         result['checks']['user_provider_memory_and_registrations_preserved'] = 'PASS'
-        previous = {name: (runtime / name).read_bytes() for name in ('current.json', 'knowledge-machine-install.json', 'launch.py')}
+        previous = {name: (runtime / name).read_bytes() for name in ('current.json', 'knowledge-machine-install.json', 'launch.py', 'windows-process.py')}
         # Real staging/handshake, then a transaction fault. Rollback must retain
         # the previous actual installed interpreter and global registration.
         previous_factory_bytes = (kit / 'default-provider.json').read_bytes()
         factory['provider']['model'] = 'fault-factory-demo'; write(kit / 'default-provider.json', factory)
         manifest['files']['default-provider.json'] = sha(kit / 'default-provider.json'); write(kit / 'RELEASE.json', manifest)
         namespace = runpy.run_path(str(kit / 'machine-install.py'))
+        original_transaction=namespace['install'].__globals__['transaction']
+        def fail_at_pointer(root,updates,fail_after=None,**controls):
+            point=list(updates).index(root/'current.json')+1
+            return original_transaction(root,updates,fail_after=point,**controls)
         with_env = dict(os.environ)
         try:
             os.environ.update(env)
-            try: namespace['install'](kit, runtime, fail_after=9)
+            namespace['install'].__globals__['transaction']=fail_at_pointer
+            try: namespace['install'](kit, runtime)
             except namespace['InstallError'] as error: assert 'Injected' in str(error), str(error)
             else: raise AssertionError('Transaction fault did not occur')
         finally:
+            namespace['install'].__globals__['transaction']=original_transaction
             os.environ.clear(); os.environ.update(with_env)
         assert all((runtime / name).read_bytes() == payload for name, payload in previous.items())
         assert read(provider) == custom and shared.read_bytes() == b'preserve user memory'
         command('previous-generation-still-operates', [py_at(runtime / 'bootstrap'), '-I', runtime / 'launch.py', 'mcp', '--self-test'], env, cwd)
         result['checks']['failed_update_rolls_back_and_previous_mcp_operates'] = 'PASS'
+        original_bootstrap=namespace['install'].__globals__['BOOTSTRAP']
+        try:
+            os.environ.update(env)
+            namespace['install'].__globals__['BOOTSTRAP']='raise SystemExit(17)\n'
+            try:namespace['install'](kit,runtime)
+            except namespace['InstallError'] as error:assert 'failed' in str(error),str(error)
+            else:raise AssertionError('Broken activated dispatcher was incorrectly accepted')
+        finally:
+            namespace['install'].__globals__['BOOTSTRAP']=original_bootstrap
+            os.environ.clear();os.environ.update(with_env)
+        assert all((runtime/name).read_bytes()==payload for name,payload in previous.items())
+        result['checks']['activated_bootstrap_failure_rolls_back_before_success']='PASS'
         # A user edits the previously unmodified factory config after the
         # publication decision but before journal capture. Preserve that edit.
         provider.write_bytes(previous_factory_bytes)
@@ -192,6 +211,19 @@ def main():
         assert read(legacy / 'knowledge-machine-install.json')['legacy']['owned_packages'] == ['knowledge-p0']
         command('legacy-now-machine-mcp', [py_at(legacy / 'bootstrap'), '-I', legacy / 'launch.py', 'mcp', '--self-test'], legacy_env, cwd)
         result['checks']['legacy_owned_venv_automatically_recognized_and_preserved'] = 'PASS'
+        previous_archive=ROOT/'reports/AutomaticInstaller-Windows-Path-Fix/distribution/knowledge-harness-0.5.0rc1.zip'
+        old_kit=base/'previous machine kit';old_kit.mkdir()
+        with zipfile.ZipFile(previous_archive) as archive:archive.extractall(old_kit)
+        upgrade=base/'prior generated launcher';upgrade_env={**env,'XDG_CONFIG_HOME':str(base/'upgrade host')}
+        command('previous-machine-install',[sys.executable,'-I',old_kit/'machine-install.py','--mcp-dir',upgrade],upgrade_env,cwd)
+        before_bootstrap=(upgrade/'launch.py').read_bytes()
+        custom_provider={'provider':{'endpoint':'http://127.0.0.1:12345/v1/chat/completions','model':'user-preserved','evidence':'test-double'}}
+        write(upgrade/'config/provider.json',custom_provider);(upgrade/'shared').mkdir();(upgrade/'shared/memory.txt').write_bytes(b'keep prior shared memory')
+        command('previous-generated-launcher-upgrade',install_args(kit,upgrade,True),upgrade_env,cwd)
+        assert (upgrade/'launch.py').read_bytes()!=before_bootstrap and (upgrade/'windows-process.py').is_file()
+        assert read(upgrade/'config/provider.json')==custom_provider and (upgrade/'shared/memory.txt').read_bytes()==b'keep prior shared memory'
+        command('upgraded-generated-launcher-mcp',[py_at(upgrade/'bootstrap'),'-I',upgrade/'launch.py','mcp','--self-test'],upgrade_env,cwd)
+        result['checks']['actual_prior_generated_launcher_upgraded_preserving_configuration']='PASS'
 
     result['status'] = 'PASS'
     write(a.output / 'result.json', result)
