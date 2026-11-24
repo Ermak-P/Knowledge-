@@ -306,9 +306,52 @@ def proposal(store,db,obs,snapshot,captured,records,states,scope=None):
     return life.batch(ops,'Source-backed lexical observation; not runtime or business semantics',{'identity':snapshot['identity'],'revision':snapshot['revision'],'kind':snapshot['snapshot_kind']})
 
 
-def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False):
+def incremental_scope(db,state):
+    """Verify delta identities against hash-matched durable lexical observations.
+
+    Never re-extract unrelated files. Without a verified cache for included
+    unchanged code, withhold automatic proposals and report a capability gap.
+    """
+    snapshot=state['snapshot'];outside={p:e for p,e in snapshot['files'].items()
+        if p not in state['coverage'] and p.endswith(('.cs','.csproj'))}
+    previous=[loads(payload) for payload, in db.execute('SELECT payload FROM scans')]
+    previous=[item for item in previous if item['complete'] and item['extractor']==VERSION]
+    cached=[];missing=[];ambiguous=set(state.get('ambiguous',[]))
+    for path,entry in outside.items():
+        old=next((item for item in reversed(previous)
+            if path in item['coverage'] and item['coverage'][path]['status'] not in ('blocked','not-analyzed')
+            and all(item['snapshot']['files'].get(path,{}).get(key)==entry.get(key)
+                    for key in ('hash','partition','partition_ambiguous'))),None)
+        if old is None:
+            missing.append(path);continue
+        ambiguous.update(old.get('ambiguous',[]))
+        for observation in old['observations']:
+            for location in observation.get('occurrences',[occurrence(observation)]):
+                if location['path']==path:cached.append({**observation,**location})
+    for observation in state['observations']:
+        if any(prior['id']==observation['id'] and not equivalent_occurrence(prior,observation) for prior in cached):
+            ambiguous.add(observation['id'])
+    gaps=[{'path':path,'reason':'incremental identity verification lacks a hash-matched cached analysis; run explicit full knowledge-init or submit reviewed v2 candidates','capability':'incremental-global-identity'} for path in missing]
+    gaps.extend({'id':observation['id'],'path':observation['path'],'reason':'identity is ambiguous against unchanged cached source; withheld','capability':'incremental-global-identity'}
+                for observation in state['observations'] if observation['id'] in ambiguous)
+    state['gaps']=[gap for gap in state.get('gaps',[]) if gap.get('capability')!='incremental-global-identity']+gaps
+    state['identity_verification']={'complete':not missing,'cached_files':len(outside)-len(missing),
+        'missing_files':missing,'ambiguous_ids':sorted(ambiguous),'unrelated_files_extracted':0}
+    return {'snapshot':snapshot,'observations':state['observations']+cached,'ambiguous':dict.fromkeys(ambiguous),
+            'complete':state['complete'] and not missing}
+
+
+def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incremental=False,retry_blocked=False):
     require(type(max_files) is int and 1<=max_files<=10000,'invalid-scan-bound')
+    require(not retry_blocked or (scan_id is not None and not restart),'retry-blocked-requires-current-scan-id')
     snap=inventory(store.project.root,base,head)
+    selected=None
+    if incremental:
+        require(snap['delta'] is not None,'incremental-requires-git-range')
+        changed=git_process(store.project.root,'diff','--name-only','-z','--no-renames',snap['delta']['base'],snap['delta']['head'])
+        require(changed.returncode==0,'invalid-git-range-or-checkout')
+        selected=set(changed.stdout.decode('utf-8').split('\0'))-{''}
+        selected.update(item['path'] for item in snap['dirty'])
     with store.connection(True) as db:
         require(life.enabled(db),'upgrade-required')
         if scan_id and not restart:
@@ -316,10 +359,20 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False):
             state=loads(row[0]);require(state['snapshot']['identity']==snap['identity'],'stale-scan-restart-required')
             require(state['extractor']==VERSION,'stale-extractor-restart-required')
             if base or head:require(state['snapshot']['delta']==snap['delta'],'scan-range-mismatch-restart-required')
+            require(bool(state.get('incremental'))==incremental,'scan-scope-mismatch-restart-required')
         else:
-            scan_id=digest([store.project.identity,snap['identity'],snap['delta'],VERSION])
+            scan_id=digest([store.project.identity,snap['identity'],snap['delta'],VERSION]+(['incremental-v1',sorted(selected)] if incremental else []))
             row=db.execute('SELECT payload FROM scans WHERE id=?',(scan_id,)).fetchone()
-            state=loads(row[0]) if row else dict(id=scan_id,extractor=VERSION,snapshot=snap,coverage=deep_files(snap['files']),observations=[],candidates=[],captured_at=life.now(),complete=False)
+            state=loads(row[0]) if row else dict(id=scan_id,extractor=VERSION,snapshot=snap,coverage=deep_files(snap['files']),observations=[],candidates=[],captured_at=life.now(),complete=False,**({'incremental':True} if incremental else {}))
+            if incremental and not row:
+                state.update(incremental=True,scope_paths=sorted(selected))
+                state['coverage']={p:e for p,e in state['coverage'].items() if p in selected}
+        retried=0
+        if retry_blocked:
+            for path,entry in state['coverage'].items():
+                original=state['snapshot']['files'][path]
+                if entry['status']=='blocked' and original['status']!='blocked' and original.get('hash') is not None:
+                    entry.update(status='not-analyzed',reason='explicit retry after observation');retried+=1
         pending=sorted((p for p,e in state['coverage'].items() if e['status']=='not-analyzed'),key=lambda p:(not p.endswith(('.csproj','.cs')),p))
         extracted_this_call=[]
         for path in pending[:max_files]:
@@ -345,12 +398,12 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False):
         state['complete']=not snap.get('coverage_errors') and not any(e['status'] in ('not-analyzed','blocked') for e in state['coverage'].values())
         # The durable snapshot-bound chunks already contain global ambiguity state.
         # Do not re-extract completed or not-yet-budgeted files for this scan.
-        scope={'snapshot':state['snapshot'],'observations':state['observations'],
+        scope=incremental_scope(db,state) if incremental else {'snapshot':state['snapshot'],'observations':state['observations'],
                'ambiguous':dict.fromkeys(state.get('ambiguous',[])), 'complete':state['complete']}
         state['work']={'version':1,'extracted_this_call':len(extracted_this_call),'paths_this_call':extracted_this_call,
                        'durable_extracted_files':sum(e['status'] not in ('not-analyzed','blocked') for e in state['coverage'].values()),
                        'remaining_files':sum(e['status']=='not-analyzed' for e in state['coverage'].values()),
-                       'enumeration_and_hashing':'whole-snapshot; distinct from bounded extraction'}
+                       'enumeration_and_hashing':'whole-snapshot; distinct from bounded extraction',**({'retried_blocked_files':retried} if retry_blocked else {})}
         records=store._records(db)
         changed={e['id'] for e in records['evidence'] if fresh_evidence(store.project.root,e,scope) not in ('unchanged','anchor-valid-file-changed')}
         owners={c['id'] for c in records['claims'] if changed.intersection(c['evidence'])}
@@ -372,6 +425,7 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False):
             state['reintroductions']=[]
             state['review_required']=[]
             for obs in state['observations']:
+                if incremental and (not scope['complete'] or obs['id'] in scope['ambiguous']):continue
                 known=next((c for c in records['claims'] if c['id']==obs['id']),None)
                 if known and (states[known['id']]['lifecycle']=='superseded' or not discovery_owned(db,known,records)):
                     state['review_required'].append({'id':known['id'],'reason':'supersession or reviewed assertion ownership requires manual review; no automatic overwrite/reactivation'})
@@ -407,7 +461,7 @@ def reconcile(store,scan_id):
         row=db.execute('SELECT payload FROM scans WHERE id=?',(scan_id,)).fetchone();require(row is not None,'unknown-scan')
         scan=loads(row[0]);require(inventory(store.project.root)['identity']==scan['snapshot']['identity'],'stale-scan-restart-required')
         records=store._records(db);states=life.latest(db);out=[]
-        scope={'snapshot':scan['snapshot'],'observations':scan['observations'],
+        scope=incremental_scope(db,scan) if scan.get('incremental') else {'snapshot':scan['snapshot'],'observations':scan['observations'],
                'ambiguous':dict.fromkeys(scan.get('ambiguous',[])),'complete':scan['complete']}
         observed={o['id']:o for o in scan['observations']}
         for c in records['claims']:
@@ -423,7 +477,7 @@ def reconcile(store,scan_id):
         current={c['id']:c for c in records['claims']}
         negative_gaps=negative_coverage_gaps(scan['snapshot'])
         delta=scan['snapshot'].get('delta')
-        if scan['complete'] and delta and not scan.get('gaps'):
+        if scan['complete'] and not scan.get('incremental') and delta and not scan.get('gaps'):
             before={}
             for payload, in db.execute('SELECT payload FROM scans'):
                 old=loads(payload)

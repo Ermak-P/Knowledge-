@@ -1,4 +1,8 @@
-param([Parameter(ValueFromRemainingArguments=$true)][string[]]$InstallArgs)
+[CmdletBinding(DefaultParameterSetName='Legacy', PositionalBinding=$false)]
+param(
+  [Parameter(ParameterSetName='Machine', Mandatory=$true)][string]$McpDir,
+  [Parameter(ParameterSetName='Legacy', ValueFromRemainingArguments=$true)][string[]]$InstallArgs
+)
 $ErrorActionPreference = 'Stop'
 $env:PYTHONUTF8 = '1'
 $env:PYTHONIOENCODING = 'utf-8'
@@ -18,5 +22,9 @@ if (-not $SelectedPython) {
     $PythonArgs = @('-3.12')
   }
 }
-& $SelectedPython @PythonArgs (Join-Path $PSScriptRoot 'install.py') @InstallArgs
+if ($McpDir) {
+  & $SelectedPython @PythonArgs -I -X utf8 (Join-Path $PSScriptRoot 'machine-install.py') --mcp-dir $McpDir
+} else {
+  & $SelectedPython @PythonArgs (Join-Path $PSScriptRoot 'install.py') @InstallArgs
+}
 exit $LASTEXITCODE

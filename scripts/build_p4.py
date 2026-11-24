@@ -36,8 +36,13 @@ def main():
     host=kit/'host';host.mkdir(exist_ok=True)
     shutil.copyfile(ROOT/'packages/knowledge/src/knowledge/host/opencode.mjs',host/'opencode.mjs')
     shutil.copyfile(ROOT/'packages/knowledge/src/knowledge/host/cr_opencode.mjs',host/'cr_opencode.mjs')
+    shutil.copyfile(ROOT/'packages/knowledge/src/knowledge/host/machine_opencode.mjs',host/'machine_opencode.mjs')
+    shutil.copyfile(ROOT/'installer/knowledge_install.py',kit/'machine-install.py')
+    shutil.copyfile(ROOT/'installer/default-provider.json',kit/'default-provider.json')
+    shutil.copyfile(ROOT/'knowledge-init-auto.py',kit/'knowledge-init-auto.py')
     commands=kit/'commands';commands.mkdir(exist_ok=True)
-    shutil.copyfile(ROOT/'packages/knowledge/src/knowledge/host/commands/update-by-CR.md',commands/'update-by-CR.md')
+    for path in (ROOT/'packages/knowledge/src/knowledge/host/commands').glob('*.md'):
+        shutil.copyfile(path,commands/path.name)
     for package in ('knowledge','harness'):
         license=next((p for p in (ROOT/'packages'/package).glob('*LICENSE*')),None)
         if license:shutil.copyfile(license,kit/(package+'-LICENSE'))

@@ -1,0 +1,63 @@
+"""Fast installed machine/host feedback; full P4 qualification remains required."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import platform
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+import uuid
+from verify_p4 import source, ROOT, py_at
+
+
+def main():
+    rid = uuid.uuid4().hex
+    output = ROOT / 'reports/AutomaticInstaller-fast/runs' / rid
+    output.mkdir(parents=True)
+    inputs = source(); identity = hashlib.sha256(json.dumps(inputs, sort_keys=True).encode()).hexdigest()
+    ledger = {'version': 2, 'id': rid, 'qualification': 'machine-fast', 'source': inputs, 'source_identity': identity,
+              'commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
+              'status': 'RUNNING', 'started': time.time(), 'checks': {}, 'commands': [], 'platform': {'os': platform.system(), 'python': sys.version}}
+    def save():
+        (output / 'run.json').write_text(json.dumps(ledger, indent=2) + '\n', encoding='utf-8')
+    def command(name, argv):
+        before = time.time()
+        with (output / (name + '.log')).open('wb') as stream:
+            process = subprocess.run([str(value) for value in argv], cwd=ROOT, stdout=stream, stderr=subprocess.STDOUT)
+        ledger['commands'].append({'name': name, 'returncode': process.returncode, 'seconds': time.time() - before,
+                                   'log': name + '.log', 'sha256': hashlib.sha256((output / (name + '.log')).read_bytes()).hexdigest()})
+        ledger['checks'][name] = 'PASS' if process.returncode == 0 else 'FAIL'; save()
+        if process.returncode: raise RuntimeError('Machine qualification failed: ' + name)
+    save()
+    try:
+        command('distribution', [sys.executable, '-B', ROOT / 'scripts/build_p4.py', '--output', output / 'distribution', '--source-id', identity])
+        kit = output / 'distribution/knowledge-harness-0.5.0rc1'
+        with tempfile.TemporaryDirectory(prefix='machine-fast-') as tmp:
+            base = Path(tmp); runtime = base / 'runtime'; python = py_at(runtime)
+            command('install', [sys.executable, kit / 'install.py', 'install', '--env', runtime])
+            command('test-dependencies', [python, '-I', '-m', 'pip', 'install', '-r', ROOT / 'requirements-dev.lock'])
+            driver = base / 'test-driver.py'
+            driver.write_text('import sys,unittest\nsys.path.insert(0,' + repr(str(ROOT / 'tests')) + ')\nsuite=unittest.defaultTestLoader.discover(' + repr(str(ROOT / 'tests')) + ',pattern="test_machine_commands.py")\nr=unittest.TextTestRunner(verbosity=2).run(suite)\nraise SystemExit(not r.wasSuccessful())\n', encoding='utf-8')
+            command('machine-unit-tests', [python, '-I', '-B', '-X', 'utf8', driver])
+            command('machine-installer', [python, '-I', '-B', '-X', 'utf8', ROOT / 'scripts/machine_installer_trial.py', kit, output / 'machine-installer'])
+            command('machine-native-host-setup', [python, '-I', '-B', '-X', 'utf8', ROOT / 'scripts/setup_machine_host.py', '--output', base / 'host', '--evidence', output / 'machine-native/host'])
+            command('machine-native-commands', [python, '-I', '-B', '-X', 'utf8', ROOT / 'scripts/machine_native_trial.py', '--kit', kit, '--host', base / ('host/opencode.exe' if os.name == 'nt' else 'host/opencode'), '--output', output / 'machine-native'])
+        ledger['unchanged'] = inputs == source()
+        if not ledger['unchanged']: raise RuntimeError('Qualification inputs changed')
+        ledger['status'] = 'PASS_NATIVE' if os.name == 'nt' else 'PASS_PORTABLE'
+    except BaseException as error:
+        ledger.update(status='FAILED', error=str(error), unchanged=inputs == source())
+        raise
+    finally:
+        diagnostics = ROOT / 'reports/AutomaticInstaller-diagnostics'
+        if diagnostics.exists(): shutil.copytree(diagnostics, output / 'job-diagnostics', dirs_exist_ok=True)
+        ledger['finished'] = time.time(); save()
+        write = ROOT / 'reports/AutomaticInstaller-fast/latest.json'
+        write.write_text(json.dumps({'run': rid, 'status': ledger['status']}) + '\n', encoding='utf-8')
+        print(json.dumps({'run': rid, 'status': ledger['status']}))
+
+
+if __name__ == '__main__': main()

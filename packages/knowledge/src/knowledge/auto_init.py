@@ -1,0 +1,207 @@
+#!/usr/bin/env python3
+r"""Continue Knowledge 0.5 knowledge-init chunks; never approve/apply candidates.
+
+PowerShell:
+  & $Runtime -I .\knowledge-init-auto.py --root 'C:\Git\MyProject'
+  & $Runtime -I .\knowledge-init-auto.py --root 'C:\Git\MyProject' --scan-id 'ID'
+
+Requires the Python environment containing knowledge-p0. Output/checkpoints stay
+outside the project so they do not change the source snapshot being scanned.
+"""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+
+
+class ScanError(Exception):
+    pass
+
+
+def short_message(value, limit=240):
+    text = ' '.join(str(value).split())
+    return text if len(text) <= limit else text[:limit] + '...'
+
+
+def write_json(path, value):
+    fd, temporary = tempfile.mkstemp(prefix='.scan-', dir=path.parent)
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8', newline='\n') as stream:
+            json.dump(value, stream, ensure_ascii=False, indent=2)
+            stream.write('\n')
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def inside(path, root):
+    return path == root or root in path.parents
+
+
+def run(root, output, scan_id=None, max_files=100, max_calls=10000,
+        command_timeout=600, fresh=False, base=None, head=None, incremental=False, retry_blocked=False):
+    root = Path(root).resolve(strict=True)
+    if not root.is_dir():
+        raise ScanError('--root must be an existing project directory.')
+    output = Path(output).resolve()
+    if inside(output, root):
+        raise ScanError('Output must be outside --root to avoid changing the scan snapshot.')
+    # The driver itself must also stay outside the scanned project.
+    if inside(Path(__file__).resolve(), root):
+        raise ScanError('Move this helper outside the project, for example C:\\Temp.')
+    output.mkdir(parents=True, exist_ok=True)
+    checkpoint = output / 'checkpoint.json'
+    if not scan_id and not fresh and checkpoint.exists():
+        saved = json.loads(checkpoint.read_text(encoding='utf-8'))
+        if os.path.normcase(saved.get('root', '')) != os.path.normcase(str(root)) or saved.get('scope', {'base': None, 'head': None, 'incremental': False}) != {'base': base, 'head': head, 'incremental': incremental}:
+            raise ScanError('Checkpoint belongs to a different root; choose another --output.')
+        scan_id = saved.get('scan_id')
+        if not isinstance(scan_id, str) or not scan_id.strip():
+            raise ScanError('Invalid checkpoint scan_id; inspect checkpoint.json.')
+    if retry_blocked and (not scan_id or fresh):
+        raise ScanError('--retry-blocked requires the observed scan ID/checkpoint and cannot be combined with --fresh.')
+    print('Knowledge scan helper 1.1', flush=True)
+    print('Project: ' + str(root), flush=True)
+    print('Diagnostics: ' + str(output), flush=True)
+    if scan_id:
+        print('Scan ID: ' + short_message(scan_id), flush=True)
+    previous = None
+    environment = {**os.environ, 'PYTHONUTF8': '1', 'PYTHONIOENCODING': 'utf-8'}
+    for number in range(1, max_calls + 1):
+        command = [sys.executable, '-I', '-B', '-X', 'utf8', '-m', 'knowledge.cli', 'knowledge-init',
+                   '--root', str(root), '--max-files', str(max_files)]
+        if number == 1 and retry_blocked:
+            command.append('--retry-blocked')
+        if incremental:
+            command.append('--incremental')
+        if base is not None:
+            command.extend(['--base', base, '--head', head])
+        if scan_id:
+            command.extend(['--scan-id', scan_id])
+        try:
+            process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                     encoding='utf-8', errors='strict', env=environment,
+                                     timeout=command_timeout, check=False)
+        except subprocess.TimeoutExpired as error:
+            # No automatic retry: the child may have committed before timeout.
+            write_json(output / 'last-error.json', {
+                'error': 'command-timeout-outcome-unknown', 'scan_id': scan_id,
+                'timeout_seconds': command_timeout})
+            raise ScanError('Command timed out; no automatic retry. Inspect Knowledge scan-status '
+                            'and the diagnostics before resuming.') from error
+        (output / 'last-stdout.txt').write_text(process.stdout, encoding='utf-8')
+        (output / 'last-stderr.txt').write_text(process.stderr, encoding='utf-8')
+        try:
+            result = json.loads(process.stdout)
+        except (ValueError, TypeError) as error:
+            raise ScanError('CLI did not return valid JSON; inspect last-stdout.txt and '
+                            'last-stderr.txt. No automatic retry.') from error
+        write_json(output / 'last-result.json', result)
+        if not isinstance(result, dict):
+            raise ScanError('Unexpected CLI JSON shape; expected an object.')
+        if process.returncode != 0 or result.get('ok') is not True:
+            raise ScanError('Knowledge failed: ' + short_message(result.get('error', 'exit ' + str(process.returncode))))
+        returned_id = result.get('id')
+        if not isinstance(returned_id, str) or not returned_id.strip():
+            raise ScanError('Successful response has no scan id; unsupported CLI response.')
+        if scan_id and returned_id != scan_id:
+            raise ScanError('CLI changed the scan id unexpectedly; stopped.')
+        first_id = scan_id is None
+        scan_id = returned_id
+        write_json(checkpoint, {'version': 1, 'root': str(root), 'scan_id': scan_id, 'scope': {'base': base, 'head': head, 'incremental': incremental}})
+        if first_id:
+            print('Scan ID: ' + short_message(scan_id), flush=True)
+        complete = result.get('complete')
+        work = result.get('work')
+        coverage = result.get('coverage')
+        snapshot = result.get('snapshot')
+        if type(complete) is not bool or not isinstance(work, dict) or not isinstance(coverage, dict) or not isinstance(snapshot, dict):
+            raise ScanError('Missing completion/work/coverage fields; unsupported CLI response.')
+        remaining = work.get('remaining_files')
+        processed = work.get('durable_extracted_files')
+        extracted = work.get('extracted_this_call')
+        if any(type(value) is not int or value < 0 for value in (remaining, processed, extracted)):
+            raise ScanError('Invalid progress counters; unsupported CLI response.')
+        if any(not isinstance(item, dict) for item in coverage.values()):
+            raise ScanError('Invalid coverage entries; unsupported CLI response.')
+        blocked = {path: item for path, item in coverage.items() if item.get('status') == 'blocked'}
+        coverage_errors = snapshot.get('coverage_errors')
+        # Keep redirected/non-interactive output small as well as terminal output.
+        if number == 1 or number % 25 == 0 or complete or blocked or coverage_errors:
+            print('Chunk {0}: processed={1}, remaining={2}, extracted={3}, blocked={4}'.format(
+                number, processed, remaining, extracted, len(blocked)), flush=True)
+        if blocked or coverage_errors:
+            write_json(output / 'coverage-errors.json', {
+                'scan_id': scan_id, 'coverage_errors': coverage_errors, 'blocked': blocked})
+            raise ScanError('Coverage is blocked. See coverage-errors.json; fix the cause '
+                            'before choosing whether to resume or start a fresh scan.')
+        if complete:
+            if remaining or any(item.get('status') == 'not-analyzed' for item in coverage.values()):
+                raise ScanError('Inconsistent complete=true response; files are still pending.')
+            reconciliation = result.get('reconciliation')
+            if not isinstance(reconciliation, dict) or reconciliation.get('ok') is not True or reconciliation.get('complete') is not True or reconciliation.get('scan') != scan_id:
+                raise ScanError('Scan finished but reconciliation was not confirmed; inspect last-result.json.')
+            gaps = result.get('gaps', [])
+            print('Completed scan: ' + short_message(scan_id), flush=True)
+            if gaps:
+                print('Review required: {0} lexical ambiguity/gap entries in last-result.json.'.format(len(gaps)), flush=True)
+            print('Coverage completion is not semantic completeness. Candidates were not approved/applied.', flush=True)
+            return 0
+        current = (processed, remaining)
+        if extracted == 0 or (previous is not None and processed <= previous[0] and remaining >= previous[1]):
+            raise ScanError('No extraction progress; stopped to avoid an endless loop. Inspect last-result.json.')
+        previous = current
+    raise ScanError('Reached --max-calls. Scan id is saved; rerun this command to continue.')
+
+
+def positive(value):
+    number = int(value)
+    if number < 1:
+        raise argparse.ArgumentTypeError('must be greater than zero')
+    return number
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--root', required=True, help='Existing project directory')
+    parser.add_argument('--base')
+    parser.add_argument('--head')
+    parser.add_argument('--retry-blocked', action='store_true', help='Explicitly retry eligible transient read failures of the observed scan once; never bypass snapshot errors')
+    parser.add_argument('--incremental', action='store_true')
+    parser.add_argument('--scan-id', help='Continue an already started scan')
+    parser.add_argument('--max-files', type=positive, default=100)
+    parser.add_argument('--max-calls', type=positive, default=10000)
+    parser.add_argument('--command-timeout', type=positive, default=600, help='Seconds per CLI call')
+    parser.add_argument('--output', help='Diagnostic directory outside the project')
+    parser.add_argument('--fresh', action='store_true', help='Ignore saved checkpoint; ask Knowledge for the current snapshot scan (does not reset existing scan state)')
+    args = parser.parse_args()
+    if args.max_files > 10000:
+        parser.error('--max-files cannot exceed 10000')
+    if args.fresh and args.scan_id:
+        parser.error('--fresh and --scan-id cannot be used together')
+    root_key = os.path.normcase(str(Path(args.root).resolve()))
+    key = hashlib.sha256(root_key.encode('utf-8')).hexdigest()[:20]
+    base = Path(os.environ.get('LOCALAPPDATA') or tempfile.gettempdir())
+    output = args.output or str(base / 'Knowledge' / 'scan-helper' / key)
+    try:
+        return run(args.root, output, args.scan_id, args.max_files, args.max_calls,
+                   args.command_timeout, args.fresh, args.base, args.head, args.incremental, args.retry_blocked)
+    except KeyboardInterrupt:
+        print('\nInterrupted. Inspect diagnostics/scan-status before resuming; '
+              'a completed chunk remains durable.', file=sys.stderr)
+        return 130
+    except (ScanError, OSError, ValueError, UnicodeError) as error:
+        print('STOP: ' + short_message(error), file=sys.stderr)
+        print('Full diagnostics: ' + str(Path(output).resolve()), file=sys.stderr)
+        return 1
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

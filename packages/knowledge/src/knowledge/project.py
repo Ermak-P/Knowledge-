@@ -22,9 +22,14 @@ def linked(p):
 def windows_spelling(p):
     import re
     p=Path(p);text=str(p)
-    require(not text.startswith(('\\\\','//')) and (not p.drive or p.is_absolute()),'unsupported-windows-path')
+    def accepted(condition, reason):
+        require(condition, 'unsupported-windows-path', {'path': text, 'reason': reason})
+    accepted(not text.startswith(('\\\\','//')) and (not p.drive or p.is_absolute()), 'UNC/device or drive-relative path')
     for name in p.parts[1:] if p.anchor else p.parts:
-        require(not any(ch in name for ch in ':<>"|?*~') and not any(ord(ch)<32 for ch in name) and not name.endswith((' ','.')) and not re.fullmatch(r'(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\..*)?',name,re.I),'unsupported-windows-path')
+        accepted('~' not in name, 'tilde in path component (possibly an unexpanded 8.3 alias)')
+        accepted(not any(ch in name for ch in ':<>"|?*') and not any(ord(ch)<32 for ch in name), 'forbidden character in path component')
+        accepted(not name.endswith((' ','.')), 'path component ends with a space or dot')
+        accepted(not re.fullmatch(r'(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\..*)?',name,re.I), 'reserved Windows device name')
 
 def safe_path(p):
     p = Path(p)
