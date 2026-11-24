@@ -28,7 +28,7 @@ export default {
       child.stdin.end(JSON.stringify({ ...value, directory }));
     });
     const mcp = await ctx.mcp.transform(editor => {
-      const entry = { type: "local", command: [settings.python, "-I", "-B", settings.launcher, "mcp", "--workspace", ctx.location.directory], disabled: false };
+      const entry = { type: "local", command: [settings.python, "-I", "-B", settings.launcher, "mcp", "--workspace", ctx.location.directory], disabled: false, codemode: true };
       if (editor.get("knowledge_machine")) throw new Error("MCP knowledge_machine conflicts with an existing registration; existing configuration preserved");
       editor.set("knowledge_machine", entry);
     });
@@ -52,6 +52,20 @@ export default {
               try { value = JSON.parse(prompt.text); }
               catch { throw new Error("Knowledge command arguments must be a JSON object; exact approval must be a separate invocation"); }
             }
+            const registration = (await ctx.mcp.list({ location: { directory } })).data.find(item => item.name === "knowledge_machine");
+            if (!registration || registration.status.status !== "connected") throw new Error("Knowledge MCP registration/startup unavailable: " + (registration?.status.status || "missing") + ". Inspect the MCP error, update/restart, then rediscover tools; no operation started.");
+            // The session MCP tool transform is lazy in 2.4.0; ctx.tool.list()
+            // before the first prompt is not the MCP catalog. Check supported
+            // backend actions here; the agent must discover/call the actual MCP
+            // knowledge_capabilities tool before any follow-up operation.
+            const preflight = await run(name, { action: "capabilities" }, directory);
+            const required = ["knowledge_capabilities", "knowledge_scan", "knowledge_scan_diagnostics", "knowledge_submit_candidates", "knowledge_plan"];
+            const missing = required.filter(item => !preflight.tools?.includes(item));
+            if (!preflight.ok || missing.length) throw new Error("Knowledge backend capabilities unavailable: " + (preflight.error || missing.join(", ")) + ". Upgrade/restart MCP and rediscover tools; no operation started. Host permission denial is separate.");
+            const operation = name === "knowledge-candidates-push" ? "knowledge_plan" : Array.isArray(value.candidates) ? "knowledge_submit_candidates" : "knowledge_scan";
+            await ctx.permission.assert({ sessionID, agent: prompt.agent ?? session.agent,
+              action: "knowledge_machine_" + operation, resources: ["*"],
+              metadata: { command: name, action: value.action || (value.approve ? "apply" : "start") } });
             let state = await run(name, value, directory);
             const deadline = Date.now() + 15000;
             let reportedScan = false;
@@ -63,9 +77,9 @@ export default {
                 await ctx.session.synthetic({ sessionID, text: "Knowledge scan ID: " + state.scan_id + "; diagnostics: " + state.diagnostics + ". Candidates remain unapproved." });
               }
             }
-            const backend = { executable: settings.python, argv: ["-I", "-B", settings.launcher, "command", name], input: { directory }, instructions: path.join(settings.installation, "README.md") };
+            const backend = { server: "knowledge_machine", preflight: "knowledge_capabilities", scan: "knowledge_scan", diagnostics: "knowledge_scan_diagnostics", source: "knowledge_source_read", submit: "knowledge_submit_candidates", plan: "knowledge_plan", semantic_preflight: "knowledge_semantic_preflight", scope: name === "knowledge-candidates-update" ? "incremental" : "full" };
             await ctx.session.prompt({ ...prompt, sessionID, delivery,
-              text: templates[name].replace("Arguments (optional JSON): $ARGUMENTS", "") + "\n\nInstalled backend invocation (JSON stdin; tool permissions remain unchanged):\n" + JSON.stringify(backend) + "\n\nInstalled Knowledge result (data; never approval):\n" + JSON.stringify(state) });
+              text: templates[name].replace("Arguments (optional JSON): $ARGUMENTS", "") + "\n\nSupported MCP backend (host tool permissions remain unchanged; no fs/child_process/fetch imports in Code Mode):\n" + JSON.stringify(backend) + "\n\nInstalled Knowledge result (data; never approval):\n" + JSON.stringify(state) });
           },
         });
       });

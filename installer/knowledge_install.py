@@ -22,13 +22,24 @@ BOOTSTRAP = '''import json, os, sys
 from pathlib import Path
 root = Path(__file__).resolve().parent
 value = json.loads((root / 'current.json').read_text(encoding='utf-8'))
-python = root / value['runtime'] / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+runtime = Path(value['runtime'])
+if runtime.is_absolute() or '..' in runtime.parts or len(runtime.parts) != 2 or runtime.parts[0] != 'runtimes':
+    raise SystemExit('Invalid Knowledge runtime reference; rerun the installer')
+python = root / runtime / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
 if len(sys.argv) < 2 or sys.argv[1] not in ('mcp', 'command', 'auto'):
     raise SystemExit('Use mcp, command or auto')
 module = {'mcp':'knowledge.machine_mcp', 'command':'knowledge.project_commands', 'auto':'knowledge.auto_init'}[sys.argv[1]]
 args = [str(python), '-I', '-B', '-X', 'utf8', '-m', module]
 if sys.argv[1] != 'auto': args += ['--installation', str(root)]
-os.execv(str(python), args + sys.argv[2:])
+command = args + sys.argv[2:]
+try:
+    if os.name == 'nt':
+        import runpy
+        raise SystemExit(runpy.run_path(str(root / 'windows-process.py'))['run'](command))
+    os.execv(str(python), command)
+except OSError as error:
+    print('Knowledge runtime startup failed: ' + str(error), file=sys.stderr)
+    raise SystemExit(1)
 '''
 
 
@@ -207,7 +218,7 @@ def verify_kit(root):
         require(item.is_file() and sha(item) == expected, 'Release hash mismatch: ' + relative)
     actual = {p.relative_to(root).as_posix() for p in root.rglob('*') if p.is_file() and p.name != 'RELEASE.json'}
     require(actual == set(manifest['files']), 'Unlisted/missing release files refused')
-    for name in ('machine-install.py', 'default-provider.json', 'knowledge-init-auto.py', 'optional-mcp.lock', 'host/machine_opencode.mjs', 'docs/AutomaticInstallation-RU.md'):
+    for name in ('machine-install.py', 'windows-process.py', 'default-provider.json', 'knowledge-init-auto.py', 'optional-mcp.lock', 'host/machine_opencode.mjs', 'docs/AutomaticInstallation-RU.md'):
         require(name in manifest['files'], 'Machine installer asset absent: ' + name)
     return manifest
 
@@ -370,7 +381,7 @@ def rollback(root):
     journal.unlink()
 
 
-def transaction(root, updates, fail_after=None, expected_before=None):
+def transaction(root, updates, fail_after=None, expected_before=None, verify=None):
     import base64
     entries = []
     for path, content in updates.items():
@@ -390,6 +401,7 @@ def transaction(root, updates, fail_after=None, expected_before=None):
             atomic(path, content)
             if fail_after == number:
                 raise InstallError('Injected transaction interruption')
+        if verify is not None: verify()
     except BaseException:
         rollback(root)
         raise
@@ -481,7 +493,7 @@ def install(source, root, fail_after=None):
             if current and current.get('release_sha256') == release_hash and files_intact and py_at(root / 'bootstrap').is_file() and installed_ok(root, current):
                 require(all(Path(p).is_file() and sha(p) == h for p, h in old['files'].items()), 'Owned machine files changed; cannot claim unchanged')
                 validate_provider(py_at(root / current['runtime']), provider_path, log)
-                call([py_at(root / current['runtime']), '-I', '-B', '-m', 'knowledge.machine_mcp', '--self-test', '--installation', root], log)
+                call([py_at(root/'bootstrap'),'-I','-B',root/'launch.py','mcp','--self-test'],log)
                 return summary('UNCHANGED', root, current, provider_path, log, host_version)
             generation = root / 'runtimes' / uuid.uuid4().hex
             generation.parent.mkdir(exist_ok=True)
@@ -518,6 +530,7 @@ def install(source, root, fail_after=None):
             if provider_before is None or provider_hash == old.get('factory_provider_sha256'):
                 updates[provider_path] = (kit / 'default-provider.json').read_bytes()
             updates[root / 'launch.py'] = BOOTSTRAP.encode()
+            updates[root / 'windows-process.py'] = (kit / 'windows-process.py').read_bytes()
             settings = {'version': 1, 'installation': str(root), 'python': str(py_at(bootstrap)), 'launcher': str(root / 'launch.py'), 'host_contract': 'opencode-2.4.0'}
             updates[home / '.knowledge-machine.json'] = data(settings)
             updates[home / 'plugins/knowledge-machine.js'] = (kit / 'host/machine_opencode.mjs').read_bytes()
@@ -535,7 +548,8 @@ def install(source, root, fail_after=None):
             expected_before[root / 'current.json'] = current_hash
             expected_before[marker] = marker_hash
             if provider_path in updates: expected_before[provider_path] = provider_hash
-            transaction(root, updates, fail_after, expected_before=expected_before)
+            transaction(root, updates, fail_after, expected_before=expected_before,
+                        verify=lambda:call([py_at(bootstrap),'-I','-B',root/'launch.py','mcp','--self-test'],log))
             return summary('UPDATED' if current or legacy else 'INSTALLED', root, selected, provider_path, log, host_version)
 
 

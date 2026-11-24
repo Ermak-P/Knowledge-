@@ -1,12 +1,20 @@
 ---
 description: Connect this workspace to installed Knowledge and run a durable full scan
 ---
+
+In OpenCode Code Mode, discover these MCP tools with search inside execute and
+use the exact returned call paths/signatures. Printed backend names are not
+JavaScript imports. Never guess tool paths or import fs/child_process.
 Run the globally installed Knowledge backend for the active workspace. The native
 plugin starts the operation and appends its result. If it returns RUNNING or
-STARTING, poll with the installed launcher's command backend and JSON stdin
-{"action":"status","directory":"<the actual workspace>"} until terminal; keep
-progress concise and do not launch another worker. The machine installation is
-recorded in the global OpenCode .knowledge-machine.json next to this command.
+STARTING, use the registered knowledge_scan tool with action=status, scope=full.
+Check knowledge_capabilities first. Observe at most four times in one turn;
+then return a compact running/checkpoint summary and let the durable worker run.
+Do not launch another worker or accumulate endless polling messages. Use
+knowledge_scan action=resume/fresh/cancel for explicit recovery controls.
+No Node fs/child_process, fetch, shell or SQL fallback is required in Code Mode.
+Missing tools mean registration/catalog failure; permission denial must be
+resolved through host permissions, never through an unsupported alternate route.
 
 Do not use another project/root, install a model, run source-provided scripts,
 change SDKs or grant approval. Existing P0 upgrades and legacy .ai migrations
@@ -15,12 +23,15 @@ recovery instructions, never repeatedly retry an unknown outcome.
 
 After extraction finishes, use the current agent and its available read/search
 and Knowledge tools for semantic reconciliation. Read bounded projections of the
-saved reconciliation/impact report, then inspect affected source, project docs,
+saved reconciliation/impact report using knowledge_scan_diagnostics pages, then inspect affected source with knowledge_source_read, project docs,
 existing assertions and their history. Check dependencies, contradictions,
 changed assumptions, possible obsolescence and unverifiable facts. Track which
 sources and assertions were actually checked; do not infer understanding from
 lexical coverage. Submit supported additional conclusions as reviewed source-bound
-v2 batches through knowledge-candidates-update with JSON stdin {"candidates":[...]}.
+v2 batches through knowledge_submit_candidates(proposals=[...]). Call
+knowledge_semantic_preflight before semantic processing. A test-double provider
+requires explicit test-mode authorization; synthetic semantic claims cannot be
+submitted as CONFIRMED. Deterministic lexical scanning does not invoke a model.
 The installed docs explain the existing candidate/plan contract. Preserve stable
 IDs, evidence anchors, graph and expected revisions. Never edit SQLite, JSONL or
 lock files directly. Do not submit secrets.

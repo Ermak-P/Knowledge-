@@ -1,7 +1,7 @@
 name: Machine installer native feedback
 on:
   push:
-    branches: [main, codex/automatic-installer]
+    branches: [main, codex/automatic-installer, codex/core-reliability-fix]
     paths-ignore: ['reports/**']
   workflow_dispatch:
 permissions:
@@ -59,7 +59,7 @@ jobs:
     needs: smoke
     if: >-
       always() && github.repository == 'Ermak-P/Knowledge-' &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/automatic-installer')
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/automatic-installer' || github.ref == 'refs/heads/codex/core-reliability-fix')
     runs-on: ubuntu-24.04
     permissions:
       contents: write

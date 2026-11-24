@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 from .util import canonical_json, digest, fingerprint, loads, require, KnowledgeError
 from .project import safe_path
 from . import lifecycle as life
+from . import source_reader
 
 VERSION='dotnet-lexical-v3'
 LEGACY_METHODS={'dotnet-lexical-v1','dotnet-lexical-v2'}
@@ -68,11 +69,13 @@ def base_source_matches(data,observation,snapshot):
 
 def inventory(root,base=None,head=None):
     root=Path(root); files={}; excluded=[];errors=[];repo=has_git(root);blobs={};lf_blobs={}
+    config=source_reader.policy(root,LIMIT)
     def gap(error,phase='enumerate'):
         path=Path(error.filename) if error.filename else root
         try:relative=path.relative_to(root).as_posix()
         except ValueError:relative='.'
-        value={'path':relative,'phase':phase,'errno':error.errno,'scope':'.','reason':'included source unavailable; negative proof blocked'}
+        value={'path':relative,'phase':phase,'stage':phase,'errno':error.errno,'scope':'.','reason':'included source unavailable; negative proof blocked',
+               'reason_code':'ACCESS_DENIED' if isinstance(error,PermissionError) else 'UNREADABLE','retry_eligible':False}
         if value not in errors:errors.append(value)
     object_format=git(root,'rev-parse','--show-object-format',required=True) if repo else 'sha1'
     require(object_format in ('sha1','sha256'),'unsupported-git-object-format')
@@ -80,38 +83,53 @@ def inventory(root,base=None,head=None):
         parent=Path(folder)
         for name in list(dirs):
             p=parent/name
-            try:excluded_dir=name in EXCLUDED or name.startswith('.') or p.is_symlink() or p.is_junction()
+            relative=p.relative_to(root).as_posix()
+            rule=source_reader.exclusion(relative+'/',config)
+            included=any(source_reader.matches(relative+'/',pattern) or pattern.startswith(relative+'/') for pattern in config['include'])
+            administrative=name in {'.git','.knowledge','.ai','.venv','.local','.harness','.maintenance'}
+            try:excluded_dir=administrative or p.is_symlink() or p.is_junction() or ((name in EXCLUDED or name.startswith('.')) and not included)
             except OSError as error:
                 gap(error,'inspect-directory');dirs.remove(name);continue
-            if excluded_dir:
-                excluded.append({'path':p.relative_to(root).as_posix(),'status':'excluded','reason':'dependency/generated/hidden or linked directory'})
+            if excluded_dir or rule:
+                excluded.append({'path':relative,'status':'excluded','kind':'directory',
+                                 **(rule or {'reason':'EXCLUDED_GENERATED','rule':'default-directory-filter'})})
                 dirs.remove(name)
         for name in names:
             p=parent/name; rel=p.relative_to(root).as_posix()
+            rule=source_reader.exclusion(rel,config)
+            if rule:
+                excluded.append({'path':rel,'status':'excluded','kind':'file',**rule});continue
             if p.suffix.lower() not in SUFFIXES or re.search(r'(?i)(secret|credential|\.env|appsettings\.(?!json)|\.g\.cs|\.designer\.cs)',name):
-                excluded.append({'path':rel,'status':'excluded','reason':'binary/unsupported/generated/credential-risk'});continue
+                excluded.append({'path':rel,'status':'excluded','kind':'file','reason':'EXCLUDED_GENERATED' if p.suffix.lower() in SUFFIXES else 'EXCLUDED_BINARY','rule':'default-extension/generated/credential-filter'});continue
             try:
                 if p.is_symlink():
                     excluded.append({'path':rel,'status':'excluded','reason':'linked file'});continue
                 safe_path(p)
-                with p.open('rb') as source:data=source.read(LIMIT+1)
-                if repo:
-                    blobs[rel]=git_blob(data,object_format)
-                    lf_blobs[rel]=git_blob(data.replace(b'\r\n',b'\n'),object_format)
-                text=data.decode('utf-8-sig')
-                require(len(data)<=LIMIT,'source-too-large')
-                files[rel]={'hash':'sha256:'+hashlib.sha256(data).hexdigest(),'status':'not-analyzed','partition':'.','bytes':len(data)}
+                item=source_reader.fingerprint(p,config,object_format if repo else None,relative=rel,classify=True)
+                blobs[rel]=item.pop('working_blob',None);lf_blobs[rel]=item.pop('lf_blob',None)
+                files[rel]={**item,'partition':'.'}
                 if p.suffix.lower() in ('.csproj','.props','.targets'):
                     try:
+                        text,_=source_reader.read(root,rel,files[rel],config)
                         project_xml=ET.fromstring(text)
                         custom=any((node.tag.rsplit('}',1)[-1]=='Compile' and 'Include' in node.attrib) or node.tag.rsplit('}',1)[-1] in ('Import','EnableDefaultCompileItems') for node in project_xml.iter())
                         sdk=project_xml.attrib.get('Sdk','')
                         if custom or (p.suffix.lower()=='.csproj' and not sdk.startswith('Microsoft.NET.Sdk')):
                             files[rel]['negative_scope_reason']='custom source inclusion/import/SDK requires manual coverage validation'
-                    except ET.ParseError:files[rel]['negative_scope_reason']='invalid project/source-inclusion XML'
-
-            except (OSError,UnicodeError,ValueError):
-                files[rel]={'hash':None,'status':'blocked','partition':'.','reason':'unreadable, non-UTF8 or oversized source'}
+                    except (ET.ParseError,KnowledgeError,UnicodeError):files[rel]['negative_scope_reason']='unverifiable project/source-inclusion XML'
+            except KnowledgeError as error:
+                # Refuse this object before opening it, while retaining an
+                # explicit coverage gap. Integrity/source-change errors still
+                # abort; they are not recoverable extraction failures.
+                if error.code not in ('unsafe-filesystem-object','linked-path','unsupported-windows-path'):
+                    raise
+                files[rel]={'hash':None,'status':'blocked','partition':'.','reason':error.code,
+                            'reason_code':'UNSAFE_PATH','stage':'inventory','retry_eligible':False,
+                            'exception':type(error).__name__}
+            except OSError as error:
+                code='ACCESS_DENIED' if isinstance(error,PermissionError) else 'UNREADABLE'
+                files[rel]={'hash':None,'status':'blocked','partition':'.','reason':code,'reason_code':code,
+                            'stage':'inventory','retry_eligible':False,'exception':type(error).__name__,'errno':error.errno}
     # Resolve nearest projects by lexical directory ancestry. The old nested
     # scan compared every source with every project, repeatedly constructing
     # Paths, which becomes quadratic in large multi-project repositories.
@@ -193,13 +211,15 @@ def inventory(root,base=None,head=None):
             else:entry['git_state']='committed'
             entry['head_blob']=head_blobs.get(path)
         dirty.sort(key=lambda d:d['path'])
-    core={'index_blobs':index_blobs,'policy':{'excluded_dirs':sorted(EXCLUDED),'suffixes':sorted(SUFFIXES),'max_file_bytes':LIMIT},'extractor':VERSION,'files':{p:{k:v for k,v in item.items() if k!='status'} for p,item in sorted(files.items())},'exclusions':sorted(excluded,key=lambda x:x['path']), 'revision':revision,'dirty':dirty}
+    core={'index_blobs':index_blobs,'policy':{**config,'excluded_dirs':sorted(EXCLUDED),'suffixes':sorted(SUFFIXES)},'extractor':VERSION,'files':{p:{k:v for k,v in item.items() if k!='status'} for p,item in sorted(files.items())},'exclusions':sorted(excluded,key=lambda x:x['path']), 'revision':revision,'dirty':dirty}
     if errors:core['coverage_errors']=sorted(errors,key=lambda e:(e['path'],e['phase'],e['errno'] or 0))
     return {'identity':digest(core),**core,'files':files,'delta':delta,'snapshot_kind':'working-tree-with-hashes' if dirty else 'committed' if revision else 'filesystem-no-history'}
 
 
 def extract(root,path,entry):
-    text=(Path(root)/path).read_text(encoding='utf-8-sig');lines=text.splitlines(); project=entry['partition']
+    text,metadata=source_reader.read(root,path,entry,source_reader.policy(root,LIMIT))
+    entry.update(metadata,processing_status='partial' if metadata['partial'] else 'processed')
+    lines=text.splitlines(); project=entry['partition']
     project_name=(Path(project).stem+' ['+project+']') if project!='.' else 'root [.]'
     observations=[]
     scope_unsupported=entry.get('partition_ambiguous',False)
@@ -241,7 +261,7 @@ def extract(root,path,entry):
                 emit('persistence',Path(path).stem+':'+m[1]+':'+str(m[2]),f'{project_name} contains {m[1]}'+(f'<{m[2]}>' if m[2] else '')+' persistence/configuration syntax.',index,m[2] or m[1])
             offset+=len(line)
         return observations,'partial','lexical extraction only; no Roslyn symbol resolution, preprocessor or runtime proof'
-    return [],'partial','inventory/content hash only; semantic extractor unavailable for this file type'
+    return [],'partial','bounded content preview; source regions remain unanalyzed' if metadata['partial'] else 'inventory/content hash only; semantic extractor unavailable for this file type'
 
 
 def fresh_evidence(root,e,scope=None):
@@ -255,8 +275,13 @@ def fresh_evidence(root,e,scope=None):
     except (KnowledgeError,OSError):return 'not-verifiable'
     if not p.is_file() or p.is_symlink():return 'missing'
     try:
-        with p.open('rb') as source:data=source.read(LIMIT+1)
-        if len(data)>LIMIT:return 'not-verifiable'
+        config=source_reader.policy(root,LIMIT)
+        relative=p.relative_to(root).as_posix()
+        if scope is not None and relative not in scope['snapshot']['files']:return 'not-analyzed'
+        entry=source_reader.fingerprint(p,config)
+        if entry['status']=='blocked':return 'not-verifiable'
+        text,metadata=source_reader.read(root,relative,entry,config)
+        if metadata['partial']:return 'not-analyzed'
         method=e.get('provenance',{}).get('method')
         if method in DISCOVERY_METHODS:
             # Re-extract syntax before trusting unchanged hashes or surviving lines:
@@ -267,9 +292,9 @@ def fresh_evidence(root,e,scope=None):
             observations=scope['observations']
             if any(i in scope['ambiguous'] for i in e['substantiates']):return 'ambiguous-identity'
             if not any(o['id'] in e['substantiates'] and o['path']==p.relative_to(root).as_posix() and o['anchor']==e['description'] for o in observations):return 'changed'
-        if 'sha256:'+hashlib.sha256(data).hexdigest()==e['content_hash']:return 'unchanged'
-        if method in DISCOVERY_METHODS and e['description'] in [line.strip() for line in data.decode('utf-8-sig').splitlines()]:return 'anchor-valid-file-changed'
-    except (OSError,UnicodeError):return 'not-verifiable'
+        if entry['hash']==e['content_hash']:return 'unchanged'
+        if method in DISCOVERY_METHODS and e['description'] in [line.strip() for line in text.splitlines()]:return 'anchor-valid-file-changed'
+    except (OSError,UnicodeError,KnowledgeError):return 'not-verifiable'
     return 'changed'
 
 
@@ -315,7 +340,7 @@ def incremental_scope(db,state):
     snapshot=state['snapshot'];outside={p:e for p,e in snapshot['files'].items()
         if p not in state['coverage'] and p.endswith(('.cs','.csproj'))}
     previous=[loads(payload) for payload, in db.execute('SELECT payload FROM scans')]
-    previous=[item for item in previous if item['complete'] and item['extractor']==VERSION]
+    previous=[item for item in previous if item['complete'] and item['extractor']==VERSION and item['snapshot'].get('policy')==snapshot['policy']]
     cached=[];missing=[];ambiguous=set(state.get('ambiguous',[]))
     for path,entry in outside.items():
         old=next((item for item in reversed(previous)
@@ -361,7 +386,8 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incre
             if base or head:require(state['snapshot']['delta']==snap['delta'],'scan-range-mismatch-restart-required')
             require(bool(state.get('incremental'))==incremental,'scan-scope-mismatch-restart-required')
         else:
-            scan_id=digest([store.project.identity,snap['identity'],snap['delta'],VERSION]+(['incremental-v1',sorted(selected)] if incremental else []))
+            execution=[__import__('uuid').uuid4().hex] if restart else []
+            scan_id=digest([store.project.identity,snap['identity'],snap['delta'],VERSION]+(['incremental-v1',sorted(selected)] if incremental else [])+execution)
             row=db.execute('SELECT payload FROM scans WHERE id=?',(scan_id,)).fetchone()
             state=loads(row[0]) if row else dict(id=scan_id,extractor=VERSION,snapshot=snap,coverage=deep_files(snap['files']),observations=[],candidates=[],captured_at=life.now(),complete=False,**({'incremental':True} if incremental else {}))
             if incremental and not row:
@@ -371,14 +397,25 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incre
         if retry_blocked:
             for path,entry in state['coverage'].items():
                 original=state['snapshot']['files'][path]
-                if entry['status']=='blocked' and original['status']!='blocked' and original.get('hash') is not None:
+                if entry['status']=='blocked' and entry.get('retry_eligible',True) and original['status']!='blocked' and original.get('hash') is not None:
                     entry.update(status='not-analyzed',reason='explicit retry after observation');retried+=1
         pending=sorted((p for p,e in state['coverage'].items() if e['status']=='not-analyzed'),key=lambda p:(not p.endswith(('.csproj','.cs')),p))
         extracted_this_call=[]
         for path in pending[:max_files]:
             try:observations,status,reason=extract(store.project.root,path,state['coverage'][path])
-            except (OSError,UnicodeError):
-                observations,status,reason=[],'blocked','source disappeared/unreadable during extraction'
+            except (OSError,UnicodeError) as error:
+                reason='ACCESS_DENIED' if isinstance(error,PermissionError) else 'INVALID_ENCODING' if isinstance(error,UnicodeError) else 'UNREADABLE'
+                observations,status=[],'blocked'
+                state['coverage'][path].update(reason_code=reason,stage='extract',exception=type(error).__name__,
+                                               processing_status='failed',retry_eligible=isinstance(error,OSError))
+            except KnowledgeError as error:
+                if error.code not in ('FILE_TOO_LARGE','INVALID_ENCODING','UNSUPPORTED_ENCODING','EXTRACTION_FAILED','EXCLUDED_BINARY','FILE_CHANGED_DURING_SCAN'):
+                    raise  # Integrity, ownership and linked-path violations are fatal.
+                observations,status,reason=[],'excluded' if error.code=='EXCLUDED_BINARY' else 'blocked',error.code
+                state['coverage'][path].update(error.details or {},processing_status='excluded' if status=='excluded' else 'failed')
+            except (ValueError,TypeError,RuntimeError) as error:
+                observations,status,reason=[],'blocked','EXTRACTION_FAILED'
+                state['coverage'][path].update(reason_code=reason,stage='extract',exception=type(error).__name__,processing_status='failed',retry_eligible=False)
             extracted_this_call.append(path)
             # Ambiguous identities from overloads/duplicate declarations are gaps, never guessed.
             existing={o['id'] for o in state['observations']}
@@ -395,13 +432,16 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incre
                 existing.add(o['id']);state['observations'].append(o)
             state['ambiguous']=sorted(ambiguous)
             state['coverage'][path].update(status=status,reason=reason)
-        state['complete']=not snap.get('coverage_errors') and not any(e['status'] in ('not-analyzed','blocked') for e in state['coverage'].values())
+        state['complete']=not snap.get('coverage_errors') and not any(e['status'] in ('not-analyzed','blocked') or e.get('processing_status')=='partial' for e in state['coverage'].values())
+        state['counters']=coverage_counters(state)
+        state['processing_complete']=state['counters']['remaining_files']==0
+        state['state']='IN_PROGRESS' if not state['processing_complete'] else 'COMPLETED' if state['complete'] else 'COMPLETED_WITH_GAPS'
         # The durable snapshot-bound chunks already contain global ambiguity state.
         # Do not re-extract completed or not-yet-budgeted files for this scan.
         scope=incremental_scope(db,state) if incremental else {'snapshot':state['snapshot'],'observations':state['observations'],
                'ambiguous':dict.fromkeys(state.get('ambiguous',[])), 'complete':state['complete']}
         state['work']={'version':1,'extracted_this_call':len(extracted_this_call),'paths_this_call':extracted_this_call,
-                       'durable_extracted_files':sum(e['status'] not in ('not-analyzed','blocked') for e in state['coverage'].values()),
+                       'durable_extracted_files':sum(e['status']!='not-analyzed' for e in state['coverage'].values()),
                        'remaining_files':sum(e['status']=='not-analyzed' for e in state['coverage'].values()),
                        'enumeration_and_hashing':'whole-snapshot; distinct from bounded extraction',**({'retried_blocked_files':retried} if retry_blocked else {})}
         records=store._records(db)
@@ -418,14 +458,20 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incre
                          'policy':('completed included scope reused' if state['complete'] else 'partial durable scope; unexamined discovery evidence is not freshly verified')+'; impact is a review request, not retirement'}
         state['semantic_coverage_complete']=False
         state['limits']=['No runtime/deployment proof or business rationale','C# lexical matches are partial, not compiler analysis','Non-code files are content inventory only','Untracked permitted source is included with dirty hashes; Git dirty state is separate from committed HEAD']
-        # Enqueue only at completion: partial scan observations remain durable, no claim of absence.
-        if state['complete']:
+        # After all chunks, positive source-backed proposals may survive unrelated
+        # file failures. Never guess identity in a partition with unexamined code.
+        if state['processing_complete']:
             records=store._records(db);states=life.latest(db)
+            candidate_index=CandidateIndex(db)
             state['compatibility']=[]
             state['reintroductions']=[]
             state['review_required']=[]
             for obs in state['observations']:
                 if incremental and (not scope['complete'] or obs['id'] in scope['ambiguous']):continue
+                if any(e['partition']==obs['project'] and p.endswith(('.cs','.csproj')) and
+                       (e['status'] in ('not-analyzed','blocked') or e.get('processing_status')=='partial')
+                       for p,e in state['coverage'].items()):continue
+                if snap.get('coverage_errors'):continue
                 known=next((c for c in records['claims'] if c['id']==obs['id']),None)
                 if known and (states[known['id']]['lifecycle']=='superseded' or not discovery_owned(db,known,records)):
                     state['review_required'].append({'id':known['id'],'reason':'supersession or reviewed assertion ownership requires manual review; no automatic overwrite/reactivation'})
@@ -442,13 +488,35 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incre
                     cid=digest(value)
                     # Equivalent decided observations retain their disposition.
                     # Pending old snapshots get a new, separately approved binding.
-                    if equivalent_candidate(db,value) is None:
-                        db.execute('INSERT OR IGNORE INTO queue VALUES (?,?,?,NULL)',(cid,canonical_json(value),'pending'))
-                        refresh_pending(db,cid,value)
+                    if equivalent_candidate(db,value,candidate_index) is None:
+                        inserted=db.execute('INSERT OR IGNORE INTO queue VALUES (?,?,?,NULL)',(cid,canonical_json(value),'pending'))
+                        if not inserted.rowcount:require(loads(db.execute('SELECT payload FROM queue WHERE id=?',(cid,)).fetchone()[0])==value,'candidate-identity-conflict')
+                        candidate_index.add(cid,value,'pending')
+                        refresh_pending(db,cid,value,candidate_index)
+                        if not state['complete']:
+                            receipt=dict(version=1,extractor=VERSION,observation=obs,candidate=cid,source=snap['identity'])
+                            db.execute('INSERT OR IGNORE INTO metadata VALUES (?,?)',(CAPTURE_RECEIPT+digest(receipt),canonical_json(receipt)))
                         if cid not in state['candidates']:state['candidates'].append(cid)
         require(inventory(store.project.root)['identity']==snap['identity'],'source-changed-during-scan-restart')
         db.execute('INSERT OR REPLACE INTO scans VALUES (?,?)',(scan_id,canonical_json(state)))
     return {'ok':True,**state}
+
+
+def coverage_counters(state):
+    entries=list(state['coverage'].values())
+    excluded=sum(e['status']=='excluded' for e in entries)
+    failures=sum(e['status']=='blocked' for e in entries)
+    partial=sum(e.get('processing_status')=='partial' for e in entries)
+    remaining=sum(e['status']=='not-analyzed' for e in entries)
+    processed=len(entries)-excluded-failures-partial-remaining
+    snapshot=state['snapshot']
+    policy_files=sum(e.get('kind','file')=='file' for e in snapshot['exclusions'])
+    return {'discovered_files':len(snapshot['files'])+policy_files, 'eligible_files':len(entries)-excluded,
+            'policy_excluded_files':policy_files, 'classified_excluded_files':excluded,
+            'pruned_directories':sum(e.get('kind')=='directory' for e in snapshot['exclusions']),
+            'out_of_scope_files':len(snapshot['files'])-len(entries),
+            'processed_files':processed,'partially_processed_files':partial,'failed_files':failures,'remaining_files':remaining,
+            'pending_retries':sum(e['status']=='blocked' and e.get('retry_eligible',False) for e in entries)}
 
 
 def deep_files(files):
@@ -469,13 +537,15 @@ def reconcile(store,scan_id):
             classification='unchanged' if fresh['trusted'] else 'not-verifiable'
             if states[c['id']]['lifecycle']!='active':classification='historical'
             elif not fresh['trusted'] and c['id'] in observed:classification='changed'
-            elif not fresh['trusted'] and c['provenance']['method'] in DISCOVERY_METHODS:classification='suspected-obsolete'
+            elif scan['complete'] and not fresh['trusted'] and c['provenance']['method'] in DISCOVERY_METHODS:classification='suspected-obsolete'
             dependents=[d['id'] for d in records['claims'] if c['id'] in d['depends_on']]
             out.append(dict(id=c['id'],classification=classification,freshness=fresh,lifecycle=states[c['id']]['lifecycle'],dependents=dependents,
                             retirement_proposed=False,reason='Retirement requires reviewed positive corroboration; lexical absence alone is insufficient.'))
         retirement=[]
         current={c['id']:c for c in records['claims']}
         negative_gaps=negative_coverage_gaps(scan['snapshot'])
+        negative_gaps.extend({'project':e['partition'],'path':p,'reason':e.get('reason_code') or e.get('reason','incomplete extraction')}
+                             for p,e in scan['coverage'].items() if e['status'] in ('blocked','excluded') or e.get('processing_status')=='partial')
         delta=scan['snapshot'].get('delta')
         if scan['complete'] and not scan.get('incremental') and delta and not scan.get('gaps'):
             before={}
@@ -483,7 +553,16 @@ def reconcile(store,scan_id):
                 old=loads(payload)
                 if old['snapshot']['revision']==delta['base'] and old['complete']:
                     before.update({o['id']:(o,old['snapshot']) for o in old['observations']})
-            texts='\n'.join((store.project.root/p).read_text(encoding='utf-8-sig') for p,e in scan['coverage'].items() if e['status']!='blocked')
+            # Search one bounded source at a time; do not concatenate an entire
+            # repository into memory for negative proof.
+            def referenced(subject):
+                pattern=re.compile(r'(?<![A-Za-z0-9_])'+re.escape(subject)+r'(?![A-Za-z0-9_])')
+                for path,entry in scan['coverage'].items():
+                    if entry['status'] in ('blocked','excluded') or entry.get('processing_status')=='partial':return True
+                    try:text,_=source_reader.read(store.project.root,path,entry,source_reader.policy(store.project.root,LIMIT))
+                    except (KnowledgeError,OSError,UnicodeError):return True
+                    if pattern.search(text):return True
+                return False
             for row in out:
                 prior=before.get(row['id'])
                 if not prior:continue
@@ -493,14 +572,14 @@ def reconcile(store,scan_id):
                 if old.get('method')!=VERSION or claim['provenance']!={'actor':'deterministic-discovery','method':VERSION} or claim['statement']!=old['statement']:
                     row.update(classification='not-verifiable',reason='Current reviewed meaning/ownership does not match the source assertion; manual review required.')
                     continue
-                relevant=[g for g in negative_gaps if g['project']==old['project']]
+                relevant=[g for g in negative_gaps if g['project'] in (old['project'],'.')]
                 if relevant:
                     row.update(classification='not-verifiable',reason='Excluded/unsupported source prevents negative evidence proof.',coverage_gaps=relevant)
                     continue
                 # Before/after exact source proof + complete lexical inventory + reference/consumer search.
-                raw=subprocess.run(['git','-C',str(store.project.root),'show',delta['base']+':'+old['path']],capture_output=True)
+                raw=git_process(store.project.root,'show',delta['base']+':'+old['path'])
                 if raw.returncode or not base_source_matches(raw.stdout,old,old_snapshot):continue
-                if re.search(r'(?<![A-Za-z0-9_])'+re.escape(old['subject'])+r'(?![A-Za-z0-9_])',texts):continue
+                if referenced(old['subject']):continue
                 row.update(classification='proposed-retirement',retirement_proposed=True,
                            reason='Verified base source contained this lexical declaration; current full lexical inventory and consumers no longer contain its subject. No claim about external deployment.')
                 retirement.append(life.op('retire','claims',row['id'],life.revision(db,row['id'])))
@@ -544,7 +623,31 @@ def candidate_refreshes(db):
     return links
 
 
-def equivalent_candidate(db,value):
+class CandidateIndex:
+    """One validated transaction-local index, incrementally updated by this writer.
+
+    Avoid rescanning/decoding the whole queue for every extracted declaration.
+    Human dispositions, committed plans and source refresh links keep the same
+    precedence as the non-batch APIs. No schema or persistent index migration.
+    """
+    def __init__(self,db):
+        from .providers import semantic_bindings
+        self.groups={};self.ids=set();self.links=candidate_refreshes(db);self.semantic=semantic_bindings(db)
+        self.owned={cid for payload, in db.execute("SELECT payload FROM plans WHERE status='COMMITTED'") for cid in loads(payload)['included']}
+        for cid,payload,status in db.execute('SELECT id,payload,status FROM queue ORDER BY id'):
+            self.add(cid,loads(payload),status)
+    def add(self,cid,item,status):
+        if cid in self.ids:return
+        self.ids.add(cid)
+        if item['version']==2:
+            group=self.groups.setdefault(proposal_identity(item),[]);group.append((cid,item,status));group.sort(key=lambda row:row[0])
+
+
+def equivalent_candidate(db,value,index=None):
+    if index is not None:
+        matches=index.groups.get(proposal_identity(value),[])
+        decided=next(((cid,status) for cid,item,status in matches if status in ('rejected','deferred','imported')),None)
+        return decided or next(((cid,status) for cid,item,status in matches if cid not in index.links and item['source']==value['source']),None)
     signature=proposal_identity(value);links=candidate_refreshes(db);matches=[]
     for cid,payload,status in db.execute('SELECT id,payload,status FROM queue ORDER BY id'):
         item=loads(payload)
@@ -555,20 +658,23 @@ def equivalent_candidate(db,value):
     return next(((cid,status) for cid,item,status in matches if cid not in links and item['source']==value['source']),None)
 
 
-def refresh_pending(db,cid,value):
+def refresh_pending(db,cid,value,index=None):
     """Called only after a freshly observed replacement enters the durable queue."""
     if value['version']!=2 or value['source'] is None:return
-    links=candidate_refreshes(db)
+    links=index.links if index else candidate_refreshes(db)
     require(cid not in links,'historical-candidate-refresh-requires-new-observation')
-    owned={c for payload, in db.execute("SELECT payload FROM plans WHERE status='COMMITTED'") for c in loads(payload)['included']}
+    owned=index.owned if index else {c for payload, in db.execute("SELECT payload FROM plans WHERE status='COMMITTED'") for c in loads(payload)['included']}
     signature=proposal_identity(value)
-    for old,payload,status in list(db.execute('SELECT id,payload,status FROM queue')):
-        prior=loads(payload)
-        if old==cid or old in links or old in owned or status!='pending' or prior['version']!=2 or prior['source'] is None:continue
+    from .providers import semantic_bindings
+    semantic=index.semantic if index else semantic_bindings(db)
+    rows=index.groups.get(signature,[])[:] if index else [(old,loads(payload),status) for old,payload,status in db.execute('SELECT id,payload,status FROM queue')]
+    for old,prior,status in rows:
+        if old==cid or old in links or old in owned or old in semantic or status!='pending' or prior['version']!=2 or prior['source'] is None:continue
         if prior['source']['identity']==value['source']['identity'] or proposal_identity(prior)!=signature:continue
         receipt=dict(version=1,previous=old,replacement=cid,at=life.now())
         db.execute('INSERT INTO metadata VALUES (?,?)',(REFRESH_PREFIX+old,canonical_json(receipt)))
         db.execute('INSERT INTO history(payload) VALUES (?)',(canonical_json(dict(event='candidate-refreshed',**receipt)),))
+        if index is not None:index.links[old]=receipt
 
 
 def proposal_identity(value):
@@ -650,7 +756,8 @@ def analysis_scope(root,snapshot=None):
     for path,entry in sorted(snapshot['files'].items()):
         if entry['status']=='blocked':continue
         try:observations,_,_=extract(root,path,entry)
-        except (OSError,UnicodeError):complete=False;continue
+        except (OSError,UnicodeError,KnowledgeError):complete=False;continue
+        if entry.get('processing_status')=='partial':complete=False
         for observation in observations:groups.setdefault(observation['id'],[]).append(observation)
     for identifier,items in list(groups.items()):
         if len(items)>1 and all(equivalent_occurrence(items[0],o) for o in items[1:]):
@@ -674,7 +781,7 @@ def negative_coverage_gaps(snapshot):
         if any(part in administrative for part in path.parts):continue
         relevant=path.suffix.lower() in {'.cs','.csproj','.props','.targets','.fs','.vb','.razor','.json','.config'} or not path.suffix
         if not relevant:continue
-        for project in projects:
+        for project in projects or ['.']:
             directory=Path(project).parent
             if directory==path.parent or directory in path.parents or directory==Path('.'):
                 result.append({'project':project,'path':str(path),'reason':'excluded potentially live source/configuration; no absence proof'})

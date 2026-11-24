@@ -326,7 +326,8 @@ class MachineMcpTests(unittest.TestCase):
                     initialized = request(101, 'initialize', {'protocolVersion': '2025-11-25', 'clientInfo': {'name': 'knowledge-wire-test', 'version': '1'}, 'capabilities': {'roots': {}}})
                     self.assertIn('tools', initialized['capabilities'])
                     send({'method': 'notifications/initialized'})
-                    self.assertEqual(len(request(102, 'tools/list', {})['tools']), 4)
+                    from knowledge.machine_mcp import TOOL_NAMES
+                    self.assertEqual({item['name'] for item in request(102, 'tools/list', {})['tools']},TOOL_NAMES)
                     for identifier, directory, text in ((103, first, 'FIRST unique'), (104, second, 'SECOND unique')):
                         roots[:] = [directory]
                         value = request(identifier, 'tools/call', {'name': 'knowledge_get_claim', 'arguments': {'identifier': 'machine.common'}})
@@ -360,11 +361,11 @@ class ReviewedCandidateTests(unittest.TestCase):
             operations = [lifecycle.op('supersede', 'claims', first, states[first]['revision'], successor=successor),
                           lifecycle.op('retire', 'claims', retired, states[retired]['revision'])]
             candidate = lifecycle.batch(operations, 'Reviewed fixture lifecycle decisions; no inference from lexical absence.', binding)
-            result = execute('knowledge-candidates-update', install, root, {'candidates': [candidate]})
+            result = execute('knowledge-candidates-update', install, root, {'candidates': [candidate], 'allow_test_double':True})
             self.assertEqual(result['added'], 1)
             cid = result['results'][0]['candidate']
             lifecycle.dispose(store, cid, 'deferred', 'Fixture review decision retained')
-            repeated = execute('knowledge-candidates-update', install, root, {'candidates': [candidate]})
+            repeated = execute('knowledge-candidates-update', install, root, {'candidates': [candidate], 'allow_test_double':True})
             self.assertEqual(repeated['skipped'], 1)
             self.assertEqual(repeated['results'][0]['status'], 'deferred')
             lifecycle.dispose(store, cid, 'pending', 'Explicit fixture review resumes this candidate')
@@ -449,8 +450,10 @@ class BlockedRecoveryTests(unittest.TestCase):
             with patch.object(discovery, 'extract', side_effect=OSError('temporary source read failure')):
                 failed = discovery.scan(store, max_files=1)
             output = install / 'blocked-recovery'
-            with self.assertRaisesRegex(ScanError, 'Coverage is blocked'):
-                run(root, output, scan_id=failed['id'], max_files=1)
+            self.assertEqual(run(root, output, scan_id=failed['id'], max_files=1),2)
+            terminal=json.loads((output/'last-result.json').read_text())
+            self.assertEqual(terminal['work']['remaining_files'],0)
+            self.assertEqual(terminal['state'],'COMPLETED_WITH_GAPS')
             self.assertEqual(run(root, output, max_files=1, retry_blocked=True), 0)
             result = json.loads((output / 'last-result.json').read_text())
             self.assertTrue(result['complete'])

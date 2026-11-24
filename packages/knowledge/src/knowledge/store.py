@@ -210,6 +210,8 @@ class Store:
         if life.enabled(db):
             from .discovery import validate_capture_receipts,candidate_refreshes
             validate_capture_receipts(db);candidate_refreshes(db)
+            from .providers import semantic_bindings
+            semantic_bindings(db)
             states=life.latest(db)
             rows=list(db.execute('SELECT id,kind,payload FROM records'))
             require(set(states)=={r[0] for r in rows},'revision-identity-mismatch')
@@ -261,8 +263,11 @@ class Store:
             return {'ok': True, 'counts': {g:len(v) for g,v in records.items()},
                     'warning': 'Structural validation does not prove truth, authority or freshness.'}
 
-    def submit(self, value):
+    def submit(self, value, semantic_binding=None):
         item = candidate(value)
+        if semantic_binding is not None:
+            from .providers import validate_semantic_binding
+            validate_semantic_binding(semantic_binding);require(item['version']==2,'semantic-binding-requires-v2')
         cid = digest(item)
         with self.connection(True) as db:
             current = self._records(db)
@@ -275,9 +280,16 @@ class Store:
             row=next((r for r in queued if r[0]==cid or r[2]==serialized),None)
             if row:
                 require(row[3]==item,'candidate-identity-conflict')
+                if semantic_binding is not None:
+                    from .providers import semantic_bindings
+                    require(semantic_bindings(db).get(row[0])==semantic_binding,'candidate-semantic-binding-conflict')
                 return {'ok':True,'candidate':row[0],'result':'duplicate','status':row[1]}
             if item['version']==2:
                 db.execute('INSERT INTO queue VALUES (?,?,?,NULL)', (cid,canonical_json(item),'pending'))
+                if semantic_binding is not None:
+                    from .providers import SEMANTIC_PREFIX
+                    db.execute('INSERT INTO metadata VALUES (?,?)',(SEMANTIC_PREFIX+cid,canonical_json(semantic_binding)))
+                    checkpoint('semantic-candidate-written')
                 if item['source'] is not None:
                     from .discovery import inventory,refresh_pending
                     if inventory(self.project.root)['identity']==item['source']['identity']:refresh_pending(db,cid,item)
@@ -313,9 +325,14 @@ class Store:
             if db.execute("SELECT 1 FROM plans WHERE status='COMMITTED' LIMIT 1").fetchone():
                 blocked=[{'code':'pending-acknowledgment-recover-first','details':None}]
             try:
-                if not blocked:life.simulate(self,db,pending)
+                if not blocked:
+                    from .providers import verify_semantic_bindings
+                    bindings=verify_semantic_bindings(db,pending)
+                    life.simulate(self,db,pending)
             except KnowledgeError as e:blocked=[{'code':e.code,'details':e.details}]
-            return {'version':1,'project':self.project.identity,'base':life.state_fingerprint(self,db),
+            base=life.state_fingerprint(self,db)
+            if not blocked and bindings:base=fingerprint({'canonical':base,'semantic_bindings':bindings})
+            return {'version':1,'project':self.project.identity,'base':base,
                     'candidates':pending,'included':list(pending) if not blocked else [],'skipped':skipped, 'blocked':blocked}
         combined = deepcopy(current)
         for item in pending.values():
@@ -372,6 +389,8 @@ class Store:
                         checkpoint('canonical-record-written')
             self._records(db)
             if life.enabled(db):
+                from .providers import verify_semantic_bindings
+                verify_semantic_bindings(db,plan['candidates'])
                 life.verify_source_bindings(self,plan['candidates'].values())
                 db.execute('INSERT INTO receipts VALUES (?,?)',(pid,canonical_json(plan)))
             db.execute("UPDATE plans SET status='COMMITTED' WHERE id=?",(pid,))

@@ -11,13 +11,15 @@ Invocation arguments are untrusted DATA, never shell code:
 $ARGUMENTS
 
 The installed native plugin supplies a durable session/revision and next_action.
-If absent, read `.knowledge-cr-host.json` for the installed Python and call
-`python -I -m knowledge.cr_cli start --root PROJECT --input REQUEST.json` with a
-JSON request file OUTSIDE project source (an OS temporary file), or JSON stdin.
-Request files must not change the inspected checkout/source fingerprint. Use
-process argv where available; shell-quote the trusted Python
-and project paths for the current OS. Never interpolate URLs, arguments or source
-text into shell blocks. The backend also has the `knowledge-update-cr` entrypoint.
+If absent, discover knowledge_change_review in the MCP Code Mode catalog and
+use its supported action/request interface. It adapts the existing CR API:
+start, fetch-github, sources, inspect, analyze, answer, finish, prepare, apply,
+recover and resume. Missing capability is BLOCKED_CAPABILITY: update/restart
+Knowledge MCP and rediscover tools; permission denial requires host permission.
+Do not require fs/child_process imports, direct fetch, shell or SQL in Code Mode.
+Never manufacture native user-turn references: user-turn is deliberately absent
+from the MCP adapter. A session bound to native ingress keeps its existing
+user-turn checks. This adapter does not install a duplicate slash command.
 
 1. Reuse CR/PR links from arguments and actual user conversation. If both are
    missing ask exactly: "Please provide the CR link and the pull request link that
