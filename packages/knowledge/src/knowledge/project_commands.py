@@ -112,7 +112,7 @@ def job_summary(folder, binding, provider):
               'provider_evidence': provider['evidence'], 'job': state['job'], 'scan_id': state.get('scan_id'),
               'coverage_complete': state['state'] == 'COMPLETED' and state.get('coverage_complete', False), 'work': {k: v for k, v in (state.get('work') or {}).items() if k != 'paths_this_call'}, 'scope': state['scope'],
               'coverage':state.get('counters'), 'processing_complete':state.get('processing_complete',False),'phase':state.get('phase'),
-              'source':state.get('source'),
+              'source':state.get('source'),'checkpoint_error':state.get('checkpoint_error'),
               'candidates_in_scan': state.get('candidates', 0), 'queued_added': state.get('queued_added'), 'skipped_existing': state.get('skipped_existing'), 'reconciliation': state.get('reconciliation'), 'gaps': state.get('gaps', 0), 'diagnostics': str(folder),
               'semantic_status': 'BLOCKED_CAPABILITY' if state.get('identity_verification') and not state['identity_verification']['complete'] else 'PARTIAL', 'identity_verification': state.get('identity_verification'), 'semantic_coverage_complete': False,
               'limitations': ['Deterministic .NET lexical extraction and content inventory; no runtime/business understanding.',
@@ -121,6 +121,7 @@ def job_summary(folder, binding, provider):
               'next_action': 'Poll status until terminal; then /knowledge-candidates-push for separate plan review.'}
     if state['state'] == 'COMPLETED': result.update(state='PARTIAL', next_action='/knowledge-candidates-push; review semantic gaps before approval.')
     if 'error' in state: result.update(error=state['error'], next_action=state['next_action'])
+    if state.get('checkpoint_error'):result['next_action']=state['next_action']
     return result
 
 

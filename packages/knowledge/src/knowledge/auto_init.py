@@ -86,6 +86,20 @@ def inside(path, root):
     return path == root or root in path.parents
 
 
+def read_checkpoint(path):
+    saved=read_json(path)
+    if not isinstance(saved,dict):raise ScanError('Invalid checkpoint object.')
+    if saved.get('version')==2:
+        body={k:v for k,v in saved.items() if k!='checksum'}
+        if saved.get('checksum')!=hashlib.sha256(json.dumps(body,sort_keys=True).encode()).hexdigest():
+            raise ScanError('Corrupt checkpoint checksum; observe diagnostics section=scans before explicit recovery.')
+    elif saved.get('version')!=1:raise ScanError('Unsupported checkpoint version.')
+    scan_id=saved.get('scan_id')
+    if not isinstance(scan_id,str) or len(scan_id)!=64 or any(c not in '0123456789abcdef' for c in scan_id):
+        raise ScanError('Invalid checkpoint scan_id; observe diagnostics section=scans.')
+    return saved
+
+
 def run(root, output, scan_id=None, max_files=100, max_calls=10000,
         command_timeout=600, fresh=False, base=None, head=None, incremental=False, retry_blocked=False,
         cancel_path=None, cancel_job=None, refresh=False, lease_fds=()):
@@ -101,12 +115,7 @@ def run(root, output, scan_id=None, max_files=100, max_calls=10000,
     output.mkdir(parents=True, exist_ok=True)
     checkpoint = output / 'checkpoint.json'
     if not scan_id and not fresh and not refresh and checkpoint.exists():
-        saved = read_json(checkpoint)
-        if saved.get('version') == 2:
-            body = {k:v for k,v in saved.items() if k != 'checksum'}
-            if saved.get('checksum') != hashlib.sha256(json.dumps(body,sort_keys=True).encode()).hexdigest():
-                raise ScanError('Corrupt checkpoint checksum; observe scan-status before choosing an explicit fresh scan.')
-        elif saved.get('version') != 1: raise ScanError('Unsupported checkpoint version.')
+        saved = read_checkpoint(checkpoint)
         if os.path.normcase(saved.get('root', '')) != os.path.normcase(str(root)) or saved.get('scope', {'base': None, 'head': None, 'incremental': False}) != {'base': base, 'head': head, 'incremental': incremental}:
             raise ScanError('Checkpoint belongs to a different root; choose another --output.')
         scan_id = saved.get('scan_id')
@@ -114,7 +123,7 @@ def run(root, output, scan_id=None, max_files=100, max_calls=10000,
             raise ScanError('Invalid checkpoint scan_id; inspect checkpoint.json.')
     if retry_blocked and (not scan_id or fresh):
         raise ScanError('--retry-blocked requires the observed scan ID/checkpoint and cannot be combined with --fresh.')
-    print('Knowledge scan helper 1.1', flush=True)
+    print('Knowledge scan helper 2', flush=True)
     print('Project: ' + str(root), flush=True)
     print('Diagnostics: ' + str(output), flush=True)
     if scan_id:

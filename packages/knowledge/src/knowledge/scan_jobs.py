@@ -9,7 +9,7 @@ from pathlib import Path
 import subprocess
 import sys
 import uuid
-from .auto_init import run, write_json, read_json, ScanError, ScanCancelled
+from .auto_init import run, write_json, read_json, read_checkpoint, ScanError, ScanCancelled
 from .execution_lock import ExecutionLock, ProjectExecutionLock
 from .project import safe_path
 from .util import require, loads
@@ -81,7 +81,11 @@ def status(folder):
         # still own stdout. Completion includes releasing both owned processes.
         state = {**state, 'state': 'RUNNING', 'phase': 'FINALIZING'}
     checkpoint = folder / 'checkpoint.json'
-    if checkpoint.exists(): state['scan_id'] = read_json(checkpoint)['scan_id']
+    if checkpoint.exists():
+        try:state['scan_id']=read_checkpoint(safe_path(checkpoint))['scan_id']
+        except (ScanError,ValueError,OSError) as error:
+            state['checkpoint_error']=str(error)[:300]
+            state['next_action']='Observe diagnostics section=scans; explicitly resume with verified observed_scan_id, or choose fresh. Corrupt checkpoint is never trusted.'
     last = folder / 'progress.json'
     if last.exists():
         value = read_json(last)

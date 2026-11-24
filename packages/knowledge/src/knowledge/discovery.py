@@ -117,6 +117,15 @@ def inventory(root,base=None,head=None):
                         if custom or (p.suffix.lower()=='.csproj' and not sdk.startswith('Microsoft.NET.Sdk')):
                             files[rel]['negative_scope_reason']='custom source inclusion/import/SDK requires manual coverage validation'
                     except (ET.ParseError,KnowledgeError,UnicodeError):files[rel]['negative_scope_reason']='unverifiable project/source-inclusion XML'
+            except KnowledgeError as error:
+                # Refuse this object before opening it, while retaining an
+                # explicit coverage gap. Integrity/source-change errors still
+                # abort; they are not recoverable extraction failures.
+                if error.code not in ('unsafe-filesystem-object','linked-path','unsupported-windows-path'):
+                    raise
+                files[rel]={'hash':None,'status':'blocked','partition':'.','reason':error.code,
+                            'reason_code':'UNSAFE_PATH','stage':'inventory','retry_eligible':False,
+                            'exception':type(error).__name__}
             except OSError as error:
                 code='ACCESS_DENIED' if isinstance(error,PermissionError) else 'UNREADABLE'
                 files[rel]={'hash':None,'status':'blocked','partition':'.','reason':code,'reason_code':code,
@@ -404,6 +413,9 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incre
                     raise  # Integrity, ownership and linked-path violations are fatal.
                 observations,status,reason=[],'excluded' if error.code=='EXCLUDED_BINARY' else 'blocked',error.code
                 state['coverage'][path].update(error.details or {},processing_status='excluded' if status=='excluded' else 'failed')
+            except (ValueError,TypeError,RuntimeError) as error:
+                observations,status,reason=[],'blocked','EXTRACTION_FAILED'
+                state['coverage'][path].update(reason_code=reason,stage='extract',exception=type(error).__name__,processing_status='failed',retry_eligible=False)
             extracted_this_call.append(path)
             # Ambiguous identities from overloads/duplicate declarations are gaps, never guessed.
             existing={o['id'] for o in state['observations']}
@@ -450,6 +462,7 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incre
         # file failures. Never guess identity in a partition with unexamined code.
         if state['processing_complete']:
             records=store._records(db);states=life.latest(db)
+            candidate_index=CandidateIndex(db)
             state['compatibility']=[]
             state['reintroductions']=[]
             state['review_required']=[]
@@ -475,9 +488,11 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incre
                     cid=digest(value)
                     # Equivalent decided observations retain their disposition.
                     # Pending old snapshots get a new, separately approved binding.
-                    if equivalent_candidate(db,value) is None:
-                        db.execute('INSERT OR IGNORE INTO queue VALUES (?,?,?,NULL)',(cid,canonical_json(value),'pending'))
-                        refresh_pending(db,cid,value)
+                    if equivalent_candidate(db,value,candidate_index) is None:
+                        inserted=db.execute('INSERT OR IGNORE INTO queue VALUES (?,?,?,NULL)',(cid,canonical_json(value),'pending'))
+                        if not inserted.rowcount:require(loads(db.execute('SELECT payload FROM queue WHERE id=?',(cid,)).fetchone()[0])==value,'candidate-identity-conflict')
+                        candidate_index.add(cid,value,'pending')
+                        refresh_pending(db,cid,value,candidate_index)
                         if not state['complete']:
                             receipt=dict(version=1,extractor=VERSION,observation=obs,candidate=cid,source=snap['identity'])
                             db.execute('INSERT OR IGNORE INTO metadata VALUES (?,?)',(CAPTURE_RECEIPT+digest(receipt),canonical_json(receipt)))
@@ -608,7 +623,31 @@ def candidate_refreshes(db):
     return links
 
 
-def equivalent_candidate(db,value):
+class CandidateIndex:
+    """One validated transaction-local index, incrementally updated by this writer.
+
+    Avoid rescanning/decoding the whole queue for every extracted declaration.
+    Human dispositions, committed plans and source refresh links keep the same
+    precedence as the non-batch APIs. No schema or persistent index migration.
+    """
+    def __init__(self,db):
+        from .providers import semantic_bindings
+        self.groups={};self.ids=set();self.links=candidate_refreshes(db);self.semantic=semantic_bindings(db)
+        self.owned={cid for payload, in db.execute("SELECT payload FROM plans WHERE status='COMMITTED'") for cid in loads(payload)['included']}
+        for cid,payload,status in db.execute('SELECT id,payload,status FROM queue ORDER BY id'):
+            self.add(cid,loads(payload),status)
+    def add(self,cid,item,status):
+        if cid in self.ids:return
+        self.ids.add(cid)
+        if item['version']==2:
+            group=self.groups.setdefault(proposal_identity(item),[]);group.append((cid,item,status));group.sort(key=lambda row:row[0])
+
+
+def equivalent_candidate(db,value,index=None):
+    if index is not None:
+        matches=index.groups.get(proposal_identity(value),[])
+        decided=next(((cid,status) for cid,item,status in matches if status in ('rejected','deferred','imported')),None)
+        return decided or next(((cid,status) for cid,item,status in matches if cid not in index.links and item['source']==value['source']),None)
     signature=proposal_identity(value);links=candidate_refreshes(db);matches=[]
     for cid,payload,status in db.execute('SELECT id,payload,status FROM queue ORDER BY id'):
         item=loads(payload)
@@ -619,22 +658,23 @@ def equivalent_candidate(db,value):
     return next(((cid,status) for cid,item,status in matches if cid not in links and item['source']==value['source']),None)
 
 
-def refresh_pending(db,cid,value):
+def refresh_pending(db,cid,value,index=None):
     """Called only after a freshly observed replacement enters the durable queue."""
     if value['version']!=2 or value['source'] is None:return
-    links=candidate_refreshes(db)
+    links=index.links if index else candidate_refreshes(db)
     require(cid not in links,'historical-candidate-refresh-requires-new-observation')
-    owned={c for payload, in db.execute("SELECT payload FROM plans WHERE status='COMMITTED'") for c in loads(payload)['included']}
+    owned=index.owned if index else {c for payload, in db.execute("SELECT payload FROM plans WHERE status='COMMITTED'") for c in loads(payload)['included']}
     signature=proposal_identity(value)
     from .providers import semantic_bindings
-    semantic=semantic_bindings(db)
-    for old,payload,status in list(db.execute('SELECT id,payload,status FROM queue')):
-        prior=loads(payload)
+    semantic=index.semantic if index else semantic_bindings(db)
+    rows=index.groups.get(signature,[])[:] if index else [(old,loads(payload),status) for old,payload,status in db.execute('SELECT id,payload,status FROM queue')]
+    for old,prior,status in rows:
         if old==cid or old in links or old in owned or old in semantic or status!='pending' or prior['version']!=2 or prior['source'] is None:continue
         if prior['source']['identity']==value['source']['identity'] or proposal_identity(prior)!=signature:continue
         receipt=dict(version=1,previous=old,replacement=cid,at=life.now())
         db.execute('INSERT INTO metadata VALUES (?,?)',(REFRESH_PREFIX+old,canonical_json(receipt)))
         db.execute('INSERT INTO history(payload) VALUES (?)',(canonical_json(dict(event='candidate-refreshed',**receipt)),))
+        if index is not None:index.links[old]=receipt
 
 
 def proposal_identity(value):

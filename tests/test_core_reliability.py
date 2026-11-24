@@ -14,7 +14,7 @@ import tracemalloc
 import unittest
 from unittest.mock import patch
 from knowledge import discovery as d, lifecycle, providers, source_reader as reader
-from knowledge.auto_init import run, read_json, write_json, ScanError
+from knowledge.auto_init import run, read_json, write_json, ScanError,lease_options
 from knowledge.store import Store
 from knowledge.util import KnowledgeError
 from knowledge.project_commands import execute, diagnostics
@@ -36,6 +36,16 @@ def finish(store,maximum=2,scan=None,**kwargs):
 
 
 class SourceReliability(unittest.TestCase):
+    def test_hardlink_is_never_read_and_does_not_stop_independent_files(self):
+        with tempfile.TemporaryDirectory() as tmp,tempfile.TemporaryDirectory() as outside:
+            root=Path(tmp);target=Path(outside)/'secret.cs';target.write_text('public class Outside {}')
+            os.link(target,root/'hard.cs');(root/'safe.cs').write_text('public class Safe {}')
+            value,_=finish(upgraded(root))
+            self.assertEqual(value['coverage']['hard.cs']['reason_code'],'UNSAFE_PATH')
+            self.assertEqual(value['counters']['processed_files'],1)
+            self.assertEqual([o['subject'] for o in value['observations']],['Safe'])
+            self.assertFalse(value['complete'])
+
     def test_mixed_encodings_and_declared_cp1251_preserve_raw_hashes(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)
@@ -99,6 +109,60 @@ class SourceReliability(unittest.TestCase):
 
 
 class ScanReliability(unittest.TestCase):
+    def test_observed_resume_recovers_committed_chunk_without_helper_checkpoint(self):
+        from knowledge.project_commands import configure_project,machine_binding
+        from knowledge.project import Project
+        with tempfile.TemporaryDirectory() as tmp:
+            install,root=fixture(tmp,4);store=upgraded(root);configure_project(install,Project(root))
+            folder=install/'state/projects'/Project(root).identity/'full';folder.mkdir(parents=True)
+            original=write_json
+            def failed_checkpoint(path,value):
+                if path.name=='checkpoint.json':raise OSError('synthetic checkpoint storage failure')
+                return original(path,value)
+            with contextlib.redirect_stdout(io.StringIO()),patch('knowledge.auto_init.write_json',failed_checkpoint):
+                with self.assertRaises(OSError):run(root,folder,max_files=1)
+            observed=d.status(store)['scans'][0];processed=set(observed['work']['paths_this_call'])
+            write_json(folder/'job.json',{'version':1,'job':'synthetic-crashed-worker','pid':1073741823,'state':'RUNNING',
+                       'root':str(root),'scope':{'kind':'full'},'binding':machine_binding(install,Project(root))[0],'chunk_started':True})
+            listed=diagnostics(install,root,section='scans');self.assertEqual(listed['rows'][0]['scan_id'],observed['id'])
+            # Observation/recovery remains possible even if an atomic write
+            # was externally corrupted after the durable SQLite commit.
+            write_json(folder/'checkpoint.json',{'version':2,'scan_id':'0'*64,'checksum':'corrupt'})
+            self.assertEqual(diagnostics(install,root,section='scans')['rows'][0]['scan_id'],observed['id'])
+            execute('knowledge-init',install,root,{'resume':True,'observed_scan_id':observed['id'],'max_files':10})
+            result=wait(install,root);self.assertTrue(result['coverage_complete'],result);self.assertEqual(result['scan_id'],observed['id'])
+            final=d.status(store,observed['id'])['scans'][0];self.assertFalse(processed.intersection(final['work']['paths_this_call']))
+
+    def test_chunk_child_retains_writer_lease_after_parent_releases_its_handle(self):
+        from knowledge.execution_lock import ProjectExecutionLock
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);lease=ProjectExecutionLock(root).acquire();child=None
+            try:
+                with lease_options(lease.fds) as options:
+                    child=subprocess.Popen([sys.executable,'-c','import sys;print("ready",flush=True);sys.stdin.readline()'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,**options)
+                self.assertEqual(child.stdout.readline().strip(),b'ready');lease.close()
+                with self.assertRaisesRegex(KnowledgeError,'project-writer-busy'):ProjectExecutionLock(root).acquire()
+                child.stdin.close();child.wait(timeout=10)
+                acquired=ProjectExecutionLock(root).acquire();acquired.close()
+            finally:
+                lease.close()
+                if child:
+                    if child.poll() is None:child.kill();child.wait(timeout=10)
+                    child.stdin.close();child.stdout.close()
+
+    def test_bulk_queue_index_bounds_queue_reads_and_preserves_actual_candidates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            install,root=fixture(tmp,80);store=upgraded(root);queries=[]
+            original=store.connection
+            @contextlib.contextmanager
+            def traced(*args,**kwargs):
+                with original(*args,**kwargs) as db:
+                    db.set_trace_callback(queries.append);yield db
+            with patch.object(store,'connection',traced):value=d.scan(store,max_files=1000)
+            self.assertTrue(value['complete']);self.assertEqual(len(store.status()['queue']),81)
+            full_queue_reads=[q for q in queries if 'FROM QUEUE' in q.upper() and 'WHERE' not in q.upper()]
+            self.assertLess(len(full_queue_reads),20,full_queue_reads[:20])
+
     def test_helper_continues_after_first_failure_and_preserves_safe_positive_candidates(self):
         with tempfile.TemporaryDirectory() as tmp:
             install,root=fixture(tmp,9);(root/'bad.json').write_bytes(b'\xff')

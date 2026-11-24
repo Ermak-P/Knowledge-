@@ -163,7 +163,9 @@ def main():
         # the first wheel. This mutation exists ONLY in the temporary fixture.
         module = source / 'packages/knowledge/src/knowledge/__init__.py'
         module.write_text(module.read_text(encoding='utf-8') + '\nMACHINE_INSTALL_TEST = "changed-source-bytes"\n', encoding='utf-8')
-        changed_source_hash = sha(module)
+        # The release builder normalizes Python wheel members to LF on every
+        # platform. Compare the actual delivered domain, not checkout CRLF.
+        changed_source_hash = hashlib.sha256(module.read_bytes().replace(b'\r\n',b'\n')).hexdigest()
         changed = command('source-same-version-new-bytes', install_args(source, standalone, False), source_env, cwd)
         assert changed.startswith('UPDATED')
         new_current = read(standalone / 'current.json'); assert current['source_identity'] != new_current['source_identity']

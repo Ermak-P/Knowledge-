@@ -206,3 +206,8 @@ and verification claims are defined in the separate P1 contract and run packet.
 Automatic .NET testing (runner v2): [contract](docs/P4/AUTOMATIC-TESTS.md), [machine installation (RU)](docs/P4/INSTALL-RU.md), [project setup (RU)](docs/P4/PROJECT-SETUP-RU.md). Normal .NET templates have only trusted build recipes; every case-insensitive `*Tests.csproj` is a mandatory automatic gate.
 
 Non-SDK .NET Framework compatibility correction: [R1 qualification](reports/AutomaticTests/R1/ACCEPTANCE.md), [toolchain and prerequisites](docs/P4/AUTOMATIC-TESTS.md#legacy-net-framework-projects-r1).
+
+## Core reliability delivery
+
+See [launcher, Code Mode and scan contracts](docs/P4/CORE-RELIABILITY.md) and
+[local Windows/IPM validation](docs/P4/Knowledge-IPM-Integration-Validation.md).
