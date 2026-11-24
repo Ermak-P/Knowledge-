@@ -109,6 +109,15 @@ class SourceReliability(unittest.TestCase):
 
 
 class ScanReliability(unittest.TestCase):
+    def test_isolated_worker_logs_unicode_roots_without_python_environment_flags(self):
+        with tempfile.TemporaryDirectory(prefix='worker Ω кириллица ') as tmp:
+            install,root=fixture(tmp,3)
+            with patch.dict(os.environ,{'PYTHONUTF8':'0','PYTHONIOENCODING':'ascii'}):
+                execute('knowledge-init',install,root,{'max_files':1});state=wait(install,root)
+            self.assertTrue(state['coverage_complete'],state)
+            log=Path(state['diagnostics'])/'progress.log'
+            self.assertIn(str(root),log.read_text(encoding='utf-8'))
+
     def test_observed_resume_recovers_committed_chunk_without_helper_checkpoint(self):
         from knowledge.project_commands import configure_project,machine_binding
         from knowledge.project import Project

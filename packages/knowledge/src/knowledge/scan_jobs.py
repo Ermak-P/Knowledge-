@@ -147,7 +147,9 @@ def start(folder, root, scope, binding, max_files=100, resume=False, fresh=False
             flags=(subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS) if os.name=='nt' else 0
             if os.name=='nt' and os.environ.get('KNOWLEDGE_OWNED_JOB')=='1':flags |= subprocess.CREATE_BREAKAWAY_FROM_JOB
             options = {'creationflags': flags} if os.name == 'nt' else {'start_new_session': True}
-            process = subprocess.Popen([sys.executable, '-I', '-B', '-m', 'knowledge.scan_jobs', '--worker', str(folder)],
+            # Isolated mode ignores PYTHONUTF8/PYTHONIOENCODING. Set the
+            # interpreter flag explicitly for Unicode paths in redirected logs.
+            process = subprocess.Popen([sys.executable, '-I', '-B', '-X', 'utf8', '-m', 'knowledge.scan_jobs', '--worker', str(folder)],
                                        stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, close_fds=True, **options)
         finally: log.close()
         _children[process.pid] = process
