@@ -176,14 +176,16 @@ def main():
             assert required <= names, names
             result['registration'] = [value for value in registered if value['name'] in required]
             result['checks']['global_commands_discovered'] = 'PASS'
-            result['mcp'] = api('/api/mcp' + location_query)['data']
-            knowledge = next(value for value in result['mcp'] if value['name'] == 'knowledge_machine')
+            # Command registration can become visible before asynchronous MCP
+            # registration. Observe the real catalog until connected, retaining
+            # the deadline rather than assuming its first response is populated.
+            knowledge = None
             for _ in range(100):
-                if knowledge['status']['status'] != 'pending': break
-                time.sleep(.1)
                 result['mcp'] = api('/api/mcp' + location_query)['data']
-                knowledge = next(value for value in result['mcp'] if value['name'] == 'knowledge_machine')
-            assert knowledge['status']['status'] == 'connected', result['mcp']
+                knowledge = next((value for value in result['mcp'] if value['name'] == 'knowledge_machine'), None)
+                if knowledge is not None and knowledge['status']['status'] != 'pending': break
+                time.sleep(.1)
+            assert knowledge is not None and knowledge['status']['status'] == 'connected', result['mcp']
             result['checks']['global_mcp_connected'] = 'PASS'
             session = api('/api/session', {'location': {'directory': str(root)}, 'model': {'providerID': 'fixture', 'id': 'fixture'}})['data']
             def command(name, arguments=''):
