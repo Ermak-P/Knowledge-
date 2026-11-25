@@ -44,4 +44,9 @@ def rich(root):
 
 def logical(root):
     store=Store(root);j=Journal(root)
-    return dict(knowledge=store.export(),observations=disc.capture_observation_receipts(store),runs=j.runs(),events={r['id']:j.events(r['id']) for r in j.runs()},actions={r['id']:j.actions(r['id']) for r in j.runs()},outbox={r['id']:j.outbox(r['id']) for r in j.runs()})
+    knowledge=store.export()
+    # P3 predates this optional read-side field; None represents no migration
+    # history, not a change to persisted state. Preserve every nonempty archive
+    # and every other export field in the same-root upgrade/restore comparison.
+    if knowledge.get('identity_history') is None:knowledge.pop('identity_history',None)
+    return dict(knowledge=knowledge,observations=disc.capture_observation_receipts(store),runs=j.runs(),events={r['id']:j.events(r['id']) for r in j.runs()},actions={r['id']:j.actions(r['id']) for r in j.runs()},outbox={r['id']:j.outbox(r['id']) for r in j.runs()})
