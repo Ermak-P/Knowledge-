@@ -133,6 +133,9 @@ class PersistenceRecovery(unittest.TestCase):
         from core_wire import Wire
         with tempfile.TemporaryDirectory() as tmp:
             installation,root=fixture(tmp,0);self.root=root;self.store=Store(root);self.store.init();life.upgrade(self.store,life.upgrade_preview(self.store)['fingerprint'])
+            from knowledge.project_commands import configure_project
+            from knowledge.project import Project
+            configure_project(installation,Project(root));(root/'Project.csproj').unlink()
             self.sources();state=self.legacy_scan();before=self.store.export()['records']
             peer=Wire([sys.executable,'-I','-B','-m','knowledge.machine_mcp','--installation',installation],roots=lambda:[root])
             try:
