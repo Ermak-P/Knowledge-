@@ -104,7 +104,20 @@ def ready(store):
     require(preview['already_upgraded'], 'upgrade-required', preview)
 
 
+def no_scan(root):
+    store=Store(root)
+    counts={}
+    if store.path.exists():
+        store.validate()  # Preserve detailed identity diagnostics before job creation.
+        with store.connection() as db:
+            counts={t:db.execute('SELECT count(*) FROM '+t).fetchone()[0] for t in ('records','queue','plans')}
+    return {'ok':True,'state':'NOT_STARTED','phase':'PRE_SCAN','scan_id':None,'job':None,
+            'database':str(store.path),'database_present':store.path.exists(),'existing_counts':counts,
+            'next_action':'No job was created for this invocation. Existing database data is separate from scan progress. Identity mismatch requires explicit SQLite identity migration; fresh/restart cannot repair it.'}
+
+
 def job_summary(folder, binding, provider):
+    if not (Path(folder)/'job.json').exists():return no_scan(binding['root']['root'])
     state = scan_jobs.status(folder)
     require(state['binding'] == binding, 'scan-provider-configuration-drift')
     result = {'ok': state['state'] not in ('BLOCKED', 'OUTCOME_UNKNOWN'), 'state': state['state'],
@@ -144,6 +157,7 @@ def execute(command, installation, directory, value):
                 'provider':{'endpoint':provider['endpoint'],'model':provider['model'],'evidence':provider['evidence']},
                 'provider_reference':binding['provider_reference'],'host_permission':'Not granted by backend discovery; actual MCP calls remain host-authorized.'}
     if action == 'cancel' and command == 'knowledge-init':
+        if not (state_dir/'full/job.json').exists():return no_scan(root)
         state=scan_jobs.status(state_dir / 'full');require(state['binding']==binding,'scan-provider-configuration-drift')
         return scan_jobs.cancel(state_dir / 'full')
     if action == 'status' and command == 'knowledge-init':
@@ -155,6 +169,7 @@ def execute(command, installation, directory, value):
             require(active['binding']==binding,'active-scan-configuration-drift')
             return job_summary(state_dir/'full',binding,provider)
     if action in ('status','cancel') and command == 'knowledge-candidates-update' and not value.get('base') and not value.get('head'):
+        if not (state_dir/'last-incremental.json').exists():return no_scan(root)
         pointer = loads(safe_path(state_dir / 'last-incremental.json').read_text(encoding='utf-8'))
         require(isinstance(pointer.get('folder'), str) and pointer['folder'].startswith('incremental-') and len(pointer['folder']) == 76 and all(c in '0123456789abcdef' for c in pointer['folder'][12:]), 'invalid-incremental-pointer')
         if action=='cancel':
@@ -234,11 +249,14 @@ def diagnostics(installation,directory,scope='full',section='failures',cursor=0,
     installation=installation_at(installation);root=resolve_root(directory);project=Project(root)
     require(not root.is_relative_to(installation) and not installation.is_relative_to(root),'installation-and-project-must-be-separate')
     base=safe_path(installation / 'state/projects' / project.identity)
+    if not (base/'full/job.json').exists() and scope=='full':return no_scan(root)
+    if scope=='incremental' and not (base/'last-incremental.json').exists():return no_scan(root)
     if scope=='full':folder=base/'full'
     else:
         pointer=read_json(safe_path(base/'last-incremental.json'));name=pointer.get('folder','')
         require(len(name)==76 and name.startswith('incremental-') and all(c in '0123456789abcdef' for c in name[12:]),'invalid-incremental-pointer')
         folder=base/name
+    if not (folder/'job.json').exists():return no_scan(root)
     job=scan_jobs.status(folder);binding,provider=machine_binding(installation,project)
     require(job['binding']['root']==project.describe(),'scan-job-root-binding-mismatch')
     if section=='scans':

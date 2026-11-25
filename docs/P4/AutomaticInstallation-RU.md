@@ -1,5 +1,9 @@
 # Установка Knowledge MCP и подключение проектов
 
+Если `project-identity-mismatch` блокирует существующий SQLite store до создания
+job, используйте [явную миграцию с сохранением данных](SQLITE-IDENTITY-MIGRATION.md).
+Fresh, повторная регистрация MCP и обычный `.ai` import не исправляют эту ошибку.
+
 Исправление надёжности: [bootstrap, Code Mode, покрытия и восстановления](CORE-RELIABILITY.md).
 Отдельная [локальная проверка Windows/IPM](Knowledge-IPM-Integration-Validation.md)
 содержит точные шаги обновления, резервного копирования и отката.

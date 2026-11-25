@@ -139,7 +139,10 @@ class Store:
             require(db.execute('PRAGMA quick_check').fetchone() == ('ok',), 'corrupt-database')
             metadata = dict(db.execute('SELECT key,value FROM metadata'))
             require(metadata.get('format') == 'knowledge-sqlite-v1', 'unsupported-store-format')
-            require(metadata.get('project') == self.project.identity, 'project-identity-mismatch')
+            require(metadata.get('project') == self.project.identity, 'project-identity-mismatch',
+                    {'database':str(self.path),'expected_identity':self.project.identity,
+                     'stored_identity':metadata.get('project'),
+                     'next_action':'Use knowledge.maintain_cli identity-inventory and an explicitly approved identity-preview/apply. Restart, MCP registration and fresh scan cannot repair database identity. Existing data may already be present.'})
             legacy_base = self.project.root/'.ai'
             if legacy_base.exists() and any(legacy_base.iterdir()):
                 require('migration' in metadata, 'ambiguous-dual-stores')
@@ -161,6 +164,8 @@ class Store:
                 db.close()
 
     def _check_control(self, db):
+        from .identity_migration import validate_archive
+        validate_archive(db)
         from .cr_workflow import validate_workflows
         validate_workflows(db,self.project.identity)
         from .operations import validated_view
@@ -449,9 +454,10 @@ class Store:
 
     def status(self):
         from .discovery import candidate_refreshes
+        from .identity_migration import summary
         with self.connection() as db:
             self._records(db)
-            return {'ok':True,'project':self.project.describe(),
+            return {'ok':True,'project':self.project.describe(),'identity_history':summary(db),
                     'queue':[{'id':i,'status':s,'binding':b} for i,s,b in db.execute('SELECT id,status,binding FROM queue ORDER BY id')],
                     'plans':[{'fingerprint':i,'state':s} for i,s in db.execute('SELECT id,status FROM plans ORDER BY id')],
                     'history':[loads(p) for p, in db.execute('SELECT payload FROM history ORDER BY sequence')],
@@ -469,8 +475,9 @@ class Store:
 
     def export(self):
         from .cr_workflow import export_workflows
+        from .identity_migration import summary
         with self.connection() as db:
-            return {'ok':True,'records':self._records(db),
+            return {'ok':True,'records':self._records(db),'identity_history':summary(db),
                     'queue':[{'id':i,'payload':loads(p),'status':s,'binding':b} for i,p,s,b in db.execute('SELECT * FROM queue ORDER BY id')],
                     'history':[loads(p) for p, in db.execute('SELECT payload FROM history ORDER BY sequence')],**self._export_extension(db),**export_workflows(self,db)}
 
