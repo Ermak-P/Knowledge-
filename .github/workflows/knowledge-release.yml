@@ -1,5 +1,7 @@
 name: Knowledge release package
 on:
+  push:
+    tags: ['knowledge-*']
   workflow_dispatch:
     inputs:
       tag:
@@ -16,13 +18,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Build reproducible kit
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           [[ "$RELEASE_TAG" =~ ^knowledge-[A-Za-z0-9._-]+$ ]] || exit 1
           python -m pip install -r requirements-dev.lock
@@ -36,6 +38,16 @@ jobs:
       - name: Create new draft Release (never replace an existing release)
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           gh release create "$RELEASE_TAG" dist/release/*.zip dist/release/*.sha256 --draft --target "$GITHUB_SHA" --title "$RELEASE_TAG" --notes 'Source kit for review; consult exact-source validation receipts and Actions artifacts.'
+      - name: Verify uploaded bytes and retain compact draft asset receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          python scripts/release_receipt.py --tag "$RELEASE_TAG" --commit "$GITHUB_SHA" --directory dist/release --output "$RUNNER_TEMP/release-receipt.json"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag -a "validation-release-$GITHUB_SHA" -F "$RUNNER_TEMP/release-receipt.json" "$GITHUB_SHA"
+          git push origin "refs/tags/validation-release-$GITHUB_SHA"
