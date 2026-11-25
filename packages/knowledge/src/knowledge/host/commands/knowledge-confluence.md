@@ -26,7 +26,12 @@ existing exact approval requirements; report their returned preview if required.
 START / RESUME
 Call action=start with actual discovered capabilities {metadata_only,children,
 search,content} and a bounded operations budget (default 100). Existing unfinished
-runs resume. BUDGET_PAUSED retains the queue; request a larger bounded budget via
+runs resume, including PARTIAL runs. Explicit start {resume:true} preserves the
+run ID, completed work, cursors and analysis checkpoints; it retries only TIMEOUT,
+UNAVAILABLE and INCOMPLETE_RESPONSE, at most three retries per work item. Access
+denials and skipped pages require explicit retry {work:id}, also bounded. A new
+run is intentional via start {fresh:true}; a completed run normally starts fresh.
+Explicit resume refuses a changed scope. BUDGET_PAUSED retains the queue; request a larger bounded budget via
 start {extra_operations:100} when continuing within the approved scope. Never
 loop indefinitely. Work in batches of at most 10 tasks per analysis turn, then
 report the actual persisted progress from action=status. Use fresh bounded contexts

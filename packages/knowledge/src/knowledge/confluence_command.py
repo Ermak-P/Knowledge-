@@ -20,6 +20,8 @@ TABLE_SQL={
  'confluence_seen':'CREATE TABLE confluence_seen(run TEXT NOT NULL,source_id TEXT NOT NULL,payload TEXT NOT NULL,checksum TEXT NOT NULL,PRIMARY KEY(run,source_id))'}
 INDEX_SQL={'confluence_work_next':'CREATE INDEX confluence_work_next ON confluence_work(run,status,priority,id)'}
 META='confluence-command-schema'
+TRANSIENT_FAILURES=frozenset(('TIMEOUT','UNAVAILABLE','INCOMPLETE_RESPONSE'))
+RETRY_LIMIT=3
 
 
 def validate_control(db):
@@ -183,7 +185,14 @@ def start(store,request):
         require(type(extra) is int and 0<=extra<=10000,'invalid-confluence-work-budget')
         caps=request.get('capabilities',{})
         require(isinstance(caps,dict) and set(caps)<= {'metadata_only','children','search','content'} and all(type(v) is bool for v in caps.values()),'invalid-confluence-mcp-capabilities')
-        if run and run['scope']==scope and run['status'] not in ('COMPLETE','PARTIAL','SCOPE_CHANGED'):
+        require(type(request.get('fresh',False)) is bool and type(request.get('resume',False)) is bool and not (request.get('fresh') and request.get('resume')),'invalid-confluence-resume-mode')
+        if request.get('resume'):
+            require(run is not None,'confluence-run-required');require(run['scope']==scope and run['status']!='SCOPE_CHANGED','confluence-scope-changed-restart-required')
+        if run and run['scope']==scope and not request.get('fresh') and (request.get('resume') or run['status'] not in ('COMPLETE','SCOPE_CHANGED')):
+            if run['status']=='PARTIAL':
+                for raw,checksum in list(db.execute("SELECT payload,checksum FROM confluence_work WHERE run=? AND status='FAILED'",(run['id'],))):
+                    work=checked(raw,checksum)
+                    if work.get('failure') in TRANSIENT_FAILURES and work.get('retry_count',0)<RETRY_LIMIT:reset_failed(db,work)
             if 'capabilities' in request:run['capabilities']=caps
             run['budget']+=extra;run['status']='RUNNING';run.pop('integrity',None);save_state(db,'run',run)
         else:
@@ -281,8 +290,15 @@ def complete_work(store,identifier,result):
             work.update(status='SKIPPED' if reason in ('IRRELEVANT','OUTSIDE_SCOPE') else 'FAILED',failure=reason)
             if kind not in ('root','search'):
                 item=seen(db,run,sid)
-                if item:item.update(state='FAILED',failure=reason);save_seen(db,item)
+                if item:
+                    if item['state']!='FAILED':item['state_before_failure']=item['state']
+                    item.update(state='SKIPPED' if work['status']=='SKIPPED' else 'FAILED',failure=reason);save_seen(db,item)
         else:
+            if kind not in ('root','search'):
+                item=seen(db,run,sid)
+                if item and item.get('failure'):
+                    item.pop('failure',None);item['state']=item.pop('state_before_failure','DISCOVERED');save_seen(db,item)
+                work.pop('failure',None)
             if kind=='root':discovered(db,run,result['page'],'mandatory')
             elif kind in ('children','search'):
                 pages=result.get('pages',[]);require(isinstance(pages,list) and len(pages)<=1000,'confluence-discovery-batch-too-large')
@@ -350,6 +366,11 @@ def status(store):
         return {'ok':True,'state':run['status'],'run':run['id'],'scope':scope,'mandatory_sections':sections,'coverage_complete':run['status']=='COMPLETE','coverage_attestation':'client-reported MCP traversal only; live access not independently attested','coverage':counts,'work':work_counts,'completed_operations':run['completed_operations'],'operation_budget':run['budget'],'applied_pages':source_applied,'pending_candidates':pending,'stale_or_incomplete_candidates':len(skipped),'knowledge_update_required':bool(pending or skipped),'unresolved_conflicts':len(conflicts),'clarification_questions':questions[:50],'limitations':limitations,'metadata_retrieval':'metadata-only available' if run['capabilities'].get('metadata_only') else 'metadata-only capability unavailable/unreported; use most efficient supported retrieval','integrity':run.get('integrity','NOT_RUN'),'canonical_unchanged':True}
 
 
+def reset_failed(db,work):
+    require(work.get('retry_count',0)<RETRY_LIMIT,'confluence-work-retry-limit',{'limit':RETRY_LIMIT,'next_action':'Inspect persistent failure; use an intentional fresh run only after correcting it.'})
+    work.update(status='PENDING',retry_count=work.get('retry_count',0)+1);work.pop('last_partial_hash',None);save_work(db,work)
+
+
 def dispatch(store,action,request):
     if action=='scope':return {'ok':True,'scope':scope_value(request['scope'])} if request.get('validate_only') else configure(store,request['scope'])
     if action=='start':return start(store,request)
@@ -362,8 +383,8 @@ def dispatch(store,action,request):
         return status(store)
     if action=='retry':
         with store.connection(True) as db:
-            run=state(db,'run');work=work_at(db,request['work']);require(work['run']==run['id'] and work['status'] in ('FAILED','SKIPPED'),'confluence-work-not-retryable')
-            work.update(status='PENDING',attempts=work['attempts']+1);work.pop('failure',None);save_work(db,work);run['status']='RUNNING';run.pop('integrity',None);save_state(db,'run',run)
+            run=state(db,'run');work=work_at(db,request['work']);require(work['run']==run['id'] and run['scope']==state(db,'scope') and work['status'] in ('FAILED','SKIPPED'),'confluence-work-not-retryable')
+            reset_failed(db,work);run['status']='RUNNING';run.pop('integrity',None);save_state(db,'run',run)
         return status(store)
     if action=='finish':
         validation=store.validate();retention=sync.collect(store)
