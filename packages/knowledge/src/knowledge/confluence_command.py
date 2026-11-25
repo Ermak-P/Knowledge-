@@ -41,45 +41,6 @@ def enable(db):
     db.execute('INSERT INTO metadata VALUES (?,?)',(META,SCHEMA))
 
 
-def state(db,key):
-    if not validate_control(db):return None
-    row=db.execute('SELECT payload,checksum FROM confluence_command_state WHERE key=?',(key,)).fetchone()
-    return checked(*row) if row else None
-
-
-def checked(raw,checksum):
-    value=loads(raw);require(digest(value)==checksum,'corrupt-confluence-command-checkpoint');return value
-
-
-def save_state(db,key,value):db.execute('INSERT OR REPLACE INTO confluence_command_state VALUES (?,?,?)',(key,canonical_json(value),digest(value)))
-
-
-def integrity(db):
-    if not validate_control(db):return
-    for raw,checksum in db.execute('SELECT payload,checksum FROM confluence_command_state'):checked(raw,checksum)
-    for identifier,run,kind,priority,status,raw,checksum in db.execute('SELECT * FROM confluence_work'):
-        value=checked(raw,checksum);require((identifier,run,kind,priority,status)==tuple(value[k] for k in ('id','run','kind','priority','status')),'corrupt-confluence-work-index')
-    for run,sid,raw,checksum in db.execute('SELECT * FROM confluence_seen'):
-        value=checked(raw,checksum);require((run,sid)==(value['run'],value['identity']),'corrupt-confluence-seen-index')
-
-
-def validate_control(db):
-    marker=db.execute('SELECT value FROM metadata WHERE key=?',(META,)).fetchone()
-    found={n for n, in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-    if marker is None:
-        require(not set(TABLES)&found,'incomplete-confluence-command-extension');return False
-    require(marker==(SCHEMA,) and set(TABLES)<=found,'unsupported-confluence-command-extension')
-    for table,columns in TABLES.items():require(tuple(r[1] for r in db.execute('PRAGMA table_info('+table+')'))==columns,'corrupt-confluence-command-schema')
-    return True
-
-
-def enable(db):
-    sync.enable(db)
-    if validate_control(db):return
-    for sql in (*TABLE_SQL.values(),*INDEX_SQL.values()):db.execute(sql)
-    db.execute('INSERT INTO metadata VALUES (?,?)',(META,SCHEMA))
-
-
 def checked(payload,checksum):
     data=loads(payload);require(digest(data)==checksum,'corrupt-confluence-command-checkpoint');return data
 
