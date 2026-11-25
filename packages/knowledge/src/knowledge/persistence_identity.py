@@ -76,6 +76,31 @@ def preferences(db,pending,observations=None):
     for payload, in db.execute("SELECT value FROM metadata WHERE key LIKE 'capture-observation-v1:%'"):
         receipt=loads(payload)
         if receipt['source'] in sources:accept(receipt['observation'],receipt['source'])
+    # Queue-only fallback: prove the exact old/new producer hash from the scoped
+    # statement and ALL typed source proofs. Never invent missing occurrences.
+    # Store prepare/apply separately verifies the original source/provider binding.
+    for item in pending.values():
+        if item.get('version')!=2 or item.get('source') is None:continue
+        proofs={o['id']:o['payload'] for o in item['operations'] if o['kind']=='evidence' and o['payload']}
+        for op in item['operations']:
+            if op['kind']!='claims' or op['action']!='add' or op['id'] not in wanted or op['id'] in result:continue
+            c=op['payload'];match=re.fullmatch(r'(.+) \[([^\[\]]+)\] contains .+ persistence/configuration syntax\.',c['statement'])
+            if not match:continue
+            label,project=match.groups()
+            if Path(project).is_absolute() or '..' in Path(project).parts or '\\' in project or (label!=('root' if project=='.' else Path(project).stem)):continue
+            locations=[]
+            for eid in c['evidence']:
+                e=proofs.get(eid,{})
+                path=e.get('source');location=e.get('location')
+                if not (isinstance(path,str) and not Path(path).is_absolute() and '..' not in Path(path).parts and '\\' not in path
+                        and isinstance(location,str) and re.fullmatch(re.escape(path)+r'#L[1-9][0-9]*',location)
+                        and re.fullmatch(r'sha256:[a-f0-9]{64}',e.get('content_hash',''))
+                        and e.get('provenance')==c['provenance'] and op['id'] in e.get('substantiates',[])):break
+                locations.append(dict(path=path,line=int(location.rsplit('#L',1)[1]),anchor=e['description'],content_hash=e['content_hash']))
+            else:
+                if not locations:continue
+                observation=dict(id=c['id'],category='persistence',project=project,method=METHOD,statement=c['statement'],occurrences=locations,**locations[0])
+                if describe(observation) is not None and c['id'] in compatible_ids(observation):accept(observation,item['source']['identity'])
     return result
 
 

@@ -263,6 +263,11 @@ def diagnostics(installation,directory,scope='full',section='failures',cursor=0,
     if section=='duplicates':
         counts,rows=Store(root).duplicate_diagnostics(group)
         return page(rows,{'ok':True,'section':section,'counts':counts,'group':group,'canonical_unchanged':True},cursor,limit,max_bytes)
+    if section=='scans':
+        scans=discovery.status(Store(root))['scans']
+        rows=[{'scan_id':s['id'],'source_identity':s['snapshot']['identity'],'revision':s['snapshot']['revision'],
+               'complete':s['complete'],'state':s.get('state'),'coverage':s.get('counters'),'incremental':s.get('incremental',False)} for s in scans]
+        return page(rows,{'ok':True,'section':section,'canonical_unchanged':True},cursor,limit,max_bytes)
     base=safe_path(installation / 'state/projects' / project.identity)
     if not (base/'full/job.json').exists() and scope=='full':return no_scan(root)
     if scope=='incremental' and not (base/'last-incremental.json').exists():return no_scan(root)
@@ -274,12 +279,6 @@ def diagnostics(installation,directory,scope='full',section='failures',cursor=0,
     if not (folder/'job.json').exists():return no_scan(root)
     job=scan_jobs.status(folder);binding,provider=machine_binding(installation,project)
     require(job['binding']['root']==project.describe(),'scan-job-root-binding-mismatch')
-    if section=='scans':
-        scans=discovery.status(Store(root))['scans']
-        rows=[{'scan_id':s['id'],'source_identity':s['snapshot']['identity'],'revision':s['snapshot']['revision'],
-               'complete':s['complete'],'state':s.get('state'),'coverage':s.get('counters'),'incremental':s.get('incremental',False)} for s in scans]
-        return {'ok':True,'state':job['state'],'rows':rows[cursor:cursor+limit],'total':len(rows),
-                'next_cursor':cursor+limit if cursor+limit<len(rows) else None,'canonical_unchanged':True}
     require(job.get('scan_id'),'scan-checkpoint-not-yet-available',{'next_action':'Use diagnostics section=scans to observe the durable result before explicit resume with observed_scan_id, or choose fresh. Never start an unobserved retry.'})
     scans=discovery.status(Store(root),job['scan_id'])['scans'];require(len(scans)==1,'unknown-scan');state=scans[0]
     if section in ('failures','coverage'):

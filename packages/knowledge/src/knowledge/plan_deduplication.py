@@ -62,10 +62,20 @@ def reconcile(current,pending,revisions,bindings=None,p1=True,preferred=None,pro
                   or bool(old and revisions.get(reference['id'],{}).get('lifecycle','active')!='active'))
         trusts=[trust(None,c) for c in old]+[trust(cid,c) for cid,_,c in rows]
         if any(value!=trusts[0] for value in trusts[1:]):conflict=True
+        reasons=[]
+        if actions!={'add'}:reasons.append('explicit-update-or-reactivation-target')
+        if len(old)>1:reasons.append('multiple-canonical-identities')
+        if any(meta(c)!=meta(reference) for _,_,c in rows):reasons.append('incompatible-claim-metadata-or-confidence')
+        if incompatible_dates:reasons.append('incompatible-verification-dates')
+        if any(scope(cid)!=scope(leader[0]) for cid,_,_ in rows):reasons.append('source-or-provider-scope-differs')
+        if len(targets)>1:reasons.append('producer-identities-disagree')
+        if not old and producer and (len(targets)!=1 or any(c['id'] not in preferred for _,_,c in rows)):reasons.append('missing-verified-producer-identity')
+        if any(value!=trusts[0] for value in trusts[1:]):reasons.append('incompatible-evidence-trust')
         entry={'group':digest([VERSION,statement]),'statement_hash':digest(statement),'preview':statement[:240],
                'candidates':sorted({cid for cid,_,_ in rows}),'claims':sorted({c['id'] for _,_,c in rows}),
                'canonical':[c['id'] for c in old],'classification':'canonical-match' if old else 'within-plan' if len(rows)>1 else 'identity-compatibility',
-               'actions':sorted(actions),'resolution':'blocked' if conflict else 'reconciled','reason':'incompatible metadata, source/provider scope, lifecycle or explicit non-add target' if conflict else None}
+               'target_identity':target,'evidence_references':sum(len(c['evidence']) for _,_,c in rows),
+               'actions':sorted(actions),'resolution':'blocked' if conflict else 'reconciled','reason':', '.join(reasons) if conflict else None}
         report.append(entry)
         if conflict:continue
         evidence=list(reference['evidence']) if old else []
@@ -82,6 +92,19 @@ def reconcile(current,pending,revisions,bindings=None,p1=True,preferred=None,pro
                 updates[leader[0]].append(dict(action='update',kind='claims',id=reference['id'],expected=revisions[reference['id']]['revision'],payload=merged,successor=None))
         else:
             mutable();ops[leader[0]][leader[1]]['payload']=merged;ops[leader[0]][leader[1]]['id']=target
+    by_id=defaultdict(list)
+    for rows in groups.values():
+        for row in rows:by_id[row[2]['id']].append(row)
+    for identifier,rows in sorted(by_id.items()):
+        texts={c['statement'] for _,_,c in rows}
+        old=canonical.get(identifier)
+        if old and old[0]=='claims' and any(ops[cid][index]['action']=='add' for cid,index,_ in rows):texts.add(old[1]['statement'])
+        if len(texts)<2:continue
+        report.append({'group':digest(['identity-collision',identifier]),'statement_hash':digest(sorted(texts)),
+                       'statement_hashes':sorted(digest(s) for s in texts),'preview':sorted(texts)[0][:240],
+                       'claims':[identifier],'candidates':sorted({cid for cid,_,_ in rows}),'canonical':[identifier] if old else [],
+                       'classification':'identity-collision','actions':sorted({ops[cid][index]['action'] for cid,index,_ in rows}),
+                       'resolution':'blocked','reason':'one claim identity has different exact statements; explicit identity review required'})
     legacy=defaultdict(set)
     for text in set(groups)|set(existing):legacy[' '.join(unicodedata.normalize('NFKC',text).casefold().split())].add(text)
     for key,texts in sorted(legacy.items()):

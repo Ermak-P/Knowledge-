@@ -139,3 +139,9 @@ class Deduplication(unittest.TestCase):
                 a=batch('a');b=batch('b');c=next(o for o in b['operations'] if o['kind']=='claims')['payload'];c[field]=value
                 _,_,blocked=reconcile({'claims':[],'evidence':[],'relationships':[]},{'a':a,'b':b},{})
                 self.assertTrue(blocked)
+
+    def test_identity_collision_is_diagnosed_and_never_applied(self):
+        self.store.submit(batch('same','Fact one.'));self.store.submit(batch('same','Fact two.'))
+        plan=self.store.prepare();self.assertFalse(plan['ok'])
+        self.assertTrue(any(g['classification']=='identity-collision' for g in plan['deduplication']['groups']))
+        self.assertFalse(self.store.export()['records']['claims'])

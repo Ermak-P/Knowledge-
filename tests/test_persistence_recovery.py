@@ -120,6 +120,18 @@ class PersistenceRecovery(unittest.TestCase):
         with original() as db:self.assertEqual(saved,list(db.execute('SELECT * FROM plans')))
         self.assertTrue(self.store.prepare()['ok']);self.assertFalse(self.store.export()['records']['claims'])
 
+    def test_queue_only_legacy_recovery_uses_verified_producer_identity(self):
+        self.sources();state=self.legacy_scan()
+        # Fixture-only removal models an imported legacy queue lacking scan cache.
+        with self.store.connection(True) as db:
+            db.execute('DELETE FROM scans');db.execute("DELETE FROM metadata WHERE key LIKE 'capture-observation-v1:%'")
+        plan=self.store.prepare();self.assertTrue(plan['ok'],plan['blocked'])
+        self.assertEqual(plan['deduplication']['counts']['redundant_claim_records'],2)
+        self.store.apply(plan['fingerprint'],plan['fingerprint'])
+        claims=[c for c in self.store.export()['records']['claims'] if 'persistence/configuration' in c['statement']]
+        self.assertEqual({c['id'] for c in claims},{identifier('P.csproj','GetConnectionString',None),identifier('P.csproj','UseSqlServer',None)})
+        self.assertEqual(sorted(len(c['evidence']) for c in claims),[2,2])
+
     def test_identity_collisions_remain_ambiguous_without_unrelated_id_changes(self):
         (self.root/'A.cs').write_text('class Same {}\nAddScoped<IService, First>();\nAddSingleton<IService, Second>();')
         (self.root/'B.cs').write_text('class Same {}')
@@ -140,6 +152,7 @@ class PersistenceRecovery(unittest.TestCase):
             peer=Wire([sys.executable,'-I','-B','-m','knowledge.machine_mcp','--installation',installation],roots=lambda:[root])
             try:
                 peer.initialize();caps=peer.tool('knowledge_capabilities');self.assertIn('rebuild',caps['candidate_actions'])
+                saved_scans=peer.tool('knowledge_scan_diagnostics',section='scans');self.assertEqual(saved_scans['rows'][0]['scan_id'],state['id'])
                 preview=peer.tool('knowledge_plan',action='rebuild',scan_id=state['id']);self.assertTrue(preview['ok'],preview)
                 groups=peer.tool('knowledge_scan_diagnostics',section='duplicates',limit=2,max_bytes=4096)
                 self.assertEqual(groups['counts']['redundant_claim_records'],2)

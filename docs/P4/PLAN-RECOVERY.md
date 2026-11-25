@@ -29,6 +29,29 @@ still contain them. Historical evidence remains stored. Confidence and canonical
 verification dates are not promoted. Prepare/rebuild never changes canonical
 records; apply revalidates original source/provider bindings and the exact plan.
 
+When scan observations are unavailable, queue-only recovery requires the exact
+scoped persistence statement, producer provenance, a source binding, typed
+evidence locations/raw hashes and a matching old/new producer ID formula. It
+keeps every available proof but cannot recreate occurrences absent from both the
+queue and persisted observations. Missing/incompatible identity proof remains a
+blocker. It does not fabricate completed-scan ownership or negative coverage.
+
+## Extractor identity review
+
+| Category | Identity and statement scope | Collision policy / compatibility |
+|---|---|---|
+| project | Relative csproj path; statement includes SDK | SDK changes are explicit updates at the same project ID. |
+| declaration | Project + namespace/nested qualified name; statement includes kind/bases | Duplicate declarations, partial/unsupported syntax and kind/base collisions are withheld as ambiguous. No new declaration IDs. |
+| dependency | Project + reference tag + literal include | Equal literals have equal statements. Repeated occurrences preserve separate locations. No new IDs. |
+| wiring | Project + first service generic argument; statement also includes lifetime/implementation | Distinct registrations can share an ID. Existing fail-closed ambiguity is retained, rather than guessing semantics or migrating unrelated IDs. |
+| routing | Project + source stem + method + literal; statement contains all three | Same stems in different directories can collide. Existing cross-file ambiguity stays explicit; this fix does not assert controller equivalence. |
+| persistence | Project + method + generic argument; statement asserts project presence | File stems removed from new IDs; equivalent files aggregate, with legacy compatibility as above. |
+
+These are lexical syntax facts: generic/literal spelling is intentionally exact.
+The extractor does not resolve aliases, expressions, generic type symbols or
+runtime equivalence. Regression cases retain fail-closed wiring/declaration
+collisions and distinguish equal display names in separate project directories.
+
 ## Windows upgrade
 
 Use the kit built from this branch, not an earlier installed wheel. From its
