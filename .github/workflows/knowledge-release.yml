@@ -18,6 +18,10 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.longpaths
+          GIT_CONFIG_VALUE_0: 'true'
         with:
           fetch-depth: 0
       - uses: actions/setup-python@v5
@@ -33,6 +37,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $FixtureTemp | Out-Null
           $env:TEMP = $FixtureTemp
           $env:TMP = $FixtureTemp
+          $env:TMPDIR = $FixtureTemp
           python scripts/setup_p3.py
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           & .venv/Scripts/python.exe -X utf8 -B scripts/confluence_release_tests.py --output reports/confluence-release-tests.json
