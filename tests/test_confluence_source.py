@@ -59,6 +59,13 @@ class ConfluenceSource(unittest.TestCase):
         self.register();self.register(version=2,content='Changed documentation.')
         self.store.apply(p['fingerprint'],p['fingerprint']);self.assertTrue(self.store.export()['records']['claims'])
 
+    def test_first_mcp_collection_does_not_add_execution_artifacts_or_stale_git(self):
+        (self.root/'A.cs').write_text('class A {}');discovery.scan(self.store,max_files=100);p=self.store.prepare()
+        self.assertFalse((self.root/'.harness-writer.lock').exists())
+        cf.dispatch(self.store,'register_snapshot',document());cf.dispatch(self.store,'register_snapshot',document(version=2,content='Changed documentation.'))
+        self.assertFalse((self.root/'.harness-writer.lock').exists())
+        self.store.apply(p['fingerprint'],p['fingerprint']);self.assertTrue(self.store.export()['records']['claims'])
+
     def test_stale_doc_is_explicitly_skipped_when_independent_git_work_remains(self):
         source=self.register();self.store.submit(proposal(self.store,source));self.register(version=2,content='Updated documentation.')
         self.store.submit(addition('local.fact','Separate local fixture.'))

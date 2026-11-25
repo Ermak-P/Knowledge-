@@ -56,7 +56,7 @@ def machine_binding(installation, project):
 def configure_project(installation, project, connect_runner=True):
     reference = str(installation / 'config/provider.json')
     runner = safe_path(project.root / '.harness/runner.json')
-    lease = ProjectExecutionLock(project.root).acquire()
+    lease = ProjectExecutionLock(project.root).acquire() if connect_runner else None
     try:
         with gate(project.root, exclusive=True):
             changed = False
@@ -89,7 +89,8 @@ def configure_project(installation, project, connect_runner=True):
                 _write(runner, raw)
             if not config_path.exists(): _write(config_path, wanted)
             return {'runner_transitioned': changed, 'provider_ref': reference, 'authority': 'Existing runs/enrollments must pass configuration drift checks; no authority was renewed.'}
-    finally: lease.close()
+    finally:
+        if lease:lease.close()
 
 
 def _write(path, value):

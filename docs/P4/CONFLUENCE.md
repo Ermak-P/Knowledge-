@@ -170,3 +170,10 @@ Same-content native revision refresh preserves any original semantic provider
 binding exactly. Provider drift still requires reanalysis; refresh never renews
 provider authority or approval. Reobserving an identical already pending claim
 produces no empty duplicate claim update.
+
+Source collection freezes its multi-transaction work with the existing exclusive
+Knowledge coordination gate. It does not create a root execution-lock artifact:
+first collection/enrollment cannot stale a preexisting standalone Git plan merely
+by changing its inventory exclusions. Canonical machine plan/apply still uses
+the original execution lease, source revalidation and separate exact approval.
+Filesystem safe-path/tree and ownership checks remain in force.

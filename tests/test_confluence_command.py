@@ -210,4 +210,15 @@ class ConfluenceCommand(unittest.TestCase):
                 self.assertEqual(sorted((e['source']['revision'],e['status']) for e in native),[(1,'superseded'),(2,'active')])
             finally:peer.close()
 
+    def test_collection_enrollment_does_not_stale_existing_core_git_plan(self):
+        from test_machine_commands import fixture
+        from knowledge.project_commands import execute
+        with tempfile.TemporaryDirectory() as tmp:
+            installation,root=fixture(tmp,1);store=Store(root);store.init();life.upgrade(store,life.upgrade_preview(store)['fingerprint'])
+            discovery.scan(store,max_files=100);plan=store.prepare();self.assertTrue(plan['ok'],plan)
+            self.assertFalse((root/'.harness-writer.lock').exists())
+            execute('knowledge-confluence',installation,root,{})
+            self.assertFalse((root/'.harness-writer.lock').exists())
+            store.apply(plan['fingerprint'],plan['fingerprint']);self.assertTrue(store.validate()['ok'])
+
 if __name__=='__main__':unittest.main()

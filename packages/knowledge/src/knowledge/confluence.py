@@ -312,10 +312,12 @@ def export(db):
 
 def dispatch(store,action,request):
     if action in ('observe','failure','analyze','resume_analysis','confirm_deleted','gc','register_snapshot','scope','start','next','complete_work','terms','retry','finish'):
-        from .execution_lock import ProjectExecutionLock
-        lease=ProjectExecutionLock(store.project.root).acquire()
-        try:return _dispatch(store,action,request)
-        finally:lease.close()
+        from .coordination import gate
+        # Collection changes source/cache/queue state only. Freeze its complete
+        # multi-transaction outbox, without creating a local execution artifact
+        # that would invalidate an unrelated preexisting Git inventory. Normal
+        # canonical application retains its existing execution ownership checks.
+        with gate(store.project.root,exclusive=True):return _dispatch(store,action,request)
     return _dispatch(store,action,request)
 
 
