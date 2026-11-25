@@ -93,12 +93,44 @@ def validate_relations(db,queued):
         require((sid,snap,version)==(source['identity'],source['snapshot'],source['revision']) and loads(record)==relation(value),'corrupt-confluence-candidate-index',{'candidate':cid})
 
 
+def legacy_unverified_candidates(db):
+    """Quarantine pre-coverage analysis without deleting queue/approval history.
+
+    An identical batch is released only when a newly certified analysis actually
+    regenerated it. Old absence-based negative batches cannot be silently reused.
+    """
+    if not db.execute("SELECT 1 FROM metadata WHERE key='confluence-sync-schema'").fetchone():return {}
+    legacy={};certified=set();certificates=[]
+    for identifier, in db.execute("SELECT id FROM confluence_outbox WHERE status IN ('PREPARED','DONE')"):
+        data=_outbox(db,identifier)
+        if not data.get('complete') or data.get('deletion'):continue
+        ids=set(data.get('candidates',[]))|{digest(b) for b in data.get('batches',[])}
+        if data.get('coverage_certificate'):
+            certificates.append((ids,data))
+        else:legacy.update({cid:identifier for cid in ids})
+    for ids,data in certificates:
+        if ids & set(legacy):
+            from .confluence_coverage import verify
+            verify(db,data['source'],data['coverage_certificate']);certified.update(ids)
+    return {cid:identifier for cid,identifier in legacy.items() if cid not in certified}
+
+
+def quarantine_legacy_prepared(db,source):
+    for identifier, in list(db.execute("SELECT id FROM confluence_outbox WHERE source_id=? AND snapshot=? AND status='PREPARED'",(source['identity'],source['snapshot']))):
+        data=_outbox(db,identifier)
+        if data.get('complete') and not data.get('deletion') and not data.get('coverage_certificate'):
+            data.update(status='DONE',coverage_revalidation_required=True)
+            # Preserve original batches and counts as immutable review history.
+            save_outbox(db,data)
+
+
 def incomplete_candidates(db,pending):
     if not db.execute("SELECT 1 FROM metadata WHERE key='confluence-sync-schema'").fetchone():return {}
     sources={v['source']['identity'] for v in pending.values() if cf.is_binding(v.get('source'))};result={}
     for sid in sources:
         for identifier, in db.execute("SELECT id FROM confluence_outbox WHERE source_id=? AND status='PREPARED'",(sid,)):
             data=_outbox(db,identifier)
+            if data.get('complete') and not data.get('deletion') and not data.get('coverage_certificate'):continue
             for batch in data.get('batches',[]):result[digest(batch)]=identifier
     return result
 
@@ -140,6 +172,7 @@ def on_snapshot(store,source):
             obsolete=_outbox(db,identifier);count=sum(map(len,obsolete.pop('chunks').values()))
             obsolete.pop('coverage_chunks',None);obsolete.pop('revalidations',None)
             obsolete.update(status='DONE',candidates=[],counts={'abandoned_partial_findings':count,'reason':'source-revision-advanced'});save_outbox(db,obsolete)
+        quarantine_legacy_prepared(db,source)
         unfinished=db.execute("SELECT id,status FROM confluence_outbox WHERE source_id=? AND snapshot=? AND status IN ('PREPARED','COLLECTING') ORDER BY id LIMIT 1",(source['identity'],source['snapshot'])).fetchone()
         if unfinished:
             page.update(analysis_checkpoint=unfinished[0],processing_status='ANALYSIS_SUBMITTING' if unfinished[1]=='PREPARED' else 'PARTIAL_ANALYSIS');save_page(db,page)
@@ -168,9 +201,9 @@ def source_now(page):return dict(kind='confluence',identity=page['identity'],rev
 
 def _pending_records(db):
     from .discovery import candidate_refreshes
-    refreshed=candidate_refreshes(db);rows=[]
+    refreshed=candidate_refreshes(db);uncertified=legacy_unverified_candidates(db);rows=[]
     for cid,payload,status in db.execute('SELECT id,payload,status FROM queue'):
-        if status!='pending' or cid in refreshed:continue
+        if status!='pending' or cid in refreshed or cid in uncertified:continue
         value=loads(payload)
         if cf.is_binding(value.get('source')):
             try:cf.verify_binding(db,value['source'])
@@ -305,6 +338,7 @@ def analyze(store,source,findings,complete=True,analyzed_until=None,coverage=Non
             return {'ok':True,'checkpoint':collector,'analysis_complete':False,'coverage':state,'persisted_findings':sum(map(len,data['chunks'].values())),'candidates':[],'canonical_unchanged':True}
         else:
             cert=cv.certificate(source,snapshot,entries)
+            quarantine_legacy_prepared(db,source)
             combined=[f for values in data['chunks'].values() for f in values]+findings
             require(len(combined)<=10000,'confluence-analysis-page-budget-exhausted')
             all_reviews=dict(data.get('revalidations',{}))
@@ -326,6 +360,7 @@ def resume(store,identifier):
         from .confluence_coverage import progress
         with store.connection() as db:coverage=progress(cf.verify_binding(db,data['source']),data.get('coverage_chunks',{}))
         return {'ok':True,'checkpoint':identifier,'analysis_complete':False,'coverage':coverage,'persisted_findings':sum(map(len,data['chunks'].values())),'candidates':[],'next_action':'Read missing deterministic snapshot chunks, then submit complete=true with their coverage descriptors.'}
+    require(not data.get('coverage_revalidation_required'),'confluence-analysis-coverage-revalidation-required',{'source':data['source'],'next_action':'Read the current registered snapshot and submit analyze with explicit full coverage and fresh findings/revalidations; the historical batches remain quarantined.'})
     if data['status']=='DONE':return {'ok':True,'checkpoint':identifier,'source':data['source'],'replayed':True,**data['counts'],'candidates':data['candidates']}
     if data.get('complete'):
         from .confluence_coverage import verify
@@ -378,11 +413,12 @@ def refresh_unchanged_pending(store,source):
     from .providers import semantic_bindings
     with store.connection() as db:
         bindings=semantic_bindings(db)
+        uncertified=legacy_unverified_candidates(db)
         existing=refresh_links(db);new=cf.snapshot(db,source['snapshot']);owned={cid for p, in db.execute("SELECT payload FROM plans WHERE status='COMMITTED'") for cid in loads(p)['included']}
         work=[]
         for cid,payload,status in db.execute('SELECT id,payload,status FROM queue'):
             value=loads(payload)
-            if status!='pending' or cid in existing or cid in owned or not cf.is_binding(value.get('source')):continue
+            if status!='pending' or cid in existing or cid in owned or cid in uncertified or not cf.is_binding(value.get('source')):continue
             old=value['source']
             if old.get('revalidation'):continue # Explicit review authority is bound to its exact native revision.
             if old['identity']!=source['identity'] or old['revision']>=source['revision']:continue

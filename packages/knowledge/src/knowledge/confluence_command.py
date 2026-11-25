@@ -20,6 +20,7 @@ TABLE_SQL={
  'confluence_seen':'CREATE TABLE confluence_seen(run TEXT NOT NULL,source_id TEXT NOT NULL,payload TEXT NOT NULL,checksum TEXT NOT NULL,PRIMARY KEY(run,source_id))'}
 INDEX_SQL={'confluence_work_next':'CREATE INDEX confluence_work_next ON confluence_work(run,status,priority,id)'}
 META='confluence-command-schema'
+FAILED_PAGES_SQL="SELECT count(DISTINCT s.source_id) FROM confluence_work w JOIN confluence_seen s ON s.run=w.run AND s.source_id=json_extract(w.payload,'$.target') WHERE w.run=? AND w.status='FAILED'"
 TRANSIENT_FAILURES=frozenset(('TIMEOUT','UNAVAILABLE','INCOMPLETE_RESPONSE'))
 RETRY_LIMIT=3
 
@@ -241,7 +242,7 @@ def complete_work(store,identifier,result):
         with store.connection() as db:
             page=cf.page(db,sid);source=sync.source_now(page);checkpoint=page.get('analysis_checkpoint')
             saved=sync._outbox(db,checkpoint) if checkpoint else None
-        if saved and saved['status']=='PREPARED':outcome=sync.resume(store,checkpoint)
+        if saved and saved['status']=='PREPARED' and (not saved.get('complete') or saved.get('coverage_certificate') or saved.get('deletion')):outcome=sync.resume(store,checkpoint)
         else:
             require('findings' in result,'confluence-analysis-findings-required')
             outcome=sync.analyze(store,source,result['findings'],result.get('complete',True),result.get('analyzed_until'),result.get('coverage'),result.get('revalidations'))
@@ -331,8 +332,9 @@ def progress(store):
           (SELECT kind FROM confluence_work WHERE run=? AND status IN ('PENDING','RUNNING') ORDER BY priority,id LIMIT 1),
           (SELECT count(*) FROM confluence_seen s JOIN confluence_pages p ON p.identity=s.source_id WHERE s.run=? AND json_extract(s.payload,'$.version')=json_extract(p.payload,'$.last_applied_version')),
           (SELECT json_group_array(json_array(kind,payload,checksum)) FROM (SELECT kind,payload,checksum FROM confluence_work WHERE run=? AND status IN ('FAILED','SKIPPED') LIMIT 20))
-          """,(run['id'],)*4).fetchone()
-        work_counts=loads(summary[0]);stage=summary[1];applied=summary[2]
+          ,("""+FAILED_PAGES_SQL+""")
+          """,(run['id'],)*5).fetchone()
+        work_counts=loads(summary[0]);stage=summary[1];applied=summary[2];counts['failed']=summary[4]
         limitations=[dict(kind=k,target=v['target'],reason=v.get('failure'),retry_count=v.get('retry_count',0),retryable=v.get('failure') in ('TIMEOUT','UNAVAILABLE','INCOMPLETE_RESPONSE') and v.get('retry_count',0)<3) for k,raw,checksum in loads(summary[3]) for v in [checked(raw,checksum)]]
         return dict(common,state=run['status'],run=run['id'],scope=scope,coverage=counts,work=work_counts,coverage_complete=run['status']=='COMPLETE',coverage_attestation='client-reported MCP traversal only; live access not independently attested',completed_operations=run['completed_operations'],operation_budget=run['budget'],remaining_work=sum(work_counts.get(s,0) for s in ('PENDING','RUNNING')),current_stage=stage if stage else run['status'],applied_pages=applied,limitations=limitations)
 
@@ -346,6 +348,8 @@ def status(store):
         counts=dict(total_unique_pages=len(rows),mandatory_pages=sum('mandatory' in r['origins'] for r in rows),autonomous_pages=sum('mandatory' not in r['origins'] for r in rows),new=sum(r['classification']=='new' for r in rows),changed=sum(r['classification']=='changed' for r in rows),unchanged=sum(r['state'] in ('UNCHANGED','UNCHANGED_CONTENT') for r in rows),failed=sum(r['state']=='FAILED' for r in rows),successfully_analyzed=sum(r['state'] in ('ANALYZED','UNCHANGED','UNCHANGED_CONTENT') for r in rows),awaiting_processing=sum(r['state'] not in ('ANALYZED','UNCHANGED','UNCHANGED_CONTENT','FAILED') for r in rows))
         for key in ('new_claim_candidates','existing_claims_enriched','duplicates_prevented','conflicts_detected'):counts[key]=sum(r['counts'].get(key,0) for r in rows)
         counts['native_version_changed']=sum(r.get('native_version_changed',False) for r in rows)
+        # Independent failures on the same page survive successful sibling work.
+        counts['failed']=db.execute(FAILED_PAGES_SQL,(run['id'],)).fetchone()[0]
         work_counts={s:n for s,n in db.execute('SELECT status,count(*) FROM confluence_work WHERE run=? GROUP BY status',(run['id'],))}
         from .discovery import candidate_refreshes
         refreshes=candidate_refreshes(db)

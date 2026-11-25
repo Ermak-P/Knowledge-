@@ -2,11 +2,12 @@
 import json,subprocess,sys
 from knowledge import confluence as cf,confluence_command as cc
 from knowledge.util import KnowledgeError,digest
-from test_confluence_command import ConfluenceCommand,metadata
+import test_confluence_command as fixture
+from test_confluence_command import metadata
 from test_confluence_source import document
 
 
-class PartialRecovery(ConfluenceCommand):
+class PartialRecovery(fixture.ConfluenceCommand):
     # Inherit the real command driver as well as its regression scenarios.
     def test_500_pages_resume_same_run_without_repeating_490_done(self):
         self.scope();first=self.start(operations=2000)

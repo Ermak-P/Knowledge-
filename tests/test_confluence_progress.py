@@ -1,13 +1,14 @@
 """Progress is non-authoritative telemetry; canonical guards remain mandatory."""
 import threading
+from contextlib import closing
 from unittest.mock import patch
 from knowledge import confluence as cf,confluence_command as cc
 from knowledge.coordination import gate
 from knowledge.util import KnowledgeError
-from test_confluence_command import ConfluenceCommand
+import test_confluence_command as fixture
 
 
-class ProgressAccess(ConfluenceCommand):
+class ProgressAccess(fixture.ConfluenceCommand):
     def test_light_progress_matches_public_counts_without_canonical_reads(self):
         self.scope();self.start();self.drain();full=self.call('status')
         with patch.object(self.store,'connection',side_effect=AssertionError('full validation requested')):
@@ -39,7 +40,19 @@ class ProgressAccess(ConfluenceCommand):
     def test_progress_does_not_claim_integrity_and_corruption_still_blocks_canonical(self):
         self.scope();self.start()
         import sqlite3
-        with sqlite3.connect(self.store.path) as db:db.execute("INSERT INTO queue VALUES ('bad','{}','pending',NULL)")
+        with closing(sqlite3.connect(self.store.path)) as db:
+            db.execute("INSERT INTO queue VALUES ('bad','{}','pending',NULL)");db.commit()
         self.assertEqual(self.call('progress')['candidate_validation'],'NOT_RUN')
         with self.assertRaises(KnowledgeError):self.store.prepare()
         with self.assertRaises(KnowledgeError):self.call('status')
+
+    def test_failed_page_remains_visible_when_another_operation_succeeds(self):
+        self.scope(('200',));self.start();task=self.call('next')
+        self.call('complete_work',dict(work=task['work']['id'],result=self.mcp.result(task['work'])))
+        task=self.call('next');self.assertEqual(task['work']['kind'],'children')
+        self.call('complete_work',dict(work=task['work']['id'],result={'reason':'TIMEOUT'}))
+        done=self.drain();self.assertEqual(done['state'],'PARTIAL')
+        self.assertEqual(done['coverage']['failed'],1)
+        self.assertEqual(self.call('progress')['coverage']['failed'],1)
+        self.call('start',{'resume':True});self.assertTrue(self.drain()['coverage_complete'])
+        self.assertEqual(self.call('progress')['coverage']['failed'],0)

@@ -264,10 +264,12 @@ def validate_candidate(db,item,fresh=True):
 
 def pending_partition(db,pending):
     remaining=dict(pending);skipped=[]
-    from .confluence_sync import incomplete_candidates
-    incomplete=incomplete_candidates(db,pending)
+    from .confluence_sync import incomplete_candidates,legacy_unverified_candidates
+    incomplete=incomplete_candidates(db,pending);uncertified=legacy_unverified_candidates(db)
     for cid,item in pending.items():
         if not is_binding(item.get('source')):continue
+        if cid in uncertified:
+            del remaining[cid];skipped.append(dict(candidate=cid,reason='confluence-analysis-coverage-revalidation-required',details={'checkpoint':uncertified[cid],'next_action':'Reanalyze the registered snapshot with complete coverage and explicit targeted evidence reviews. Quarantined historical proposals remain available for normal human disposition.'}));continue
         if cid in incomplete:
             del remaining[cid];skipped.append(dict(candidate=cid,reason='confluence-analysis-resume-required',details={'checkpoint':incomplete[cid],'next_action':'Resume the saved analysis outbox; do not repeat semantic analysis.'}));continue
         try:verify_binding(db,item['source'])
