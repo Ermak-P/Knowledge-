@@ -243,11 +243,15 @@ def execute(command, installation, directory, value):
     finally: lease.close()
 
 
-def diagnostics(installation,directory,scope='full',section='failures',cursor=0,limit=20):
-    require(scope in ('full','incremental') and section in ('failures','coverage','reconciliation','impact','policy','identity','scans'), 'invalid-diagnostic-section')
+def diagnostics(installation,directory,scope='full',section='failures',cursor=0,limit=20,max_bytes=16000,group=None):
+    require(scope in ('full','incremental') and section in ('failures','coverage','reconciliation','impact','policy','identity','scans','duplicates'), 'invalid-diagnostic-section')
     require(type(cursor) is int and cursor>=0 and type(limit) is int and 1<=limit<=100,'invalid-diagnostic-page')
     installation=installation_at(installation);root=resolve_root(directory);project=Project(root)
     require(not root.is_relative_to(installation) and not installation.is_relative_to(root),'installation-and-project-must-be-separate')
+    from .diagnostic_pages import page
+    if section=='duplicates':
+        counts,rows=Store(root).duplicate_diagnostics(group)
+        return page(rows,{'ok':True,'section':section,'counts':counts,'group':group,'canonical_unchanged':True},cursor,limit,max_bytes)
     base=safe_path(installation / 'state/projects' / project.identity)
     if not (base/'full/job.json').exists() and scope=='full':return no_scan(root)
     if scope=='incremental' and not (base/'last-incremental.json').exists():return no_scan(root)
@@ -273,15 +277,14 @@ def diagnostics(installation,directory,scope='full',section='failures',cursor=0,
               if section=='coverage' or entry['status'] in ('blocked','excluded') or entry.get('processing_status')=='partial']
         if section=='failures':rows.extend(state['snapshot']['exclusions']);rows.extend(state['snapshot'].get('coverage_errors',[]))
     elif section=='policy':rows=[state['snapshot']['policy']]
-    elif section=='impact':rows=[state.get('impact',{})]
+    elif section=='impact':rows=[{'category':kind,'value':item} for kind,items in sorted(state.get('impact',{}).items()) for item in (items if isinstance(items,list) else [items])]
     elif section=='identity':
         identity=state.get('identity_verification') or {}
         rows=[{'path':path,'reason':'missing-compatible-cached-analysis'} for path in identity.get('missing_files',[])]+[{'id':identifier,'reason':'ambiguous-identity'} for identifier in identity.get('ambiguous_ids',[])]
     else:
         review=discovery.reconcile(Store(root),job['scan_id']);rows=review['claims']+review['negative_evidence_gaps']
-    return {'ok':True,'section':section,'scan_id':state['id'],'state':job['state'],'coverage':state.get('counters'),
-            'binding_matches_current':job['binding']==binding,'rows':rows[cursor:cursor+limit],
-            'next_cursor':cursor+limit if cursor+limit<len(rows) else None,'total':len(rows),'canonical_unchanged':True}
+    return page(rows,{'ok':True,'section':section,'scan_id':state['id'],'state':job['state'],'coverage':state.get('counters'),
+            'binding_matches_current':job['binding']==binding,'canonical_unchanged':True},cursor,limit,max_bytes)
 
 
 def submit_reviewed(store, root, proposals, semantic_binding=None):
@@ -306,7 +309,13 @@ def submit_reviewed(store, root, proposals, semantic_binding=None):
                         pending[digest(proposal)] = proposal
                 # Simulate the proposed batch against canonical revisions,
                 # evidence and graph. Nothing canonical is written here.
-                if pending: lifecycle.simulate(store, db, pending)
+                if pending:
+                    from .plan_deduplication import reconcile
+                    resolved,report,conflicts=reconcile(store._records(db),pending,lifecycle.latest(db),
+                        {cid:semantic_binding for cid in pending} if semantic_binding else {})
+                    require(not conflicts,'duplicate-conflict',{'groups':[g['group'] for g in report['groups'] if g['resolution']=='blocked']})
+                    lifecycle.verify_source_bindings(store,pending.values())
+                    lifecycle.simulate(store,db,{cid:v for cid,v in resolved.items() if v is not None},check_source=False)
             for proposal in pending.values(): rows.append(store.submit(proposal,semantic_binding=semantic_binding))
             return {'ok': True, 'root': str(root), 'results': rows,
                     'added': sum(row['result'] == 'submitted' for row in rows),
@@ -351,11 +360,11 @@ def push(store, root, state_dir, binding, value):
     if prepared['ok']:
         path = plans / (approval[7:] + '.json')
         if not path.exists(): _write(path, {'version': 1, 'binding': seal, 'approved': False})
-    operations = Counter(op['action'] for candidate in prepared['candidates'].values() for op in candidate.get('operations', []))
+    operations = Counter(op['action'] for candidate in prepared.get('resolved',prepared['candidates']).values() if candidate for op in candidate.get('operations', []))
     _write(state_dir / 'last-plan.json', prepared)
     return {'ok': prepared['ok'], 'state': 'AWAITING_EXACT_APPROVAL' if prepared['ok'] else 'BLOCKED', 'root': str(root),
             'fingerprint': approval, 'canonical_plan': prepared['fingerprint'], 'included': len(prepared['included']),
-            'operations': dict(operations), 'skipped': len(prepared['skipped']), 'blocked': prepared['blocked'][:20],
+            'operations': dict(operations), 'deduplication':prepared.get('deduplication',{}).get('counts'), 'skipped': len(prepared['skipped']), 'blocked': prepared['blocked'][:20],
             'canonical_unchanged': True, 'diagnostics': str(state_dir / 'last-plan.json'),
             'next_action': 'Separate explicit approval: /knowledge-candidates-push {"approve":"' + approval + '"}. On drift prepare and review a new fingerprint.'}
 

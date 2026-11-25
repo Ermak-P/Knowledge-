@@ -73,7 +73,7 @@ def state_fingerprint(store,db):
 
 def simulate(store,db,items,check_source=True):
     records=store._records(db); current={r['id']:(g,r) for g,rs in records.items() for r in rs}
-    states=latest(db); touched=set(); checked_sources=set()
+    states=latest(db); versions={i:s['revision'] for i,s in states.items()};touched=set(); checked_sources=set()
     for value in items.values():
         if value['version']==1:
             for kind,rs in value['records'].items():
@@ -88,7 +88,7 @@ def simulate(store,db,items,check_source=True):
             checked_sources.add(value['source']['identity'])
         for change in value['operations']:
             i=change['id']; require(i not in touched,'conflicting-batch-target');touched.add(i)
-            require(revision(db,i)==change['expected'],'stale-expected-revision',i)
+            require(versions.get(i,0)==change['expected'],'stale-expected-revision',i)
             action=change['action']; prior=current.get(i)
             if action=='add': require(prior is None and change['expected']==0,'record-id-conflict')
             else:
@@ -200,7 +200,7 @@ def active(store,db,records,diagnostics=False):
 
 def validate_model(records,states):
     """Validate full references and the current graph separately from historical edges."""
-    from .store import shape,normalized
+    from .store import shape,statement_key as normalized
     shape(records)
     claims={r['id']:r for r in records['claims']};evidence={r['id']:r for r in records['evidence']}
     require(set(states)=={r['id'] for rs in records.values() for r in rs},'revision-identity-mismatch')

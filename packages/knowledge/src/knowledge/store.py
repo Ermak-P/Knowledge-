@@ -34,7 +34,13 @@ def checkpoint(phase):
 
 
 def normalized(statement):
+    """Historical operational-memory identity; intentionally unchanged."""
     return ' '.join(unicodedata.normalize('NFKC', statement).casefold().split())
+
+
+def statement_key(statement):
+    # exact-utf8-v1: quoted values, code identifiers and whitespace carry meaning.
+    return statement
 
 
 def shape(records):
@@ -189,13 +195,18 @@ class Store:
         plans = {}
         for pid, payload, state in db.execute('SELECT id,payload,status FROM plans'):
             plan = loads(payload)
-            require(isinstance(plan,dict) and set(plan)=={'version','project','base','candidates','included','skipped','blocked'}, 'corrupt-plan')
+            fields={'version','project','base','candidates','included','skipped','blocked'}
+            require(isinstance(plan,dict) and set(plan)==(fields|{'resolved','deduplication'} if plan.get('version')==2 else fields), 'corrupt-plan')
             require(fingerprint(plan)==pid and state in ('PREPARED','COMMITTED','ACKNOWLEDGED') and
-                    plan['version']==1 and plan['project']==self.project.identity and
+                    plan['version'] in (1,2) and plan['project']==self.project.identity and
                     isinstance(plan['base'],str) and isinstance(plan['candidates'],dict) and
                     all(isinstance(plan[k],list) for k in ('included','skipped','blocked')), 'corrupt-plan')
             for cid,item in plan['candidates'].items():
                 require(valid_identity(cid,item),'corrupt-plan-candidate')
+            if plan['version']==2:
+                require(set(plan['resolved'])==set(plan['candidates']),'corrupt-resolved-candidates')
+                for value in plan['resolved'].values():
+                    if value is not None:candidate(value)
             require(plan['included']==(list(plan['candidates']) if not plan['blocked'] else []), 'corrupt-plan-inclusion')
             plans[pid]=(plan,state)
         queue=[]
@@ -300,14 +311,27 @@ class Store:
                     if inventory(self.project.root)['identity']==item['source']['identity']:refresh_pending(db,cid,item)
                 return {'ok':True,'candidate':cid,'result':'submitted','status':'pending'}
             known_ids = {r['id'] for v in current.values() for r in v}
-            statements = {normalized(c['statement']) for c in current['claims']}
+            statements = {statement_key(c['statement']) for c in current['claims']}
             for _,_,_,queued_item in queued:
                 if queued_item['version']!=1:continue
                 queued = queued_item['records']
                 known_ids.update(r['id'] for v in queued.values() for r in v)
-                statements.update(normalized(c['statement']) for c in queued['claims'])
+                statements.update(statement_key(c['statement']) for c in queued['claims'])
+            if life.enabled(db):
+                # P1 can retain additional evidence and reconcile in an exact
+                # reviewed plan. P0's add-only admission contract is unchanged.
+                existing={r['id']:(g,r) for g,rs in current.items() for r in rs}
+                for g,rs in item['records'].items():
+                    for r in rs:
+                        old=existing.get(r['id'])
+                        if old and old[1]!=r:
+                            require(g=='claims' and old[0]==g and
+                                    {k:v for k,v in r.items() if k!='evidence'}=={k:v for k,v in old[1].items() if k!='evidence'},'record-id-conflict')
+                db.execute('INSERT INTO queue VALUES (?,?,?,NULL)',(cid,canonical_json(item),'pending'))
+                checkpoint('queue-written')
+                return {'ok':True,'candidate':cid,'result':'submitted','status':'pending'}
             proposed_ids = {r['id'] for v in item['records'].values() for r in v}
-            proposed_statements = [normalized(c['statement']) for c in item['records']['claims']]
+            proposed_statements = [statement_key(c['statement']) for c in item['records']['claims']]
             require(len(set(proposed_statements)) == len(proposed_statements), 'duplicate-statements-in-candidate')
             if all(s in statements for s in proposed_statements):
                 return {'ok':True, 'result':'duplicate-statement', 'candidate':None}
@@ -333,12 +357,19 @@ class Store:
                 if not blocked:
                     from .providers import verify_semantic_bindings
                     bindings=verify_semantic_bindings(db,pending)
-                    life.simulate(self,db,pending)
+                    life.verify_source_bindings(self,pending.values())
+                    from .plan_deduplication import reconcile
+                    resolved,diagnostic,conflicts=reconcile(current,pending,life.latest(db),bindings)
+                    blocked.extend(conflicts)
+                    if not blocked:life.simulate(self,db,{cid:v for cid,v in resolved.items() if v is not None},check_source=False)
             except KnowledgeError as e:blocked=[{'code':e.code,'details':e.details}]
             base=life.state_fingerprint(self,db)
             if not blocked and bindings:base=fingerprint({'canonical':base,'semantic_bindings':bindings})
-            return {'version':1,'project':self.project.identity,'base':base,
+            result={'version':1,'project':self.project.identity,'base':base,
                     'candidates':pending,'included':list(pending) if not blocked else [],'skipped':skipped, 'blocked':blocked}
+            if 'resolved' in locals() and (resolved!=pending or diagnostic['groups']):
+                result.update(version=2,resolved=resolved,deduplication=diagnostic)
+            return result
         combined = deepcopy(current)
         for item in pending.values():
             for g in GROUPS:
@@ -346,7 +377,7 @@ class Store:
         blocked = []
         try:
             validate_records(combined)
-            statements = [normalized(c['statement']) for c in combined['claims']]
+            statements = [statement_key(c['statement']) for c in combined['claims']]
             require(len(statements) == len(set(statements)), 'duplicate-statement')
         except KnowledgeError as e:
             blocked = [{'code':e.code,'details':e.details}]
@@ -360,6 +391,26 @@ class Store:
             pid = fingerprint(preview)
             db.execute('INSERT OR IGNORE INTO plans VALUES (?,?,?)',(pid,canonical_json(preview),'PREPARED'))
         return {'ok':not preview['blocked'],'fingerprint':pid,**preview}
+
+    def duplicate_diagnostics(self,group=None):
+        from .plan_deduplication import reconcile,operations
+        from .providers import semantic_bindings
+        from .discovery import candidate_refreshes
+        with self.connection() as db:
+            pending={cid:loads(p) for cid,p in db.execute("SELECT id,payload FROM queue WHERE status='pending' ORDER BY id")}
+            refreshed=candidate_refreshes(db) if life.enabled(db) else {}
+            pending={cid:v for cid,v in pending.items() if cid not in refreshed}
+            _,report,_=reconcile(self._records(db),pending,life.latest(db) if life.enabled(db) else {},semantic_bindings(db),life.enabled(db))
+            if group is None:return report['counts'],report['groups']
+            found=next((g for g in report['groups'] if g['group']==group),None);require(found is not None,'unknown-duplicate-group')
+            rows=[]
+            for cid in found['candidates']:
+                item=pending[cid];ops=operations(item);evidence={o['id']:o['payload'] for o in ops if o['kind']=='evidence' and o['payload']}
+                for op in ops:
+                    if op['kind']=='claims' and op['payload'] and digest(op['payload']['statement'])==found['statement_hash']:
+                        for eid in op['payload']['evidence']:
+                            rows.append({'candidate':cid,'claim':op['id'],'evidence':eid,'source':evidence.get(eid,{}).get('source'),'group':group})
+            return report['counts'],rows
 
     def _plan(self, db, pid):
         require(isinstance(pid,str) and re.fullmatch(r'sha256:[a-f0-9]{64}',pid), 'invalid-fingerprint')
@@ -378,16 +429,17 @@ class Store:
                 return {'ok':True,'state':state,'fingerprint':pid,'result':'already-committed'}
             require(not plan['blocked'], 'blocked-plan')
             preview=self._preview(db)
-            if life.enabled(db) and all(v['version']==1 for v in plan['candidates'].values()) and plan['base']==fingerprint(self._records(db)):
+            if plan['version']==1 and life.enabled(db) and all(v['version']==1 for v in plan['candidates'].values()) and plan['base']==fingerprint(self._records(db)):
                 # A P0 prepared approval survives a metadata-only upgrade, never a source/canonical edit.
                 preview=dict(preview,base=plan['base'])
             require(preview == plan, 'stale-plan-prepare-again')
             for cid in plan['included']:
-                value=plan['candidates'][cid]
+                value=plan.get('resolved',plan['candidates'])[cid]
+                if value is None:continue
                 if value['version']==2:
                     life.apply_item(self,db,value,pid)
                     continue
-                for group,items in plan['candidates'][cid]['records'].items():
+                for group,items in value['records'].items():
                     for record in items:
                         db.execute('INSERT INTO records VALUES (?,?,?)',(record['id'],group,canonical_json(record)))
                         if life.enabled(db):life.append(db,record['id'],group,record,'active',pid,'P0 compatible add',None)
@@ -413,6 +465,9 @@ class Store:
             require(row is not None and loads(row[0]) == expected and
                     (row[1:] == ('pending',None) or row[1:] == ('imported',pid)), 'acknowledgment-ownership-mismatch')
             if life.enabled(db):
+                effective=plan.get('resolved',plan['candidates'])[cid]
+                if effective is None:continue
+                expected=effective
                 if expected['version']==1:
                     targets=[(g,r) for g,rs in expected['records'].items() for r in rs]
                 else:

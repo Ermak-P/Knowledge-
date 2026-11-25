@@ -90,7 +90,8 @@ def create_server(installation, workspace=None):
             provider,reference=shared(Path(installation)/'config/provider.json')
             return {'ok':True,'contract':'knowledge-machine-v2','tools':sorted(TOOL_NAMES),
                     'scan_actions':['start','status','resume','fresh','cancel'],
-                    'diagnostic_sections':['failures','coverage','reconciliation','impact','policy','identity','scans'],
+                    'diagnostic_sections':['failures','coverage','reconciliation','impact','policy','identity','scans','duplicates'],
+                    'plan_deduplication':'exact-utf8-v1','plan_formats':[1,2],
                     'candidate_actions':['submit','prepare','apply','recover'],
                     'provider':{'endpoint':provider['endpoint'],'model':provider['model'],'evidence':provider['evidence'],'reference':reference},
                     'semantic_provider_contacted':False,'root':str(r),
@@ -112,11 +113,11 @@ def create_server(installation, workspace=None):
         return await invoke(ctx,call,max_bytes)
 
     @server.tool()
-    async def knowledge_scan_diagnostics(ctx:Context,scope:Literal['full','incremental']='full',section:Literal['failures','coverage','reconciliation','impact','policy','identity','scans']='failures',
-                                         cursor:int=0,limit:int=20,max_bytes:int=16000)->CallToolResult:
+    async def knowledge_scan_diagnostics(ctx:Context,scope:Literal['full','incremental']='full',section:Literal['failures','coverage','reconciliation','impact','policy','identity','scans','duplicates']='failures',
+                                         cursor:int=0,limit:int=20,max_bytes:int=16000,group:str|None=None)->CallToolResult:
         """Read paged file diagnostics or reconciliation, without filesystem/SQL access."""
         from .project_commands import diagnostics
-        return await invoke(ctx,lambda r:diagnostics(installation,r,scope,section,cursor,limit),max_bytes)
+        return await invoke(ctx,lambda r:diagnostics(installation,r,scope,section,cursor,limit,max_bytes,group),max_bytes)
 
     @server.tool()
     async def knowledge_source_read(path:str,ctx:Context,start_line:int=1,max_lines:int=60,start_column:int=0,max_bytes:int=16000)->CallToolResult:
