@@ -33,3 +33,24 @@ class ArtifactReceipts(unittest.TestCase):
             def corrupt(args,**kw):download(args,**kw);(Path(args[-1])/'kit.zip').write_bytes(b'changed')
             with patch.object(module.subprocess,'check_output',output),patch.object(module.subprocess,'run',corrupt):
                 with self.assertRaisesRegex(AssertionError,'mismatch'):module.verify('knowledge-fixture','source',assets)
+
+    def test_unit_failure_does_not_hide_installer_checks_or_become_pass(self):
+        import contextlib,io,sys
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        for name,folder,unit in [('verify_machine.py','AutomaticInstaller-fast','machine-unit-tests'),('verify_p4.py','P4','regressions')]:
+            with self.subTest(script=name),tempfile.TemporaryDirectory() as tmp,patch.object(sys,'path',[str(ROOT/'scripts'),*sys.path]):
+                spec=importlib.util.spec_from_file_location('qualification_fixture',ROOT/'scripts'/name);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);root=Path(tmp)
+                def run(args,**kwargs):
+                    words=[str(x) for x in args]
+                    if any(x.endswith('build_p4.py') for x in words):
+                        kit=Path(words[words.index('--output')+1])/'knowledge-harness-0.5.0rc1';kit.mkdir(parents=True)
+                    if any(x.endswith('p4_native.py') for x in words):
+                        out=Path(words[-1]);out.mkdir(parents=True);(out/'result.json').write_text('{}')
+                    bad=any(x.endswith(('test-driver.py','regressions.py')) for x in words)
+                    return SimpleNamespace(returncode=1 if bad else 0)
+                with patch.object(module,'ROOT',root),patch.object(module,'source',lambda:{}),patch.object(module.subprocess,'check_output',lambda *a,**kw:'0'*40),patch.object(module.subprocess,'run',run),contextlib.redirect_stdout(io.StringIO()):
+                    with self.assertRaisesRegex(RuntimeError,'qualification failed'):module.main()
+                report=next((root/'reports'/folder/'runs').glob('*/run.json'));value=json.loads(report.read_text())
+                self.assertEqual(value['status'],'FAILED');self.assertEqual(value['checks'][unit],'FAIL')
+                self.assertEqual(value['checks']['machine-installer'],'PASS');self.assertEqual(value['checks']['machine-native-commands'],'PASS')

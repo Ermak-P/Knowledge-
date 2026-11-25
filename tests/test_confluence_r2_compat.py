@@ -72,3 +72,18 @@ class UpgradeAndRecovery(fixture.ConfluenceCommand):
         self.apply();records=self.store.export()['records'];self.assertEqual(len(records['claims']),1);self.assertEqual(len(records['evidence']),11)
         with self.store.connection() as db:self.assertEqual(done,{i:c for i,c in db.execute('SELECT id,checksum FROM confluence_work') if i in done})
 
+
+    def test_targeted_native_removal_preserves_independent_git_evidence(self):
+        from knowledge import discovery
+        from knowledge.util import loads
+        (self.root/'A.cs').write_text('class A {}');discovery.scan(self.store,max_files=100)
+        with self.store.connection() as db:batch=loads(db.execute('SELECT payload FROM queue').fetchone()[0])
+        statement=next(o['payload']['statement'] for o in batch['operations'] if o['kind']=='claims')
+        source=cf.register(self.store,document(content=statement))['source'];analyze_page(self.store,source,[dict(statement=statement,quote=statement,role='implementation')]);self.apply()
+        before=self.store.export()['records'];native=next(e for e in before['evidence'] if cf.is_binding(e['source']));git=[e for e in before['evidence'] if not cf.is_binding(e['source'])]
+        text='This implementation fact is no longer documented here; code remains independent.'
+        newer=cf.register(self.store,document(version=2,content=text))['source']
+        with self.store.connection() as db:revision=life.latest(db)[native['id']]['revision']
+        review=dict(evidence=native['id'],expected=revision,verdict='removed',quote=text,reason='Explicit synthetic targeted review of this historical native evidence; Git is independent.')
+        cs.analyze(self.store,newer,[],True,coverage=coverage(self.store,newer),revalidations=[review]);self.assertEqual(before,self.store.export()['records'])
+        self.apply();after=self.store.export()['records'];self.assertEqual(git,[e for e in after['evidence'] if not cf.is_binding(e['source'])]);self.assertEqual(after['claims'][0]['evidence'],[e['id'] for e in git]);self.assertEqual(after['claims'][0]['status'],'CONFIRMED');self.assertEqual(next(e for e in after['evidence'] if e['id']==native['id'])['status'],'retracted')

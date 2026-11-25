@@ -16,11 +16,11 @@ def main():
     inputs=source();identity=hashlib.sha256(json.dumps(inputs,sort_keys=True).encode()).hexdigest()
     state=dict(version=2,id=rid,product=VERSION,source=inputs,source_identity=identity,commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),checks={},commands=[],status='RUNNING',started=time.time(),platform=dict(os=platform.system(),python=sys.version,architecture=platform.machine(),shell='Windows PowerShell 5.1' if os.name=='nt' else 'bash'),native='EXECUTED' if os.name=='nt' else 'NOT_RUN')
     def persist():save(out/'run.json',state)
-    def command(name,argv,cwd=ROOT):
+    def command(name,argv,cwd=ROOT,required=True):
         began=time.time();argv=[str(x) for x in argv]
         with (out/(name+'.log')).open('wb') as log:p=subprocess.run(argv,cwd=cwd,stdout=log,stderr=subprocess.STDOUT)
         state['commands'].append(dict(name=name,argv=argv,cwd=str(cwd),returncode=p.returncode,seconds=time.time()-began,log=name+'.log',sha256=hashlib.sha256((out/(name+'.log')).read_bytes()).hexdigest()));state['checks'][name]='PASS' if p.returncode==0 else 'FAIL';persist()
-        if p.returncode:raise RuntimeError('qualification failed: '+name+'; see '+str(out/(name+'.log')))
+        if p.returncode and required:raise RuntimeError('qualification failed: '+name+'; see '+str(out/(name+'.log')))
     persist()
     try:
         command('distribution',[sys.executable,'-B',ROOT/'scripts/build_p4.py','--output',out/'distribution','--source-id',identity])
@@ -29,7 +29,7 @@ def main():
             base=Path(tmp);transfer=base/'transferred-kit';shutil.copytree(kit,transfer);env=base/'runtime';py=py_at(env)
             command('install',[sys.executable,transfer/'install.py','install','--env',env],base)
             command('test-dependencies',[py,'-m','pip','install','-r',ROOT/'requirements-dev.lock'],base)
-            driver=base/'regressions.py';driver.write_text('''import sys,unittest,json,os
+            driver=base/'regressions.py';driver.write_text('''import sys,unittest,json,os,traceback
 from pathlib import Path
 import harness,knowledge
 assert Path(harness.__file__).is_relative_to(Path(sys.prefix)) and Path(knowledge.__file__).is_relative_to(Path(sys.prefix))
@@ -42,7 +42,7 @@ def main():
   def startTest(self,t):super().startTest(t);rows[t.id()]=dict(test=t.id(),status='RUNNING')
   def addSuccess(self,t):super().addSuccess(t);rows[t.id()]['status']='PASS'
   def addFailure(self,t,e):super().addFailure(t,e);rows[t.id()]['status']='FAIL'
-  def addError(self,t,e):super().addError(t,e);rows.setdefault(t.id(),dict(test=t.id())).update(status='ERROR',exception_type=e[0].__name__,errno=getattr(e[1],'errno',None),winerror=getattr(e[1],'winerror',None))
+  def addError(self,t,e):super().addError(t,e);rows.setdefault(t.id(),dict(test=t.id())).update(status='ERROR',exception_type=e[0].__name__,errno=getattr(e[1],'errno',None),winerror=getattr(e[1],'winerror',None),filename=getattr(e[1],'filename',None),frames=[dict(file=Path(f.filename).name,line=f.lineno,function=f.name) for f in traceback.extract_tb(e[2])])
   def addSkip(self,t,reason):super().addSkip(t,reason);rows[t.id()].update(status='SKIP',reason=reason)
   def addSubTest(self,t,sub,e):
    super().addSubTest(t,sub,e)
@@ -58,7 +58,7 @@ if __name__=='__main__':main()
 '''.replace('VERSION',repr(VERSION)).replace('TESTS',repr(str(ROOT/'tests'))).replace('__RUN_ID__',repr(rid)).replace('RESULT',repr(str(out/'tests.json'))),encoding='utf-8')
             compile(driver.read_text(encoding='utf-8'),str(driver),'exec')
             command('legacy-automatic-tests',[py,'-I','-X','utf8','-B',ROOT/'scripts/legacy_test_discovery.py',out/'legacy-automatic-tests'],base)
-            command('regressions',[py,'-I','-X','utf8','-B',driver],base)
+            command('regressions',[py,'-I','-X','utf8','-B',driver],base,required=False)
             command('accepted-p3-lifecycle-marked',[py,'-I','-X','utf8','-B',ROOT/'scripts/p4_lifecycle.py',kit,out/'lifecycle-marked'],base)
             command('accepted-p3-maintenance-recovery',[py,'-I','-X','utf8','-B',ROOT/'scripts/p4_lifecycle.py',kit,out/'lifecycle-pending','pending-marker'],base)
             command('accepted-p3-lifecycle-unmarked',[py,'-I','-X','utf8','-B',ROOT/'scripts/p4_lifecycle.py',kit,out/'lifecycle-unmarked','no-marker'],base)
@@ -89,6 +89,8 @@ if __name__=='__main__':main()
             command('reinstalled-doctor',[sys.executable,transfer/'install.py','doctor','--env',env],base)
         state['unchanged']=inputs==source()
         if not state['unchanged']:raise RuntimeError('qualification inputs changed during execution')
+        failed=[name for name,result in state['checks'].items() if result!='PASS']
+        if failed:raise RuntimeError('qualification failed: '+', '.join(failed))
         state['status']='PASS_NATIVE' if os.name=='nt' else 'PASS_PORTABLE'
     except BaseException as error:
         state.update(status='FAILED',error=str(error),unchanged=inputs==source());raise
