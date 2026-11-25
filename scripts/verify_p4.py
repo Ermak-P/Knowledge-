@@ -42,7 +42,7 @@ def main():
   def startTest(self,t):super().startTest(t);rows[t.id()]=dict(test=t.id(),status='RUNNING')
   def addSuccess(self,t):super().addSuccess(t);rows[t.id()]['status']='PASS'
   def addFailure(self,t,e):super().addFailure(t,e);rows[t.id()]['status']='FAIL'
-  def addError(self,t,e):super().addError(t,e);rows[t.id()]['status']='ERROR'
+  def addError(self,t,e):super().addError(t,e);rows.setdefault(t.id(),dict(test=t.id()))['status']='ERROR'
   def addSkip(self,t,reason):super().addSkip(t,reason);rows[t.id()].update(status='SKIP',reason=reason)
   def addSubTest(self,t,sub,e):
    super().addSubTest(t,sub,e)

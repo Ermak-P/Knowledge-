@@ -116,7 +116,7 @@ jobs:
         with:
           name: p4-${{ matrix.platform == 'Linux' && 'ubuntu-24.04' || 'windows-2022' }}
           path: reports/P4/
-      - name: Retain exact-source results without executing artifact contents
+      - name: Publish compact exact-source receipt without executing artifact contents
         env:
           P4_CI_PLATFORM: ${{ matrix.platform }}
           P4_CI_EXPECTED_COMMIT: ${{ needs.revision.outputs.commit }}
