@@ -40,7 +40,7 @@ def main():
             command('install', [sys.executable, kit / 'install.py', 'install', '--env', runtime])
             command('test-dependencies', [python, '-I', '-m', 'pip', 'install', '-r', ROOT / 'requirements-dev.lock'])
             driver = base / 'test-driver.py'
-            driver.write_text('import sys,unittest\nsys.path.insert(0,' + repr(str(ROOT / 'tests')) + ')\nsuite=unittest.TestSuite(unittest.defaultTestLoader.discover(' + repr(str(ROOT / 'tests')) + ',pattern=pattern) for pattern in ("test_machine_commands.py","test_core_bootstrap.py","test_core_reliability.py","test_plan_deduplication.py","test_persistence_recovery.py"))\nr=unittest.TextTestRunner(verbosity=2).run(suite)\nraise SystemExit(not r.wasSuccessful())\n', encoding='utf-8')
+            driver.write_text('import sys,unittest\nsys.path.insert(0,' + repr(str(ROOT / 'tests')) + ')\nsuite=unittest.TestSuite(unittest.defaultTestLoader.discover(' + repr(str(ROOT / 'tests')) + ',pattern=pattern) for pattern in ("test_machine_commands.py","test_core_bootstrap.py","test_core_reliability.py","test_plan_deduplication.py","test_persistence_recovery.py","test_plan_recovery_diagnostics.py"))\nr=unittest.TextTestRunner(verbosity=2).run(suite)\nraise SystemExit(not r.wasSuccessful())\n', encoding='utf-8')
             command('machine-unit-tests', [python, '-I', '-B', '-X', 'utf8', driver])
             command('machine-installer', [python, '-I', '-B', '-X', 'utf8', ROOT / 'scripts/machine_installer_trial.py', kit, output / 'machine-installer'])
             command('machine-native-host-setup', [python, '-I', '-B', '-X', 'utf8', ROOT / 'scripts/setup_machine_host.py', '--output', base / 'host', '--evidence', output / 'machine-native/host'])

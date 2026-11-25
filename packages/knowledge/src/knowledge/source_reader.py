@@ -159,7 +159,15 @@ def read(root, relative, entry, config):
                 ET.fromstring(text); meta['structure_validation'] = 'xml-no-dtd'
         except KnowledgeError as error:
             if error.code == 'EXTRACTION_FAILED': raise
-            failure('EXTRACTION_FAILED', **{**meta, 'stage': 'structured-syntax'})
+            details={}
+            if path.suffix.lower()=='.json':
+                masked=re.sub(r'"(?:\\.|[^"\\])*"','""',text)
+                reason='unsupported-json-comments' if re.search(r'//|/\*',masked) else 'unsupported-json-trailing-comma' if re.search(r',\s*[}\]]',masked) else error.code
+                details=dict(syntax_policy='strict-json',syntax_reason=reason,
+                             next_action='JSONC comments/trailing commas need explicit dialect support; malformed input must be corrected. Syntax failures are not transient retries.')
+                cause=error.__cause__
+                if isinstance(cause,json.JSONDecodeError):details.update(line=cause.lineno,column=cause.colno)
+            failure('EXTRACTION_FAILED', **{**meta, 'stage': 'structured-syntax',**details})
         except (ValueError, ET.ParseError,RecursionError) as error:
             failure('EXTRACTION_FAILED', **{**meta, 'stage': 'structured-syntax','exception':type(error).__name__})
     return text, meta

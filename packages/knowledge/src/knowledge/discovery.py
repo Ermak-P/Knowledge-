@@ -292,9 +292,10 @@ def fresh_evidence(root,e,scope=None):
             # an old v1 false positive or a newly commented anchor is not current.
             if method in LEGACY_METHODS:return 'legacy-identity-review-required'
             scope=scope if scope is not None else analysis_scope(root)
-            if not scope.get('complete',True):return 'not-analyzed'
+            aliases=scope.get('identity_aliases',{});ids={aliases.get(i,i) for i in e['substantiates']}
+            if not scope.get('complete',True) and not positive_scope_complete(scope,ids):return 'not-analyzed'
             observations=scope['observations']
-            if any(i in scope['ambiguous'] for i in e['substantiates']):return 'ambiguous-identity'
+            if any(i in scope['ambiguous'] for i in set(e['substantiates'])|ids):return 'ambiguous-identity'
             aliases=scope.get('identity_aliases',{})
             if not any((o['id'] in e['substantiates'] or any(aliases.get(i)==o['id'] for i in e['substantiates']))
                        and any(location['path']==relative and location['anchor']==e['description']
@@ -303,6 +304,16 @@ def fresh_evidence(root,e,scope=None):
         if method in DISCOVERY_METHODS and e['description'] in [line.strip() for line in text.splitlines()]:return 'anchor-valid-file-changed'
     except (OSError,UnicodeError,KnowledgeError):return 'not-verifiable'
     return 'changed'
+
+
+def positive_scope_complete(scope,identifiers):
+    """Positive syntax proof tolerates unrelated data gaps, never missing code."""
+    if scope['snapshot'].get('coverage_errors'):return False
+    projects={o['project'] for o in scope['observations'] if o['id'] in identifiers}
+    if not projects:return False
+    coverage=scope.get('verification_coverage',scope['snapshot']['files'])
+    return all(p in coverage and coverage[p].get('processing_status')=='processed' and coverage[p]['status'] not in ('blocked','excluded')
+               for p,e in scope['snapshot']['files'].items() if p.endswith(('.cs','.csproj')) and e['partition'] in projects)
 
 
 def freshness(root,claim,records,scope=None):
@@ -404,7 +415,7 @@ def incremental_scope(db,state):
     state['identity_verification']={'complete':not missing,'cached_files':len(outside)-len(missing),
         'missing_files':missing,'ambiguous_ids':sorted(ambiguous),'unrelated_files_extracted':0}
     return {'snapshot':snapshot,'observations':state['observations']+cached,'ambiguous':dict.fromkeys(ambiguous),
-            'complete':state['complete'] and not missing}
+            'complete':state['complete'] and not missing,'verification_coverage':{**{p:{**e,'processing_status':'processed'} for p,e in outside.items() if p not in missing},**state['coverage']}}
 
 
 def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incremental=False,retry_blocked=False):
@@ -443,6 +454,7 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incre
                     entry.update(status='not-analyzed',reason='explicit retry after observation');retried+=1
         pending=sorted((p for p,e in state['coverage'].items() if e['status']=='not-analyzed'),key=lambda p:(not p.endswith(('.csproj','.cs')),p))
         extracted_this_call=[]
+        observations_by_id={o['id']:o for o in state['observations']}
         for path in pending[:max_files]:
             state['coverage'][path]['_identity_policy']=state.get('identity_policy',LEGACY)
             try:observations,status,reason=extract(store.project.root,path,state['coverage'][path])
@@ -461,19 +473,7 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incre
                 state['coverage'][path].update(reason_code=reason,stage='extract',exception=type(error).__name__,processing_status='failed',retry_eligible=False)
             extracted_this_call.append(path)
             # Ambiguous identities from overloads/duplicate declarations are gaps, never guessed.
-            existing={o['id'] for o in state['observations']}
-            ambiguous=set(state.get('ambiguous',[]))
-            for o in observations:
-                prior=next((prior for prior in state['observations'] if prior['id']==o['id']),None)
-                if prior and equivalent_occurrence(prior,o):
-                    prior.setdefault('occurrences',[occurrence(prior)]).append(occurrence(o))
-                    continue
-                if o['id'] in existing or o['id'] in ambiguous or o.get('unsupported'):
-                    ambiguous.add(o['id'])
-                    state['observations']=[prior for prior in state['observations'] if prior['id']!=o['id']]
-                    state.setdefault('gaps',[]).append({'id':o['id'],'reason':'ambiguous lexical identity: all members withheld','path':path});continue
-                existing.add(o['id']);state['observations'].append(o)
-            state['ambiguous']=sorted(ambiguous)
+            aggregate_observations(state,observations,path,observations_by_id)
             state['coverage'][path].update(status=status,reason=reason)
         state['complete']=not snap.get('coverage_errors') and not any(e['status'] in ('not-analyzed','blocked') or e.get('processing_status')=='partial' for e in state['coverage'].values())
         state['counters']=coverage_counters(state)
@@ -482,7 +482,7 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incre
         # The durable snapshot-bound chunks already contain global ambiguity state.
         # Do not re-extract completed or not-yet-budgeted files for this scan.
         scope=incremental_scope(db,state) if incremental else {'snapshot':state['snapshot'],'observations':state['observations'],
-               'ambiguous':dict.fromkeys(state.get('ambiguous',[])), 'complete':state['complete']}
+               'ambiguous':dict.fromkeys(state.get('ambiguous',[])), 'complete':state['complete'],'verification_coverage':state['coverage']}
         state['work']={'version':1,'extracted_this_call':len(extracted_this_call),'paths_this_call':extracted_this_call,
                        'durable_extracted_files':sum(e['status']!='not-analyzed' for e in state['coverage'].values()),
                        'remaining_files':sum(e['status']=='not-analyzed' for e in state['coverage'].values()),
@@ -880,6 +880,24 @@ def discovery_owned(db,claim,records):
 
 def occurrence(observation):
     return {k:observation[k] for k in ('path','line','anchor','content_hash')}
+
+
+def aggregate_observations(state,observations,path,index=None):
+    """Chunk-local index is reconstructed from the durable ordered checkpoint."""
+    if index is None:index={o['id']:o for o in state['observations']}
+    ambiguous=set(state.get('ambiguous',[]))
+    for observation in observations:
+        identifier=observation['id'];prior=index.get(identifier)
+        if prior and equivalent_occurrence(prior,observation):
+            prior.setdefault('occurrences',[occurrence(prior)]).append(occurrence(observation));continue
+        if prior or identifier in ambiguous or observation.get('unsupported'):
+            ambiguous.add(identifier)
+            if identifier in index:
+                del index[identifier]
+                state['observations']=[o for o in state['observations'] if o['id']!=identifier]
+            state.setdefault('gaps',[]).append({'id':identifier,'reason':'ambiguous lexical identity: all members withheld','path':path});continue
+        index[identifier]=observation;state['observations'].append(observation)
+    state['ambiguous']=sorted(ambiguous)
 
 
 def equivalent_occurrence(first,second):

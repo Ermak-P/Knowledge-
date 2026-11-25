@@ -111,3 +111,46 @@ source, queue, provider and canonical state remain unchanged. Rebuild interrupti
 rolls back its plan write; repeat the preview. Failed files, ambiguity and partial
 coverage remain gaps; successful reconciliation does not certify business meaning
 or complete semantic coverage.
+
+## Bounded diagnostics and progress
+
+`impact` is returned as individual collection members, with compact counts in
+`impact_summary`. Filter and paginate collections independently:
+
+```javascript
+knowledge_scan_diagnostics({section:"impact", collection:"direct_claims", limit:2})
+knowledge_scan_diagnostics({section:"impact", collection:"changed_or_unverifiable_evidence", cursor:0, limit:20})
+knowledge_scan_diagnostics({section:"plan-progress"})
+```
+
+Follow `next_cursor`. Response projections explicitly report truncation; full
+claim/evidence records remain available through their registered lookup tools.
+The default 16 KB response budget is unchanged. Plan preparation reports real
+stages, available operation/group counts and elapsed time in machine state outside
+the project. Progress is excluded from approval fingerprints. The MCP event loop
+can serve progress reads while prepare executes in its worker thread.
+
+A global `scope.complete == false` used to mark every deterministic proof
+unverified, including healthy code when only an unrelated JSON file failed.
+Positive proof now requires complete physical code analysis in its project,
+nonambiguous identity and exact source/anchor verification. Unexamined or failed
+code, partial source reads and enumeration errors still fail closed. Negative
+coverage and retirement continue to require the existing complete-scope proof.
+
+## Structured input failures
+
+`.json` is strict JSON: comments and trailing commas are rejected with a dialect
+hint and line/column, without dumping content. UTF-8 BOM and supported BOM-marked
+UTF-16 inputs are decoded strictly, with hashes of original bytes. Invalid JSON,
+duplicate keys, nonfinite values, unsupported encodings and truncated physical
+reads remain distinct coverage failures/gaps. `.jsonc` is not silently treated as
+JSON or enabled as a new semantic format. This patch changes diagnostics, not the
+persisted source-policy version.
+
+Unchanged deterministic syntax failures have `retry_eligible:false`. Transient
+eligible access/read failures can use the existing explicit observed-scan resume
+and retry protocol, which reprocesses only eligible failed files and verifies the
+unchanged snapshot. Correcting syntax or changing an encoding/dialect policy
+changes source identity: preserve the old scan and use an explicit source-bound
+update/review. Do not remove pending candidates to hide a stale-source blocker.
+There is no automatic retry loop or automatic full scan.

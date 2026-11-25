@@ -56,6 +56,12 @@ def main():
                 'input_identity':digest(candidates),'seconds':elapsed,'peak_tracemalloc_bytes':peak,'sqlite_queries':queries[0],
                 'ok':plan['ok'],'blockers':plan['blocked'],'fingerprint':plan['fingerprint'],'canonical_unchanged':True,
                 'normalization':'exact-utf8-v1' if hasattr(store,'duplicate_diagnostics') else 'legacy-NFKC-casefold-whitespace'}
+        import knowledge.store as implementation
+        result['implementation_hash']=digest({p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(Path(implementation.__file__).parent.glob('*.py'))})
+        try:
+            import resource
+            result['process_peak_rss_kib']=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        except ImportError:pass
         if hasattr(store,'duplicate_diagnostics'):
             from knowledge.diagnostic_pages import page
             began=time.perf_counter();counts,groups=store.duplicate_diagnostics();result['diagnostic_analysis_seconds']=time.perf_counter()-began

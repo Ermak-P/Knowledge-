@@ -358,8 +358,11 @@ class Store:
             checkpoint('queue-written')
         return {'ok':True,'candidate':cid,'result':'submitted','status':'pending'}
 
-    def _preview(self, db, source_identity=None):
+    def _preview(self, db, source_identity=None, progress=None):
+        tick=progress or (lambda *args,**kwargs:None)
+        tick('loading-canonical-knowledge')
         current = self._records(db)
+        tick('loading-candidate-operations')
         queued=view(db,'validated-queue',lambda:self._check_control(db))
         pending = {cid:item for cid,status,raw,item in sorted(queued) if status=='pending'}
         if life.enabled(db):
@@ -380,10 +383,13 @@ class Store:
                         require(not identities or identities=={source_identity},'source-drift-rescan-required')
                     from .plan_deduplication import reconcile
                     from .persistence_identity import recovery_projection
+                    tick('loading-scan-artifacts')
                     derived,preferred=recovery_projection(db,pending)
-                    resolved,diagnostic,conflicts=reconcile(current,derived,life.latest(db),bindings,preferred=preferred,project=self.project.identity)
+                    resolved,diagnostic,conflicts=reconcile(current,derived,life.latest(db),bindings,preferred=preferred,project=self.project.identity,progress=tick)
                     blocked.extend(conflicts)
-                    if not blocked:life.simulate(self,db,{cid:v for cid,v in resolved.items() if v is not None},check_source=False)
+                    if not blocked:
+                        tick('validating-operations',total_operations=diagnostic['counts']['proposed_operations'])
+                        life.simulate(self,db,{cid:v for cid,v in resolved.items() if v is not None},check_source=False)
             except KnowledgeError as e:blocked=[{'code':e.code,'details':e.details}]
             base=life.state_fingerprint(self,db)
             if not blocked and bindings:base=fingerprint({'canonical':base,'semantic_bindings':bindings})
@@ -407,11 +413,16 @@ class Store:
                 'candidates':pending,'included':list(pending) if not blocked else [],
                 'skipped':[], 'blocked':blocked}
 
-    def prepare(self, _source_identity=None):
+    def prepare(self, _source_identity=None, progress=None):
+        tick=progress or (lambda *args,**kwargs:None)
+        tick('loading-store')
         with self.connection(True) as db:
-            preview = self._preview(db,_source_identity)
+            preview = self._preview(db,_source_identity,tick)
+            tick('building-final-plan')
+            tick('generating-fingerprint')
             pid = fingerprint(preview)
             db.execute('INSERT OR IGNORE INTO plans VALUES (?,?,?)',(pid,canonical_json(preview),'PREPARED'))
+        tick('blocked' if preview['blocked'] else 'prepared')
         return {'ok':not preview['blocked'],'fingerprint':pid,**preview}
 
     def duplicate_diagnostics(self,group=None):

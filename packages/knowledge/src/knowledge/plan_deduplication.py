@@ -18,7 +18,8 @@ def operations(item,copy=True):
             for kind,rows in item['records'].items() for r in rows]
 
 
-def reconcile(current,pending,revisions,bindings=None,p1=True,preferred=None,project=None):
+def reconcile(current,pending,revisions,bindings=None,p1=True,preferred=None,project=None,progress=None):
+    tick=progress or (lambda *args,**kwargs:None)
     preferred=preferred or {}
     bindings=bindings or {};ops={cid:operations(item,False) for cid,item in pending.items()};copied=False
     canonical={r['id']:(kind,r) for kind,rows in current.items() for r in rows}
@@ -26,6 +27,7 @@ def reconcile(current,pending,revisions,bindings=None,p1=True,preferred=None,pro
     for claim in current['claims']:
         if revisions.get(claim['id'],{}).get('lifecycle','active')=='active':existing[claim['statement']].append(claim)
     total=sum(map(len,ops.values()));duplicate_refs=0
+    tick('indexing-exact-statements',total_operations=total)
     for cid,items in ops.items():
         for index,op in enumerate(items):
             if op['action'] in ('add','update','reactivate') and op['kind']=='claims':groups[op['payload']['statement']].append((cid,index,op['payload']))
@@ -39,6 +41,8 @@ def reconcile(current,pending,revisions,bindings=None,p1=True,preferred=None,pro
     def mutable():
         nonlocal ops,copied
         if not copied:ops=deepcopy(ops);copied=True
+    tick('detecting-duplicate-groups',total_operations=total,duplicate_groups=sum(len(rows)>1 for rows in groups.values()))
+    tick('reconciling-claims')
     for statement,rows in sorted(groups.items()):
         old=existing.get(statement,[])
         if len(rows)==1 and not old and preferred.get(rows[0][2]['id'],rows[0][2]['id'])==rows[0][2]['id']:continue
@@ -115,6 +119,7 @@ def reconcile(current,pending,revisions,bindings=None,p1=True,preferred=None,pro
                        'candidates':sorted({cid for cid,_,_ in members}),'claims':sorted({c['id'] for _,_,c in members}),
                        'canonical':sorted(c['id'] for text in texts for c in existing.get(text,[])),
                        'classification':'legacy-normalization-collision','resolution':'kept-distinct','reason':None})
+    tick('reconciling-evidence',resolved_groups=sum(g['resolution']=='reconciled' for g in report))
     proof_repeat=False
     for kind in ('evidence','relationships'):
         signatures={canonical_json({k:v for k,v in r.items() if k!='id'}) for r in current[kind]}

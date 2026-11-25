@@ -243,12 +243,15 @@ def execute(command, installation, directory, value):
     finally: lease.close()
 
 
-def diagnostics(installation,directory,scope='full',section='failures',cursor=0,limit=20,max_bytes=16000,group=None,candidate=None,operation=None,plan=None):
-    require(scope in ('full','incremental') and section in ('failures','coverage','reconciliation','impact','policy','identity','scans','duplicates','candidate'), 'invalid-diagnostic-section')
+def diagnostics(installation,directory,scope='full',section='failures',cursor=0,limit=20,max_bytes=16000,group=None,candidate=None,operation=None,plan=None,collection=None):
+    require(scope in ('full','incremental') and section in ('failures','coverage','reconciliation','impact','policy','identity','scans','duplicates','candidate','plan-progress'), 'invalid-diagnostic-section')
     require(type(cursor) is int and cursor>=0 and type(limit) is int and 1<=limit<=100,'invalid-diagnostic-page')
     installation=installation_at(installation);root=resolve_root(directory);project=Project(root)
     require(not root.is_relative_to(installation) and not installation.is_relative_to(root),'installation-and-project-must-be-separate')
     from .diagnostic_pages import page
+    if section=='plan-progress':
+        path=safe_path(installation/'state/projects'/project.identity/'plan-progress.json')
+        return page([read_json(path)] if path.exists() else [],{'ok':True,'section':section,'observation':'Last recorded stage; not a liveness or canonical-commit proof.','canonical_unchanged':True},cursor,limit,max_bytes)
     if section=='candidate':
         from .util import canonical_json
         import hashlib
@@ -287,13 +290,16 @@ def diagnostics(installation,directory,scope='full',section='failures',cursor=0,
               if section=='coverage' or entry['status'] in ('blocked','excluded') or entry.get('processing_status')=='partial']
         if section=='failures':rows.extend(state['snapshot']['exclusions']);rows.extend(state['snapshot'].get('coverage_errors',[]))
     elif section=='policy':rows=[state['snapshot']['policy']]
-    elif section=='impact':rows=[{'category':kind,'value':item} for kind,items in sorted(state.get('impact',{}).items()) for item in (items if isinstance(items,list) else [items])]
+    elif section=='impact':
+        impact=state.get('impact',{});require(collection is None or collection in impact,'unknown-impact-collection')
+        rows=[{'category':kind,'value':item} for kind,items in sorted(impact.items()) if collection is None or kind==collection for item in (items if isinstance(items,list) else [items])]
     elif section=='identity':
         identity=state.get('identity_verification') or {}
         rows=[{'path':path,'reason':'missing-compatible-cached-analysis'} for path in identity.get('missing_files',[])]+[{'id':identifier,'reason':'ambiguous-identity'} for identifier in identity.get('ambiguous_ids',[])]
     else:
         review=discovery.reconcile(Store(root),job['scan_id']);rows=review['claims']+review['negative_evidence_gaps']
     return page(rows,{'ok':True,'section':section,'scan_id':state['id'],'state':job['state'],'coverage':state.get('counters'),
+            **({'impact_summary':{k:len(v) for k,v in state.get('impact',{}).items() if isinstance(v,list)},'collection':collection} if section=='impact' else {}),
             'binding_matches_current':job['binding']==binding,'canonical_unchanged':True},cursor,limit,max_bytes)
 
 
@@ -362,11 +368,23 @@ def push(store, root, state_dir, binding, value):
         return {'ok': validation['ok'], 'state': 'ACKNOWLEDGED', 'fingerprint': approval, 'canonical_plan': pid,
                 'validation': validation, 'queue': dict(Counter(row['status'] for row in status['queue']))}
     require(action in ('start', 'prepare'), 'invalid-push-action')
-    recovered=discovery.completed_artifact(store,value['rebuild_scan_id']) if value.get('rebuild_scan_id') else None
-    before = discovery.inventory(root)['identity']
-    if recovered:require(recovered['source_identity']==before,'scan-artifact-source-or-policy-drift',{'next_action':'Preserve the scan. Inspect source/policy changes before selecting explicit recovery; no automatic fresh scan.'})
-    prepared = store.prepare(_source_identity=before)
-    require(discovery.inventory(root)['identity'] == before, 'source-drift-during-prepare')
+    import time
+    started=time.monotonic();progress_state={}
+    def progress(stage,**counts):
+        progress_state.update(stage=stage,elapsed_seconds=round(time.monotonic()-started,3),**counts)
+        _write(state_dir/'plan-progress.json',progress_state)
+    try:
+        progress('loading-completed-scan-artifacts')
+        recovered=discovery.completed_artifact(store,value['rebuild_scan_id']) if value.get('rebuild_scan_id') else None
+        progress('verifying-current-source-inventory')
+        before = discovery.inventory(root)['identity']
+        if recovered:require(recovered['source_identity']==before,'scan-artifact-source-or-policy-drift',{'next_action':'Preserve the scan. Inspect source/policy changes before selecting explicit recovery; no automatic fresh scan.'})
+        prepared = store.prepare(_source_identity=before,progress=progress)
+        progress('verifying-post-prepare-source')
+        require(discovery.inventory(root)['identity'] == before, 'source-drift-during-prepare')
+        progress('blocked' if prepared['blocked'] else 'awaiting-exact-approval')
+    except Exception as error:
+        progress('failed',error=getattr(error,'code',type(error).__name__));raise
     seal = {**binding, 'source_identity': before, 'canonical_plan': prepared['fingerprint']}
     approval = fingerprint(seal)
     if prepared['ok']:
