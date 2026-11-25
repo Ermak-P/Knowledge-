@@ -37,7 +37,10 @@ def canonical_match(observation,records,states):
     matches=[]
     for claim in records['claims']:
         if claim['statement']!=observation['statement'] or claim['provenance']!={'actor':'deterministic-discovery','method':METHOD}:continue
-        paths=[evidence[i]['source'] for i in claim['evidence'] if isinstance(evidence[i]['source'],str)]
+        # Approved historical proofs retain the old file-stem identity even when
+        # that file has disappeared and current supporting evidence moved.
+        paths=[e['source'] for e in evidence.values() if claim['id'] in e['substantiates']
+               and isinstance(e['source'],str) and e['provenance']==claim['provenance']]
         if claim['id'] in compatible_ids(observation,paths):matches.append(claim)
     require(len(matches)<=1,'ambiguous-canonical-persistence-identity')
     return matches[0] if matches else None

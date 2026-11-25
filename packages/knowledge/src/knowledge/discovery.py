@@ -328,6 +328,12 @@ def identity_scope(scope,records):
 def proposal(store,db,obs,snapshot,captured,records,states,scope=None):
     from .store import empty
     from .persistence_identity import canonical_match
+    if scope is not None and obs['category']=='persistence' and obs.get('identity_policy')=='project-presence-v1':
+        locations={}
+        for other in scope['observations']:
+            if equivalent_occurrence(obs,other):
+                for location in other.get('occurrences',[occurrence(other)]):locations[(location['path'],location['line'],location['anchor'],location['content_hash'])]=location
+        if locations:obs={**obs,'occurrences':[v for _,v in sorted(locations.items())]}
     current={r['id']:r for r in records['claims']};known=current.get(obs['id'])
     if known is None:known=canonical_match(obs,records,states)
     identifier=known['id'] if known else obs['id']
@@ -383,7 +389,7 @@ def incremental_scope(db,state):
         ambiguous.update(old.get('ambiguous',[]))
         for observation in old['observations']:
             for location in observation.get('occurrences',[occurrence(observation)]):
-                if location['path']==path:cached.append({**observation,**location})
+                if location['path']==path:cached.append({**{k:v for k,v in observation.items() if k!='occurrences'},**location})
     from .persistence_identity import describe,identifier,POLICY
     for observation in cached:
         data=describe(observation)

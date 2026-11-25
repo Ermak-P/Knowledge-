@@ -132,6 +132,34 @@ class PersistenceRecovery(unittest.TestCase):
         self.assertEqual({c['id'] for c in claims},{identifier('P.csproj','GetConnectionString',None),identifier('P.csproj','UseSqlServer',None)})
         self.assertEqual(sorted(len(c['evidence']) for c in claims),[2,2])
 
+    def test_legacy_identity_survives_removal_of_original_file(self):
+        (self.root/'A.cs').write_text('UseSqlite();');self.legacy_scan()
+        with patch('knowledge.persistence_identity.preferences',return_value={}):
+            p=self.store.prepare();self.store.apply(p['fingerprint'],p['fingerprint']);self.store.acknowledge(p['fingerprint'])
+        identifier_before=self.store.export()['records']['claims'][0]['id']
+        (self.root/'A.cs').unlink();(self.root/'B.cs').write_text('UseSqlite();')
+        for n in range(2):
+            discovery.scan(self.store,max_files=100,restart=True);p=self.store.prepare();self.assertTrue(p['ok'],p['blocked'])
+            if p['included']:self.store.apply(p['fingerprint'],p['fingerprint']);self.store.acknowledge(p['fingerprint'])
+            records=self.store.export()['records'];self.assertEqual([c['id'] for c in records['claims']],[identifier_before])
+            self.assertTrue(discovery.freshness(self.root,records['claims'][0],records)['trusted'])
+
+    def test_incremental_legacy_cache_keeps_unchanged_occurrence(self):
+        from test_p1 import git
+        (self.root/'.gitignore').write_text('.knowledge/\n.knowledge-control.lock\n')
+        (self.root/'A.cs').write_text('UseSqlite();')
+        git(self.root,'init');git(self.root,'config','user.name','Synthetic');git(self.root,'config','user.email','fixture@example.invalid');git(self.root,'add','.');git(self.root,'commit','-m','base')
+        self.legacy_scan()
+        with patch('knowledge.persistence_identity.preferences',return_value={}):
+            p=self.store.prepare();self.store.apply(p['fingerprint'],p['fingerprint']);self.store.acknowledge(p['fingerprint'])
+        old=self.store.export()['records']['claims'][0]['id'];base=git(self.root,'rev-parse','HEAD')
+        (self.root/'B.cs').write_text('UseSqlite();');git(self.root,'add','.');git(self.root,'commit','-m','additional occurrence')
+        state=discovery.scan(self.store,max_files=100,incremental=True,base=base,head='HEAD')
+        self.assertTrue(state['identity_verification']['complete']);p=self.store.prepare();self.assertTrue(p['ok'],p['blocked'])
+        self.store.apply(p['fingerprint'],p['fingerprint']);self.store.acknowledge(p['fingerprint'])
+        records=self.store.export()['records'];self.assertEqual([c['id'] for c in records['claims']],[old])
+        self.assertEqual(len(records['claims'][0]['evidence']),2)
+
     def test_identity_collisions_remain_ambiguous_without_unrelated_id_changes(self):
         (self.root/'A.cs').write_text('class Same {}\nAddScoped<IService, First>();\nAddSingleton<IService, Second>();')
         (self.root/'B.cs').write_text('class Same {}')
