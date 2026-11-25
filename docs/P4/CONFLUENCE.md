@@ -86,3 +86,46 @@ discover actual installed Confluence MCP signatures rather than inventing paths.
 Metadata-only retrieval, children, pagination and search are selected from that
 runtime's catalog. Missing capabilities must be reported as coverage limitations,
 with unfinished work preserved. Do not fall back to REST or request/store tokens.
+
+## Revision tracking and durable analysis (Stage 3)
+
+`observe` consumes native MCP metadata and returns FETCH_CONTENT, RESUME_ANALYSIS,
+or SKIP. Native versions never decrease. `failure` preserves knowledge and records
+ACCESS_DENIED, TIMEOUT, UNAVAILABLE, NOT_FOUND_UNCONFIRMED or INCOMPLETE_RESPONSE.
+None imply deletion. `confirm_deleted` requires explicit native page status
+`native-page-status-deleted`; 404/search omission is insufficient.
+
+`analyze` accepts source, findings[{statement,quote,role,type?,conflicts_with?,question?}]
+and complete (default true). Exact quotes must occur in the registered normalized
+snapshot. Roles separate requirements, architecture, rationale, integration-contract,
+configuration, deployment, testing, limitation, historical, proposed and implementation.
+Documentation-only implementation is INFERRED/supporting. Existing code evidence
+retains its classification and existing reviewed confidence is preserved.
+
+Each page tracks latest observed, last analyzed and last applied versions separately.
+Zero-fact analysis counts as analyzed, never applied. Identical content under a
+new native version reuses analysis; pending proofs receive explicit validated
+refresh links and still need a new exact plan approval. Renames/moves preserve IDs.
+`related` provides bounded candidate and canonical evidence/claim relationships.
+
+Partial page analysis (`complete=false`, <=1000 findings per call, <=10000/page)
+is buffered durably, with idempotent chunk hashes. Finish with complete=true.
+PREPARED outboxes persist exact candidates before submission. Interrupted batches
+block application until `resume_analysis` completes the saved checkpoint; replay
+requires no repeated model analysis. Page completion does not apply knowledge.
+
+Changed/deleted pages supersede/retract only their own proofs via normal candidates.
+Independent Git/page proofs survive; unsupported claims retain historical evidence
+and become NEEDS_HUMAN_CONFIRMATION. Explicit same-scope contradictions preserve
+both claims, symmetric conflicts and targeted clarification questions. Different
+semantic scopes are rejected for clarification rather than silently merged.
+
+Schema 1 -> 2 migrates snapshot bodies transactionally into content-addressed blobs;
+identical bodies across versions/pages occupy one row. Per-transaction body cache
+is bounded to 8 MiB. Automatic retention runs each 64 new snapshots; `gc` also
+runs explicitly at synchronization boundaries. Keep two unused revisions per page
+plus latest/analyzed snapshots. Never remove revisions referenced by canonical
+records, historical provenance, candidates, plans or unfinished analysis. Compact
+completed outboxes for discarded unreferenced snapshots are removed. Legitimate
+historical evidence can therefore require retention beyond the unused cache limit.
+No network, model calls or Git scan occurs during ordinary Confluence retrieval.

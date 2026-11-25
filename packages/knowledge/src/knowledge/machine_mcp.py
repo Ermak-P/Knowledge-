@@ -94,7 +94,7 @@ def create_server(installation, workspace=None):
                     'diagnostic_sections':['failures','coverage','reconciliation','impact','policy','identity','scans','duplicates','candidate','plan-progress'],
                     'plan_deduplication':'exact-utf8-v1','plan_formats':[1,2],
                     'candidate_actions':['submit','prepare','rebuild','apply','recover'],
-                    'source_kinds':['git','confluence'],'confluence_actions':['register_snapshot','inventory','snapshot'],
+                    'source_kinds':['git','confluence'],'confluence_actions':['register_snapshot','inventory','related','snapshot','observe','failure','analyze','resume_analysis','confirm_deleted','gc'],
                     'confluence_snapshot_integrity':'locally-verified; live MCP access is not independently attested',
                     'provider':{'endpoint':provider['endpoint'],'model':provider['model'],'evidence':provider['evidence'],'reference':reference},
                     'semantic_provider_contacted':False,'root':str(r),
@@ -152,7 +152,7 @@ def create_server(installation, workspace=None):
         return await invoke(ctx,read,max_bytes)
 
     @server.tool()
-    async def knowledge_confluence(action:Literal['register_snapshot','inventory','snapshot'],request:dict,ctx:Context,max_bytes:int=16000)->CallToolResult:
+    async def knowledge_confluence(action:Literal['register_snapshot','inventory','related','snapshot','observe','failure','analyze','resume_analysis','confirm_deleted','gc'],request:dict,ctx:Context,max_bytes:int=16000)->CallToolResult:
         """Register/read Confluence MCP snapshots. No live requests or canonical apply."""
         from .confluence import dispatch
         return await invoke(ctx,lambda r:dispatch(Store(r),action,request),max_bytes)

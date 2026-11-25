@@ -259,6 +259,8 @@ class Store:
                 require(pid in plans and plans[pid][1]!='PREPARED' and loads(payload)==plans[pid][0],'receipt-plan-mismatch')
                 self._verify_committed(db,pid,plans[pid][0])
         view(db,'validated-queue',lambda:queue)
+        from .confluence_sync import validate_relations
+        validate_relations(db,queue)
         return queue
 
     def init(self):
@@ -331,6 +333,8 @@ class Store:
                 return {'ok':True,'candidate':row[0],'result':'duplicate','status':row[1]}
             if item['version']==2:
                 db.execute('INSERT INTO queue VALUES (?,?,?,NULL)', (cid,canonical_json(item),'pending'))
+                from .confluence_sync import note_candidate
+                note_candidate(db,cid,item)
                 if semantic_binding is not None:
                     from .providers import SEMANTIC_PREFIX
                     db.execute('INSERT INTO metadata VALUES (?,?)',(SEMANTIC_PREFIX+cid,canonical_json(semantic_binding)))
@@ -523,6 +527,8 @@ class Store:
                 life.verify_source_bindings(self,plan['candidates'].values(),db)
                 db.execute('INSERT INTO receipts VALUES (?,?)',(pid,canonical_json(plan)))
             db.execute("UPDATE plans SET status='COMMITTED' WHERE id=?",(pid,))
+            from .confluence_sync import record_applied
+            record_applied(db,plan,pid)
             db.execute('INSERT INTO history(payload) VALUES (?)',(canonical_json({'event':'import','fingerprint':pid,'candidates':plan['included']}),))
         checkpoint('after-canonical-commit')
         return {'ok':True,'state':'COMMITTED','fingerprint':pid,'acknowledgment_required':True}
