@@ -20,6 +20,7 @@ from .util import require, loads, canonical_json, digest, fingerprint, Knowledge
 from .sqlite_snapshot import view
 from . import confluence as cf
 from . import confluence_sync as cs
+from . import confluence_command as cc
 
 KEY = 'sqlite-identity-migration-v1'
 RULE = 'canonical-and-revisions-active-control-objects-historical-v1'
@@ -73,13 +74,14 @@ def inventory_connection(db, project, old, knowledge_base=None):
             and metadata.get('operations') in (None,'1'),'identity-unsupported-format')
     require(metadata.get('confluence-schema') in (None,*cf.SUPPORTED_SCHEMAS),'identity-unsupported-confluence-version')
     require(metadata.get('confluence-sync-schema') in (None,cs.SCHEMA),'identity-unsupported-confluence-sync-version')
-    require(all(k in ('format','project','p1','operations','migration','confluence-schema','confluence-sync-schema','confluence-gc-registrations') or k.startswith((*PREFIXES,cs.REFRESH))
+    require(metadata.get(cc.META) in (None,cc.SCHEMA),'identity-unsupported-confluence-command-version')
+    require(all(k in ('format','project','p1','operations','migration','confluence-schema','confluence-sync-schema','confluence-gc-registrations',cc.META) or k.startswith((*PREFIXES,cs.REFRESH))
                 for k in metadata),'identity-unknown-metadata-extension')
     schema=list(db.execute("SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name"))
     require(not any(t in ('trigger','view') for t,_,_,_ in schema),'identity-unknown-schema-object')
-    require(all(t!='index' or sql is None or (metadata.get('confluence-schema') in cf.SUPPORTED_SCHEMAS and n in cf.INDEX_SQL) or (metadata.get('confluence-sync-schema')==cs.SCHEMA and n in cs.INDEX_SQL) for t,n,_,sql in schema),'identity-unknown-index')
+    require(all(t!='index' or sql is None or (metadata.get('confluence-schema') in cf.SUPPORTED_SCHEMAS and n in cf.INDEX_SQL) or (metadata.get('confluence-sync-schema')==cs.SCHEMA and n in cs.INDEX_SQL) or (metadata.get(cc.META)==cc.SCHEMA and n in cc.INDEX_SQL) for t,n,_,sql in schema),'identity-unknown-index')
     expected={**CORE,**(P1 if metadata.get('p1')=='1' else {}),
-              **(OPS if metadata.get('operations')=='1' else {}),**(cf.schema_tables(metadata['confluence-schema']) if metadata.get('confluence-schema') else {}),**(cs.TABLES if metadata.get('confluence-sync-schema') else {})}
+              **(OPS if metadata.get('operations')=='1' else {}),**(cf.schema_tables(metadata['confluence-schema']) if metadata.get('confluence-schema') else {}),**(cs.TABLES if metadata.get('confluence-sync-schema') else {}),**(cc.TABLES if metadata.get(cc.META) else {})}
     require({n for t,n,_,_ in schema if t=='table'}==set(expected),'identity-unknown-or-missing-table')
     # Recognize constraints/indexes as well as column names. Never execute DDL
     # from a supplied source while constructing the destination.
@@ -91,6 +93,8 @@ def inventory_connection(db, project, old, knowledge_base=None):
             for sql in cf.schema_sql(metadata['confluence-schema']):known.execute(sql)
         if metadata.get('confluence-sync-schema'):
             for sql in (*cs.TABLE_SQL.values(),*cs.INDEX_SQL.values()):known.execute(sql)
+        if metadata.get(cc.META):
+            for sql in (*cc.TABLE_SQL.values(),*cc.INDEX_SQL.values()):known.execute(sql)
         normalize=lambda sql:re.sub(r'\s+','',sql or '').casefold()
         recognized=[(t,n,parent,normalize(sql)) for t,n,parent,sql in known.execute('SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name')]
         require([(t,n,parent,normalize(sql)) for t,n,parent,sql in schema]==recognized,'identity-unrecognized-schema-definition')
@@ -290,9 +294,9 @@ def _validate_archive(db):
     if not row:return None
     value=loads(row[0]);require(isinstance(value,dict) and value.get('version')==1 and value.get('rule')==RULE
         and value.get('new_identity')==dict(db.execute('SELECT key,value FROM metadata'))['project']
-        and isinstance(value.get('tables'),dict) and set(CORE)<=set(value['tables'])<=set(CORE)|set(P1)|set(OPS)|set(cf.TABLES)|set(cs.TABLES), 'identity-corrupt-archive-marker')
+        and isinstance(value.get('tables'),dict) and set(CORE)<=set(value['tables'])<=set(CORE)|set(P1)|set(OPS)|set(cf.TABLES)|set(cs.TABLES)|set(cc.TABLES), 'identity-corrupt-archive-marker')
     for table,entry in value['tables'].items():
-        require(isinstance(entry,dict) and entry.get('columns')==list({**CORE,**P1,**OPS,**cf.TABLES,**cs.TABLES}[table])
+        require(isinstance(entry,dict) and entry.get('columns')==list({**CORE,**P1,**OPS,**cf.TABLES,**cs.TABLES,**cc.TABLES}[table])
                 and type(entry.get('count')) is int and entry['count']>=0 and isinstance(entry.get('rows'),list)
                 and len(entry['rows'])==entry['count']
                 and all(isinstance(h,str) and re.fullmatch('[a-f0-9]{64}',h) for h in entry['rows']), 'identity-corrupt-archive-table')
@@ -318,7 +322,16 @@ def stage(project,snapshot,source,rows,work,txn):
         if 'confluence_pages' in rows:
             version='2' if 'confluence_blobs' in rows else '1'
             for sql in cf.schema_sql(version):db.execute(sql)
-            for table,columns in cf.schema_tables(version).items():db.executemany('INSERT INTO '+table+' VALUES ('+','.join('?' for _ in columns)+')',rows[table])
+            for table,columns in cf.schema_tables(version).items():
+                values=rows[table]
+                if table=='confluence_pages':
+                    values=[]
+                    for row in rows[table]:
+                        value=loads(row[-1])
+                        if value.get('analysis_checkpoint'):
+                            value.update(archived_analysis_checkpoint=value['analysis_checkpoint'],analysis_checkpoint=None,analysis_offset=0,processing_status='ANALYSIS_REQUIRED')
+                        values.append((*row[:-1],canonical_json(value)))
+                db.executemany('INSERT INTO '+table+' VALUES ('+','.join('?' for _ in columns)+')',values)
             db.execute("INSERT INTO metadata VALUES ('confluence-schema',?)",(version,))
         db.execute('CREATE TABLE identity_archive(source_table TEXT NOT NULL,ordinal INTEGER NOT NULL,payload TEXT NOT NULL,PRIMARY KEY(source_table,ordinal))')
         for table,items in rows.items():

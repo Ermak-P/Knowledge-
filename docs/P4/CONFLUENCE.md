@@ -129,3 +129,39 @@ records, historical provenance, candidates, plans or unfinished analysis. Compac
 completed outboxes for discarded unreferenced snapshots are removed. Legitimate
 historical evidence can therefore require retention beyond the unused cache limit.
 No network, model calls or Git scan occurs during ordinary Confluence retrieval.
+
+
+## OpenCode command (Stage 4)
+
+The machine installer upgrades the owned OpenCode 2.4.0 plugin and five command
+templates transactionally. `/knowledge-confluence` drives `knowledge_confluence`
+with the actual configured external Confluence MCP tools. `/knowledge-update`
+is an alias of the existing exact-approval plan command; old names still work.
+No new dependencies, REST client, credentials or required subagents are added.
+
+Tool actions: scope {scope:{roots:[URLs],spaces:[keys],autonomous:bool}}, start
+{operations?:100,extra_operations?:0,capabilities?:{metadata_only,children,search,
+content}}, status {}, next {}, complete_work {work,result}, terms {terms:[...]},
+retry {work}, finish {}. Existing source actions remain available. Metadata
+fallback can include a snapshot with page in complete_work, avoiding a second
+content fetch when the MCP only returns full pages. Sources are client-reported;
+capability flags and coverage receipts do not attest authenticated live access.
+
+A separate additive command-schema extension stores checksummed scope/run,
+indexed work and per-run unique-page receipts. Source cache/body migration remains
+transactional. Scope changes cannot resume old-scope work. Unknown spaces require
+metadata verification before content or traversal. Mandatory work precedes
+references/autonomous queries. Native IDs deduplicate recursive references;
+pagination requires an explicit has_more flag and a non-repeating next cursor.
+Access/capability failures and skips make coverage partial. Operation exhaustion
+pauses with the queue retained; an explicit bounded extension resumes the same run.
+Only completed old run receipts are aged out; unfinished work and canonical/
+candidate/source history are preserved. Partial page analysis persists an offset,
+findings and replay checkpoint rather than requiring the full article in context.
+
+Status derives discovery/analysis/submission/application counters from persisted
+rows. finish runs integrity and safe retention even when stopping with gaps.
+No candidate is automatically applied. Different claim/proof revisions changing
+meaning require explicit resolution; only verified source-specific proof changes
+and compatible evidence enrichment reconcile automatically. Ordinary context
+remains offline and deterministic. See CONFLUENCE-COMMAND-RU.md for operator steps.

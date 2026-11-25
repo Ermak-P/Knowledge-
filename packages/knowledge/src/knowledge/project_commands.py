@@ -19,7 +19,7 @@ from .providers import shared
 from .store import Store
 from .util import KnowledgeError, require, digest, fingerprint, loads, emit_json
 
-COMMANDS = ('knowledge-init', 'knowledge-candidates-update', 'knowledge-candidates-push')
+COMMANDS = ('knowledge-init', 'knowledge-candidates-update', 'knowledge-candidates-push','knowledge-confluence','knowledge-update')
 
 
 def resolve_root(directory, roots=None):
@@ -53,7 +53,7 @@ def machine_binding(installation, project):
     return {'root': project.describe(), 'provider_reference': reference, 'runtime_release': current['release_sha256']}, provider
 
 
-def configure_project(installation, project):
+def configure_project(installation, project, connect_runner=True):
     reference = str(installation / 'config/provider.json')
     runner = safe_path(project.root / '.harness/runner.json')
     lease = ProjectExecutionLock(project.root).acquire()
@@ -65,7 +65,7 @@ def configure_project(installation, project):
             if config_path.exists():
                 require(loads(config_path.read_text(encoding='utf-8')) == wanted, 'project-machine-configuration-conflict')
             raw = None
-            if runner.exists():
+            if connect_runner and runner.exists():
                 raw = loads(runner.read_text(encoding='utf-8'))
                 require(isinstance(raw, dict) and raw.get('version') in (1, 2), 'invalid-runner-config')
                 require(not ('provider' in raw and 'provider_ref' in raw), 'ambiguous-provider-configuration')
@@ -139,7 +139,9 @@ def job_summary(folder, binding, provider):
 
 
 def execute(command, installation, directory, value):
-    require(isinstance(value, dict) and set(value) <= {'roots', 'directory', 'action', 'approve', 'plan', 'upgrade_approval', 'migration_approval', 'base', 'head', 'max_files', 'candidates', 'resume', 'fresh', 'allow_test_double','observed_scan_id','rebuild_scan_id'}, 'invalid-command-input')
+    if command=='knowledge-update':command='knowledge-candidates-push'
+    extra={'scope','operations','extra_operations','capabilities','request'} if command=='knowledge-confluence' else set()
+    require(isinstance(value, dict) and set(value) <= {'roots', 'directory', 'action', 'approve', 'plan', 'upgrade_approval', 'migration_approval', 'base', 'head', 'max_files', 'candidates', 'resume', 'fresh', 'allow_test_double','observed_scan_id','rebuild_scan_id'}|extra, 'invalid-command-input')
     require(all(key not in value or type(value[key]) is bool for key in ('resume', 'fresh','allow_test_double')), 'invalid-recovery-controls')
     require(value.get('observed_scan_id') is None or (value.get('resume') is True and not value.get('fresh') and value.get('action','start')=='start'),'observed-scan-requires-resume')
     installation = installation_at(installation)
@@ -156,6 +158,25 @@ def execute(command, installation, directory, value):
                 'scan_actions':['start','status','resume','fresh','cancel'],
                 'provider':{'endpoint':provider['endpoint'],'model':provider['model'],'evidence':provider['evidence']},
                 'provider_reference':binding['provider_reference'],'host_permission':'Not granted by backend discovery; actual MCP calls remain host-authorized.'}
+    if command=='knowledge-confluence':
+        from .confluence import dispatch
+        if not store.path.exists() and (root/'.ai').exists():
+            from . import migration
+            preview=migration.preview(root);require(value.get('migration_approval')==preview['fingerprint'],'legacy-migration-approval-required',preview)
+            migration.apply(root,value['migration_approval'])
+        if not store.path.exists():
+            store.init();lifecycle.upgrade(store,lifecycle.upgrade_preview(store)['fingerprint'])
+        else:
+            preview=lifecycle.upgrade_preview(store)
+            if not preview['already_upgraded']:
+                require(value.get('upgrade_approval')==preview['fingerprint'],'upgrade-approval-required',preview);lifecycle.upgrade(store,value['upgrade_approval'])
+        configure_project(installation,project,connect_runner=False)
+        if 'scope' in value:dispatch(store,'scope',{'scope':value['scope']})
+        state=dispatch(store,'status',{})
+        if state['state']=='SCOPE_REQUIRED':return state
+        requested=value.get('action','start')
+        request=value.get('request',{k:v for k,v in value.items() if k in ('operations','extra_operations','capabilities')})
+        return dispatch(store,requested,request)
     if action == 'cancel' and command == 'knowledge-init':
         if not (state_dir/'full/job.json').exists():return no_scan(root)
         state=scan_jobs.status(state_dir / 'full');require(state['binding']==binding,'scan-provider-configuration-drift')

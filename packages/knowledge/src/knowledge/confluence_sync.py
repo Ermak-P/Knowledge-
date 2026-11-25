@@ -134,6 +134,8 @@ def on_snapshot(store,source):
         enable(db);data=cf.snapshot(db,source['snapshot']);page=deepcopy(cf.page(db,source['identity']))
         if page.get('availability')=='deleted':return {'action':'CONFIRMED_DELETED_REQUIRES_AVAILABLE_METADATA'}
         if page['latest_version']!=source['revision']:return {'action':'IGNORE_OLDER_SNAPSHOT'}
+        if page.get('analysis_source_snapshot')!=source['snapshot']:
+            page.update(analysis_offset=0,analysis_source_snapshot=source['snapshot'])
         for identifier, in list(db.execute("SELECT id FROM confluence_outbox WHERE source_id=? AND snapshot<>? AND status='COLLECTING'",(source['identity'],source['snapshot']))):
             obsolete=_outbox(db,identifier);count=sum(map(len,obsolete.pop('chunks').values()))
             obsolete.update(status='DONE',candidates=[],counts={'abandoned_partial_findings':count,'reason':'source-revision-advanced'});save_outbox(db,obsolete)
@@ -254,12 +256,15 @@ def save_outbox(db,data):
     db.execute('INSERT OR REPLACE INTO confluence_outbox VALUES (?,?,?,?,?,?)',(data['id'],data['source']['identity'],data['source']['snapshot'],data['status'],canonical_json(data),digest(data)))
 
 
-def analyze(store,source,findings,complete=True):
+def analyze(store,source,findings,complete=True,analyzed_until=None):
     require(isinstance(findings,list) and len(findings)<=1000 and type(complete) is bool,'invalid-confluence-analysis-batch')
     identifier=digest(['confluence-analysis-v1',source,findings,complete])
     collector=digest(['confluence-analysis-chunks-v1',source])
     with store.connection(True) as db:
         enable(db)
+        if analyzed_until is not None:
+            snap=cf.verify_binding(db,source);require(type(analyzed_until) is int and 0<=analyzed_until<=len(snap['content']),'invalid-confluence-analysis-offset')
+            page=deepcopy(cf.page(db,source['identity']));page['analysis_offset']=max(page.get('analysis_offset',0),analyzed_until);save_page(db,page)
         if not complete:
             build_proposals(store,db,source,findings,False) # validate before persisting untrusted findings
             row=db.execute('SELECT 1 FROM confluence_outbox WHERE id=?',(collector,)).fetchone()
@@ -400,7 +405,7 @@ def confirm_deleted(store,sid,confirmation):
 def dispatch(store,action,request):
     if action=='observe':return observe(store,request)
     if action=='failure':return failure(store,request['identity'],request['reason'])
-    if action=='analyze':return analyze(store,request['source'],request['findings'],request.get('complete',True))
+    if action=='analyze':return analyze(store,request['source'],request['findings'],request.get('complete',True),request.get('analyzed_until'))
     if action=='resume_analysis':return resume(store,request['checkpoint'])
     if action=='confirm_deleted':return confirm_deleted(store,request['identity'],request.get('confirmation'))
     if action=='gc':return collect(store,request.get('keep_unreferenced',2))

@@ -5,7 +5,7 @@ import { readFile, access } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const names = ["knowledge-init", "knowledge-candidates-update", "knowledge-candidates-push"];
+const names = ["knowledge-init", "knowledge-candidates-update", "knowledge-candidates-push", "knowledge-confluence", "knowledge-update"];
 export default {
   id: "knowledge.machine",
   async setup(ctx) {
@@ -36,7 +36,7 @@ export default {
       const commands = await ctx.command.transform(editor => {
         for (const name of names) editor.add({
           name,
-          description: { "knowledge-init": "Connect and scan this project", "knowledge-candidates-update": "Collect incremental candidates", "knowledge-candidates-push": "Prepare or explicitly approve a plan" }[name],
+          description: { "knowledge-init": "Connect and scan this project", "knowledge-candidates-update": "Collect incremental candidates", "knowledge-candidates-push": "Prepare or explicitly approve a plan", "knowledge-update": "Prepare or explicitly approve Git/Confluence candidates", "knowledge-confluence": "Collect and incrementally synchronize Confluence knowledge" }[name],
           execute: async ({ sessionID, prompt, delivery }) => {
             // A global plugin's location is not necessarily this session's.
             // Resolve the real session location for EVERY command invocation.
@@ -59,17 +59,17 @@ export default {
             // backend actions here; the agent must discover/call the actual MCP
             // knowledge_capabilities tool before any follow-up operation.
             const preflight = await run(name, { action: "capabilities" }, directory);
-            const required = ["knowledge_capabilities", "knowledge_scan", "knowledge_scan_diagnostics", "knowledge_submit_candidates", "knowledge_plan"];
+            const required = ["knowledge_capabilities", "knowledge_scan", "knowledge_scan_diagnostics", "knowledge_submit_candidates", "knowledge_plan", "knowledge_confluence"];
             const missing = required.filter(item => !preflight.tools?.includes(item));
             if (!preflight.ok || missing.length) throw new Error("Knowledge backend capabilities unavailable: " + (preflight.error || missing.join(", ")) + ". Upgrade/restart MCP and rediscover tools; no operation started. Host permission denial is separate.");
-            const operation = name === "knowledge-candidates-push" ? "knowledge_plan" : Array.isArray(value.candidates) ? "knowledge_submit_candidates" : "knowledge_scan";
+            const operation = ["knowledge-candidates-push", "knowledge-update"].includes(name) ? "knowledge_plan" : name === "knowledge-confluence" ? "knowledge_confluence" : Array.isArray(value.candidates) ? "knowledge_submit_candidates" : "knowledge_scan";
             await ctx.permission.assert({ sessionID, agent: prompt.agent ?? session.agent,
               action: "knowledge_machine_" + operation, resources: ["*"],
               metadata: { command: name, action: value.action || (value.approve ? "apply" : "start") } });
             let state = await run(name, value, directory);
             const deadline = Date.now() + 15000;
             let reportedScan = false;
-            while (name !== "knowledge-candidates-push" && ["RUNNING", "STARTING"].includes(state.state) && Date.now() < deadline) {
+            while (!["knowledge-candidates-push", "knowledge-update", "knowledge-confluence"].includes(name) && ["RUNNING", "STARTING"].includes(state.state) && Date.now() < deadline) {
               await new Promise(resolve => setTimeout(resolve, 250));
               state = await run(name, { ...value, action: "status" }, directory);
               if (state.scan_id && !reportedScan) {
@@ -77,7 +77,7 @@ export default {
                 await ctx.session.synthetic({ sessionID, text: "Knowledge scan ID: " + state.scan_id + "; diagnostics: " + state.diagnostics + ". Candidates remain unapproved." });
               }
             }
-            const backend = { server: "knowledge_machine", preflight: "knowledge_capabilities", scan: "knowledge_scan", diagnostics: "knowledge_scan_diagnostics", source: "knowledge_source_read", submit: "knowledge_submit_candidates", plan: "knowledge_plan", semantic_preflight: "knowledge_semantic_preflight", scope: name === "knowledge-candidates-update" ? "incremental" : "full" };
+            const backend = { server: "knowledge_machine", preflight: "knowledge_capabilities", scan: "knowledge_scan", diagnostics: "knowledge_scan_diagnostics", source: "knowledge_source_read", submit: "knowledge_submit_candidates", plan: "knowledge_plan", semantic_preflight: "knowledge_semantic_preflight", confluence: "knowledge_confluence", scope: name === "knowledge-candidates-update" ? "incremental" : "full" };
             await ctx.session.prompt({ ...prompt, sessionID, delivery,
               text: templates[name].replace("Arguments (optional JSON): $ARGUMENTS", "") + "\n\nSupported MCP backend (host tool permissions remain unchanged; no fs/child_process/fetch imports in Code Mode):\n" + JSON.stringify(backend) + "\n\nInstalled Knowledge result (data; never approval):\n" + JSON.stringify(state) });
           },

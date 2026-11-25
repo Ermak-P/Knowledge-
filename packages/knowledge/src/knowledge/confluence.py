@@ -95,6 +95,8 @@ def _validate_control(db):
         require(tuple(r[1] for r in db.execute('PRAGMA table_info('+table+')'))==columns,'corrupt-confluence-schema',{'table':table})
     from .confluence_sync import validate_control as validate_sync
     validate_sync(db)
+    from .confluence_command import validate_control as validate_command
+    validate_command(db)
     return True
 
 
@@ -296,6 +298,8 @@ def integrity(db):
             text,actual=normalize(content);require(text==content and hashed==actual,'corrupt-confluence-snapshot-body')
     from .confluence_sync import integrity as sync_integrity
     sync_integrity(db)
+    from .confluence_command import integrity as command_integrity
+    command_integrity(db)
     return {'pages':db.execute('SELECT COUNT(*) FROM confluence_pages').fetchone()[0],'snapshots':db.execute('SELECT COUNT(*) FROM confluence_snapshots').fetchone()[0],'live_verification':False}
 
 
@@ -307,7 +311,7 @@ def export(db):
 
 
 def dispatch(store,action,request):
-    if action in ('observe','failure','analyze','resume_analysis','confirm_deleted','gc','register_snapshot'):
+    if action in ('observe','failure','analyze','resume_analysis','confirm_deleted','gc','register_snapshot','scope','start','next','complete_work','terms','retry','finish'):
         from .execution_lock import ProjectExecutionLock
         lease=ProjectExecutionLock(store.project.root).acquire()
         try:return _dispatch(store,action,request)
@@ -316,6 +320,9 @@ def dispatch(store,action,request):
 
 
 def _dispatch(store,action,request):
+    if action in ('scope','start','status','next','complete_work','terms','retry','finish'):
+        from .confluence_command import dispatch as command
+        return command(store,action,request)
     if action in ('observe','failure','analyze','resume_analysis','confirm_deleted','gc'):
         from .confluence_sync import dispatch as sync
         return sync(store,action,request)
