@@ -1,0 +1,369 @@
+{
+  "status": "PASS",
+  "product": "0.5.0rc1",
+  "platform": "linux",
+  "rows": [
+    {
+      "case": "cli",
+      "status": "PASS",
+      "run_id": "21412cddc0f74fed912358f9d8287461",
+      "source": "c7aded835373a4c4673417b9fd34c73c82e5dc81152725bfd75a8e116183bfe8",
+      "inventory": "e58746c46b2d321ef47c0cc79c0dfa60de3c483ba80e05f708bc217d9ab59c4e",
+      "projects": [
+        {
+          "path": "integration/IpmAzureAutotests.csproj",
+          "sha256": "e6bb54ebbbe0bb59c91831bec59354bbea903f931bcaef3f02678aca44556cc1"
+        },
+        {
+          "path": "unconventional/IpmAzureCommon.UnitTests.csproj",
+          "sha256": "095f03eb8f855e0d6a8cf65d41f48f7bb442d6458906ed8bd3a5047682e8c1c9"
+        },
+        {
+          "path": "zz outside solution/\u0422\u0435\u0441\u0442\u044b \u03a9/ZZZTests.csproj",
+          "sha256": "e8c4b1253e9e8fe5e2d73e20cc286708b10e46c8239551a9c26ec7bc1e24f58f"
+        }
+      ],
+      "test_counts": {
+        "executed": 4,
+        "failed": 0,
+        "passed": 4,
+        "skipped": 0
+      },
+      "generations": 2,
+      "unique_trx": 8,
+      "requests": 12,
+      "commands": [
+        {
+          "label": "new-solution",
+          "argv": [
+            "/workspace/Knowledge-Confluence/.local/dotnet/dotnet",
+            "new",
+            "sln",
+            "--format",
+            "sln",
+            "--name",
+            "Suite"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "solution-projects",
+          "argv": [
+            "/workspace/Knowledge-Confluence/.local/dotnet/dotnet",
+            "sln",
+            "Suite.sln",
+            "add",
+            "src/App/App.csproj",
+            "unconventional/IpmAzureCommon.UnitTests.csproj",
+            "integration/IpmAzureAutotests.csproj"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "configure",
+          "argv": [
+            "/tmp/p4-installed-r5t4xyk7/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "configure",
+            "--root",
+            "/tmp/auto tests \u03a9 135fpjat/project",
+            "--input",
+            "/tmp/auto tests \u03a9 135fpjat/runner.json",
+            "--init-knowledge"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "inspect",
+          "argv": [
+            "/tmp/p4-installed-r5t4xyk7/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "discover-tests",
+            "--root",
+            "/tmp/auto tests \u03a9 135fpjat/project"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "run",
+          "argv": [
+            "/tmp/p4-installed-r5t4xyk7/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "run",
+            "--root",
+            "/tmp/auto tests \u03a9 135fpjat/project",
+            "--input",
+            "/tmp/auto tests \u03a9 135fpjat/project/task.json"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "completed-inventory-drift",
+          "argv": [
+            "/tmp/p4-installed-r5t4xyk7/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "resume",
+            "--root",
+            "/tmp/auto tests \u03a9 135fpjat/project",
+            "--run-id",
+            "21412cddc0f74fed912358f9d8287461"
+          ],
+          "returncode": 1
+        },
+        {
+          "label": "empty-project-run",
+          "argv": [
+            "/tmp/p4-installed-r5t4xyk7/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "run",
+            "--root",
+            "/tmp/auto tests \u03a9 135fpjat/project",
+            "--input",
+            "/tmp/auto tests \u03a9 135fpjat/project/task.json"
+          ],
+          "returncode": 1
+        }
+      ]
+    },
+    {
+      "case": "mcp",
+      "status": "PASS",
+      "run_id": "e8006c11f6c64f808f4db40559703d66",
+      "source": "2e122050f5805ef314e50a5507417a2e91a440e78cff26e1bad2cf9e3cf1da8b",
+      "inventory": "3da14a1e772d05493876a3d6cd92f9b4d9f6df417c0f905a791644112d2fb40b",
+      "projects": [
+        {
+          "path": "integration/IpmAzureAutotests.csproj",
+          "sha256": "e6bb54ebbbe0bb59c91831bec59354bbea903f931bcaef3f02678aca44556cc1"
+        },
+        {
+          "path": "unconventional/IpmAzureCommon.UnitTests.csproj",
+          "sha256": "e6bb54ebbbe0bb59c91831bec59354bbea903f931bcaef3f02678aca44556cc1"
+        },
+        {
+          "path": "zz outside solution/\u0422\u0435\u0441\u0442\u044b \u03a9/ZZZTests.csproj",
+          "sha256": "e8c4b1253e9e8fe5e2d73e20cc286708b10e46c8239551a9c26ec7bc1e24f58f"
+        }
+      ],
+      "test_counts": {
+        "executed": 3,
+        "failed": 0,
+        "passed": 3,
+        "skipped": 0
+      },
+      "generations": 1,
+      "unique_trx": 3,
+      "requests": 9,
+      "commands": [
+        {
+          "label": "new-solution",
+          "argv": [
+            "/workspace/Knowledge-Confluence/.local/dotnet/dotnet",
+            "new",
+            "sln",
+            "--format",
+            "sln",
+            "--name",
+            "Suite"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "solution-projects",
+          "argv": [
+            "/workspace/Knowledge-Confluence/.local/dotnet/dotnet",
+            "sln",
+            "Suite.sln",
+            "add",
+            "src/App/App.csproj",
+            "unconventional/IpmAzureCommon.UnitTests.csproj",
+            "integration/IpmAzureAutotests.csproj"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "configure",
+          "argv": [
+            "/tmp/p4-installed-r5t4xyk7/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "configure",
+            "--root",
+            "/tmp/auto tests \u03a9 iajj_28f/project",
+            "--input",
+            "/tmp/auto tests \u03a9 iajj_28f/runner.json",
+            "--init-knowledge"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "inspect",
+          "argv": [
+            "/tmp/p4-installed-r5t4xyk7/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "discover-tests",
+            "--root",
+            "/tmp/auto tests \u03a9 iajj_28f/project"
+          ],
+          "returncode": 0
+        }
+      ]
+    },
+    {
+      "case": "recovery",
+      "status": "PASS",
+      "run_id": "53db95f07b174fa5bb175a5b1d55205e",
+      "source": "c54c5ef6ef5d67bbb66bd0857dd4e72a1cc894bc47e62055b83340079365b124",
+      "inventory": "8634de51273328f955cf93b08d43b8759b8df4c6c4cddd0625a5b6e17d55e774",
+      "projects": [
+        {
+          "path": "integration/IpmAzureAutotests.csproj",
+          "sha256": "e6bb54ebbbe0bb59c91831bec59354bbea903f931bcaef3f02678aca44556cc1"
+        },
+        {
+          "path": "unconventional/IpmAzureCommon.UnitTests.csproj",
+          "sha256": "e6bb54ebbbe0bb59c91831bec59354bbea903f931bcaef3f02678aca44556cc1"
+        },
+        {
+          "path": "zz outside solution/\u0422\u0435\u0441\u0442\u044b \u03a9/ZZZTests.csproj",
+          "sha256": "e8c4b1253e9e8fe5e2d73e20cc286708b10e46c8239551a9c26ec7bc1e24f58f"
+        }
+      ],
+      "test_counts": {
+        "executed": 3,
+        "failed": 0,
+        "passed": 3,
+        "skipped": 0
+      },
+      "generations": 1,
+      "unique_trx": 3,
+      "requests": 9,
+      "commands": [
+        {
+          "label": "new-solution",
+          "argv": [
+            "/workspace/Knowledge-Confluence/.local/dotnet/dotnet",
+            "new",
+            "sln",
+            "--format",
+            "sln",
+            "--name",
+            "Suite"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "solution-projects",
+          "argv": [
+            "/workspace/Knowledge-Confluence/.local/dotnet/dotnet",
+            "sln",
+            "Suite.sln",
+            "add",
+            "src/App/App.csproj",
+            "unconventional/IpmAzureCommon.UnitTests.csproj",
+            "integration/IpmAzureAutotests.csproj"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "configure",
+          "argv": [
+            "/tmp/p4-installed-r5t4xyk7/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "configure",
+            "--root",
+            "/tmp/auto tests \u03a9 jeulgblp/project",
+            "--input",
+            "/tmp/auto tests \u03a9 jeulgblp/runner.json",
+            "--init-knowledge"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "inspect",
+          "argv": [
+            "/tmp/p4-installed-r5t4xyk7/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "discover-tests",
+            "--root",
+            "/tmp/auto tests \u03a9 jeulgblp/project"
+          ],
+          "returncode": 0
+        },
+        {
+          "label": "interrupted",
+          "argv": [
+            "/tmp/p4-installed-r5t4xyk7/runtime/bin/python",
+            "-I",
+            "-X",
+            "utf8",
+            "-B",
+            "/workspace/Knowledge-Confluence/tests/integrated_cli_worker.py",
+            "--die",
+            "automatic-verifier-receipt",
+            "--",
+            "run",
+            "--root",
+            "/tmp/auto tests \u03a9 jeulgblp/project",
+            "--input",
+            "/tmp/auto tests \u03a9 jeulgblp/project/task.json"
+          ],
+          "returncode": 73
+        },
+        {
+          "label": "drift-resume",
+          "argv": [
+            "/tmp/p4-installed-r5t4xyk7/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "resume",
+            "--root",
+            "/tmp/auto tests \u03a9 jeulgblp/project",
+            "--run-id",
+            "53db95f07b174fa5bb175a5b1d55205e"
+          ],
+          "returncode": 1
+        },
+        {
+          "label": "resume-completed",
+          "argv": [
+            "/tmp/p4-installed-r5t4xyk7/runtime/bin/python",
+            "-I",
+            "-m",
+            "harness.run_cli",
+            "resume",
+            "--root",
+            "/tmp/auto tests \u03a9 jeulgblp/project",
+            "--run-id",
+            "53db95f07b174fa5bb175a5b1d55205e"
+          ],
+          "returncode": 0
+        }
+      ]
+    },
+    {
+      "case": "tamper",
+      "status": "PASS",
+      "error": "automatic-test-artifact-changed",
+      "false_success": false
+    }
+  ]
+}
