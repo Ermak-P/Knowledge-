@@ -175,10 +175,14 @@ def on_snapshot(store,source):
         quarantine_legacy_prepared(db,source)
         unfinished=db.execute("SELECT id,status FROM confluence_outbox WHERE source_id=? AND snapshot=? AND status IN ('PREPARED','COLLECTING') ORDER BY id LIMIT 1",(source['identity'],source['snapshot'])).fetchone()
         if unfinished:
+            if unfinished[1]=='COLLECTING':
+                from .confluence_coverage import progress
+                saved=_outbox(db,unfinished[0]);page['analysis_offset']=progress(data,saved.get('coverage_chunks',{}))['continuous_until']
             page.update(analysis_checkpoint=unfinished[0],processing_status='ANALYSIS_SUBMITTING' if unfinished[1]=='PREPARED' else 'PARTIAL_ANALYSIS');save_page(db,page)
             return {'action':'RESUME_ANALYSIS','checkpoint':unfinished[0],'semantic_analysis_required':unfinished[1]=='COLLECTING','applied':False}
         reused=page.get('coverage_certified_hash')==data['content_hash'] and page.get('coverage_certified_representation')==data['representation']
         if reused:page.update(last_analyzed_version=source['revision'],last_analyzed_snapshot=source['snapshot'],analysis_reused=True)
+        else:page['analysis_offset']=0
         page['processing_status']='UNCHANGED' if reused else 'ANALYSIS_REQUIRED';page['analysis_checkpoint']=None;save_page(db,page)
     refreshed=refresh_unchanged_pending(store,source) if reused else []
     return {'action':'SKIP_ANALYSIS' if reused else 'ANALYZE','analysis_reused':reused,'refreshed_candidates':refreshed,'applied':False}

@@ -14,8 +14,11 @@ class UpgradeAndRecovery(fixture.ConfluenceCommand):
             cs.enable(db);batches,counts=cs.build_proposals(self.store,db,source,[FINDING],True)
             legacy=dict(id=digest(['legacy-analysis',source]),source=source,status='PREPARED',complete=True,batches=batches,candidates=[],counts=counts)
             cs.save_outbox(db,legacy)
+            page=dict(cf.page(db,source['identity']));page['analysis_offset']=len(cf.snapshot(db,source['snapshot'])['content']);cs.save_page(db,page)
         old=self.store.submit(batches[0])['candidate']
         self.assertFalse(self.store.prepare()['ok'])
+        cf.register(self.store,document())
+        with self.store.connection() as db:self.assertEqual(cf.page(db,source['identity'])['analysis_offset'],0)
         result=cs.analyze(self.store,source,[FINDING],True,coverage=coverage(self.store,source))
         self.assertIn(old,result['candidates'])
         self.apply();self.assertEqual(len(self.store.export()['records']['claims']),1)
@@ -87,3 +90,21 @@ class UpgradeAndRecovery(fixture.ConfluenceCommand):
         review=dict(evidence=native['id'],expected=revision,verdict='removed',quote=text,reason='Explicit synthetic targeted review of this historical native evidence; Git is independent.')
         cs.analyze(self.store,newer,[],True,coverage=coverage(self.store,newer),revalidations=[review]);self.assertEqual(before,self.store.export()['records'])
         self.apply();after=self.store.export()['records'];self.assertEqual(git,[e for e in after['evidence'] if not cf.is_binding(e['source'])]);self.assertEqual(after['claims'][0]['evidence'],[e['id'] for e in git]);self.assertEqual(after['claims'][0]['status'],'CONFIRMED');self.assertEqual(next(e for e in after['evidence'] if e['id']==native['id'])['status'],'retracted')
+
+    def test_legacy_partial_cursor_does_not_skip_uncovered_prefix(self):
+        value=document(content='A'*6500);source=cf.register(self.store,value)['source'];partial=cs.analyze(self.store,source,[],False,coverage=coverage(self.store,source,[0]))
+        with self.store.connection(True) as db:
+            data=cs._outbox(db,partial['checkpoint']);data.pop('coverage_chunks');cs.save_outbox(db,data)
+            page=dict(cf.page(db,source['identity']));page['analysis_offset']=4000;cs.save_page(db,page)
+        cf.register(self.store,value)
+        with self.store.connection() as db:self.assertEqual(cf.page(db,source['identity'])['analysis_offset'],0)
+        self.assertEqual(cs.resume(self.store,partial['checkpoint'])['coverage']['continuous_until'],0)
+
+    def test_verified_noncontiguous_coverage_restores_only_its_continuous_cursor(self):
+        value=document(content='A'*6500);source=cf.register(self.store,value)['source']
+        partial=cs.analyze(self.store,source,[],False,coverage=coverage(self.store,source,[0,4000]))
+        with self.store.connection(True) as db:
+            page=dict(cf.page(db,source['identity']));page['analysis_offset']=6000;cs.save_page(db,page)
+        cf.register(self.store,value)
+        with self.store.connection() as db:self.assertEqual(cf.page(db,source['identity'])['analysis_offset'],2000)
+        state=cs.resume(self.store,partial['checkpoint'])['coverage'];self.assertEqual(state['continuous_until'],2000);self.assertEqual(state['covered_characters'],4000)
