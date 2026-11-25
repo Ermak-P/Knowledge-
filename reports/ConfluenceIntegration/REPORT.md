@@ -1,5 +1,7 @@
 # Native Confluence integration
 
+> Historical report for the original integration. R2 removed tracked raw outputs from the checkout; relative raw-evidence links below refer to the `f772e9d3` tree. Current fixes and qualification: [CONFLUENCE-INTEGRATION-R2](../../docs/P4/CONFLUENCE-INTEGRATION-R2.md). Historical raw files remain available through Git history and the Actions URLs in the compact summary.
+
 Branch: `codex/knowledge-confluence-integration`, based on accepted main `6eb59254`.
 Stages were committed separately: Stage 2 `608765b5`, Stage 3 `0a454a35`, Stage 4
 `f37578c7`. Review refinements preserve provider authority (`63762cd5`) and avoid

@@ -1,22 +1,30 @@
-# Confluence integration R2 — reliability and performance
+# Confluence integration R2
 
-Branch: `codex/knowledge-confluence-integration`; reviewed baseline: `f772e9d3138d5b26f862b8544232094f7017f0a0`.
+Target: `codex/knowledge-confluence-integration`. Reviewed baseline: `f772e9d3138d5b26f862b8544232094f7017f0a0`. All five findings are fixed. No merge into `main`, database reset, Git rescan, history rewrite or force push was performed.
 
-Implementation complete; final installed Linux/native Windows qualification is pending. No overall GO is asserted while those results are pending. All Confluence content in tests is synthetic MCP data, never live corporate access.
+The final product commit is `7d8ba2ee1a8c494f5b0c0c060465865715638d1e`. Installed Linux regression: **628 tests, 615 PASS, 13 expected native-Windows skips, zero failures/errors**, source unchanged. Native machine qualification of `92953ee3` passed **225/225** tests, installation/upgrade and real OpenCode 2.4.0 checks. The final review-package workflow additionally gates delivery on all Confluence tests on native Windows, including the last legacy-cursor correction. Its source-bound result and asset verification are retained in annotated validation tags. This report does not claim full native-Windows Harness/P4 qualification. All Confluence data is synthetic MCP fixture data; no live corporate Confluence was verified.
 
 | Finding | Status | Root cause | Fix | Regression tests | Remaining risks |
 |---|---|---|---|---|---|
-| CF-03, P1 | FIXED | `complete=True` and a maximum cursor were accepted without continuous coverage; absence was treated as invalidation | Durable deterministic 2000-code-point chunks bound to native version/snapshot/hash/representation; completion certificate; exact-revision historical evidence reviews | Missing coverage, gaps/hash/offset, duplicate chunks, subprocess restart, stale version, extraction omission, genuine targeted supersession and approved apply | Descriptors prove content coverage, not semantic correctness. Targeted quotes/reasons remain agent reports reviewed through the existing approval workflow |
-| CF-01, P1 | FIXED | PARTIAL was excluded from resumable runs | `start {resume:true}`, automatic PARTIAL continuation, transient-only bounded retries; `fresh:true` for intentional new run | 500-page fixture: 490 immutable DONE receipts, 10 TIMEOUT recoveries in the same run after a new process; replay, pagination, partial analysis, scope/budget guards | Three retries per work item; persistent denial/skips require explicit bounded retry or corrected scope |
-| CF-02, P1 | FIXED | Every heartbeat ran full control/queue/canonical validation and collection held an exclusive maintenance gate | Read-only, authorizer-restricted `progress`; SQL summaries; collection writer lease under a shared gate; `status`/`diagnostics` retain full validation | Counters match legacy status; failed pages remain visible after successful sibling operations; concurrent worker/progress, second-writer and maintenance exclusion; corrupt queue still blocks canonical prepare | Progress explicitly reports `candidate_validation=NOT_RUN` and `integrity=NOT_RUN`; full diagnostics remain intentionally expensive |
-| CF-04, P2 | FIXED | Six earlier definitions were silently shadowed | Remove only inactive definitions, preserve active signatures and call sites | AST duplicate module-level function check across Confluence modules; 23 command/static tests PASS | AST guard is the dependency-free F811 equivalent for this finding |
-| CF-05, P2 | FIXED | Qualification receipts copied whole runs, packages and logs into Git | Scoped ignores; Actions Artifacts for raw CI outputs; compact receipt branch; explicit draft Releases workflow for packages; remove branch-generated tracked outputs | Compact receipt excludes logs/packages/configuration; Python AST and workflow YAML syntax checks | Existing Git objects/history and release assets are retained; Actions artifacts have retention limits. Release creation is explicit (manual dispatch or knowledge-* tag) and remains a draft; asset download verification is mandatory |
+| CF-03, P1 | FIXED | `complete=True`/maximum offset lacked continuous coverage; omission could supersede evidence | Durable deterministic chunks bound to exact native version/snapshot/hash/representation; complete certificate; targeted historical evidence reviews | Missing coverage, gaps/hash/range, duplicate chunks, restart, stale native version, omitted fact, documented changes, exact approved apply, independent Git evidence | Coverage proves content receipt, not semantic correctness. Targeted quotes/reasons remain agent reports subject to normal review |
+| CF-01, P1 | FIXED | PARTIAL was excluded from resumable states | Explicit/default partial resume, same run/work/page IDs, transient-only retries bounded to three, separate intentional fresh run | 500 pages: 490 unchanged DONE receipts, ten transient recoveries after a new process; actual recovered analyses/replayed receipts produce one claim with expected evidence; budget/pagination/scope guards | Persistent denial/skips need explicit bounded retry or corrected scope. Legacy scalar offsets are not trusted coverage |
+| CF-02, P1 | FIXED | Each heartbeat loaded queue/canonical records; collection held an exclusive coordination gate | Separate read-only `progress`, indexed SQL summaries, serialized source writer under shared maintenance gate; legacy `status`/`diagnostics` retain full validation | Matching counters, failed sibling work remains visible, concurrent worker/progress, second-writer/maintenance exclusion, corrupt queue still blocks prepare | Telemetry reports `candidate_validation=NOT_RUN`, `integrity=NOT_RUN`; authoritative operations retain expensive guards |
+| CF-04, P2 | FIXED | Six inactive definitions were shadowed by later functions | Remove only earlier definitions, preserve active signatures/call sites | Dependency-free AST equivalent of F811 across Confluence modules; command regressions | Guard covers module-level definitions |
+| CF-05, P2 | FIXED | CI receipt publication copied entire runs/distributions into Git | Remove generated branch outputs; scoped ignores; raw CI outputs in Actions Artifacts; packages in draft Releases; compact source-bound receipts only | Receipt excludes logs/packages/config; uploaded asset digest verification; failure cannot be promoted to PASS; AST/YAML checks | Cleanup reduces the tracked checkout, not historical objects. Artifact retention applies; existing release assets/history remain intact |
 
-## Evidence and benchmark
+## Behavior and compatibility
 
-Original regressions were run before their fixes: CF-03 accepted missing coverage and invalidated omitted evidence; CF-01 changed run ID/lost resumable work; CF-02 rejected progress under an active worker; CF-04 detected duplicate definitions.
+`start {resume:true}` retains a PARTIAL run and retries TIMEOUT, UNAVAILABLE and INCOMPLETE_RESPONSE at most three times per work item. Permanent failures and skipped work are separate; `fresh:true` deliberately starts a new run. Budgets remain monotonic and scope changes refuse resume. Previously completed work is not repeated.
 
-Seven samples per scenario, nearest-rank p95, isolated synthetic SQLite databases and one actual discovery worker thread. Counts are claims/evidence/unrelated pending candidates/pages. Compact samples, transaction durations, query counts, module hashes and EXPLAIN plans: [CONFLUENCE-R2-BENCHMARK.json](CONFLUENCE-R2-BENCHMARK.json). `before.commit` identifies the clean reviewed source; the final `after.commit` is `7072632c` and its recorded module hashes match that commit. An earlier development measurement and an additional run under simultaneous full .NET qualification load are also retained, not discarded.
+Snapshot reads return deterministic 2000-Unicode-code-point chunk descriptors and the exact coverage binding. Submit descriptors with partial/final findings. Duplicates are idempotent; gaps and stale bindings reject completion. Durable coverage survives restart. The cursor is reconstructed from the continuous verified prefix, including when an older client supplied a larger numeric cursor. Buffered findings/history survive.
+
+Complete coverage alone never invalidates omitted facts. Invalidation needs a targeted review of that evidence ID and expected revision, a literal current quote and reason, and the ordinary separately approved application plan. Independent Git/other-page evidence is preserved. Legacy uncertified outboxes retain their original batches/counts in quarantine: newly certified analysis can regenerate matching positive proposals; omission-based negative proposals require normal human disposition. Same-body refresh cannot bypass quarantine. No store reset or full Git rescan is needed.
+
+`progress` reads only source telemetry with read-only SQLite and an authorizer restricting table access. It does not load canonical records, candidates or bodies. `status` retains its public detailed response; `diagnostics` is its explicit alias, and `finish` retains full integrity verification. No canonical guard or timeout was relaxed. Existing indexes cover the measured queries; EXPLAIN did not justify another index. No DDL/index migration is necessary. New fields use existing checksummed JSON rows; existing transactional source-schema migration remains tested.
+
+## Measured performance
+
+[Samples, transaction durations, query counts, module hashes and EXPLAIN plans](CONFLUENCE-R2-BENCHMARK.json). Seven samples, nearest-rank p95, isolated synthetic databases, one real discovery worker thread. Counts are claims/evidence/unrelated pending candidates/pages. Final controlled measurements followed completion of other local qualification. The measured commit is `7072632c`; final progress/storage code is byte-identical to it. Later runtime changes normalize legacy snapshot cursors.
 
 | Scenario | Counts | Before idle p50 / p95, ms | After idle p50 / p95, ms | After worker-active p95, ms | SQL statements before → after |
 |---|---|---|---|---|---|
@@ -24,57 +32,85 @@ Seven samples per scenario, nearest-rank p95, isolated synthetic SQLite database
 | IPM-like | 1000/2000/12500/500 | 2099.43 / 2337.07 | 2.97 / 3.45 | 46.23 | 567 → 7 |
 | Stress | 10000/20000/50000/5000 | 12268.10 / 13030.91 | 31.80 / 34.42 | 98.95 | 5067 → 7 |
 
-All seven before requests in **each** worker-active scenario failed with the coordination lock; all seven after requests succeeded. The IPM-like target is met on this Linux environment. With the same 500 pages but only 100 unrelated candidates, control p95 was 5.78 ms: increasing the unrelated queue to 12500 did not produce proportional progress cost. Under simultaneous full .NET qualification load, final-code IPM worker-active p95 was 203.57 ms (still no lock errors); the controlled repeat above was 46.23 ms. CPU/GIL scheduling and shared-host load remain material. This is a small synthetic sample, not a production latency guarantee. In the small active phase the worker ended before two later samples; all seven IPM/stress samples began while it was active. Worker validation itself still uses canonical guards; it is not claimed to have become constant-time.
+Before: all seven requests in each active-worker phase failed at the coordination lock. After: all succeeded. All seven IPM/stress samples began while the worker was active; the small worker ended before two later samples. The IPM target is met. Keeping 500 pages but reducing unrelated candidates from 12500 to 100 gave p95 5.78 ms, demonstrating no proportional queue cost.
 
-EXPLAIN confirms current-run work/seen searches use existing prefix indexes and applied-page lookups use the page primary key. The bounded stage sort uses a temporary B-tree; measurements did not justify a new index. No DDL/index migration is needed. New coverage and retry fields live in existing checksummed JSON rows. Legacy cursors are reconstructed from the continuous verified prefix (zero for pre-coverage checkpoints); buffered findings/history are preserved. Legacy stores/records remain readable; old uncertified analysis is revisited on the next Confluence run without a Git rescan. Legacy PREPARED complete analysis is quarantined with its original batches/counts preserved. Fresh coverage/findings regenerate reviewed positive proposals without duplicating them. Old omission-based negative proposals remain quarantined for normal human disposition; they are neither silently rejected nor applied. Their same-body version refresh is also suppressed. No store reset is needed. Existing source-schema migration stays transactional.
+An additional run under simultaneous full .NET qualification load gave IPM worker-active p95 **203.57 ms**, with no lock errors. That run and the earlier development measurements are retained. CPU/GIL scheduling and shared-host load remain material; seven samples are not a production latency guarantee. Worker validation itself still uses canonical guards and is not claimed to have become constant-time.
 
-## Validation commands and observed results
+## Validation and failures
 
-Local targeted runs:
+[Final compact validation record](CONFLUENCE-R2-VALIDATION.json), [initial full qualification](CONFLUENCE-R2-INITIAL-VALIDATION.json).
+
+| Route | Tested commit | Observed result |
+|---|---|---|
+| Final installed Linux regression, actual generated `verify_p4.py` driver | `7d8ba2ee` | 628 tests; 615 PASS, 13 expected native-only skips; zero failures/errors; source unchanged |
+| Final focused Confluence/compatibility/static suite | `7d8ba2ee` | 91 PASS, including legacy/unverified and verified noncontiguous cursors |
+| Local installed Confluence release gate | product `7d8ba2ee` | 141 PASS, no skips |
+| Local full P4 qualification | `4491919d` | PASS_PORTABLE; 28/28 phases, source unchanged; 641 executions included 44 repeated imported base cases, subsequently removed from duplicate discovery |
+| Local installed machine/upgrade/OpenCode | `ba64b4bc` | PASS_PORTABLE; 223 tests, two native-only skips; all seven phases PASS |
+| CI installed Linux machine/upgrade/OpenCode | `92953ee3` | PASS_PORTABLE; 225 tests, two native-only skips; all phases PASS |
+| CI native Windows machine/upgrade/OpenCode | `92953ee3` | PASS_NATIVE; 225/225 PASS, zero skips; all phases PASS |
+| Final tagged distribution | review tag below | Native Confluence gate must pass, then uploaded ZIP/SHA256 are downloaded and compared; actual results are in validation tags |
+
+Native machine evidence: https://github.com/Ermak-P/Knowledge-/actions/runs/45680604700 . Full native-Windows P4 results for this revision are not asserted. The earlier reviewed full Windows run failed in unchanged bootstrap teardown with WinError 5 and its recorder then lost results on `_ErrorHolder`; the recorder now retains these errors. Qualification continues independent installer/native-host phases after unit failures, while any failed phase still forces final FAILED. Fault-injection tests verify this for both drivers.
+
+Failed attempts remain visible:
+
+- Original regression cases failed before fixes: absent/gapped coverage and extraction omission; PARTIAL changed run ID; progress failed during a worker; AST found duplicate definitions.
+- Native `4491919d`: 239/240 PASS, one error in the new corruption fixture. Its raw SQLite connection is now explicitly closed, preserving all assertions.
+- Native `7072632c`: 221/222 PASS, PermissionError/WinError 32 in unchanged `ScanReliability.test_observed_resume_recovers_committed_chunk_without_helper_checkpoint`.
+- Native `ba64b4bc`: failure in unchanged `ScanReliability.test_atomic_metadata_reader_and_writer_do_not_share_incomplete_json`. These earlier transient failures are not used as PASS evidence; their exact causes were not established from compact summaries. The later native machine run above passed both.
+- A one-off local wrapper lacked a `__main__` guard: 626 executions had one `test_p4_r1.R1Tests.test_spawned_child_does_not_reenter_installed_regression_driver` failure caused by that wrapper. The final 628-test run uses the repository's actual generated driver and passes. Initial development module-name errors and missing optional YAML parser were corrected before final verification.
+
+Actual/reproducible commands (Python 3.12):
 
 ```sh
-.venv/bin/python -m pip install --no-deps --no-build-isolation --force-reinstall ./packages/knowledge
-PYTHONPATH=tests .venv/bin/python -m unittest test_confluence_r2 test_confluence_command test_confluence_source test_confluence_sync -q
-# 62 tests PASS (CF-03)
-PYTHONPATH=tests .venv/bin/python -m unittest test_confluence_resume test_confluence_command -q
-# 68 tests PASS (CF-01, including inherited command scenarios)
-PYTHONPATH=packages/knowledge/src:tests .venv/bin/python -m unittest test_confluence_progress test_confluence_resume test_confluence_r2 test_confluence_command test_confluence_source test_confluence_sync -q
-# 155 tests PASS (CF-02, including inherited command scenarios)
-PYTHONPATH=packages/knowledge/src:tests .venv/bin/python -m unittest test_confluence_static test_confluence_command -q
-# 23 tests PASS (CF-04)
-PYTHONPATH=packages/knowledge/src:tests .venv/bin/python -m unittest test_ci_artifacts test_confluence_static -q
-# 2 tests PASS (CF-05)
+python scripts/setup_p3.py
+.venv/bin/python -B scripts/verify_p4.py
+.venv/bin/python -B scripts/verify_machine.py
+# Final local full-suite execution extracted the actual repository driver:
+.venv/bin/python -I -B /tmp/confluence-r2-run-repository-driver.py
+# Equivalent installed test discovery:
+.venv/bin/python -m unittest discover -s tests -v
+.venv/bin/python -I -B scripts/confluence_release_tests.py --output /tmp/confluence-release-tests.json
+PYTHONPATH=tests .venv/bin/python -m unittest test_confluence_r2_compat test_confluence_r2 test_confluence_command test_confluence_sync test_confluence_source test_confluence_static -q
+PYTHONPATH=tests .venv/bin/python -m unittest test_ci_artifacts test_confluence_static -q
 PYTHONPATH=packages/knowledge/src .venv/bin/python scripts/confluence_r2_benchmark.py --phase before --output /tmp/confluence-r2-before.json --samples 7
-PYTHONPATH=packages/knowledge/src .venv/bin/python scripts/confluence_r2_benchmark.py --phase after --output /tmp/confluence-r2-after.json --samples 7
-PYTHONPATH=packages/knowledge/src .venv/bin/python scripts/confluence_r2_benchmark.py --phase after --output /tmp/confluence-r2-queue-control.json --scenarios ipm-queue-control --samples 7
+PYTHONPATH=packages/knowledge/src .venv/bin/python scripts/confluence_r2_benchmark.py --phase after --output /tmp/confluence-r2-controlled-after.json --samples 7
+PYTHONPATH=packages/knowledge/src .venv/bin/python scripts/confluence_r2_benchmark.py --phase after --output /tmp/confluence-r2-controlled-control.json --scenarios ipm-queue-control --samples 7
 ```
 
-Python AST parsing and `git diff --check` pass. Workflow YAML parsed with temporary development-only PyYAML 6.0.3; no dependency added to product or lockfile. An initial parser attempt failed because PyYAML was absent, then the isolated parser check passed.
+Native Windows commands (PowerShell 5.1, UTF-8 and a normal-spelling fixture TEMP selected by the workflow):
 
-An initial native Windows machine run on `4491919d` reported 239/240 passing and one error in the new corruption fixture (`test_confluence_progress.ProgressAccess.test_progress_does_not_claim_integrity_and_corruption_still_blocks_canonical`), before installer/native-host stages. The fixture left a raw SQLite connection open; explicit `closing()` now preserves its assertions and closes the handle. Native `7072632c` revalidation confirms that corruption fixture and all Confluence tests pass; the machine suite still fails in the unchanged `test_core_reliability.ScanReliability.test_observed_resume_recovers_committed_chunk_without_helper_checkpoint` with PermissionError / errno 13 / WinError 32 (221/222 pass, no skips). Exact cause is not established from this summary; no global Windows PASS is claimed. The test, `auto_init.py` and `scan_jobs.py` are unchanged from the reviewed baseline. Evidence: https://github.com/Ermak-P/Knowledge-/actions/runs/45678359958 . CI summaries retain exception type/errno/winerror plus filename and traceback frame locations, without dumping configuration, locals or raw logs. Qualification now runs independent installer/native-host phases after unit failures, but any failed phase still forces the final FAILED status. Fault-injection tests exercise both full and machine qualification to prevent false PASS promotion.
+```powershell
+python scripts/setup_p3.py
+& .venv/Scripts/python.exe -X utf8 -B scripts/verify_machine.py
+& .venv/Scripts/python.exe -X utf8 -B scripts/confluence_release_tests.py --output reports/confluence-release-tests.json
+```
 
-Follow-up isolated runs: 58 command/coverage/progress/receipt scenarios PASS; 116 Confluence/Git/identity/SQLite scenarios PASS; three legacy/500-page analysis recovery cases PASS. A one-off full-suite wrapper initially lacked a `__main__` guard: 626 tests ran, with one `test_p4_r1.R1Tests.test_spawned_child_does_not_reenter_installed_regression_driver` failure caused by that wrapper reentering under spawn. The final rerun uses the repository’s actual generated `verify_p4.py` driver, with its existing guard. Two staging invocations initially referenced nonexistent test-module names; corrected commands passed. Imported base test classes are now module-qualified to avoid duplicate discovery (existing assertions remain).
+The before benchmark must use reviewed `f772e9d3` product modules; the checked-in driver supports that status API. Python AST, duplicate-definition checks and `git diff --check` pass. Workflow YAML was parsed using temporary development-only PyYAML 6.0.3; no product/lockfile dependency was added. Git works in this Cloud environment, while `api.github.com` is denied. Compact CI receipts are retrieved through the `knowledge-validation-receipts` branch; this does not constitute independent local verification of raw Actions logs/assets. Local raw logs remain under `/tmp`; CI raw outputs remain in linked Actions Artifacts.
 
-Local full qualification of `4491919d` completed **PASS_PORTABLE**, all **28/28** commands passed, source unchanged. It executed 641 tests with 13 expected native-Windows skips (44 repeated imported base cases; later discovery avoids those repeats). Local machine qualification of that commit passed 240 tests with two native-only skips, all installation/upgrade checks and real OpenCode 2.4.0 command checks. The follow-up product code passed 84 focused tests. Clean local installed-machine qualification of `ba64b4bc` completed PASS_PORTABLE: 223 tests (221 pass, two native-only skips), all seven phases passed, including installer/upgrade and real OpenCode 2.4.0 checks. The independent Git-evidence removal test and CI failure-preservation tests also pass. Final native matrices remain pending. Exact commands: `scripts/verify_p4.py` and `scripts/verify_machine.py` on Linux, native Actions Windows matrix. These cover Git discovery, migrations, candidate dedup/application, concurrency/restart, evidence/conflicts, `/knowledge-confluence`, `/knowledge-update`, `/knowledge-init`, `/update-by-CR`, and transferred-kit installation/upgrade. Previous reviewed full Windows CI had an inherited bootstrap teardown `WinError 5`; its recorder also crashed on `_ErrorHolder`. The recorder now retains such errors rather than losing the results. No test or failure is suppressed.
+## Cleanup and delivery
 
-The Cloud network profile denies `api.github.com`; Git transport works. Native CI receipts are available via the compact `knowledge-validation-receipts` branch, `<commit>/<full|machine-fast>/<Linux|Windows>/<run>/receipt.json`. Raw logs/packages remain in the linked Actions Artifacts. A compact receipt attests the job's reported result and source hashes; it does not independently verify raw artifact bytes locally.
+Removed **1289 tracked generated files, 37,755,921 bytes (36.0 MiB)**. [Exact file inventory](CONFLUENCE-R2-REMOVED-FILES.csv), [group totals](CONFLUENCE-R2-CLEANUP.json). Essential historical reports remain; baseline archives used by compatibility tests remain fixtures. No new generated distribution is tracked. Historical Git objects still occupy space. Optional history cleanup needs a separate approved filter-repo/archive/clone-reset plan; no such cleanup or force push was performed.
 
-## Repository cleanup and distribution
+Review-package tag: **`knowledge-confluence-r2-7d8ba2ee`** (last runtime commit plus the review packet and release gate). `knowledge-release.yml` creates a **draft** Release, never replaces existing assets, downloads the uploaded ZIP/SHA256 and checks their bytes. The final source-bound receipt is the annotated `validation-release-<tag-commit>` tag; the native gate also records `validation-confluence-<tag-commit>-<run>-<attempt>`. These receipts carry the actual URL, asset hashes and native result. No public release or deployment is requested.
 
-Removed **1289 tracked generated files, 37,755,921 bytes (36.0 MiB)** relative to branch work, including its generated latest pointers. [Exact removed-file inventory](CONFLUENCE-R2-REMOVED-FILES.csv) and [group totals](CONFLUENCE-R2-CLEANUP.json) are retained. Essential earlier review reports and their compact summary remain. Baseline release archives used as compatibility test fixtures remain tracked; source, installer templates and tests remain intact.
+Rebuild: `.venv/bin/python scripts/build_p4.py --output /tmp/knowledge-r2-kit --source-id <commit>`. The locally rebuilt wheel was checked byte-for-byte against the final coverage/sync/progress/store/MCP source modules. Installation/upgrade from either the branch checkout or extracted review kit uses the existing command:
 
-This reduces the tracked checkout, not historical Git object storage. No history rewrite, force push or release asset removal occurred. Optional future history cleanup would require a separate approved filter-repo plan, archived evidence, coordinated clone reset and force push; it is outside this change.
-
-Reproduce the kit with `.venv/bin/python scripts/build_p4.py --output /tmp/knowledge-r2-kit --source-id <commit>`. The wheel and transferred installer include the coverage, recovery and progress fixes. Raw packages are uploaded by CI as Actions Artifacts. The `knowledge-release.yml` workflow creates a **new draft Release** for an explicit `knowledge-*` tag push or manual dispatch and never replaces an existing release. It downloads the uploaded ZIP/SHA256 again and compares their bytes; a compact annotated `validation-release-<commit>` tag records success and asset hashes. For long-term distribution retain its ZIP/SHA256 in Releases; no release was published during this task.
+```powershell
+.\install.ps1 -McpDir 'C:\LLM\mcp\knowledge'
+```
 
 ## Commits
 
-- `3c5728da`: CF-03 coverage and targeted evidence revalidation.
-- `7a555e7c`: CF-01 durable partial-run recovery.
-- `94753176`: CF-02 read-only progress and measured benchmark.
-- `caaa708a`: CF-04 duplicate-definition removal.
-- `4491919d`: CF-05 cleanup, compact CI receipts and release workflow.
-- `7072632c`: legacy coverage recovery, accurate failed-page counts, explicit Windows fixture closure and typed CI failure summaries.
-- Final packaging/qualification report commits: pending final recording.
+- `3c5728da`: CF-03 deterministic coverage and targeted revalidation.
+- `7a555e7c`: CF-01 partial-run recovery.
+- `94753176`: CF-02 lightweight progress and benchmark.
+- `caaa708a`: CF-04 duplicate definitions.
+- `4491919d`: CF-05 tracked-output cleanup and compact receipts.
+- `7072632c`: legacy proposal quarantine/revalidation, accurate failure counts, Windows fixture closure.
+- `ba64b4bc`: final benchmark evidence and draft asset verification.
+- `92953ee3`: complete independent installation evidence while preserving failure status.
+- `7d8ba2ee`: reconstruct legacy/current cursors from verified coverage.
 
-No merge into `main`.
+The subsequent packet/delivery commits change CI verification and reports; runtime source remains the qualified `7d8ba2ee` code.

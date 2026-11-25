@@ -21,8 +21,11 @@ def verify(tag,commit,directory):
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--tag',required=True);parser.add_argument('--commit',required=True);parser.add_argument('--directory',type=Path,required=True);parser.add_argument('--output',type=Path,required=True);args=parser.parse_args()
-    args.output.write_text(json.dumps(verify(args.tag,args.commit,args.directory),indent=2)+'\n',encoding='utf-8')
+    parser=argparse.ArgumentParser();parser.add_argument('--tag',required=True);parser.add_argument('--commit',required=True);parser.add_argument('--directory',type=Path,required=True);parser.add_argument('--native-summary',type=Path,required=True);parser.add_argument('--output',type=Path,required=True);args=parser.parse_args()
+    native=json.loads(args.native_summary.read_text(encoding='utf-8'))
+    assert native['commit']==args.commit and native['platform']=='Windows' and native['success'] and native['skipped']==0,'Native qualification missing or mismatched'
+    value=verify(args.tag,args.commit,args.directory);value['native_confluence']=native
+    args.output.write_text(json.dumps(value,indent=2)+'\n',encoding='utf-8')
 
 
 if __name__=='__main__':main()
