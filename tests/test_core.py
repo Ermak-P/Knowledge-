@@ -21,7 +21,7 @@ from fixtures import addition,legacy_fixture
 def competing(root,barrier,results,automatic):
     barrier.wait()
     try:
-        result=(submit_automatic if automatic else submit_manual)(root,addition('synthetic.other','  SYNTHETIC basket preserves quantities. ') if automatic else addition())
+        result=(submit_automatic if automatic else submit_manual)(root,addition('synthetic.other','Synthetic basket preserves quantities.') if automatic else addition())
         results.put(result['result'])
     except KnowledgeError as e:
         results.put(e.code)
@@ -69,7 +69,8 @@ class CoreTests(unittest.TestCase):
         f=self.commit(); self.assertEqual(self.s.submit(addition())['result'],'duplicate')
         self.assertEqual(self.s.apply(f,f)['result'],'already-committed'); self.s.acknowledge(f)
         self.assertEqual(self.s.validate()['counts']['claims'],1)
-        self.assertEqual(self.s.submit(addition('other','  SYNTHETIC   basket preserves quantities. '))['result'],'duplicate-statement')
+        self.assertEqual(self.s.submit(addition('other','Synthetic basket preserves quantities.'))['result'],'duplicate-statement')
+        self.assertEqual(self.s.submit(addition('case-sensitive-other','  SYNTHETIC   basket preserves quantities. '))['result'],'submitted')
 
     def test_busy_all_mutations(self):
         self.s.submit(addition()); p=self.s.prepare()['fingerprint']

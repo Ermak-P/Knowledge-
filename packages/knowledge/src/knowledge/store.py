@@ -5,6 +5,7 @@ one snapshot. SQLite rollback journaling and FULL sync provide atomic commit;
 apply and acknowledgment are deliberately separate durable transactions.
 """
 from contextlib import contextmanager
+from contextvars import ContextVar
 from copy import deepcopy
 import os
 from pathlib import Path
@@ -23,6 +24,15 @@ from .sqlite_snapshot import Connection, view
 GROUPS = {'claims': 'knowledge/claims', 'evidence': 'evidence', 'relationships': 'knowledge/relationships'}
 KINDS = {'claims': 'claim', 'evidence': 'evidence', 'relationships': 'relationship'}
 SCHEMAS = Path(__file__).parent / 'schemas'
+_schema_snapshot=ContextVar('knowledge-validation-schema-snapshot',default=None)
+
+
+@contextmanager
+def validation_schemas():
+    """Trusted package schemas read once per transaction, never across commits."""
+    token=_schema_snapshot.set({})
+    try:yield
+    finally:_schema_snapshot.reset(token)
 
 
 def empty():
@@ -34,7 +44,13 @@ def checkpoint(phase):
 
 
 def normalized(statement):
+    """Historical operational-memory identity; intentionally unchanged."""
     return ' '.join(unicodedata.normalize('NFKC', statement).casefold().split())
+
+
+def statement_key(statement):
+    # exact-utf8-v1: quoted values, code identifiers and whitespace carry meaning.
+    return statement
 
 
 def shape(records):
@@ -42,7 +58,12 @@ def shape(records):
     ids = set()
     for group, items in records.items():
         require(isinstance(items, list), 'invalid-record-list')
-        schema = loads((SCHEMAS / (KINDS[group] + '.schema.json')).read_text(encoding='utf-8'))
+        if not items:continue
+        path=SCHEMAS / (KINDS[group] + '.schema.json');cache=_schema_snapshot.get()
+        if cache is None:schema=loads(path.read_text(encoding='utf-8'))
+        else:
+            if path not in cache:cache[path]=loads(path.read_text(encoding='utf-8'))
+            schema=cache[path]
         for item in items:
             issues = legacy.schema_errors(item, schema)
             require(not issues, 'invalid-record', issues)
@@ -148,11 +169,12 @@ class Store:
                 require('migration' in metadata, 'ambiguous-dual-stores')
             extension=metadata.get('p1')
             require(extension in (None,'1'),'unsupported-extension-version')
-            self._check_control(db)
-            yield db
-            if write:
-                checkpoint('before-commit')
-            db.commit()
+            with validation_schemas():
+                self._check_control(db)
+                yield db
+                if write:
+                    checkpoint('before-commit')
+                db.commit()
         except sqlite3.OperationalError as e:
             if 'locked' in str(e):
                 raise KnowledgeError('store-busy-retry') from e
@@ -189,13 +211,18 @@ class Store:
         plans = {}
         for pid, payload, state in db.execute('SELECT id,payload,status FROM plans'):
             plan = loads(payload)
-            require(isinstance(plan,dict) and set(plan)=={'version','project','base','candidates','included','skipped','blocked'}, 'corrupt-plan')
+            fields={'version','project','base','candidates','included','skipped','blocked'}
+            require(isinstance(plan,dict) and set(plan)==(fields|{'resolved','deduplication'} if plan.get('version')==2 else fields), 'corrupt-plan')
             require(fingerprint(plan)==pid and state in ('PREPARED','COMMITTED','ACKNOWLEDGED') and
-                    plan['version']==1 and plan['project']==self.project.identity and
+                    plan['version'] in (1,2) and plan['project']==self.project.identity and
                     isinstance(plan['base'],str) and isinstance(plan['candidates'],dict) and
                     all(isinstance(plan[k],list) for k in ('included','skipped','blocked')), 'corrupt-plan')
             for cid,item in plan['candidates'].items():
                 require(valid_identity(cid,item),'corrupt-plan-candidate')
+            if plan['version']==2:
+                require(set(plan['resolved'])==set(plan['candidates']),'corrupt-resolved-candidates')
+                for value in plan['resolved'].values():
+                    if value is not None:candidate(value)
             require(plan['included']==(list(plan['candidates']) if not plan['blocked'] else []), 'corrupt-plan-inclusion')
             plans[pid]=(plan,state)
         queue=[]
@@ -300,14 +327,27 @@ class Store:
                     if inventory(self.project.root)['identity']==item['source']['identity']:refresh_pending(db,cid,item)
                 return {'ok':True,'candidate':cid,'result':'submitted','status':'pending'}
             known_ids = {r['id'] for v in current.values() for r in v}
-            statements = {normalized(c['statement']) for c in current['claims']}
+            statements = {statement_key(c['statement']) for c in current['claims']}
             for _,_,_,queued_item in queued:
                 if queued_item['version']!=1:continue
                 queued = queued_item['records']
                 known_ids.update(r['id'] for v in queued.values() for r in v)
-                statements.update(normalized(c['statement']) for c in queued['claims'])
+                statements.update(statement_key(c['statement']) for c in queued['claims'])
+            if life.enabled(db):
+                # P1 can retain additional evidence and reconcile in an exact
+                # reviewed plan. P0's add-only admission contract is unchanged.
+                existing={r['id']:(g,r) for g,rs in current.items() for r in rs}
+                for g,rs in item['records'].items():
+                    for r in rs:
+                        old=existing.get(r['id'])
+                        if old and old[1]!=r:
+                            require(g=='claims' and old[0]==g and
+                                    {k:v for k,v in r.items() if k!='evidence'}=={k:v for k,v in old[1].items() if k!='evidence'},'record-id-conflict')
+                db.execute('INSERT INTO queue VALUES (?,?,?,NULL)',(cid,canonical_json(item),'pending'))
+                checkpoint('queue-written')
+                return {'ok':True,'candidate':cid,'result':'submitted','status':'pending'}
             proposed_ids = {r['id'] for v in item['records'].values() for r in v}
-            proposed_statements = [normalized(c['statement']) for c in item['records']['claims']]
+            proposed_statements = [statement_key(c['statement']) for c in item['records']['claims']]
             require(len(set(proposed_statements)) == len(proposed_statements), 'duplicate-statements-in-candidate')
             if all(s in statements for s in proposed_statements):
                 return {'ok':True, 'result':'duplicate-statement', 'candidate':None}
@@ -318,9 +358,13 @@ class Store:
             checkpoint('queue-written')
         return {'ok':True,'candidate':cid,'result':'submitted','status':'pending'}
 
-    def _preview(self, db):
+    def _preview(self, db, source_identity=None, progress=None):
+        tick=progress or (lambda *args,**kwargs:None)
+        tick('loading-canonical-knowledge')
         current = self._records(db)
-        pending = {cid:loads(p) for cid,p in db.execute("SELECT id,payload FROM queue WHERE status='pending' ORDER BY id")}
+        tick('loading-candidate-operations')
+        queued=view(db,'validated-queue',lambda:self._check_control(db))
+        pending = {cid:item for cid,status,raw,item in sorted(queued) if status=='pending'}
         if life.enabled(db):
             from .discovery import candidate_refreshes
             refreshed=candidate_refreshes(db)
@@ -333,12 +377,27 @@ class Store:
                 if not blocked:
                     from .providers import verify_semantic_bindings
                     bindings=verify_semantic_bindings(db,pending)
-                    life.simulate(self,db,pending)
+                    if source_identity is None:life.verify_source_bindings(self,pending.values())
+                    else:
+                        identities={v['source']['identity'] for v in pending.values() if v.get('source') is not None}
+                        require(not identities or identities=={source_identity},'source-drift-rescan-required')
+                    from .plan_deduplication import reconcile
+                    from .persistence_identity import recovery_projection
+                    tick('loading-scan-artifacts')
+                    derived,preferred=recovery_projection(db,pending)
+                    resolved,diagnostic,conflicts=reconcile(current,derived,life.latest(db),bindings,preferred=preferred,project=self.project.identity,progress=tick)
+                    blocked.extend(conflicts)
+                    if not blocked:
+                        tick('validating-operations',total_operations=diagnostic['counts']['proposed_operations'])
+                        life.simulate(self,db,{cid:v for cid,v in resolved.items() if v is not None},check_source=False)
             except KnowledgeError as e:blocked=[{'code':e.code,'details':e.details}]
             base=life.state_fingerprint(self,db)
             if not blocked and bindings:base=fingerprint({'canonical':base,'semantic_bindings':bindings})
-            return {'version':1,'project':self.project.identity,'base':base,
+            result={'version':1,'project':self.project.identity,'base':base,
                     'candidates':pending,'included':list(pending) if not blocked else [],'skipped':skipped, 'blocked':blocked}
+            if 'resolved' in locals() and (resolved!=pending or diagnostic['groups']):
+                result.update(version=2,resolved=resolved,deduplication=diagnostic)
+            return result
         combined = deepcopy(current)
         for item in pending.values():
             for g in GROUPS:
@@ -346,7 +405,7 @@ class Store:
         blocked = []
         try:
             validate_records(combined)
-            statements = [normalized(c['statement']) for c in combined['claims']]
+            statements = [statement_key(c['statement']) for c in combined['claims']]
             require(len(statements) == len(set(statements)), 'duplicate-statement')
         except KnowledgeError as e:
             blocked = [{'code':e.code,'details':e.details}]
@@ -354,12 +413,55 @@ class Store:
                 'candidates':pending,'included':list(pending) if not blocked else [],
                 'skipped':[], 'blocked':blocked}
 
-    def prepare(self):
+    def prepare(self, _source_identity=None, progress=None):
+        tick=progress or (lambda *args,**kwargs:None)
+        tick('loading-store')
         with self.connection(True) as db:
-            preview = self._preview(db)
+            preview = self._preview(db,_source_identity,tick)
+            tick('building-final-plan')
+            tick('generating-fingerprint')
             pid = fingerprint(preview)
             db.execute('INSERT OR IGNORE INTO plans VALUES (?,?,?)',(pid,canonical_json(preview),'PREPARED'))
+        tick('blocked' if preview['blocked'] else 'prepared')
         return {'ok':not preview['blocked'],'fingerprint':pid,**preview}
+
+    def duplicate_diagnostics(self,group=None):
+        from .plan_deduplication import reconcile,operations
+        from .providers import semantic_bindings
+        from .discovery import candidate_refreshes
+        with self.connection() as db:
+            pending={cid:item for cid,status,raw,item in sorted(view(db,'validated-queue',lambda:self._check_control(db))) if status=='pending'}
+            refreshed=candidate_refreshes(db) if life.enabled(db) else {}
+            pending={cid:v for cid,v in pending.items() if cid not in refreshed}
+            from .persistence_identity import recovery_projection
+            derived,preferred=recovery_projection(db,pending)
+            _,report,_=reconcile(self._records(db),derived,life.latest(db) if life.enabled(db) else {},semantic_bindings(db),life.enabled(db),preferred,self.project.identity)
+            if group is None:return report['counts'],report['groups']
+            found=next((g for g in report['groups'] if g['group']==group),None);require(found is not None,'unknown-duplicate-group')
+            rows=[]
+            for cid in found['candidates']:
+                item=pending[cid];ops=operations(item);evidence={o['id']:o['payload'] for o in ops if o['kind']=='evidence' and o['payload']}
+                for index,op in enumerate(ops):
+                    if op['kind']=='claims' and op['payload'] and digest(op['payload']['statement']) in found.get('statement_hashes',[found['statement_hash']]):
+                        for eid in op['payload']['evidence']:
+                            rows.append({'candidate':cid,'operation':index,'claim':op['id'],'evidence':eid,'source':evidence.get(eid,{}).get('source'),'group':group})
+            return report['counts'],rows
+
+    def candidate_text(self,identifier,operation=None,plan=None):
+        from .plan_deduplication import operations
+        require(isinstance(identifier,str) and 0<len(identifier)<=256,'invalid-candidate-identifier')
+        with self.connection() as db:
+            if plan:
+                value,_=self._plan(db,plan)
+                require(identifier in value['candidates'],'unknown-plan-candidate')
+                item=value.get('resolved',value['candidates'])[identifier]
+            else:
+                row=db.execute('SELECT payload FROM queue WHERE id=?',(identifier,)).fetchone();require(row is not None,'unknown-candidate')
+                item=loads(row[0])
+            if operation is not None:
+                require(type(operation) is int and operation>=0 and item is not None,'invalid-candidate-operation')
+                items=operations(item);require(operation<len(items),'invalid-candidate-operation');item=items[operation]
+            return canonical_json(item)
 
     def _plan(self, db, pid):
         require(isinstance(pid,str) and re.fullmatch(r'sha256:[a-f0-9]{64}',pid), 'invalid-fingerprint')
@@ -378,16 +480,17 @@ class Store:
                 return {'ok':True,'state':state,'fingerprint':pid,'result':'already-committed'}
             require(not plan['blocked'], 'blocked-plan')
             preview=self._preview(db)
-            if life.enabled(db) and all(v['version']==1 for v in plan['candidates'].values()) and plan['base']==fingerprint(self._records(db)):
+            if plan['version']==1 and life.enabled(db) and all(v['version']==1 for v in plan['candidates'].values()) and plan['base']==fingerprint(self._records(db)):
                 # A P0 prepared approval survives a metadata-only upgrade, never a source/canonical edit.
                 preview=dict(preview,base=plan['base'])
             require(preview == plan, 'stale-plan-prepare-again')
             for cid in plan['included']:
-                value=plan['candidates'][cid]
+                value=plan.get('resolved',plan['candidates'])[cid]
+                if value is None:continue
                 if value['version']==2:
                     life.apply_item(self,db,value,pid)
                     continue
-                for group,items in plan['candidates'][cid]['records'].items():
+                for group,items in value['records'].items():
                     for record in items:
                         db.execute('INSERT INTO records VALUES (?,?,?)',(record['id'],group,canonical_json(record)))
                         if life.enabled(db):life.append(db,record['id'],group,record,'active',pid,'P0 compatible add',None)
@@ -413,6 +516,9 @@ class Store:
             require(row is not None and loads(row[0]) == expected and
                     (row[1:] == ('pending',None) or row[1:] == ('imported',pid)), 'acknowledgment-ownership-mismatch')
             if life.enabled(db):
+                effective=plan.get('resolved',plan['candidates'])[cid]
+                if effective is None:continue
+                expected=effective
                 if expected['version']==1:
                     targets=[(g,r) for g,rs in expected['records'].items() for r in rs]
                 else:

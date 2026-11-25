@@ -52,7 +52,8 @@ def create_server(installation, workspace=None):
     async def invoke(ctx, fn, max_bytes):
         try:
             require(type(max_bytes) is int and 256<=max_bytes<=1000000,'invalid-byte-budget')
-            value = fn(await root(ctx))
+            import asyncio
+            value = await asyncio.to_thread(fn,await root(ctx))
         except (KnowledgeError, OSError, ValueError, TypeError, KeyError, TimeoutError) as error:
             value = {'ok': False, 'error': 'backend-permission-denied' if isinstance(error,PermissionError) else getattr(error, 'code', 'project-or-filesystem-error'), 'details': getattr(error, 'details', None)}
         return result(value, max_bytes)
@@ -90,8 +91,9 @@ def create_server(installation, workspace=None):
             provider,reference=shared(Path(installation)/'config/provider.json')
             return {'ok':True,'contract':'knowledge-machine-v2','tools':sorted(TOOL_NAMES),
                     'scan_actions':['start','status','resume','fresh','cancel'],
-                    'diagnostic_sections':['failures','coverage','reconciliation','impact','policy','identity','scans'],
-                    'candidate_actions':['submit','prepare','apply','recover'],
+                    'diagnostic_sections':['failures','coverage','reconciliation','impact','policy','identity','scans','duplicates','candidate','plan-progress'],
+                    'plan_deduplication':'exact-utf8-v1','plan_formats':[1,2],
+                    'candidate_actions':['submit','prepare','rebuild','apply','recover'],
                     'provider':{'endpoint':provider['endpoint'],'model':provider['model'],'evidence':provider['evidence'],'reference':reference},
                     'semantic_provider_contacted':False,'root':str(r),
                     'permissions':'Host-enforced per tool. Registration/discovery is not authorization. A denied tool is a host permission failure.',
@@ -112,11 +114,11 @@ def create_server(installation, workspace=None):
         return await invoke(ctx,call,max_bytes)
 
     @server.tool()
-    async def knowledge_scan_diagnostics(ctx:Context,scope:Literal['full','incremental']='full',section:Literal['failures','coverage','reconciliation','impact','policy','identity','scans']='failures',
-                                         cursor:int=0,limit:int=20,max_bytes:int=16000)->CallToolResult:
+    async def knowledge_scan_diagnostics(ctx:Context,scope:Literal['full','incremental']='full',section:Literal['failures','coverage','reconciliation','impact','policy','identity','scans','duplicates','candidate','plan-progress']='failures',
+                                         cursor:int=0,limit:int=20,max_bytes:int=16000,group:str|None=None,candidate:str|None=None,operation:int|None=None,plan:str|None=None,collection:str|None=None)->CallToolResult:
         """Read paged file diagnostics or reconciliation, without filesystem/SQL access."""
         from .project_commands import diagnostics
-        return await invoke(ctx,lambda r:diagnostics(installation,r,scope,section,cursor,limit),max_bytes)
+        return await invoke(ctx,lambda r:diagnostics(installation,r,scope,section,cursor,limit,max_bytes,group,candidate,operation,plan,collection),max_bytes)
 
     @server.tool()
     async def knowledge_source_read(path:str,ctx:Context,start_line:int=1,max_lines:int=60,start_column:int=0,max_bytes:int=16000)->CallToolResult:
@@ -154,13 +156,15 @@ def create_server(installation, workspace=None):
         return await invoke(ctx,lambda r:execute('knowledge-candidates-update',installation,r,{'candidates':proposals,'allow_test_double':allow_test_double}),max_bytes)
 
     @server.tool()
-    async def knowledge_plan(ctx:Context,action:Literal['prepare','apply','recover']='prepare',approve:str|None=None,max_bytes:int=16000)->CallToolResult:
+    async def knowledge_plan(ctx:Context,action:Literal['prepare','rebuild','apply','recover']='prepare',approve:str|None=None,max_bytes:int=16000,scan_id:str|None=None)->CallToolResult:
         """Prepare; apply only a separately explicitly approved exact fingerprint."""
         def call(r):
             from .project_commands import execute
-            require(action=='prepare' or isinstance(approve,str),'exact-approval-required')
-            value={} if action=='prepare' else {'action':'recover','plan':approve} if action=='recover' else {'approve':approve}
-            require(action!='prepare' or approve is None,'prepare-is-not-approval')
+            require(action in ('prepare','rebuild') or isinstance(approve,str),'exact-approval-required')
+            require((action=='rebuild')==(scan_id is not None),'rebuild-requires-scan-id')
+            value={} if action in ('prepare','rebuild') else {'action':'recover','plan':approve} if action=='recover' else {'approve':approve}
+            if scan_id is not None:value['rebuild_scan_id']=scan_id
+            require(action not in ('prepare','rebuild') or approve is None,'prepare-is-not-approval')
             return execute('knowledge-candidates-push',installation,r,value)
         return await invoke(ctx,call,max_bytes)
 

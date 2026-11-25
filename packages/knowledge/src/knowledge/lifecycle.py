@@ -25,6 +25,7 @@ def envelope(value):
         source=value['source']
         require(set(source) in ({'identity','revision','kind'},{'identity','revision','kind','delta'}) and isinstance(source['identity'],str) and re.fullmatch('[a-f0-9]{64}',source['identity']) and (source['revision'] is None or isinstance(source['revision'],str)) and source['kind'] in ('committed','working-tree-with-hashes','filesystem-no-history'),'invalid-source-binding')
     require(isinstance(value['operations'],list) and 0<len(value['operations'])<=10000,'invalid-operations')
+    value=deepcopy(value)
     seen=set()
     for op in value['operations']:
         require(isinstance(op,dict) and set(op)=={'action','kind','id','expected','payload','successor'},'invalid-operation-fields')
@@ -34,6 +35,9 @@ def envelope(value):
         if op['action']=='reactivate':require(op['kind'] in ('claims','relationships'),'unsupported-reactivation-kind')
         if op['action'] in ('add','update','reactivate'):
             require(op['successor'] is None and isinstance(op['payload'],dict) and op['payload'].get('id')==op['id'],'invalid-operation-payload')
+            field='evidence' if op['kind']=='claims' else 'substantiates' if op['kind']=='evidence' else None
+            if field and isinstance(op['payload'].get(field),list) and all(isinstance(i,str) for i in op['payload'][field]):
+                op['payload'][field]=list(dict.fromkeys(op['payload'][field]))
             records=empty();records[op['kind']]=[op['payload']];shape(records)
             if op['kind']=='claims':require(bool(op['payload']['evidence']),'candidate-requires-evidence')
         else:
@@ -41,7 +45,7 @@ def envelope(value):
             require(op['kind'] in ('claims','relationships'),'unsupported-retirement-kind')
             require((op['action']=='supersede' and op['kind']=='claims' and isinstance(op['successor'],str) and op['successor']!=op['id']) or
                     (op['action']=='retire' and op['successor'] is None),'invalid-successor')
-    return deepcopy(value)
+    return value
 
 
 def op(action,kind,identifier,expected,payload=None,successor=None):
@@ -73,7 +77,7 @@ def state_fingerprint(store,db):
 
 def simulate(store,db,items,check_source=True):
     records=store._records(db); current={r['id']:(g,r) for g,rs in records.items() for r in rs}
-    states=latest(db); touched=set(); checked_sources=set()
+    states=latest(db); versions={i:s['revision'] for i,s in states.items()};touched=set(); checked_sources=set()
     for value in items.values():
         if value['version']==1:
             for kind,rs in value['records'].items():
@@ -88,7 +92,7 @@ def simulate(store,db,items,check_source=True):
             checked_sources.add(value['source']['identity'])
         for change in value['operations']:
             i=change['id']; require(i not in touched,'conflicting-batch-target');touched.add(i)
-            require(revision(db,i)==change['expected'],'stale-expected-revision',i)
+            require(versions.get(i,0)==change['expected'],'stale-expected-revision',i)
             action=change['action']; prior=current.get(i)
             if action=='add': require(prior is None and change['expected']==0,'record-id-conflict')
             else:
@@ -200,7 +204,7 @@ def active(store,db,records,diagnostics=False):
 
 def validate_model(records,states):
     """Validate full references and the current graph separately from historical edges."""
-    from .store import shape,normalized
+    from .store import shape,statement_key as normalized
     shape(records)
     claims={r['id']:r for r in records['claims']};evidence={r['id']:r for r in records['evidence']}
     require(set(states)=={r['id'] for rs in records.values() for r in rs},'revision-identity-mismatch')

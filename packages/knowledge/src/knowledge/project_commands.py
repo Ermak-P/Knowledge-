@@ -139,7 +139,7 @@ def job_summary(folder, binding, provider):
 
 
 def execute(command, installation, directory, value):
-    require(isinstance(value, dict) and set(value) <= {'roots', 'directory', 'action', 'approve', 'plan', 'upgrade_approval', 'migration_approval', 'base', 'head', 'max_files', 'candidates', 'resume', 'fresh', 'allow_test_double','observed_scan_id'}, 'invalid-command-input')
+    require(isinstance(value, dict) and set(value) <= {'roots', 'directory', 'action', 'approve', 'plan', 'upgrade_approval', 'migration_approval', 'base', 'head', 'max_files', 'candidates', 'resume', 'fresh', 'allow_test_double','observed_scan_id','rebuild_scan_id'}, 'invalid-command-input')
     require(all(key not in value or type(value[key]) is bool for key in ('resume', 'fresh','allow_test_double')), 'invalid-recovery-controls')
     require(value.get('observed_scan_id') is None or (value.get('resume') is True and not value.get('fresh') and value.get('action','start')=='start'),'observed-scan-requires-resume')
     installation = installation_at(installation)
@@ -243,11 +243,34 @@ def execute(command, installation, directory, value):
     finally: lease.close()
 
 
-def diagnostics(installation,directory,scope='full',section='failures',cursor=0,limit=20):
-    require(scope in ('full','incremental') and section in ('failures','coverage','reconciliation','impact','policy','identity','scans'), 'invalid-diagnostic-section')
+def diagnostics(installation,directory,scope='full',section='failures',cursor=0,limit=20,max_bytes=16000,group=None,candidate=None,operation=None,plan=None,collection=None):
+    require(scope in ('full','incremental') and section in ('failures','coverage','reconciliation','impact','policy','identity','scans','duplicates','candidate','plan-progress'), 'invalid-diagnostic-section')
     require(type(cursor) is int and cursor>=0 and type(limit) is int and 1<=limit<=100,'invalid-diagnostic-page')
     installation=installation_at(installation);root=resolve_root(directory);project=Project(root)
     require(not root.is_relative_to(installation) and not installation.is_relative_to(root),'installation-and-project-must-be-separate')
+    from .diagnostic_pages import page
+    if section=='plan-progress':
+        path=safe_path(installation/'state/projects'/project.identity/'plan-progress.json')
+        return page([read_json(path)] if path.exists() else [],{'ok':True,'section':section,'observation':'Last recorded stage; not a liveness or canonical-commit proof.','canonical_unchanged':True},cursor,limit,max_bytes)
+    if section=='candidate':
+        from .util import canonical_json
+        import hashlib
+        require(type(max_bytes) is int and 256<=max_bytes<=1000000,'invalid-byte-budget')
+        if max_bytes<1024:return {'ok':False,'error':'diagnostic-budget-too-small','minimum_budget':1024}
+        text=Store(root).candidate_text(candidate,operation,plan);require(cursor<=len(text),'invalid-diagnostic-offset')
+        end=min(len(text),cursor+max(1,min(2048,(max_bytes-768)//8)))
+        result={'ok':True,'section':section,'candidate':candidate,'operation':operation,'plan':plan,'cursor':cursor,
+                'next_cursor':end if end<len(text) else None,'total_chars':len(text),'text':text[cursor:end],
+                'record_hash':hashlib.sha256(text.encode()).hexdigest(),'canonical_unchanged':True}
+        require(len(canonical_json(result).encode())<=max_bytes,'diagnostic-budget-too-small');return result
+    if section=='duplicates':
+        counts,rows=Store(root).duplicate_diagnostics(group)
+        return page(rows,{'ok':True,'section':section,'counts':counts,'group':group,'canonical_unchanged':True},cursor,limit,max_bytes)
+    if section=='scans':
+        scans=discovery.status(Store(root))['scans']
+        rows=[{'scan_id':s['id'],'source_identity':s['snapshot']['identity'],'revision':s['snapshot']['revision'],
+               'complete':s['complete'],'state':s.get('state'),'coverage':s.get('counters'),'incremental':s.get('incremental',False)} for s in scans]
+        return page(rows,{'ok':True,'section':section,'canonical_unchanged':True},cursor,limit,max_bytes)
     base=safe_path(installation / 'state/projects' / project.identity)
     if not (base/'full/job.json').exists() and scope=='full':return no_scan(root)
     if scope=='incremental' and not (base/'last-incremental.json').exists():return no_scan(root)
@@ -259,12 +282,6 @@ def diagnostics(installation,directory,scope='full',section='failures',cursor=0,
     if not (folder/'job.json').exists():return no_scan(root)
     job=scan_jobs.status(folder);binding,provider=machine_binding(installation,project)
     require(job['binding']['root']==project.describe(),'scan-job-root-binding-mismatch')
-    if section=='scans':
-        scans=discovery.status(Store(root))['scans']
-        rows=[{'scan_id':s['id'],'source_identity':s['snapshot']['identity'],'revision':s['snapshot']['revision'],
-               'complete':s['complete'],'state':s.get('state'),'coverage':s.get('counters'),'incremental':s.get('incremental',False)} for s in scans]
-        return {'ok':True,'state':job['state'],'rows':rows[cursor:cursor+limit],'total':len(rows),
-                'next_cursor':cursor+limit if cursor+limit<len(rows) else None,'canonical_unchanged':True}
     require(job.get('scan_id'),'scan-checkpoint-not-yet-available',{'next_action':'Use diagnostics section=scans to observe the durable result before explicit resume with observed_scan_id, or choose fresh. Never start an unobserved retry.'})
     scans=discovery.status(Store(root),job['scan_id'])['scans'];require(len(scans)==1,'unknown-scan');state=scans[0]
     if section in ('failures','coverage'):
@@ -273,15 +290,17 @@ def diagnostics(installation,directory,scope='full',section='failures',cursor=0,
               if section=='coverage' or entry['status'] in ('blocked','excluded') or entry.get('processing_status')=='partial']
         if section=='failures':rows.extend(state['snapshot']['exclusions']);rows.extend(state['snapshot'].get('coverage_errors',[]))
     elif section=='policy':rows=[state['snapshot']['policy']]
-    elif section=='impact':rows=[state.get('impact',{})]
+    elif section=='impact':
+        impact=state.get('impact',{});require(collection is None or collection in impact,'unknown-impact-collection')
+        rows=[{'category':kind,'value':item} for kind,items in sorted(impact.items()) if collection is None or kind==collection for item in (items if isinstance(items,list) else [items])]
     elif section=='identity':
         identity=state.get('identity_verification') or {}
         rows=[{'path':path,'reason':'missing-compatible-cached-analysis'} for path in identity.get('missing_files',[])]+[{'id':identifier,'reason':'ambiguous-identity'} for identifier in identity.get('ambiguous_ids',[])]
     else:
         review=discovery.reconcile(Store(root),job['scan_id']);rows=review['claims']+review['negative_evidence_gaps']
-    return {'ok':True,'section':section,'scan_id':state['id'],'state':job['state'],'coverage':state.get('counters'),
-            'binding_matches_current':job['binding']==binding,'rows':rows[cursor:cursor+limit],
-            'next_cursor':cursor+limit if cursor+limit<len(rows) else None,'total':len(rows),'canonical_unchanged':True}
+    return page(rows,{'ok':True,'section':section,'scan_id':state['id'],'state':job['state'],'coverage':state.get('counters'),
+            **({'impact_summary':{k:len(v) for k,v in state.get('impact',{}).items() if isinstance(v,list)},'collection':collection} if section=='impact' else {}),
+            'binding_matches_current':job['binding']==binding,'canonical_unchanged':True},cursor,limit,max_bytes)
 
 
 def submit_reviewed(store, root, proposals, semantic_binding=None):
@@ -306,7 +325,13 @@ def submit_reviewed(store, root, proposals, semantic_binding=None):
                         pending[digest(proposal)] = proposal
                 # Simulate the proposed batch against canonical revisions,
                 # evidence and graph. Nothing canonical is written here.
-                if pending: lifecycle.simulate(store, db, pending)
+                if pending:
+                    from .plan_deduplication import reconcile
+                    resolved,report,conflicts=reconcile(store._records(db),pending,lifecycle.latest(db),
+                        {cid:semantic_binding for cid in pending} if semantic_binding else {})
+                    require(not conflicts,'duplicate-conflict',{'groups':[g['group'] for g in report['groups'] if g['resolution']=='blocked']})
+                    lifecycle.verify_source_bindings(store,pending.values())
+                    lifecycle.simulate(store,db,{cid:v for cid,v in resolved.items() if v is not None},check_source=False)
             for proposal in pending.values(): rows.append(store.submit(proposal,semantic_binding=semantic_binding))
             return {'ok': True, 'root': str(root), 'results': rows,
                     'added': sum(row['result'] == 'submitted' for row in rows),
@@ -343,19 +368,33 @@ def push(store, root, state_dir, binding, value):
         return {'ok': validation['ok'], 'state': 'ACKNOWLEDGED', 'fingerprint': approval, 'canonical_plan': pid,
                 'validation': validation, 'queue': dict(Counter(row['status'] for row in status['queue']))}
     require(action in ('start', 'prepare'), 'invalid-push-action')
-    before = discovery.inventory(root)['identity']
-    prepared = store.prepare()
-    require(discovery.inventory(root)['identity'] == before, 'source-drift-during-prepare')
+    import time
+    started=time.monotonic();progress_state={}
+    def progress(stage,**counts):
+        progress_state.update(stage=stage,elapsed_seconds=round(time.monotonic()-started,3),**counts)
+        _write(state_dir/'plan-progress.json',progress_state)
+    try:
+        progress('loading-completed-scan-artifacts')
+        recovered=discovery.completed_artifact(store,value['rebuild_scan_id']) if value.get('rebuild_scan_id') else None
+        progress('verifying-current-source-inventory')
+        before = discovery.inventory(root)['identity']
+        if recovered:require(recovered['source_identity']==before,'scan-artifact-source-or-policy-drift',{'next_action':'Preserve the scan. Inspect source/policy changes before selecting explicit recovery; no automatic fresh scan.'})
+        prepared = store.prepare(_source_identity=before,progress=progress)
+        progress('verifying-post-prepare-source')
+        require(discovery.inventory(root)['identity'] == before, 'source-drift-during-prepare')
+        progress('blocked' if prepared['blocked'] else 'awaiting-exact-approval')
+    except Exception as error:
+        progress('failed',error=getattr(error,'code',type(error).__name__));raise
     seal = {**binding, 'source_identity': before, 'canonical_plan': prepared['fingerprint']}
     approval = fingerprint(seal)
     if prepared['ok']:
         path = plans / (approval[7:] + '.json')
         if not path.exists(): _write(path, {'version': 1, 'binding': seal, 'approved': False})
-    operations = Counter(op['action'] for candidate in prepared['candidates'].values() for op in candidate.get('operations', []))
+    operations = Counter(op['action'] for candidate in prepared.get('resolved',prepared['candidates']).values() if candidate for op in candidate.get('operations', []))
     _write(state_dir / 'last-plan.json', prepared)
     return {'ok': prepared['ok'], 'state': 'AWAITING_EXACT_APPROVAL' if prepared['ok'] else 'BLOCKED', 'root': str(root),
             'fingerprint': approval, 'canonical_plan': prepared['fingerprint'], 'included': len(prepared['included']),
-            'operations': dict(operations), 'skipped': len(prepared['skipped']), 'blocked': prepared['blocked'][:20],
+            'operations': dict(operations), 'deduplication':prepared.get('deduplication',{}).get('counts'),'recovered_scan':recovered, 'skipped': len(prepared['skipped']), 'blocked': prepared['blocked'][:20],
             'canonical_unchanged': True, 'diagnostics': str(state_dir / 'last-plan.json'),
             'next_action': 'Separate explicit approval: /knowledge-candidates-push {"approve":"' + approval + '"}. On drift prepare and review a new fingerprint.'}
 
