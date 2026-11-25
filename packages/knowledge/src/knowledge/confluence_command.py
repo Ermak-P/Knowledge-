@@ -234,7 +234,7 @@ def next_work(store):
 
 
 def complete_work(store,identifier,result):
-    require(isinstance(result,dict) and set(result)<= {'page','pages','next_cursor','has_more','snapshot','findings','complete','terms','reason','references','analyzed_until'},'invalid-confluence-work-result')
+    require(isinstance(result,dict) and set(result)<= {'page','pages','next_cursor','has_more','snapshot','findings','complete','terms','reason','references','analyzed_until','coverage','revalidations'},'invalid-confluence-work-result')
     with store.connection() as db:
         work=work_at(db,identifier);run=state(db,'run');require(work['run']==run['id'] and run['scope']==state(db,'scope'),'stale-confluence-work')
         if work.get('last_partial_hash')==digest(result):return status(store)
@@ -273,7 +273,7 @@ def complete_work(store,identifier,result):
         if saved and saved['status']=='PREPARED':outcome=sync.resume(store,checkpoint)
         else:
             require('findings' in result,'confluence-analysis-findings-required')
-            outcome=sync.analyze(store,source,result['findings'],result.get('complete',True),result.get('analyzed_until'))
+            outcome=sync.analyze(store,source,result['findings'],result.get('complete',True),result.get('analyzed_until'),result.get('coverage'),result.get('revalidations'))
     with store.connection(True) as db:
         enable(db);run=state(db,'run');work=work_at(db,identifier)
         run.pop('integrity',None)

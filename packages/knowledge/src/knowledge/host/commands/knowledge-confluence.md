@@ -59,10 +59,23 @@ Call action=next, request={}. Work order and scope come from the backend:
   source code with existing source read tools where useful, never automatically
   equating a requirement/proposal with current implementation. Submit complete_work
   {work:id,result:{findings:[{statement,quote,role,type?,conflicts_with?,question?}],
-  complete:false,analyzed_until:<next offset>}} for intermediate chunks. Quotes
+  complete:false,coverage:{...snapshot.coverage_binding,chunks:[snapshot.analysis_chunk]}}}
+  for intermediate chunks. Keep exact returned descriptors (2000 Unicode code
+  points per chunk). Scalar analyzed_until is a cursor hint, never coverage. Quotes
   must occur literally in normalized snapshot text. Finish complete=true only
   after the full page is analyzed; [] is valid for a page with no useful claims.
-  Partial findings and offsets persist, candidates are produced on completion.
+  Partial findings and verified chunks persist; resume_analysis reports missing
+  chunk starts. Complete requires all deterministic chunks, bound to exact native
+  version, snapshot, representation and hash. Duplicate chunks are idempotent.
+  A newer revision invalidates partial coverage. Coverage proves content receipt,
+  never semantic correctness. Candidates are produced on completion.
+  Omission of a historical fact never invalidates it. Before proposing changed,
+  removed or superseded evidence, review that exact historical evidence/revision
+  against current content and submit result.revalidations:[{evidence:<id>,
+  expected:<revision>,verdict:"changed"|"removed"|"superseded"|"retained",
+  quote:<literal current passage>,reason:<targeted explanation>}]. Missing current
+  support for targeted review means preserve the evidence and ask for clarification.
+  Targeted reviews still require the ordinary exact candidate plan approval.
   If page.analysis_checkpoint refers to a PREPARED outbox, complete_work resumes
   saved submission; no model reanalysis is needed. Use resume_analysis for direct
   recovery if the backend explicitly supplies its checkpoint.

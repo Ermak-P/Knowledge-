@@ -76,12 +76,13 @@ def normalize(content):
 
 
 def binding_shape(source):
-    require(isinstance(source,dict) and set(source) in ({'kind','identity','revision','snapshot'},{'kind','identity','revision','snapshot','deletion'}) and source['kind']=='confluence',
+    require(isinstance(source,dict) and set(source) in ({'kind','identity','revision','snapshot'},{'kind','identity','revision','snapshot','deletion'},{'kind','identity','revision','snapshot','revalidation'}) and source['kind']=='confluence',
             'invalid-confluence-binding',{'expected_kind':'confluence','required':['identity','revision','snapshot']})
     require(all(isinstance(source[k],str) and re.fullmatch('[a-f0-9]{64}',source[k]) for k in ('identity','snapshot')),
             'invalid-confluence-binding-identity',{'expected_kind':'confluence'})
     require(type(source['revision']) is int and source['revision']>0,'invalid-confluence-page-version',{'identity':source['identity']})
     if 'deletion' in source:require(isinstance(source['deletion'],str) and re.fullmatch('[a-f0-9]{64}',source['deletion']),'invalid-confluence-deletion-binding')
+    if 'revalidation' in source:require(isinstance(source['revalidation'],str) and re.fullmatch('[a-f0-9]{64}',source['revalidation']),'invalid-confluence-revalidation-binding')
     return source
 
 
@@ -219,7 +220,7 @@ def verify_binding(db,source,fresh=True):
         if source.get('deletion'):
             from .confluence_sync import event
             proof=event(db,source['deletion'])
-            require(proof['identity']==source['identity'] and current.get('availability')=='deleted' and current.get('deletion_event')==source['deletion'],'stale-confluence-deletion-binding')
+            require(proof['kind']=='deleted' and proof['identity']==source['identity'] and current.get('availability')=='deleted' and current.get('deletion_event')==source['deletion'],'stale-confluence-deletion-binding')
         else:
             require(current.get('availability')!='deleted' and current.get('processing_status')!='DELETED','confluence-page-confirmed-deleted',{'identity':source['identity'],'revision':source['revision']})
         require(source.get('deletion') is not None or current['latest_version']==source['revision'],'stale-confluence-revision',{'identity':source['identity'],'candidate_revision':source['revision'],'observed_revision':current['latest_version'],'next_action':'Analyze the observed page revision and prepare a new exact approval; Git rescan is unnecessary.'})
@@ -252,6 +253,9 @@ def validate_candidate(db,item,fresh=True):
                 row=db.execute('SELECT payload FROM records WHERE id=?',(evidence['id'],)).fetchone()
                 require(row is not None,'unknown-confluence-evidence-correction')
                 original=loads(row[0]);require({**original,'status':evidence['status']}==evidence,'confluence-evidence-correction-must-preserve-payload')
+                if fresh and not (source or {}).get('deletion'):
+                    from .confluence_sync import verify_revalidation
+                    verify_revalidation(db,source,op)
             verify_evidence(db,evidence,fresh and not historical)
             if is_binding(source):
                 require(evidence['source']['identity']==source['identity'] and (historical or all(evidence['source'][k]==source[k] for k in ('kind','identity','revision','snapshot'))),'confluence-candidate-evidence-binding-mismatch',{'evidence':evidence['id']})
@@ -340,5 +344,7 @@ def _dispatch(store,action,request):
         if action=='snapshot':
             data=snapshot(db,request['snapshot']);start=request.get('cursor',0);require(type(start) is int and 0<=start<=len(data['content']),'invalid-confluence-offset')
             end=min(len(data['content']),start+2000)
-            return {'ok':True,'snapshot':request['snapshot'],'text':data['content'][start:end],'next_cursor':end if end<len(data['content']) else None,'content_hash':data['content_hash'],'source_is_untrusted_data':True,'live_verification':False}
+            from .confluence_coverage import chunk,binding,CHARS
+            source=dict(kind='confluence',identity=data['identity'],revision=data['version'],snapshot=request['snapshot'])
+            return {'ok':True,'snapshot':request['snapshot'],'text':data['content'][start:end],'next_cursor':end if end<len(data['content']) else None,'content_hash':data['content_hash'],'coverage_binding':binding(source,data),'analysis_chunk':chunk(data['content'],start) if start<len(data['content']) and start%CHARS==0 else None,'source_is_untrusted_data':True,'live_verification':False}
     raise KnowledgeError('unsupported-confluence-action')

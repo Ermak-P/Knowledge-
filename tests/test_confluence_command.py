@@ -6,6 +6,7 @@ from knowledge import lifecycle as life,confluence as cf,confluence_command as c
 from knowledge.store import Store
 from knowledge.util import KnowledgeError,digest
 from test_confluence_source import document
+from confluence_fixtures import work_result,coverage
 
 QUOTE='Synthetic checkout requires a shipping address.'
 FINDING={'statement':QUOTE,'quote':QUOTE,'role':'requirement'}
@@ -32,7 +33,11 @@ class ConfluenceCommand(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name);self.store=Store(self.root)
         self.store.init();life.upgrade(self.store,life.upgrade_preview(self.store)['fingerprint']);self.mcp=MockConfluenceMCP()
-    def call(self,action,request=None):return cf.dispatch(self.store,action,request or {})
+    def call(self,action,request=None):
+        if action=='complete_work' and 'findings' in request['result']:
+            with self.store.connection() as db:work=command.work_at(db,request['work'])
+            request={**request,'result':work_result(self.store,work,request['result'])}
+        return cf.dispatch(self.store,action,request or {})
     def scope(self,roots=('101',),autonomous=False,**extra):
         return self.call('scope',{'scope':dict(roots=[document(page=p)['url'] for p in roots],spaces=[],autonomous=autonomous,**extra)})
     def start(self,**extra):return self.call('start',{'capabilities':{'metadata_only':True,'children':True,'search':True,'content':True},**extra})
@@ -41,7 +46,7 @@ class ConfluenceCommand(unittest.TestCase):
             task=self.call('next');work=task.get('work')
             if work is None:return self.call('status')
             if inspect:inspect(work)
-            self.call('complete_work',{'work':work['id'],'result':self.mcp.result(work)})
+            self.call('complete_work',{'work':work['id'],'result':work_result(self.store,work,self.mcp.result(work))})
         self.fail('mock driver exceeded bounded fixture budget')
     def apply(self):
         plan=self.store.prepare();self.assertTrue(plan['ok'],plan['blocked']);self.store.apply(plan['fingerprint'],plan['fingerprint']);self.store.acknowledge(plan['fingerprint'])
@@ -104,15 +109,16 @@ class ConfluenceCommand(unittest.TestCase):
         self.scope(roots=(),autonomous=True);self.start();self.drain();self.scope(('200',));self.start();done=self.drain()
         self.assertEqual(done['coverage']['total_unique_pages'],1);self.assertEqual(done['coverage']['autonomous_pages'],0)
     def test_partial_analysis_persists_offset_and_retry_does_not_charge_twice(self):
+        self.mcp.pages={pid:document(page=pid,content=QUOTE+'x'*5000) for pid in self.mcp.pages}
         self.scope();self.start()
         while True:
             task=self.call('next');work=task['work']
             if work['kind']=='analysis':break
-            self.call('complete_work',{'work':work['id'],'result':self.mcp.result(work)})
-        request={'work':work['id'],'result':{'findings':[FINDING],'complete':False,'analyzed_until':10}}
+            self.call('complete_work',{'work':work['id'],'result':work_result(self.store,work,self.mcp.result(work))})
+        request={'work':work['id'],'result':{'findings':[FINDING],'complete':False,'analyzed_until':2000,'coverage':coverage(self.store,{'kind':'confluence','identity':work['target'],'revision':1,'snapshot':task['page']['latest_snapshot']},[0])}}
         self.call('complete_work',request);before=self.call('status')['completed_operations'];self.call('complete_work',request)
         self.assertEqual(self.call('status')['completed_operations'],before)
-        task=cf.dispatch(Store(self.root),'next',{});self.assertEqual(task['page']['analysis_offset'],10)
+        task=cf.dispatch(Store(self.root),'next',{});self.assertEqual(task['page']['analysis_offset'],2000)
         self.call('complete_work',{'work':work['id'],'result':{'findings':[],'complete':True}});self.drain();self.apply()
         self.assertEqual(len(self.store.export()['records']['claims']),1)
 
@@ -138,11 +144,11 @@ class ConfluenceCommand(unittest.TestCase):
         with self.assertRaisesRegex(KnowledgeError,'corrupt-confluence-command-checkpoint'):self.store.validate()
 
     def test_full_page_metadata_fallback_reuses_snapshot_without_second_fetch(self):
-        self.scope();self.start();work=self.call('next')['work'];self.call('complete_work',{'work':work['id'],'result':self.mcp.result(work)})
+        self.scope();self.start();work=self.call('next')['work'];self.call('complete_work',{'work':work['id'],'result':work_result(self.store,work,self.mcp.result(work))})
         while True:
             work=self.call('next')['work']
             if work['kind']=='metadata':break
-            self.call('complete_work',{'work':work['id'],'result':self.mcp.result(work)})
+            self.call('complete_work',{'work':work['id'],'result':work_result(self.store,work,self.mcp.result(work))})
         pid=next(p for p in self.mcp.pages if cf.identity('synthetic-cloud-id',p)==work['target'])
         self.call('complete_work',{'work':work['id'],'result':{'page':metadata(self.mcp.pages[pid]),'snapshot':self.mcp.pages[pid]}})
         with self.store.connection() as db:self.assertIsNone(db.execute("SELECT 1 FROM confluence_work WHERE kind='content' AND json_extract(payload,'$.target')=?",(work['target'],)).fetchone())
@@ -153,7 +159,7 @@ class ConfluenceCommand(unittest.TestCase):
         while True:
             work=self.call('next')['work']
             if work['kind']=='children' and work['cursor'] is None:break
-            self.call('complete_work',{'work':work['id'],'result':self.mcp.result(work)})
+            self.call('complete_work',{'work':work['id'],'result':work_result(self.store,work,self.mcp.result(work))})
         target=work['target'];self.call('complete_work',{'work':work['id'],'result':{'pages':[],'has_more':True,'next_cursor':'A'}})
         work=self.call('next')['work'];self.assertEqual(work['cursor'],'A')
         self.call('complete_work',{'work':work['id'],'result':{'pages':[],'has_more':True,'next_cursor':'B'}})
@@ -191,7 +197,7 @@ class ConfluenceCommand(unittest.TestCase):
                     task=peer.tool('knowledge_confluence',action='next',request={});self.assertTrue(task['ok'],task)
                     work=task.get('work')
                     if not work:break
-                    response=peer.tool('knowledge_confluence',action='complete_work',request={'work':work['id'],'result':self.mcp.result(work)})
+                    response=peer.tool('knowledge_confluence',action='complete_work',request={'work':work['id'],'result':work_result(store,work,self.mcp.result(work))})
                     self.assertTrue(response['ok'],response)
                 else:self.fail('MCP did not finish')
                 prepared=execute('knowledge-update',installation,root,{});self.assertTrue(prepared['ok'],prepared)
@@ -202,7 +208,7 @@ class ConfluenceCommand(unittest.TestCase):
                 for _ in range(100):
                     task=peer.tool('knowledge_confluence',action='next',request={});work=task.get('work')
                     if not work:break
-                    response=peer.tool('knowledge_confluence',action='complete_work',request={'work':work['id'],'result':self.mcp.result(work)});self.assertTrue(response['ok'],response)
+                    response=peer.tool('knowledge_confluence',action='complete_work',request={'work':work['id'],'result':work_result(store,work,self.mcp.result(work))});self.assertTrue(response['ok'],response)
                 else:self.fail('Incremental MCP run did not finish')
                 prepared=execute('knowledge-update',installation,root,{});execute('knowledge-update',installation,root,{'approve':prepared['fingerprint']});self.assertTrue(store.validate()['ok'])
                 self.assertNotEqual(prepared['fingerprint'],original)

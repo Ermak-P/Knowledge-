@@ -116,7 +116,7 @@ def observe(store,value):
         if 'modified_at' in value:page['modified_at']=cf.timestamp(value['modified_at'])
         if 'origin' in value:page['origin']=value['origin']
         current=cf.snapshot_info(db,page['latest_snapshot']) if page.get('latest_snapshot') else None
-        action='SKIP' if page.get('last_analyzed_version')==version else 'RESUME_ANALYSIS' if current and current['version']==version else 'FETCH_CONTENT'
+        action='SKIP' if page.get('last_analyzed_version')==version and page.get('coverage_certified_hash') and current and page.get('coverage_certified_hash')==current['content_hash'] and page.get('coverage_certified_representation')==current['representation'] else 'RESUME_ANALYSIS' if current and current['version']==version else 'FETCH_CONTENT'
         page['processing_status']='UNCHANGED' if action=='SKIP' else 'ANALYSIS_REQUIRED' if action=='RESUME_ANALYSIS' else 'FETCH_REQUIRED';save_page(db,page)
     return {'ok':True,'identity':sid,'version':version,'action':action,'content_retrieval_required':action=='FETCH_CONTENT','semantic_analysis_required':action!='SKIP','live_verification':'client-reported MCP metadata, not independently attested'}
 
@@ -138,12 +138,13 @@ def on_snapshot(store,source):
             page.update(analysis_offset=0,analysis_source_snapshot=source['snapshot'])
         for identifier, in list(db.execute("SELECT id FROM confluence_outbox WHERE source_id=? AND snapshot<>? AND status='COLLECTING'",(source['identity'],source['snapshot']))):
             obsolete=_outbox(db,identifier);count=sum(map(len,obsolete.pop('chunks').values()))
+            obsolete.pop('coverage_chunks',None);obsolete.pop('revalidations',None)
             obsolete.update(status='DONE',candidates=[],counts={'abandoned_partial_findings':count,'reason':'source-revision-advanced'});save_outbox(db,obsolete)
         unfinished=db.execute("SELECT id,status FROM confluence_outbox WHERE source_id=? AND snapshot=? AND status IN ('PREPARED','COLLECTING') ORDER BY id LIMIT 1",(source['identity'],source['snapshot'])).fetchone()
         if unfinished:
             page.update(analysis_checkpoint=unfinished[0],processing_status='ANALYSIS_SUBMITTING' if unfinished[1]=='PREPARED' else 'PARTIAL_ANALYSIS');save_page(db,page)
             return {'action':'RESUME_ANALYSIS','checkpoint':unfinished[0],'semantic_analysis_required':unfinished[1]=='COLLECTING','applied':False}
-        reused=page.get('last_analyzed_hash')==data['content_hash'] and page.get('last_analyzed_representation')==data['representation']
+        reused=page.get('coverage_certified_hash')==data['content_hash'] and page.get('coverage_certified_representation')==data['representation']
         if reused:page.update(last_analyzed_version=source['revision'],last_analyzed_snapshot=source['snapshot'],analysis_reused=True)
         page['processing_status']='UNCHANGED' if reused else 'ANALYSIS_REQUIRED';page['analysis_checkpoint']=None;save_page(db,page)
     refreshed=refresh_unchanged_pending(store,source) if reused else []
@@ -180,9 +181,24 @@ def _pending_records(db):
     return rows
 
 
-def build_proposals(store,db,source,findings,complete):
+def build_proposals(store,db,source,findings,complete,reviews=None,coverage_checkpoint=None):
     data=cf.verify_binding(db,source);records=store._records(db);states=life.latest(db)
     canonical={c['id']:c for c in records['claims']};proofs={e['id']:e for e in records['evidence']};known=dict(canonical)
+    normalized=[];review_token=None
+    for r in reviews or []:
+        require(isinstance(r,dict) and set(r)=={'evidence','expected','verdict','quote','reason'},'invalid-confluence-revalidation')
+        old=proofs.get(r['evidence']);state=states.get(r['evidence'])
+        require(old is not None and state and state['lifecycle']=='active' and state['revision']==r['expected'] and type(r['expected']) is int,'stale-confluence-evidence-revalidation')
+        require(cf.is_binding(old['source']) and old['source']['identity']==source['identity'] and old['status']=='active','confluence-revalidation-wrong-source')
+        require(r['verdict'] in ('retained','changed','removed','superseded') and isinstance(r['quote'],str) and 0<len(r['quote'])<=8192 and r['quote'] in data['content'] and isinstance(r['reason'],str) and 0<len(r['reason'])<=2000,'confluence-revalidation-needs-targeted-current-evidence')
+        normalized.append({**r,'old_record_hash':digest(old)})
+        if r['verdict']=='retained':
+            for cid in old['substantiates']:
+                c=canonical[cid];findings=list(findings)+[dict(statement=c['statement'],type=c['type'],role=role_of(c,[proofs[i] for i in c['evidence']]),quote=r['quote'])]
+    if normalized:
+        require(len({r['evidence'] for r in normalized})==len(normalized),'duplicate-confluence-evidence-revalidation')
+        group=dict(identity=source['identity'],kind='evidence-revalidation',source=source,coverage_checkpoint=coverage_checkpoint,reviews=sorted(normalized,key=lambda r:r['evidence']))
+        review_token=digest(group);db.execute('INSERT OR IGNORE INTO confluence_events VALUES (?,?,?,?,?)',(review_token,source['identity'],group['kind'],canonical_json(group),review_token))
     for value in _pending_records(db):
         for op in value.get('operations',[]):
             if op['kind']=='claims' and op['payload'] and op['action']=='add':known.setdefault(op['id'],op['payload'])
@@ -224,13 +240,14 @@ def build_proposals(store,db,source,findings,complete):
             require(role_of(other,[proofs[i] for i in other['evidence'] if i in proofs])==role,'confluence-conflict-scope-needs-clarification',{'claim':target,'proposed_role':role})
             if target not in claim['conflicts_with']:claim['conflicts_with'].append(target)
             if claim['id'] not in other['conflicts_with']:other['conflicts_with'].append(claim['id'])
+    reviewed={r['evidence']:r for r in (reviews or [])}
     if complete:
         for claim in canonical.values():
-            affected=[proofs[i] for i in claim['evidence'] if cf.is_binding(proofs[i]['source']) and proofs[i]['source']['identity']==source['identity'] and proofs[i]['source']['snapshot']!=source['snapshot'] and proofs[i]['status']=='active']
+            affected=[proofs[i] for i in claim['evidence'] if cf.is_binding(proofs[i]['source']) and proofs[i]['source']['identity']==source['identity'] and i in reviewed and reviewed[i]['verdict']!='retained' and proofs[i]['status']=='active']
             if not affected:continue
             updated=touched.setdefault(claim['id'],deepcopy(claim));removed={e['id'] for e in affected}
             updated['evidence']=[i for i in updated['evidence'] if i not in removed]
-            for old in affected:eops[old['id']]=life.op('update','evidence',old['id'],states[old['id']]['revision'],{**old,'status':'superseded'})
+            for old in affected:eops[old['id']]=life.op('update','evidence',old['id'],states[old['id']]['revision'],{**old,'status':'retracted' if reviewed[old['id']]['verdict']=='removed' else 'superseded'})
             if not updated['evidence']:updated.update(status='NEEDS_HUMAN_CONFIRMATION',last_verified=None)
             if not updated['evidence']:updated['evidence']=list(claim['evidence'])
     cops=[]
@@ -240,7 +257,7 @@ def build_proposals(store,db,source,findings,complete):
     ops=list(eops.values())+cops
     # Existing v2 batches allow 10k operations. Split the projection, never facts;
     # the ordinary plan validates/applies the complete pending graph atomically.
-    batches=[life.batch(ops[i:i+1000],'Reviewed Confluence '+source['identity']+' revision '+str(source['revision']),source) for i in range(0,len(ops),1000)]
+    batches=[life.batch(ops[i:i+1000],'Reviewed Confluence '+source['identity']+' revision '+str(source['revision']),{**source,'revalidation':review_token} if review_token else source) for i in range(0,len(ops),1000)]
     questions=[f.get('question') or 'Clarify '+f['role']+' contradiction against '+', '.join(f['conflicts_with']) for f in findings if f.get('conflicts_with')]
     return batches,dict(new_claim_candidates=new_count,existing_claims_enriched=enriched,duplicates_prevented=duplicates,operations=len(ops),conflicts_detected=sum(len(f.get('conflicts_with',[])) for f in findings),clarification_questions=questions)
 
@@ -256,42 +273,63 @@ def save_outbox(db,data):
     db.execute('INSERT OR REPLACE INTO confluence_outbox VALUES (?,?,?,?,?,?)',(data['id'],data['source']['identity'],data['source']['snapshot'],data['status'],canonical_json(data),digest(data)))
 
 
-def analyze(store,source,findings,complete=True,analyzed_until=None):
+def analyze(store,source,findings,complete=True,analyzed_until=None,coverage=None,revalidations=None):
+    from . import confluence_coverage as cv
     require(isinstance(findings,list) and len(findings)<=1000 and type(complete) is bool,'invalid-confluence-analysis-batch')
-    identifier=digest(['confluence-analysis-v1',source,findings,complete])
+    reviews=revalidations or [];require(isinstance(reviews,list) and len(reviews)<=1000,'invalid-confluence-revalidations')
+    identifier=digest(['confluence-analysis-v2',source,findings,complete,coverage,reviews])
     collector=digest(['confluence-analysis-chunks-v1',source])
     with store.connection(True) as db:
-        enable(db)
-        if analyzed_until is not None:
-            snap=cf.verify_binding(db,source);require(type(analyzed_until) is int and 0<=analyzed_until<=len(snap['content']),'invalid-confluence-analysis-offset')
-            page=deepcopy(cf.page(db,source['identity']));page['analysis_offset']=max(page.get('analysis_offset',0),analyzed_until);save_page(db,page)
-        if not complete:
-            build_proposals(store,db,source,findings,False) # validate before persisting untrusted findings
-            row=db.execute('SELECT 1 FROM confluence_outbox WHERE id=?',(collector,)).fetchone()
-            data=_outbox(db,collector) if row else dict(id=collector,source=source,status='COLLECTING',chunks={})
-            require(data['status']=='COLLECTING','confluence-analysis-already-completed')
+        enable(db);snapshot=cf.verify_binding(db,source)
+        # A scalar cursor is only a compatibility hint. It cannot establish any
+        # analyzed range, and gaps are never filled from its maximum value.
+        if analyzed_until is not None:require(type(analyzed_until) is int and 0<=analyzed_until<=len(snapshot['content']),'invalid-confluence-analysis-offset')
+        previous=db.execute("SELECT 1 FROM confluence_outbox WHERE id=? AND status='COLLECTING'",(collector,)).fetchone()
+        data=_outbox(db,collector) if previous else dict(id=collector,source=source,status='COLLECTING',chunks={})
+        entries=cv.merge(source,snapshot,coverage,data.get('coverage_chunks'))
+        state=cv.progress(snapshot,entries)
+        if db.execute("SELECT 1 FROM confluence_outbox WHERE id=? AND status IN ('PREPARED','DONE')",(identifier,)).fetchone():pass
+        elif not complete:
+            # Buffer source-supported findings. Canonical graph/scope validation
+            # is deferred to the complete projection, not repeated per chunk.
+            for f in findings:
+                require(isinstance(f,dict) and isinstance(f.get('quote'),str) and f['quote'] and f['quote'] in snapshot['content'] and isinstance(f.get('statement'),str) and 0<len(f['statement'])<=4096 and f.get('role') in cf.ROLES,'confluence-finding-not-source-supported')
             data['chunks'][identifier]=findings
             require(sum(map(len,data['chunks'].values()))<=10000,'confluence-analysis-page-budget-exhausted')
-            save_outbox(db,data)
-            page=deepcopy(cf.page(db,source['identity']));page.update(analysis_checkpoint=collector,processing_status='PARTIAL_ANALYSIS');save_page(db,page)
-            return {'ok':True,'checkpoint':collector,'analysis_complete':False,'persisted_findings':sum(map(len,data['chunks'].values())),'candidates':[],'canonical_unchanged':True}
-        if db.execute('SELECT 1 FROM confluence_outbox WHERE id=?',(identifier,)).fetchone():pass
+            prior_reviews=data.get('revalidations',{})
+            for r in reviews:
+                require(isinstance(r,dict) and isinstance(r.get('evidence'),str),'invalid-confluence-revalidation')
+                require(r['evidence'] not in prior_reviews or prior_reviews[r['evidence']]==r,'conflicting-confluence-revalidation');prior_reviews[r['evidence']]=r
+            data.update(coverage_chunks=entries,revalidations=prior_reviews);save_outbox(db,data)
+            page=deepcopy(cf.page(db,source['identity']));page.update(analysis_checkpoint=collector,processing_status='PARTIAL_ANALYSIS',analysis_offset=state['continuous_until']);save_page(db,page)
+            return {'ok':True,'checkpoint':collector,'analysis_complete':False,'coverage':state,'persisted_findings':sum(map(len,data['chunks'].values())),'candidates':[],'canonical_unchanged':True}
         else:
-            if db.execute("SELECT 1 FROM confluence_outbox WHERE id=? AND status='COLLECTING'",(collector,)).fetchone():
-                chunks=_outbox(db,collector);findings=[f for chunk in chunks['chunks'].values() for f in chunk]+findings
-                require(len(findings)<=10000,'confluence-analysis-page-budget-exhausted')
-                chunks.update(status='DONE',candidates=[],counts={});chunks.pop('chunks');save_outbox(db,chunks)
-            batches,counts=build_proposals(store,db,source,findings,complete)
-            data=dict(id=identifier,source=source,status='PREPARED',complete=complete,batches=batches,candidates=[],counts=counts)
-            save_outbox(db,data)
-            page=deepcopy(cf.page(db,source['identity']));page.update(analysis_checkpoint=identifier,processing_status='ANALYSIS_SUBMITTING');save_page(db,page)
+            cert=cv.certificate(source,snapshot,entries)
+            combined=[f for values in data['chunks'].values() for f in values]+findings
+            require(len(combined)<=10000,'confluence-analysis-page-budget-exhausted')
+            all_reviews=dict(data.get('revalidations',{}))
+            for r in reviews:
+                require(isinstance(r,dict) and isinstance(r.get('evidence'),str),'invalid-confluence-revalidation')
+                require(r['evidence'] not in all_reviews or all_reviews[r['evidence']]==r,'conflicting-confluence-revalidation');all_reviews[r['evidence']]=r
+            batches,counts=build_proposals(store,db,source,combined,True,list(all_reviews.values()),identifier)
+            prepared=dict(id=identifier,source=source,status='PREPARED',complete=True,coverage_certificate=cert,batches=batches,candidates=[],counts=counts)
+            save_outbox(db,prepared)
+            if previous:
+                data.update(status='DONE',candidates=[],counts={});data.pop('chunks',None);data.pop('coverage_chunks',None);data.pop('revalidations',None);save_outbox(db,data)
+            page=deepcopy(cf.page(db,source['identity']));page.update(analysis_checkpoint=identifier,analysis_offset=state['continuous_until'],processing_status='ANALYSIS_SUBMITTING');save_page(db,page)
     return resume(store,identifier)
 
 
 def resume(store,identifier):
     with store.connection() as db:data=_outbox(db,identifier)
-    if data['status']=='COLLECTING':return {'ok':True,'checkpoint':identifier,'analysis_complete':False,'persisted_findings':sum(map(len,data['chunks'].values())),'candidates':[],'next_action':'Continue bounded page analysis, then submit complete=true.'}
+    if data['status']=='COLLECTING':
+        from .confluence_coverage import progress
+        with store.connection() as db:coverage=progress(cf.verify_binding(db,data['source']),data.get('coverage_chunks',{}))
+        return {'ok':True,'checkpoint':identifier,'analysis_complete':False,'coverage':coverage,'persisted_findings':sum(map(len,data['chunks'].values())),'candidates':[],'next_action':'Read missing deterministic snapshot chunks, then submit complete=true with their coverage descriptors.'}
     if data['status']=='DONE':return {'ok':True,'checkpoint':identifier,'source':data['source'],'replayed':True,**data['counts'],'candidates':data['candidates']}
+    if data.get('complete'):
+        from .confluence_coverage import verify
+        with store.connection() as db:verify(db,data['source'],data.get('coverage_certificate'))
     candidates=[]
     for value in data['batches']:
         result=store.submit(value);candidates.append(result['candidate'])
@@ -300,7 +338,7 @@ def resume(store,identifier):
     with store.connection(True) as db:
         cf.verify_binding(db,data['source']);page=deepcopy(cf.page(db,data['source']['identity']))
         if data['complete']:
-            snap=cf.snapshot_info(db,data['source']['snapshot']);page.update(last_analyzed_version=data['source']['revision'],last_analyzed_snapshot=data['source']['snapshot'],last_analyzed_hash=snap['content_hash'],last_analyzed_representation=snap['representation'],last_analysis_counts=data['counts'])
+            snap=cf.snapshot_info(db,data['source']['snapshot']);page.update(last_analyzed_version=data['source']['revision'],last_analyzed_snapshot=data['source']['snapshot'],last_analyzed_hash=snap['content_hash'],last_analyzed_representation=snap['representation'],last_analysis_counts=data['counts'],coverage_certified_snapshot=data['source']['snapshot'],coverage_certified_hash=snap['content_hash'],coverage_certified_representation=snap['representation'])
         page.update(processing_status='DELETED' if data.get('deletion') else 'AWAITING_APPLY' if candidates else 'ANALYZED_NO_CLAIMS' if data['complete'] else 'PARTIAL_ANALYSIS',last_analysis_checkpoint=identifier,analysis_checkpoint=None);save_page(db,page)
         data.update(status='DONE',candidates=candidates);data.pop('batches',None);save_outbox(db,data)
     return {'ok':True,'checkpoint':identifier,**data['counts'],'candidates':candidates,'canonical_unchanged':True,'analysis_complete':data['complete']}
@@ -346,6 +384,7 @@ def refresh_unchanged_pending(store,source):
             value=loads(payload)
             if status!='pending' or cid in existing or cid in owned or not cf.is_binding(value.get('source')):continue
             old=value['source']
+            if old.get('revalidation'):continue # Explicit review authority is bound to its exact native revision.
             if old['identity']!=source['identity'] or old['revision']>=source['revision']:continue
             prior=cf.snapshot(db,old['snapshot'])
             if prior['content_hash']==new['content_hash'] and prior['representation']==new['representation']:work.append((cid,rebind(value,new,source)))
@@ -380,6 +419,19 @@ def event(db,identifier):
     return data
 
 
+def verify_revalidation(db,source,operation):
+    require(cf.is_binding(source) and source.get('revalidation'),'confluence-evidence-needs-targeted-revalidation',{'evidence':operation['id'],'next_action':'Submit complete deterministic coverage and an explicit review of this evidence at its expected revision.'})
+    group=event(db,source['revalidation']);base={k:source[k] for k in ('kind','identity','revision','snapshot')}
+    require(group['kind']=='evidence-revalidation' and group['source']==base,'confluence-revalidation-binding-mismatch')
+    checkpoint=_outbox(db,group['coverage_checkpoint'])
+    from .confluence_coverage import verify
+    verify(db,base,checkpoint.get('coverage_certificate'))
+    review=next((r for r in group['reviews'] if r['evidence']==operation['id']),None)
+    row=db.execute('SELECT payload FROM revisions WHERE id=? AND revision=?',(operation['id'],operation['expected'])).fetchone()
+    require(review and row and review['expected']==operation['expected'] and review['old_record_hash']==digest(loads(row[0])['record']),'stale-confluence-evidence-revalidation')
+    require(review['verdict']!='retained' and operation['payload']['status']==('retracted' if review['verdict']=='removed' else 'superseded'),'confluence-revalidation-verdict-mismatch')
+
+
 def confirm_deleted(store,sid,confirmation):
     require(confirmation=='native-page-status-deleted','confluence-deletion-needs-explicit-native-status',{'next_action':'Permission errors, 404s, missing search hits and incomplete listings are not deletion confirmation.'})
     with store.connection(True) as db:
@@ -410,7 +462,7 @@ def confirm_deleted(store,sid,confirmation):
 def dispatch(store,action,request):
     if action=='observe':return observe(store,request)
     if action=='failure':return failure(store,request['identity'],request['reason'])
-    if action=='analyze':return analyze(store,request['source'],request['findings'],request.get('complete',True),request.get('analyzed_until'))
+    if action=='analyze':return analyze(store,request['source'],request['findings'],request.get('complete',True),request.get('analyzed_until'),request.get('coverage'),request.get('revalidations'))
     if action=='resume_analysis':return resume(store,request['checkpoint'])
     if action=='confirm_deleted':return confirm_deleted(store,request['identity'],request.get('confirmation'))
     if action=='gc':return collect(store,request.get('keep_unreferenced',2))
@@ -433,7 +485,7 @@ def collect(store,keep=2):
             for payload, in db.execute('SELECT '+column+' FROM '+table):bindings(loads(payload))
         for payload, in db.execute("SELECT payload FROM confluence_outbox WHERE status IN ('PREPARED','COLLECTING')"):bindings(loads(payload))
         for payload, in db.execute('SELECT payload FROM confluence_pages'):
-            page=loads(payload);pinned.update(page[k] for k in ('latest_snapshot','last_analyzed_snapshot') if page.get(k))
+            page=loads(payload);pinned.update(page[k] for k in ('latest_snapshot','last_analyzed_snapshot','coverage_certified_snapshot') if page.get(k))
         retained={};removed=[]
         for identifier,sid,version in db.execute('SELECT snapshot,source_id,version FROM confluence_snapshots ORDER BY source_id,version DESC'):
             cf.snapshot_info(db,identifier)
