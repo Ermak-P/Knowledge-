@@ -209,6 +209,9 @@ def execute(command, installation, directory, value):
     require(config.get('installation') == str(installation) and config.get('project') == project.identity, 'project-machine-configuration-conflict')
     if command == 'knowledge-candidates-update':
         if 'candidates' in value:
+            from .confluence import is_binding
+            require(isinstance(value['candidates'],list) and all(isinstance(p,dict) for p in value['candidates']),'invalid-candidate-batch')
+            if all(is_binding(p.get('source')) for p in value['candidates']):return submit_reviewed(store,root,value['candidates'])
             from .providers import semantic_preflight
             semantic_preflight(provider,value.get('allow_test_double',False),value['candidates'])
             semantic_binding={'version':1,'provider_ref':binding['provider_reference'],'model':provider['model'],
@@ -330,7 +333,7 @@ def submit_reviewed(store, root, proposals, semantic_binding=None):
                     resolved,report,conflicts=reconcile(store._records(db),pending,lifecycle.latest(db),
                         {cid:semantic_binding for cid in pending} if semantic_binding else {})
                     require(not conflicts,'duplicate-conflict',{'groups':[g['group'] for g in report['groups'] if g['resolution']=='blocked']})
-                    lifecycle.verify_source_bindings(store,pending.values())
+                    lifecycle.verify_source_bindings(store,pending.values(),db)
                     lifecycle.simulate(store,db,{cid:v for cid,v in resolved.items() if v is not None},check_source=False)
             for proposal in pending.values(): rows.append(store.submit(proposal,semantic_binding=semantic_binding))
             return {'ok': True, 'root': str(root), 'results': rows,
@@ -355,7 +358,7 @@ def push(store, root, state_dir, binding, value):
         if action == 'recover':
             require(saved.get('approved') is True and states.get(pid) in ('COMMITTED', 'ACKNOWLEDGED'), 'no-approved-commit-to-recover')
         else:
-            expected = {**binding, 'source_identity': discovery.inventory(root)['identity'], 'canonical_plan': pid}
+            expected = {**binding, 'source_identity': discovery.inventory(root)['identity'] if saved['binding']['source_identity'] is not None else None, 'canonical_plan': pid}
             require(expected == saved['binding'], 'machine-plan-drift-prepare-again')
             # Durable intent allows acknowledgement recovery after an unknown
             # post-commit outcome; it never approves a replacement plan.
@@ -377,11 +380,12 @@ def push(store, root, state_dir, binding, value):
         progress('loading-completed-scan-artifacts')
         recovered=discovery.completed_artifact(store,value['rebuild_scan_id']) if value.get('rebuild_scan_id') else None
         progress('verifying-current-source-inventory')
-        before = discovery.inventory(root)['identity']
+        before = discovery.inventory(root)['identity'] if recovered or store.pending_git_sources() else None
         if recovered:require(recovered['source_identity']==before,'scan-artifact-source-or-policy-drift',{'next_action':'Preserve the scan. Inspect source/policy changes before selecting explicit recovery; no automatic fresh scan.'})
         prepared = store.prepare(_source_identity=before,progress=progress)
         progress('verifying-post-prepare-source')
-        require(discovery.inventory(root)['identity'] == before, 'source-drift-during-prepare')
+        require(before is not None or not any(v.get('source') is not None and v['source']['kind']!='confluence' for v in prepared['candidates'].values()),'source-set-changed-during-prepare')
+        if before is not None:require(discovery.inventory(root)['identity'] == before, 'source-drift-during-prepare')
         progress('blocked' if prepared['blocked'] else 'awaiting-exact-approval')
     except Exception as error:
         progress('failed',error=getattr(error,'code',type(error).__name__));raise
@@ -395,7 +399,7 @@ def push(store, root, state_dir, binding, value):
     return {'ok': prepared['ok'], 'state': 'AWAITING_EXACT_APPROVAL' if prepared['ok'] else 'BLOCKED', 'root': str(root),
             'fingerprint': approval, 'canonical_plan': prepared['fingerprint'], 'included': len(prepared['included']),
             'operations': dict(operations), 'deduplication':prepared.get('deduplication',{}).get('counts'),'recovered_scan':recovered, 'skipped': len(prepared['skipped']), 'blocked': prepared['blocked'][:20],
-            'canonical_unchanged': True, 'diagnostics': str(state_dir / 'last-plan.json'),
+            'canonical_unchanged': True, 'skipped_details':prepared['skipped'][:20], 'diagnostics': str(state_dir / 'last-plan.json'),
             'next_action': 'Separate explicit approval: /knowledge-candidates-push {"approve":"' + approval + '"}. On drift prepare and review a new fingerprint.'}
 
 

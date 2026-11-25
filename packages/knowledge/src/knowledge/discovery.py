@@ -268,7 +268,11 @@ def extract(root,path,entry):
     return [],'partial','bounded content preview; source regions remain unanalyzed' if metadata['partial'] else 'inventory/content hash only; semantic extractor unavailable for this file type'
 
 
-def fresh_evidence(root,e,scope=None):
+def fresh_evidence(root,e,scope=None,db=None):
+    from .confluence import is_binding,evidence_freshness
+    if is_binding(e.get('source')):
+        from .store import Store
+        return evidence_freshness(Store(root),e,db)
     path=e.get('source'); path=path.get('reference') if isinstance(path,dict) else path
     location=e.get('location','');location=location.get('reference','') if isinstance(location,dict) else location
     if not e.get('content_hash') or not isinstance(path,str):return 'not-verifiable'
@@ -316,13 +320,13 @@ def positive_scope_complete(scope,identifiers):
                for p,e in scope['snapshot']['files'].items() if p.endswith(('.cs','.csproj')) and e['partition'] in projects)
 
 
-def freshness(root,claim,records,scope=None):
+def freshness(root,claim,records,scope=None,db=None):
     evidence={e['id']:e for e in records['evidence']}
     if any(evidence[i]['provenance']['method'] in DISCOVERY_METHODS for i in claim['evidence'] if i in evidence):
         scope=scope if scope is not None else analysis_scope(root)
         scope=identity_scope(scope,records)
-    results={i:fresh_evidence(root,evidence[i],scope) for i in claim['evidence'] if i in evidence}
-    trusted=bool(results) and all(v in ('unchanged','anchor-valid-file-changed') and evidence[i]['status']=='active' for i,v in results.items())
+    results={i:fresh_evidence(root,evidence[i],scope,db=db) for i in claim['evidence'] if i in evidence}
+    trusted=bool(results) and all(v in ('unchanged','anchor-valid-file-changed','current-registered-confluence-snapshot') and evidence[i]['status']=='active' for i,v in results.items())
     return {'trusted':trusted,'evidence':results,'policy':'all supporting evidence current; confidence unchanged'}
 
 
