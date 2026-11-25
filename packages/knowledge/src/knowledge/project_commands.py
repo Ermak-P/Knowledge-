@@ -176,7 +176,7 @@ def execute(command, installation, directory, value):
         state=dispatch(store,'status',{})
         if state['state']=='SCOPE_REQUIRED':return state
         requested=value.get('action','start')
-        request=value.get('request',{k:v for k,v in value.items() if k in ('operations','extra_operations','capabilities')})
+        request=value.get('request',{k:v for k,v in value.items() if k in ('operations','extra_operations','capabilities','resume','fresh')})
         return dispatch(store,requested,request)
     if action == 'cancel' and command == 'knowledge-init':
         if not (state_dir/'full/job.json').exists():return no_scan(root)

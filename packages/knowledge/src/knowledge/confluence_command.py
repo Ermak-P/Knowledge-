@@ -183,6 +183,7 @@ def start(store,request):
         enable(db);scope=state(db,'scope');require(scope is not None,'confluence-scope-required')
         run=state(db,'run');extra=request.get('extra_operations',0)
         require(type(extra) is int and 0<=extra<=10000,'invalid-confluence-work-budget')
+        require(all(type(request[k]) is bool for k in ('resume','fresh') if k in request) and not (request.get('resume') and request.get('fresh')),'invalid-confluence-resume-controls')
         caps=request.get('capabilities',{})
         require(isinstance(caps,dict) and set(caps)<= {'metadata_only','children','search','content'} and all(type(v) is bool for v in caps.values()),'invalid-confluence-mcp-capabilities')
         require(type(request.get('fresh',False)) is bool and type(request.get('resume',False)) is bool and not (request.get('fresh') and request.get('resume')),'invalid-confluence-resume-mode')
@@ -246,9 +247,9 @@ def complete_work(store,identifier,result):
     require(isinstance(result,dict) and set(result)<= {'page','pages','next_cursor','has_more','snapshot','findings','complete','terms','reason','references','analyzed_until','coverage','revalidations'},'invalid-confluence-work-result')
     with store.connection() as db:
         work=work_at(db,identifier);run=state(db,'run');require(work['run']==run['id'] and run['scope']==state(db,'scope'),'stale-confluence-work')
-        if work.get('last_partial_hash')==digest(result):return status(store)
+        if work.get('last_partial_hash')==digest(result):return progress(store)
         if work['status']=='DONE':
-            require(work.get('result_hash')==digest(result),'confluence-work-result-conflict');return status(store)
+            require(work.get('result_hash')==digest(result),'confluence-work-result-conflict');return progress(store)
         require(work['status'] in ('RUNNING','PENDING'),'confluence-failed-work-needs-explicit-retry')
     reason=result.get('reason');kind=work['kind'];sid=work['target'];outcome={};origin=work['origin']
     if not reason and kind in ('metadata','content'):
@@ -337,7 +338,42 @@ def complete_work(store,identifier,result):
                 else:run['skipped_references_without_search_permission']=run.get('skipped_references_without_search_permission',0)+1
             work.update(status='DONE',result_hash=digest(result))
         run['completed_operations']+=1;save_work(db,work);save_state(db,'run',run)
-    return status(store)
+    return progress(store)
+
+
+def progress(store):
+    """Bounded source telemetry; status/diagnostics retain full validation."""
+    with store.progress_connection() as db:
+        marker=db.execute('SELECT value FROM metadata WHERE key=?',(META,)).fetchone()
+        require(marker in (None,(SCHEMA,)),'unsupported-confluence-command-extension')
+        values={key:checked(raw,checksum) for key,raw,checksum in db.execute("SELECT key,payload,checksum FROM confluence_command_state WHERE key IN ('scope','run')")} if marker else {}
+        scope=values.get('scope');run=values.get('run')
+        common=dict(ok=True,canonical_unchanged=True,candidate_validation='NOT_RUN',integrity='NOT_RUN',telemetry_only=True)
+        if scope is None:return dict(common,state='SCOPE_REQUIRED')
+        if run is None:return dict(common,state='CONFIGURED',scope=scope)
+        expressions={
+            'total_unique_pages':'count(*)',
+            'mandatory_pages':"sum(instr(json_extract(payload,'$.origins'),'\"mandatory\"')>0)",
+            'autonomous_pages':"sum(instr(json_extract(payload,'$.origins'),'\"mandatory\"')=0)",
+            'new':"sum(json_extract(payload,'$.classification')='new')",
+            'changed':"sum(json_extract(payload,'$.classification')='changed')",
+            'unchanged':"sum(json_extract(payload,'$.state') IN ('UNCHANGED','UNCHANGED_CONTENT'))",
+            'failed':"sum(json_extract(payload,'$.state')='FAILED')",
+            'successfully_analyzed':"sum(json_extract(payload,'$.state') IN ('ANALYZED','UNCHANGED','UNCHANGED_CONTENT'))",
+            'awaiting_processing':"sum(json_extract(payload,'$.state') NOT IN ('ANALYZED','UNCHANGED','UNCHANGED_CONTENT','FAILED'))",
+            'native_version_changed':"sum(coalesce(json_extract(payload,'$.native_version_changed'),0))"}
+        for key in ('new_claim_candidates','existing_claims_enriched','duplicates_prevented','conflicts_detected'):expressions[key]="sum(coalesce(json_extract(payload,'$.counts."+key+"'),0))"
+        row=db.execute('SELECT '+','.join('coalesce('+sql+',0)' for sql in expressions.values())+' FROM confluence_seen WHERE run=?',(run['id'],)).fetchone()
+        counts=dict(zip(expressions,row))
+        summary=db.execute("""SELECT
+          (SELECT json_group_object(status,n) FROM (SELECT status,count(*) n FROM confluence_work WHERE run=? GROUP BY status)),
+          (SELECT kind FROM confluence_work WHERE run=? AND status IN ('PENDING','RUNNING') ORDER BY priority,id LIMIT 1),
+          (SELECT count(*) FROM confluence_seen s JOIN confluence_pages p ON p.identity=s.source_id WHERE s.run=? AND json_extract(s.payload,'$.version')=json_extract(p.payload,'$.last_applied_version')),
+          (SELECT json_group_array(json_array(kind,payload,checksum)) FROM (SELECT kind,payload,checksum FROM confluence_work WHERE run=? AND status IN ('FAILED','SKIPPED') LIMIT 20))
+          """,(run['id'],)*4).fetchone()
+        work_counts=loads(summary[0]);stage=summary[1];applied=summary[2]
+        limitations=[dict(kind=k,target=v['target'],reason=v.get('failure'),retry_count=v.get('retry_count',0),retryable=v.get('failure') in ('TIMEOUT','UNAVAILABLE','INCOMPLETE_RESPONSE') and v.get('retry_count',0)<3) for k,raw,checksum in loads(summary[3]) for v in [checked(raw,checksum)]]
+        return dict(common,state=run['status'],run=run['id'],scope=scope,coverage=counts,work=work_counts,coverage_complete=run['status']=='COMPLETE',coverage_attestation='client-reported MCP traversal only; live access not independently attested',completed_operations=run['completed_operations'],operation_budget=run['budget'],remaining_work=sum(work_counts.get(s,0) for s in ('PENDING','RUNNING')),current_stage=stage if stage else run['status'],applied_pages=applied,limitations=limitations)
 
 
 def status(store):
@@ -374,7 +410,8 @@ def reset_failed(db,work):
 def dispatch(store,action,request):
     if action=='scope':return {'ok':True,'scope':scope_value(request['scope'])} if request.get('validate_only') else configure(store,request['scope'])
     if action=='start':return start(store,request)
-    if action=='status':return status(store)
+    if action in ('status','diagnostics'):return status(store)
+    if action=='progress':return progress(store)
     if action=='next':return next_work(store)
     if action=='complete_work':return complete_work(store,request['work'],request['result'])
     if action=='terms':

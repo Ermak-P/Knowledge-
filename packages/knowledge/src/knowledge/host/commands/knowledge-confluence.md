@@ -34,7 +34,7 @@ run is intentional via start {fresh:true}; a completed run normally starts fresh
 Explicit resume refuses a changed scope. BUDGET_PAUSED retains the queue; request a larger bounded budget via
 start {extra_operations:100} when continuing within the approved scope. Never
 loop indefinitely. Work in batches of at most 10 tasks per analysis turn, then
-report the actual persisted progress from action=status. Use fresh bounded contexts
+report the actual persisted progress from action=progress. Use fresh bounded contexts
 when supported; this command must also work with one normal OpenCode agent.
 
 Call action=next, request={}. Work order and scope come from the backend:
@@ -120,6 +120,10 @@ action=retry {work:id}. Never infer deletion from 404, omission, access denial o
 partial search. Only an explicit native deleted status permits confirm_deleted
 {identity,confirmation:"native-page-status-deleted"}; this creates candidates.
 
+Use action=progress for frequent bounded telemetry (candidate_validation=NOT_RUN);
+action=status retains full backward compatible diagnostics, candidate validation
+and conflicts. Use diagnostics as an explicit full-status alias, and finish for
+full integrity. Progress never authorizes apply or attests canonical consistency.
 After each batch/checkpoint show actual status counters: mandatory/autonomous/
 unique pages, new/changed/unchanged/failed, analyzed/awaiting, submitted candidates,
 enriched facts, prevented duplicates, conflicts and questions. Application is a

@@ -1,0 +1,1538 @@
+{
+  "method": "Synthetic isolated stores; seven samples; nearest-rank p95; one real discovery worker thread; page counts vary independently of graph/queue. No production DB, no live Confluence.",
+  "before": {
+    "phase": "before",
+    "commit": "f772e9d3138d5b26f862b8544232094f7017f0a0",
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "modules": {
+      "confluence_command.py": "0a66066bb44dc797dd6133a874ba3ca0c87d9b5ad044945c66cf71fcc1a2865a",
+      "confluence_sync.py": "1b3b0de6a0cb04f01d9791ebd8773d00f0953e1fe30a9279eb6999e260c039cd",
+      "store.py": "5734d7dfb294f2d9cb13b423143c40e3270fd1bda1079d843c612075ea1fb0e1"
+    },
+    "scenarios": {
+      "small": {
+        "size": {
+          "claims": 200,
+          "evidence": 400,
+          "pending_candidates": 100,
+          "pages": 50
+        },
+        "idle": {
+          "samples": [
+            {
+              "queries": 117,
+              "transaction_ms": 84.5508560014423,
+              "ok": true,
+              "latency_ms": 86.4114940050058
+            },
+            {
+              "queries": 117,
+              "transaction_ms": 47.385566984303296,
+              "ok": true,
+              "latency_ms": 48.802865989273414
+            },
+            {
+              "queries": 117,
+              "transaction_ms": 46.25916501390748,
+              "ok": true,
+              "latency_ms": 47.57763599627651
+            },
+            {
+              "queries": 117,
+              "transaction_ms": 45.19348801113665,
+              "ok": true,
+              "latency_ms": 46.415332006290555
+            },
+            {
+              "queries": 117,
+              "transaction_ms": 50.25358498096466,
+              "ok": true,
+              "latency_ms": 51.6263669996988
+            },
+            {
+              "queries": 117,
+              "transaction_ms": 44.86216700752266,
+              "ok": true,
+              "latency_ms": 46.218484989367425
+            },
+            {
+              "queries": 117,
+              "transaction_ms": 44.58684200653806,
+              "ok": true,
+              "latency_ms": 45.83623702637851
+            }
+          ],
+          "successes": 7,
+          "p50_ms": 47.57763599627651,
+          "p95_ms": 86.4114940050058,
+          "median_queries": 117,
+          "p95_transaction_ms": 84.5508560014423,
+          "worker": null
+        },
+        "active": {
+          "samples": [
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.1807419757824391
+            },
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.05393201718106866
+            },
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.04029099363833666
+            },
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.03351998748257756
+            },
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.031907984521239996
+            },
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.03148801624774933
+            },
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.030324998078867793
+            }
+          ],
+          "successes": 0,
+          "p50_ms": null,
+          "p95_ms": null,
+          "median_queries": 0,
+          "p95_transaction_ms": 0,
+          "worker": {
+            "ok": true,
+            "elapsed_ms": 25.32859201892279
+          }
+        },
+        "query_plans": {
+          "SELECT status,count(*) FROM confluence_work WHERE run='fixture' GROUP BY status": [
+            [
+              6,
+              0,
+              55,
+              "SEARCH confluence_work USING COVERING INDEX confluence_work_next (run=?)"
+            ]
+          ],
+          "SELECT payload FROM confluence_work WHERE run='fixture' AND status IN ('PENDING','RUNNING') ORDER BY priority,id LIMIT 1": [
+            [
+              5,
+              0,
+              62,
+              "SEARCH confluence_work USING INDEX confluence_work_next (run=? AND status=?)"
+            ],
+            [
+              40,
+              0,
+              0,
+              "USE TEMP B-TREE FOR ORDER BY"
+            ]
+          ],
+          "SELECT payload FROM confluence_seen WHERE run='fixture'": [
+            [
+              3,
+              0,
+              62,
+              "SEARCH confluence_seen USING INDEX sqlite_autoindex_confluence_seen_1 (run=?)"
+            ]
+          ]
+        }
+      },
+      "ipm": {
+        "size": {
+          "claims": 1000,
+          "evidence": 2000,
+          "pending_candidates": 12500,
+          "pages": 500
+        },
+        "idle": {
+          "samples": [
+            {
+              "queries": 567,
+              "transaction_ms": 2264.798079006141,
+              "ok": true,
+              "latency_ms": 2293.6361090105493
+            },
+            {
+              "queries": 567,
+              "transaction_ms": 2028.383491007844,
+              "ok": true,
+              "latency_ms": 2057.477715978166
+            },
+            {
+              "queries": 567,
+              "transaction_ms": 1988.653514010366,
+              "ok": true,
+              "latency_ms": 2018.7633059977088
+            },
+            {
+              "queries": 567,
+              "transaction_ms": 2018.0103169986978,
+              "ok": true,
+              "latency_ms": 2046.853416977683
+            },
+            {
+              "queries": 567,
+              "transaction_ms": 2069.026601006044,
+              "ok": true,
+              "latency_ms": 2099.4304140040185
+            },
+            {
+              "queries": 567,
+              "transaction_ms": 2293.176001025131,
+              "ok": true,
+              "latency_ms": 2326.3051460089628
+            },
+            {
+              "queries": 567,
+              "transaction_ms": 2289.7001760138664,
+              "ok": true,
+              "latency_ms": 2337.0734060008544
+            }
+          ],
+          "successes": 7,
+          "p50_ms": 2099.4304140040185,
+          "p95_ms": 2337.0734060008544,
+          "median_queries": 567,
+          "p95_transaction_ms": 2293.176001025131,
+          "worker": null
+        },
+        "active": {
+          "samples": [
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.19251997582614422
+            },
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.06083198240958154
+            },
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.04681100836023688
+            },
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.04216399975121021
+            },
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.07111701415851712
+            },
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.041822990169748664
+            },
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.03975001163780689
+            }
+          ],
+          "successes": 0,
+          "p50_ms": null,
+          "p95_ms": null,
+          "median_queries": 0,
+          "p95_transaction_ms": 0,
+          "worker": {
+            "ok": true,
+            "elapsed_ms": 1665.8982429944444
+          }
+        },
+        "query_plans": {
+          "SELECT status,count(*) FROM confluence_work WHERE run='fixture' GROUP BY status": [
+            [
+              6,
+              0,
+              55,
+              "SEARCH confluence_work USING COVERING INDEX confluence_work_next (run=?)"
+            ]
+          ],
+          "SELECT payload FROM confluence_work WHERE run='fixture' AND status IN ('PENDING','RUNNING') ORDER BY priority,id LIMIT 1": [
+            [
+              5,
+              0,
+              62,
+              "SEARCH confluence_work USING INDEX confluence_work_next (run=? AND status=?)"
+            ],
+            [
+              40,
+              0,
+              0,
+              "USE TEMP B-TREE FOR ORDER BY"
+            ]
+          ],
+          "SELECT payload FROM confluence_seen WHERE run='fixture'": [
+            [
+              3,
+              0,
+              62,
+              "SEARCH confluence_seen USING INDEX sqlite_autoindex_confluence_seen_1 (run=?)"
+            ]
+          ]
+        }
+      },
+      "stress": {
+        "size": {
+          "claims": 10000,
+          "evidence": 20000,
+          "pending_candidates": 50000,
+          "pages": 5000
+        },
+        "idle": {
+          "samples": [
+            {
+              "queries": 5067,
+              "transaction_ms": 12082.350684009725,
+              "ok": true,
+              "latency_ms": 12212.276439007837
+            },
+            {
+              "queries": 5067,
+              "transaction_ms": 11692.951227974845,
+              "ok": true,
+              "latency_ms": 11829.523485997925
+            },
+            {
+              "queries": 5067,
+              "transaction_ms": 12314.563135994831,
+              "ok": true,
+              "latency_ms": 12451.228097022977
+            },
+            {
+              "queries": 5067,
+              "transaction_ms": 12435.479736013804,
+              "ok": true,
+              "latency_ms": 12580.87183200405
+            },
+            {
+              "queries": 5067,
+              "transaction_ms": 12134.500798012596,
+              "ok": true,
+              "latency_ms": 12268.100307002896
+            },
+            {
+              "queries": 5067,
+              "transaction_ms": 11796.249169012299,
+              "ok": true,
+              "latency_ms": 11935.664794989862
+            },
+            {
+              "queries": 5067,
+              "transaction_ms": 12875.573505007196,
+              "ok": true,
+              "latency_ms": 13030.905347986845
+            }
+          ],
+          "successes": 7,
+          "p50_ms": 12268.100307002896,
+          "p95_ms": 13030.905347986845,
+          "median_queries": 5067,
+          "p95_transaction_ms": 12875.573505007196,
+          "worker": null
+        },
+        "active": {
+          "samples": [
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.1733610115479678
+            },
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.052668998250737786
+            },
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.03593499423004687
+            },
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.03326000296510756
+            },
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.03498198930174112
+            },
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.032509007724002004
+            },
+            {
+              "queries": 0,
+              "transaction_ms": 0,
+              "ok": false,
+              "error": "maintenance-busy",
+              "latency_ms": 0.030216004233807325
+            }
+          ],
+          "successes": 0,
+          "p50_ms": null,
+          "p95_ms": null,
+          "median_queries": 0,
+          "p95_transaction_ms": 0,
+          "worker": {
+            "ok": true,
+            "elapsed_ms": 8177.941532980185
+          }
+        },
+        "query_plans": {
+          "SELECT status,count(*) FROM confluence_work WHERE run='fixture' GROUP BY status": [
+            [
+              6,
+              0,
+              55,
+              "SEARCH confluence_work USING COVERING INDEX confluence_work_next (run=?)"
+            ]
+          ],
+          "SELECT payload FROM confluence_work WHERE run='fixture' AND status IN ('PENDING','RUNNING') ORDER BY priority,id LIMIT 1": [
+            [
+              5,
+              0,
+              62,
+              "SEARCH confluence_work USING INDEX confluence_work_next (run=? AND status=?)"
+            ],
+            [
+              40,
+              0,
+              0,
+              "USE TEMP B-TREE FOR ORDER BY"
+            ]
+          ],
+          "SELECT payload FROM confluence_seen WHERE run='fixture'": [
+            [
+              3,
+              0,
+              62,
+              "SEARCH confluence_seen USING INDEX sqlite_autoindex_confluence_seen_1 (run=?)"
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "after": {
+    "phase": "after",
+    "commit": "7a555e7c266c3ac1bfd497584a9a8cf696153db8",
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "modules": {
+      "confluence_command.py": "5108c56d7197680774cd8ee05f08d1b6ebd8c862b558fa791768095cf5021a12",
+      "confluence_sync.py": "658b2c85d72cfb3962372cd457537365ff4fa27cbc068687edc69b2e96e27625",
+      "store.py": "06840a63cd5cd75bd718dc47838e691938539c55d6f161c84cd3c7d1292dca90"
+    },
+    "scenarios": {
+      "small": {
+        "size": {
+          "claims": 200,
+          "evidence": 400,
+          "pending_candidates": 100,
+          "pages": 50
+        },
+        "idle": {
+          "samples": [
+            {
+              "queries": 7,
+              "transaction_ms": 0.7537580095231533,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 1.0811219981405884
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 0.927329994738102,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 1.2042979942634702
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 0.7354299887083471,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 1.0035239974968135
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 0.6437120027840137,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 0.9087109938263893
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 0.6204259989317507,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 0.8756809984333813
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 0.9883219900075346,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 1.2463110033422709
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 0.8232219843193889,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 1.0967260168399662
+            }
+          ],
+          "successes": 7,
+          "p50_ms": 1.0811219981405884,
+          "p95_ms": 1.2463110033422709,
+          "median_queries": 7,
+          "p95_transaction_ms": 0.9883219900075346,
+          "worker": null
+        },
+        "active": {
+          "samples": [
+            {
+              "queries": 7,
+              "transaction_ms": 1.3518000196199864,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 2.8227409929968417
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 13.184059993363917,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 27.980393992038444
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 0.9481210145168006,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 1.736411009915173
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 3.888500010361895,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 4.206791025353596
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 0.6823599978815764,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 0.9828839974943548
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 0.6250029837246984,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 0.9032329835463315
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 0.8370329742319882,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 1.2039769790135324
+            }
+          ],
+          "successes": 7,
+          "p50_ms": 1.736411009915173,
+          "p95_ms": 27.980393992038444,
+          "median_queries": 7,
+          "p95_transaction_ms": 13.184059993363917,
+          "worker": {
+            "ok": true,
+            "elapsed_ms": 35.52246998879127
+          }
+        },
+        "query_plans": {
+          "SELECT status,count(*) FROM confluence_work WHERE run='fixture' GROUP BY status": [
+            [
+              6,
+              0,
+              55,
+              "SEARCH confluence_work USING COVERING INDEX confluence_work_next (run=?)"
+            ]
+          ],
+          "SELECT payload FROM confluence_work WHERE run='fixture' AND status IN ('PENDING','RUNNING') ORDER BY priority,id LIMIT 1": [
+            [
+              5,
+              0,
+              62,
+              "SEARCH confluence_work USING INDEX confluence_work_next (run=? AND status=?)"
+            ],
+            [
+              40,
+              0,
+              0,
+              "USE TEMP B-TREE FOR ORDER BY"
+            ]
+          ],
+          "SELECT payload FROM confluence_seen WHERE run='fixture'": [
+            [
+              3,
+              0,
+              62,
+              "SEARCH confluence_seen USING INDEX sqlite_autoindex_confluence_seen_1 (run=?)"
+            ]
+          ]
+        },
+        "progress_query_plans": [
+          {
+            "sql": "SELECT value FROM metadata WHERE key='confluence-command-schema'",
+            "plan": [
+              [
+                3,
+                0,
+                39,
+                "SEARCH metadata USING INDEX sqlite_autoindex_metadata_1 (key=?)"
+              ]
+            ]
+          },
+          {
+            "sql": "SELECT key,payload,checksum FROM confluence_command_state WHERE key IN ('scope','run')",
+            "plan": [
+              [
+                3,
+                0,
+                57,
+                "SEARCH confluence_command_state USING INDEX sqlite_autoindex_confluence_command_state_1 (key=?)"
+              ]
+            ]
+          },
+          {
+            "sql": "SELECT coalesce(count(*),0),coalesce(sum(instr(json_extract(payload,'$.origins'),'\"mandatory\"')>0),0),coalesce(sum(instr(json_extract(payload,'$.origins'),'\"mandatory\"')=0),0),coalesce(sum(json_extract(payload,'$.classification')='new'),0),coalesce(sum(json_extract(payload,'$.classification')='changed'),0),coalesce(sum(json_extract(payload,'$.state') IN ('UNCHANGED','UNCHANGED_CONTENT')),0),coalesce(sum(json_extract(payload,'$.state')='FAILED'),0),coalesce(sum(json_extract(payload,'$.state') IN ('ANALYZED','UNCHANGED','UNCHANGED_CONTENT')),0),coalesce(sum(json_extract(payload,'$.state') NOT IN ('ANALYZED','UNCHANGED','UNCHANGED_CONTENT','FAILED')),0),coalesce(sum(coalesce(json_extract(payload,'$.native_version_changed'),0)),0),coalesce(sum(coalesce(json_extract(payload,'$.counts.new_claim_candidates'),0)),0),coalesce(sum(coalesce(json_extract(payload,'$.counts.existing_claims_enriched'),0)),0),coalesce(sum(coalesce(json_extract(payload,'$.counts.duplicates_prevented'),0)),0),coalesce(sum(coalesce(json_extract(payload,'$.counts.conflicts_detected'),0)),0) FROM confluence_seen WHERE run='982765b7abbc45008deed6a080849f8e'",
+            "plan": [
+              [
+                4,
+                0,
+                62,
+                "SEARCH confluence_seen USING INDEX sqlite_autoindex_confluence_seen_1 (run=?)"
+              ]
+            ]
+          },
+          {
+            "sql": "SELECT\n          (SELECT json_group_object(status,n) FROM (SELECT status,count(*) n FROM confluence_work WHERE run='982765b7abbc45008deed6a080849f8e' GROUP BY status)),\n          (SELECT kind FROM confluence_work WHERE run='982765b7abbc45008deed6a080849f8e' AND status IN ('PENDING','RUNNING') ORDER BY priority,id LIMIT 1),\n          (SELECT count(*) FROM confluence_seen s JOIN confluence_pages p ON p.identity=s.source_id WHERE s.run='982765b7abbc45008deed6a080849f8e' AND json_extract(s.payload,'$.version')=json_extract(p.payload,'$.last_applied_version')),\n          (SELECT json_group_array(json_array(kind,payload,checksum)) FROM (SELECT kind,payload,checksum FROM confluence_work WHERE run='982765b7abbc45008deed6a080849f8e' AND status IN ('FAILED','SKIPPED') LIMIT 20))\n          ",
+            "plan": [
+              [
+                1,
+                0,
+                0,
+                "SCAN CONSTANT ROW"
+              ],
+              [
+                4,
+                0,
+                0,
+                "SCALAR SUBQUERY 2"
+              ],
+              [
+                7,
+                4,
+                0,
+                "CO-ROUTINE (subquery-1)"
+              ],
+              [
+                13,
+                7,
+                55,
+                "SEARCH confluence_work USING COVERING INDEX confluence_work_next (run=?)"
+              ],
+              [
+                45,
+                4,
+                82,
+                "SCAN (subquery-1)"
+              ],
+              [
+                59,
+                0,
+                0,
+                "SCALAR SUBQUERY 3"
+              ],
+              [
+                65,
+                59,
+                62,
+                "SEARCH confluence_work USING INDEX confluence_work_next (run=? AND status=?)"
+              ],
+              [
+                101,
+                59,
+                0,
+                "USE TEMP B-TREE FOR ORDER BY"
+              ],
+              [
+                109,
+                0,
+                0,
+                "SCALAR SUBQUERY 4"
+              ],
+              [
+                117,
+                109,
+                62,
+                "SEARCH s USING INDEX sqlite_autoindex_confluence_seen_1 (run=?)"
+              ],
+              [
+                122,
+                109,
+                46,
+                "SEARCH p USING INDEX sqlite_autoindex_confluence_pages_1 (identity=?)"
+              ],
+              [
+                141,
+                0,
+                0,
+                "SCALAR SUBQUERY 6"
+              ],
+              [
+                144,
+                141,
+                0,
+                "CO-ROUTINE (subquery-5)"
+              ],
+              [
+                148,
+                144,
+                62,
+                "SEARCH confluence_work USING INDEX confluence_work_next (run=? AND status=?)"
+              ],
+              [
+                181,
+                141,
+                47,
+                "SCAN (subquery-5)"
+              ]
+            ]
+          }
+        ]
+      },
+      "ipm": {
+        "size": {
+          "claims": 1000,
+          "evidence": 2000,
+          "pending_candidates": 12500,
+          "pages": 500
+        },
+        "idle": {
+          "samples": [
+            {
+              "queries": 7,
+              "transaction_ms": 2.8724760049954057,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 3.372340026544407
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 2.5842899922281504,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 2.873307006666437
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 2.6649119972717017,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 2.9676890117116272
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 2.6183020090684295,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 2.9244539909996092
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 2.611302013974637,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 2.897953992942348
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 2.5644210109021515,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 2.880196989281103
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 2.554756007157266,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 2.8563910163939
+            }
+          ],
+          "successes": 7,
+          "p50_ms": 2.897953992942348,
+          "p95_ms": 3.372340026544407,
+          "median_queries": 7,
+          "p95_transaction_ms": 2.8724760049954057,
+          "worker": null
+        },
+        "active": {
+          "samples": [
+            {
+              "queries": 7,
+              "transaction_ms": 6.168201012769714,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 6.801935989642516
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 4.230576014379039,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 4.68711499706842
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 4.226069984724745,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 4.801667993888259
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 21.115683019161224,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 26.31972698145546
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 30.152327992254868,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 39.640250004595146
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 32.19560699653812,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 43.772342993179336
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 17.81473998562433,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 26.39847100363113
+            }
+          ],
+          "successes": 7,
+          "p50_ms": 26.31972698145546,
+          "p95_ms": 43.772342993179336,
+          "median_queries": 7,
+          "p95_transaction_ms": 32.19560699653812,
+          "worker": {
+            "ok": true,
+            "elapsed_ms": 1689.168379001785
+          }
+        },
+        "query_plans": {
+          "SELECT status,count(*) FROM confluence_work WHERE run='fixture' GROUP BY status": [
+            [
+              6,
+              0,
+              55,
+              "SEARCH confluence_work USING COVERING INDEX confluence_work_next (run=?)"
+            ]
+          ],
+          "SELECT payload FROM confluence_work WHERE run='fixture' AND status IN ('PENDING','RUNNING') ORDER BY priority,id LIMIT 1": [
+            [
+              5,
+              0,
+              62,
+              "SEARCH confluence_work USING INDEX confluence_work_next (run=? AND status=?)"
+            ],
+            [
+              40,
+              0,
+              0,
+              "USE TEMP B-TREE FOR ORDER BY"
+            ]
+          ],
+          "SELECT payload FROM confluence_seen WHERE run='fixture'": [
+            [
+              3,
+              0,
+              62,
+              "SEARCH confluence_seen USING INDEX sqlite_autoindex_confluence_seen_1 (run=?)"
+            ]
+          ]
+        },
+        "progress_query_plans": [
+          {
+            "sql": "SELECT value FROM metadata WHERE key='confluence-command-schema'",
+            "plan": [
+              [
+                3,
+                0,
+                39,
+                "SEARCH metadata USING INDEX sqlite_autoindex_metadata_1 (key=?)"
+              ]
+            ]
+          },
+          {
+            "sql": "SELECT key,payload,checksum FROM confluence_command_state WHERE key IN ('scope','run')",
+            "plan": [
+              [
+                3,
+                0,
+                57,
+                "SEARCH confluence_command_state USING INDEX sqlite_autoindex_confluence_command_state_1 (key=?)"
+              ]
+            ]
+          },
+          {
+            "sql": "SELECT coalesce(count(*),0),coalesce(sum(instr(json_extract(payload,'$.origins'),'\"mandatory\"')>0),0),coalesce(sum(instr(json_extract(payload,'$.origins'),'\"mandatory\"')=0),0),coalesce(sum(json_extract(payload,'$.classification')='new'),0),coalesce(sum(json_extract(payload,'$.classification')='changed'),0),coalesce(sum(json_extract(payload,'$.state') IN ('UNCHANGED','UNCHANGED_CONTENT')),0),coalesce(sum(json_extract(payload,'$.state')='FAILED'),0),coalesce(sum(json_extract(payload,'$.state') IN ('ANALYZED','UNCHANGED','UNCHANGED_CONTENT')),0),coalesce(sum(json_extract(payload,'$.state') NOT IN ('ANALYZED','UNCHANGED','UNCHANGED_CONTENT','FAILED')),0),coalesce(sum(coalesce(json_extract(payload,'$.native_version_changed'),0)),0),coalesce(sum(coalesce(json_extract(payload,'$.counts.new_claim_candidates'),0)),0),coalesce(sum(coalesce(json_extract(payload,'$.counts.existing_claims_enriched'),0)),0),coalesce(sum(coalesce(json_extract(payload,'$.counts.duplicates_prevented'),0)),0),coalesce(sum(coalesce(json_extract(payload,'$.counts.conflicts_detected'),0)),0) FROM confluence_seen WHERE run='14f6d7bced4141e3a51f073124fefefb'",
+            "plan": [
+              [
+                4,
+                0,
+                62,
+                "SEARCH confluence_seen USING INDEX sqlite_autoindex_confluence_seen_1 (run=?)"
+              ]
+            ]
+          },
+          {
+            "sql": "SELECT\n          (SELECT json_group_object(status,n) FROM (SELECT status,count(*) n FROM confluence_work WHERE run='14f6d7bced4141e3a51f073124fefefb' GROUP BY status)),\n          (SELECT kind FROM confluence_work WHERE run='14f6d7bced4141e3a51f073124fefefb' AND status IN ('PENDING','RUNNING') ORDER BY priority,id LIMIT 1),\n          (SELECT count(*) FROM confluence_seen s JOIN confluence_pages p ON p.identity=s.source_id WHERE s.run='14f6d7bced4141e3a51f073124fefefb' AND json_extract(s.payload,'$.version')=json_extract(p.payload,'$.last_applied_version')),\n          (SELECT json_group_array(json_array(kind,payload,checksum)) FROM (SELECT kind,payload,checksum FROM confluence_work WHERE run='14f6d7bced4141e3a51f073124fefefb' AND status IN ('FAILED','SKIPPED') LIMIT 20))\n          ",
+            "plan": [
+              [
+                1,
+                0,
+                0,
+                "SCAN CONSTANT ROW"
+              ],
+              [
+                4,
+                0,
+                0,
+                "SCALAR SUBQUERY 2"
+              ],
+              [
+                7,
+                4,
+                0,
+                "CO-ROUTINE (subquery-1)"
+              ],
+              [
+                13,
+                7,
+                55,
+                "SEARCH confluence_work USING COVERING INDEX confluence_work_next (run=?)"
+              ],
+              [
+                45,
+                4,
+                82,
+                "SCAN (subquery-1)"
+              ],
+              [
+                59,
+                0,
+                0,
+                "SCALAR SUBQUERY 3"
+              ],
+              [
+                65,
+                59,
+                62,
+                "SEARCH confluence_work USING INDEX confluence_work_next (run=? AND status=?)"
+              ],
+              [
+                101,
+                59,
+                0,
+                "USE TEMP B-TREE FOR ORDER BY"
+              ],
+              [
+                109,
+                0,
+                0,
+                "SCALAR SUBQUERY 4"
+              ],
+              [
+                117,
+                109,
+                62,
+                "SEARCH s USING INDEX sqlite_autoindex_confluence_seen_1 (run=?)"
+              ],
+              [
+                122,
+                109,
+                46,
+                "SEARCH p USING INDEX sqlite_autoindex_confluence_pages_1 (identity=?)"
+              ],
+              [
+                141,
+                0,
+                0,
+                "SCALAR SUBQUERY 6"
+              ],
+              [
+                144,
+                141,
+                0,
+                "CO-ROUTINE (subquery-5)"
+              ],
+              [
+                148,
+                144,
+                62,
+                "SEARCH confluence_work USING INDEX confluence_work_next (run=? AND status=?)"
+              ],
+              [
+                181,
+                141,
+                47,
+                "SCAN (subquery-5)"
+              ]
+            ]
+          }
+        ]
+      },
+      "stress": {
+        "size": {
+          "claims": 10000,
+          "evidence": 20000,
+          "pending_candidates": 50000,
+          "pages": 5000
+        },
+        "idle": {
+          "samples": [
+            {
+              "queries": 7,
+              "transaction_ms": 30.615021008998156,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 31.24041500268504
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 28.794223995646462,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 29.310482001164928
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 29.30690799257718,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 29.84238599310629
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 29.035457002464682,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 29.63010498206131
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 28.971781983273104,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 29.483944992534816
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 29.48794001713395,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 30.10408001136966
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 29.055587016046047,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 29.57362899906002
+            }
+          ],
+          "successes": 7,
+          "p50_ms": 29.63010498206131,
+          "p95_ms": 31.24041500268504,
+          "median_queries": 7,
+          "p95_transaction_ms": 30.615021008998156,
+          "worker": null
+        },
+        "active": {
+          "samples": [
+            {
+              "queries": 7,
+              "transaction_ms": 49.419866991229355,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 50.42995102121495
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 43.81923799519427,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 47.016202996019274
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 52.64968698611483,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 63.69036197429523
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 59.2454879952129,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 67.10018499870785
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 65.31959600397386,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 72.05358101055026
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 47.68601999967359,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 60.29932899400592
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 64.34762998833321,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 74.94841000880115
+            }
+          ],
+          "successes": 7,
+          "p50_ms": 63.69036197429523,
+          "p95_ms": 74.94841000880115,
+          "median_queries": 7,
+          "p95_transaction_ms": 65.31959600397386,
+          "worker": {
+            "ok": true,
+            "elapsed_ms": 8364.434693998192
+          }
+        },
+        "query_plans": {
+          "SELECT status,count(*) FROM confluence_work WHERE run='fixture' GROUP BY status": [
+            [
+              6,
+              0,
+              55,
+              "SEARCH confluence_work USING COVERING INDEX confluence_work_next (run=?)"
+            ]
+          ],
+          "SELECT payload FROM confluence_work WHERE run='fixture' AND status IN ('PENDING','RUNNING') ORDER BY priority,id LIMIT 1": [
+            [
+              5,
+              0,
+              62,
+              "SEARCH confluence_work USING INDEX confluence_work_next (run=? AND status=?)"
+            ],
+            [
+              40,
+              0,
+              0,
+              "USE TEMP B-TREE FOR ORDER BY"
+            ]
+          ],
+          "SELECT payload FROM confluence_seen WHERE run='fixture'": [
+            [
+              3,
+              0,
+              62,
+              "SEARCH confluence_seen USING INDEX sqlite_autoindex_confluence_seen_1 (run=?)"
+            ]
+          ]
+        },
+        "progress_query_plans": [
+          {
+            "sql": "SELECT value FROM metadata WHERE key='confluence-command-schema'",
+            "plan": [
+              [
+                3,
+                0,
+                39,
+                "SEARCH metadata USING INDEX sqlite_autoindex_metadata_1 (key=?)"
+              ]
+            ]
+          },
+          {
+            "sql": "SELECT key,payload,checksum FROM confluence_command_state WHERE key IN ('scope','run')",
+            "plan": [
+              [
+                3,
+                0,
+                57,
+                "SEARCH confluence_command_state USING INDEX sqlite_autoindex_confluence_command_state_1 (key=?)"
+              ]
+            ]
+          },
+          {
+            "sql": "SELECT coalesce(count(*),0),coalesce(sum(instr(json_extract(payload,'$.origins'),'\"mandatory\"')>0),0),coalesce(sum(instr(json_extract(payload,'$.origins'),'\"mandatory\"')=0),0),coalesce(sum(json_extract(payload,'$.classification')='new'),0),coalesce(sum(json_extract(payload,'$.classification')='changed'),0),coalesce(sum(json_extract(payload,'$.state') IN ('UNCHANGED','UNCHANGED_CONTENT')),0),coalesce(sum(json_extract(payload,'$.state')='FAILED'),0),coalesce(sum(json_extract(payload,'$.state') IN ('ANALYZED','UNCHANGED','UNCHANGED_CONTENT')),0),coalesce(sum(json_extract(payload,'$.state') NOT IN ('ANALYZED','UNCHANGED','UNCHANGED_CONTENT','FAILED')),0),coalesce(sum(coalesce(json_extract(payload,'$.native_version_changed'),0)),0),coalesce(sum(coalesce(json_extract(payload,'$.counts.new_claim_candidates'),0)),0),coalesce(sum(coalesce(json_extract(payload,'$.counts.existing_claims_enriched'),0)),0),coalesce(sum(coalesce(json_extract(payload,'$.counts.duplicates_prevented'),0)),0),coalesce(sum(coalesce(json_extract(payload,'$.counts.conflicts_detected'),0)),0) FROM confluence_seen WHERE run='abfdf3a4646d4f169d32bd81bcee442e'",
+            "plan": [
+              [
+                4,
+                0,
+                62,
+                "SEARCH confluence_seen USING INDEX sqlite_autoindex_confluence_seen_1 (run=?)"
+              ]
+            ]
+          },
+          {
+            "sql": "SELECT\n          (SELECT json_group_object(status,n) FROM (SELECT status,count(*) n FROM confluence_work WHERE run='abfdf3a4646d4f169d32bd81bcee442e' GROUP BY status)),\n          (SELECT kind FROM confluence_work WHERE run='abfdf3a4646d4f169d32bd81bcee442e' AND status IN ('PENDING','RUNNING') ORDER BY priority,id LIMIT 1),\n          (SELECT count(*) FROM confluence_seen s JOIN confluence_pages p ON p.identity=s.source_id WHERE s.run='abfdf3a4646d4f169d32bd81bcee442e' AND json_extract(s.payload,'$.version')=json_extract(p.payload,'$.last_applied_version')),\n          (SELECT json_group_array(json_array(kind,payload,checksum)) FROM (SELECT kind,payload,checksum FROM confluence_work WHERE run='abfdf3a4646d4f169d32bd81bcee442e' AND status IN ('FAILED','SKIPPED') LIMIT 20))\n          ",
+            "plan": [
+              [
+                1,
+                0,
+                0,
+                "SCAN CONSTANT ROW"
+              ],
+              [
+                4,
+                0,
+                0,
+                "SCALAR SUBQUERY 2"
+              ],
+              [
+                7,
+                4,
+                0,
+                "CO-ROUTINE (subquery-1)"
+              ],
+              [
+                13,
+                7,
+                55,
+                "SEARCH confluence_work USING COVERING INDEX confluence_work_next (run=?)"
+              ],
+              [
+                45,
+                4,
+                82,
+                "SCAN (subquery-1)"
+              ],
+              [
+                59,
+                0,
+                0,
+                "SCALAR SUBQUERY 3"
+              ],
+              [
+                65,
+                59,
+                62,
+                "SEARCH confluence_work USING INDEX confluence_work_next (run=? AND status=?)"
+              ],
+              [
+                101,
+                59,
+                0,
+                "USE TEMP B-TREE FOR ORDER BY"
+              ],
+              [
+                109,
+                0,
+                0,
+                "SCALAR SUBQUERY 4"
+              ],
+              [
+                117,
+                109,
+                62,
+                "SEARCH s USING INDEX sqlite_autoindex_confluence_seen_1 (run=?)"
+              ],
+              [
+                122,
+                109,
+                46,
+                "SEARCH p USING INDEX sqlite_autoindex_confluence_pages_1 (identity=?)"
+              ],
+              [
+                141,
+                0,
+                0,
+                "SCALAR SUBQUERY 6"
+              ],
+              [
+                144,
+                141,
+                0,
+                "CO-ROUTINE (subquery-5)"
+              ],
+              [
+                148,
+                144,
+                62,
+                "SEARCH confluence_work USING INDEX confluence_work_next (run=? AND status=?)"
+              ],
+              [
+                181,
+                141,
+                47,
+                "SCAN (subquery-5)"
+              ]
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "queue_control": {
+    "phase": "after",
+    "commit": "7a555e7c266c3ac1bfd497584a9a8cf696153db8",
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "modules": {
+      "confluence_command.py": "5108c56d7197680774cd8ee05f08d1b6ebd8c862b558fa791768095cf5021a12",
+      "confluence_sync.py": "658b2c85d72cfb3962372cd457537365ff4fa27cbc068687edc69b2e96e27625",
+      "store.py": "06840a63cd5cd75bd718dc47838e691938539c55d6f161c84cd3c7d1292dca90"
+    },
+    "scenarios": {
+      "ipm-queue-control": {
+        "size": {
+          "claims": 1000,
+          "evidence": 2000,
+          "pending_candidates": 100,
+          "pages": 500
+        },
+        "idle": {
+          "samples": [
+            {
+              "queries": 7,
+              "transaction_ms": 2.9731279937550426,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 3.465941990725696
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 2.622808999149129,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 3.004644997417927
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 2.600526000605896,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 2.919777005445212
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 2.825814997777343,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 3.1808810017537326
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 2.57977400906384,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 2.8857960132882
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 2.552363002905622,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 2.863912988686934
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 2.7551690000109375,
+              "worker_active": false,
+              "ok": true,
+              "latency_ms": 3.0271099822130054
+            }
+          ],
+          "successes": 7,
+          "p50_ms": 3.004644997417927,
+          "p95_ms": 3.465941990725696,
+          "median_queries": 7,
+          "p95_transaction_ms": 2.9731279937550426,
+          "worker": null
+        },
+        "active": {
+          "samples": [
+            {
+              "queries": 7,
+              "transaction_ms": 5.279588978737593,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 20.089263998670503
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 39.866767008788884,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 48.4401669818908
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 11.472618003608659,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 15.593146992614493
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 13.632216985570267,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 17.258178995689377
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 3.7357989931479096,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 6.019427004503086
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 3.6623679916374385,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 4.470337007660419
+            },
+            {
+              "queries": 7,
+              "transaction_ms": 5.013246991438791,
+              "worker_active": true,
+              "ok": true,
+              "latency_ms": 5.632240994600579
+            }
+          ],
+          "successes": 7,
+          "p50_ms": 15.593146992614493,
+          "p95_ms": 48.4401669818908,
+          "median_queries": 7,
+          "p95_transaction_ms": 39.866767008788884,
+          "worker": {
+            "ok": true,
+            "elapsed_ms": 145.8417199901305
+          }
+        },
+        "query_plans": {
+          "SELECT status,count(*) FROM confluence_work WHERE run='fixture' GROUP BY status": [
+            [
+              6,
+              0,
+              55,
+              "SEARCH confluence_work USING COVERING INDEX confluence_work_next (run=?)"
+            ]
+          ],
+          "SELECT payload FROM confluence_work WHERE run='fixture' AND status IN ('PENDING','RUNNING') ORDER BY priority,id LIMIT 1": [
+            [
+              5,
+              0,
+              62,
+              "SEARCH confluence_work USING INDEX confluence_work_next (run=? AND status=?)"
+            ],
+            [
+              40,
+              0,
+              0,
+              "USE TEMP B-TREE FOR ORDER BY"
+            ]
+          ],
+          "SELECT payload FROM confluence_seen WHERE run='fixture'": [
+            [
+              3,
+              0,
+              62,
+              "SEARCH confluence_seen USING INDEX sqlite_autoindex_confluence_seen_1 (run=?)"
+            ]
+          ]
+        }
+      }
+    }
+  }
+}

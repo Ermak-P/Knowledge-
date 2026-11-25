@@ -150,6 +150,39 @@ class Store:
             with self._connection(write) as db:yield db
 
     @contextmanager
+    def progress_connection(self):
+        """Read-only source telemetry, never candidate or canonical validation.
+
+        Keep path, project identity and maintenance boundaries. The authorizer
+        prevents accidental expansion into the canonical graph/queue hot path.
+        All authoritative operations continue through connection().
+        """
+        from .coordination import gate
+        with gate(self.project.root):
+            safe_tree(self.base);require(self.path.is_file(),'knowledge-absent');db=None
+            try:
+                db=sqlite3.connect(self.path.as_uri()+'?mode=ro',uri=True,timeout=0.15)
+                allowed={'metadata','sqlite_master','confluence_command_state','confluence_work','confluence_seen','confluence_pages'}
+                def authorize(action,table,column,database,trigger):
+                    if action==sqlite3.SQLITE_READ:return sqlite3.SQLITE_OK if table in allowed else sqlite3.SQLITE_DENY
+                    return sqlite3.SQLITE_OK if action in (sqlite3.SQLITE_SELECT,sqlite3.SQLITE_FUNCTION,sqlite3.SQLITE_TRANSACTION) else sqlite3.SQLITE_DENY
+                db.set_authorizer(authorize);db.execute('BEGIN')
+                metadata=dict(db.execute("SELECT key,value FROM metadata WHERE key IN ('format','project','p1','migration')"))
+                require(metadata.get('format')=='knowledge-sqlite-v1','unsupported-store-format')
+                require(metadata.get('project')==self.project.identity,'project-identity-mismatch')
+                require(metadata.get('p1') in (None,'1'),'unsupported-extension-version')
+                legacy=self.project.root/'.ai'
+                require(not legacy.exists() or not any(legacy.iterdir()) or 'migration' in metadata,'ambiguous-dual-stores')
+                yield db
+                db.commit()
+            except sqlite3.OperationalError as error:
+                raise KnowledgeError('store-busy-retry' if 'locked' in str(error) else 'database-unavailable-or-corrupt') from error
+            except sqlite3.DatabaseError as error:
+                raise KnowledgeError('corrupt-database') from error
+            finally:
+                if db is not None:db.close()
+
+    @contextmanager
     def _connection(self, write=False):
         safe_tree(self.base)
         require(self.path.is_file(), 'knowledge-absent')
