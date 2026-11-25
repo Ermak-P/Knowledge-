@@ -5,6 +5,7 @@ one snapshot. SQLite rollback journaling and FULL sync provide atomic commit;
 apply and acknowledgment are deliberately separate durable transactions.
 """
 from contextlib import contextmanager
+from contextvars import ContextVar
 from copy import deepcopy
 import os
 from pathlib import Path
@@ -23,6 +24,15 @@ from .sqlite_snapshot import Connection, view
 GROUPS = {'claims': 'knowledge/claims', 'evidence': 'evidence', 'relationships': 'knowledge/relationships'}
 KINDS = {'claims': 'claim', 'evidence': 'evidence', 'relationships': 'relationship'}
 SCHEMAS = Path(__file__).parent / 'schemas'
+_schema_snapshot=ContextVar('knowledge-validation-schema-snapshot',default=None)
+
+
+@contextmanager
+def validation_schemas():
+    """Trusted package schemas read once per transaction, never across commits."""
+    token=_schema_snapshot.set({})
+    try:yield
+    finally:_schema_snapshot.reset(token)
 
 
 def empty():
@@ -48,7 +58,12 @@ def shape(records):
     ids = set()
     for group, items in records.items():
         require(isinstance(items, list), 'invalid-record-list')
-        schema = loads((SCHEMAS / (KINDS[group] + '.schema.json')).read_text(encoding='utf-8'))
+        if not items:continue
+        path=SCHEMAS / (KINDS[group] + '.schema.json');cache=_schema_snapshot.get()
+        if cache is None:schema=loads(path.read_text(encoding='utf-8'))
+        else:
+            if path not in cache:cache[path]=loads(path.read_text(encoding='utf-8'))
+            schema=cache[path]
         for item in items:
             issues = legacy.schema_errors(item, schema)
             require(not issues, 'invalid-record', issues)
@@ -154,11 +169,12 @@ class Store:
                 require('migration' in metadata, 'ambiguous-dual-stores')
             extension=metadata.get('p1')
             require(extension in (None,'1'),'unsupported-extension-version')
-            self._check_control(db)
-            yield db
-            if write:
-                checkpoint('before-commit')
-            db.commit()
+            with validation_schemas():
+                self._check_control(db)
+                yield db
+                if write:
+                    checkpoint('before-commit')
+                db.commit()
         except sqlite3.OperationalError as e:
             if 'locked' in str(e):
                 raise KnowledgeError('store-busy-retry') from e
@@ -342,9 +358,10 @@ class Store:
             checkpoint('queue-written')
         return {'ok':True,'candidate':cid,'result':'submitted','status':'pending'}
 
-    def _preview(self, db):
+    def _preview(self, db, source_identity=None):
         current = self._records(db)
-        pending = {cid:loads(p) for cid,p in db.execute("SELECT id,payload FROM queue WHERE status='pending' ORDER BY id")}
+        queued=view(db,'validated-queue',lambda:self._check_control(db))
+        pending = {cid:item for cid,status,raw,item in sorted(queued) if status=='pending'}
         if life.enabled(db):
             from .discovery import candidate_refreshes
             refreshed=candidate_refreshes(db)
@@ -357,9 +374,14 @@ class Store:
                 if not blocked:
                     from .providers import verify_semantic_bindings
                     bindings=verify_semantic_bindings(db,pending)
-                    life.verify_source_bindings(self,pending.values())
+                    if source_identity is None:life.verify_source_bindings(self,pending.values())
+                    else:
+                        identities={v['source']['identity'] for v in pending.values() if v.get('source') is not None}
+                        require(not identities or identities=={source_identity},'source-drift-rescan-required')
                     from .plan_deduplication import reconcile
-                    resolved,diagnostic,conflicts=reconcile(current,pending,life.latest(db),bindings)
+                    from .persistence_identity import recovery_projection
+                    derived,preferred=recovery_projection(db,pending)
+                    resolved,diagnostic,conflicts=reconcile(current,derived,life.latest(db),bindings,preferred=preferred,project=self.project.identity)
                     blocked.extend(conflicts)
                     if not blocked:life.simulate(self,db,{cid:v for cid,v in resolved.items() if v is not None},check_source=False)
             except KnowledgeError as e:blocked=[{'code':e.code,'details':e.details}]
@@ -385,9 +407,9 @@ class Store:
                 'candidates':pending,'included':list(pending) if not blocked else [],
                 'skipped':[], 'blocked':blocked}
 
-    def prepare(self):
+    def prepare(self, _source_identity=None):
         with self.connection(True) as db:
-            preview = self._preview(db)
+            preview = self._preview(db,_source_identity)
             pid = fingerprint(preview)
             db.execute('INSERT OR IGNORE INTO plans VALUES (?,?,?)',(pid,canonical_json(preview),'PREPARED'))
         return {'ok':not preview['blocked'],'fingerprint':pid,**preview}
@@ -397,20 +419,38 @@ class Store:
         from .providers import semantic_bindings
         from .discovery import candidate_refreshes
         with self.connection() as db:
-            pending={cid:loads(p) for cid,p in db.execute("SELECT id,payload FROM queue WHERE status='pending' ORDER BY id")}
+            pending={cid:item for cid,status,raw,item in sorted(view(db,'validated-queue',lambda:self._check_control(db))) if status=='pending'}
             refreshed=candidate_refreshes(db) if life.enabled(db) else {}
             pending={cid:v for cid,v in pending.items() if cid not in refreshed}
-            _,report,_=reconcile(self._records(db),pending,life.latest(db) if life.enabled(db) else {},semantic_bindings(db),life.enabled(db))
+            from .persistence_identity import recovery_projection
+            derived,preferred=recovery_projection(db,pending)
+            _,report,_=reconcile(self._records(db),derived,life.latest(db) if life.enabled(db) else {},semantic_bindings(db),life.enabled(db),preferred,self.project.identity)
             if group is None:return report['counts'],report['groups']
             found=next((g for g in report['groups'] if g['group']==group),None);require(found is not None,'unknown-duplicate-group')
             rows=[]
             for cid in found['candidates']:
                 item=pending[cid];ops=operations(item);evidence={o['id']:o['payload'] for o in ops if o['kind']=='evidence' and o['payload']}
-                for op in ops:
-                    if op['kind']=='claims' and op['payload'] and digest(op['payload']['statement'])==found['statement_hash']:
+                for index,op in enumerate(ops):
+                    if op['kind']=='claims' and op['payload'] and digest(op['payload']['statement']) in found.get('statement_hashes',[found['statement_hash']]):
                         for eid in op['payload']['evidence']:
-                            rows.append({'candidate':cid,'claim':op['id'],'evidence':eid,'source':evidence.get(eid,{}).get('source'),'group':group})
+                            rows.append({'candidate':cid,'operation':index,'claim':op['id'],'evidence':eid,'source':evidence.get(eid,{}).get('source'),'group':group})
             return report['counts'],rows
+
+    def candidate_text(self,identifier,operation=None,plan=None):
+        from .plan_deduplication import operations
+        require(isinstance(identifier,str) and 0<len(identifier)<=256,'invalid-candidate-identifier')
+        with self.connection() as db:
+            if plan:
+                value,_=self._plan(db,plan)
+                require(identifier in value['candidates'],'unknown-plan-candidate')
+                item=value.get('resolved',value['candidates'])[identifier]
+            else:
+                row=db.execute('SELECT payload FROM queue WHERE id=?',(identifier,)).fetchone();require(row is not None,'unknown-candidate')
+                item=loads(row[0])
+            if operation is not None:
+                require(type(operation) is int and operation>=0 and item is not None,'invalid-candidate-operation')
+                items=operations(item);require(operation<len(items),'invalid-candidate-operation');item=items[operation]
+            return canonical_json(item)
 
     def _plan(self, db, pid):
         require(isinstance(pid,str) and re.fullmatch(r'sha256:[a-f0-9]{64}',pid), 'invalid-fingerprint')

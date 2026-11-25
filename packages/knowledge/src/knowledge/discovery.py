@@ -217,6 +217,8 @@ def inventory(root,base=None,head=None):
 
 
 def extract(root,path,entry):
+    from .persistence_identity import POLICY,LEGACY
+    identity_policy=entry.pop('_identity_policy',POLICY)
     text,metadata=source_reader.read(root,path,entry,source_reader.policy(root,LIMIT))
     entry.update(metadata,processing_status='partial' if metadata['partial'] else 'processed')
     lines=text.splitlines(); project=entry['partition']
@@ -258,7 +260,9 @@ def extract(root,path,entry):
                 if not line[m.start():m.start()+1].strip():continue
                 emit('routing',Path(path).stem+':'+m[1]+':'+m[2],f'{project_name} declares {m[1]} route literal "{m[2]}" in {Path(path).stem}.',index,m[2])
             for m in re.finditer(r'\b(AddDbContext|UseSqlServer|UseSqlite|GetConnectionString)\s*(?:<([^>]+)>)?\s*\(',line):
-                emit('persistence',Path(path).stem+':'+m[1]+':'+str(m[2]),f'{project_name} contains {m[1]}'+(f'<{m[2]}>' if m[2] else '')+' persistence/configuration syntax.',index,m[2] or m[1])
+                key=(Path(path).stem+':' if identity_policy==LEGACY else '')+m[1]+':'+str(m[2])
+                emit('persistence',key,f'{project_name} contains {m[1]}'+(f'<{m[2]}>' if m[2] else '')+' persistence/configuration syntax.',index,m[2] or m[1])
+                observations[-1]['identity_policy']=identity_policy
             offset+=len(line)
         return observations,'partial','lexical extraction only; no Roslyn symbol resolution, preprocessor or runtime proof'
     return [],'partial','bounded content preview; source regions remain unanalyzed' if metadata['partial'] else 'inventory/content hash only; semantic extractor unavailable for this file type'
@@ -291,7 +295,10 @@ def fresh_evidence(root,e,scope=None):
             if not scope.get('complete',True):return 'not-analyzed'
             observations=scope['observations']
             if any(i in scope['ambiguous'] for i in e['substantiates']):return 'ambiguous-identity'
-            if not any(o['id'] in e['substantiates'] and o['path']==p.relative_to(root).as_posix() and o['anchor']==e['description'] for o in observations):return 'changed'
+            aliases=scope.get('identity_aliases',{})
+            if not any((o['id'] in e['substantiates'] or any(aliases.get(i)==o['id'] for i in e['substantiates']))
+                       and any(location['path']==relative and location['anchor']==e['description']
+                               for location in o.get('occurrences',[o])) for o in observations):return 'changed'
         if entry['hash']==e['content_hash']:return 'unchanged'
         if method in DISCOVERY_METHODS and e['description'] in [line.strip() for line in text.splitlines()]:return 'anchor-valid-file-changed'
     except (OSError,UnicodeError,KnowledgeError):return 'not-verifiable'
@@ -300,23 +307,47 @@ def fresh_evidence(root,e,scope=None):
 
 def freshness(root,claim,records,scope=None):
     evidence={e['id']:e for e in records['evidence']}
+    if any(evidence[i]['provenance']['method'] in DISCOVERY_METHODS for i in claim['evidence'] if i in evidence):
+        scope=scope if scope is not None else analysis_scope(root)
+        scope=identity_scope(scope,records)
     results={i:fresh_evidence(root,evidence[i],scope) for i in claim['evidence'] if i in evidence}
     trusted=bool(results) and all(v in ('unchanged','anchor-valid-file-changed') and evidence[i]['status']=='active' for i,v in results.items())
     return {'trusted':trusted,'evidence':results,'policy':'all supporting evidence current; confidence unchanged'}
 
 
+def identity_scope(scope,records):
+    from .persistence_identity import canonical_match
+    if scope.get('_identity_records') is records:return scope
+    aliases=dict(scope.get('identity_aliases',{}))
+    for observation in scope['observations']:
+        known=canonical_match(observation,records,{})
+        if known:aliases[known['id']]=observation['id']
+    return {**scope,'identity_aliases':aliases,'_identity_records':records}
+
+
 def proposal(store,db,obs,snapshot,captured,records,states,scope=None):
     from .store import empty
+    from .persistence_identity import canonical_match
     current={r['id']:r for r in records['claims']};known=current.get(obs['id'])
-    if known and states[obs['id']]['lifecycle']=='active' and known['statement']==obs['statement'] and freshness(store.project.root,known,records,scope)['trusted']:return None
+    if known is None:known=canonical_match(obs,records,states)
+    identifier=known['id'] if known else obs['id']
     if known and (not discovery_owned(db,known,records)):
         # A reviewed meaning is not automatically overwritten by a lexical re-observation.
         return None
-    if known and states[obs['id']]['lifecycle']=='superseded':return None
-    eid='evidence.'+digest([obs['id'],obs['path'],obs['content_hash'],obs['anchor']])
-    evidence=dict(id=eid,type='direct-technical',status='active',source=obs['path'],location=obs['path']+'#L'+str(obs['line']),content_hash=obs['content_hash'],
-                  description=obs['anchor'],substantiates=[obs['id']],captured_at=captured,provenance=dict(actor='deterministic-discovery',method=VERSION))
-    claim=dict(id=obs['id'],statement=obs['statement'],type='technical_fact',status='CONFIRMED',evidence=[eid],
+    if known and states[identifier]['lifecycle']=='superseded':return None
+    proofs=[];existing={e['id']:e for e in records['evidence']}
+    signatures={(e['source'],e['location'],e['content_hash'],e['description']):e for e in records['evidence']
+                if known and e['id'] in known['evidence'] and e['status']=='active' and e['substantiates']==[identifier]
+                and e['provenance']==dict(actor='deterministic-discovery',method=VERSION)}
+    for index,location in enumerate(obs.get('occurrences',[occurrence(obs)])):
+        source=location['path'];anchor=location['anchor'];line=source+'#L'+str(location['line']);raw=location['content_hash']
+        evidence=signatures.get((source,line,raw,anchor))
+        if evidence is None:
+            eid='evidence.'+digest([identifier,source,raw,anchor] if index==0 else ['occurrence-v1',identifier,source,raw,line,anchor])
+            evidence=existing.get(eid) or dict(id=eid,type='direct-technical',status='active',source=source,location=line,content_hash=raw,
+                      description=anchor,substantiates=[identifier],captured_at=captured,provenance=dict(actor='deterministic-discovery',method=VERSION))
+        if evidence['id'] not in {e['id'] for e in proofs}:proofs.append(evidence)
+    claim=dict(id=identifier,statement=obs['statement'],type='technical_fact',status='CONFIRMED',evidence=[e['id'] for e in proofs],
                provenance=dict(actor='deterministic-discovery',method=VERSION),last_verified=captured[:10],depends_on=[],conflicts_with=[])
     if known:
         # Re-observation does not authorize promotion or loss of reviewed graph state.
@@ -325,9 +356,9 @@ def proposal(store,db,obs,snapshot,captured,records,states,scope=None):
         if known['status']!='CONFIRMED':claim['last_verified']=known['last_verified']
         evidence_by_id={e['id']:e for e in records['evidence']}
         claim['evidence'].extend(i for i in known['evidence'] if evidence_by_id[i]['provenance']['method'] not in DISCOVERY_METHODS)
-    ops=[]
-    if not db.execute('SELECT 1 FROM records WHERE id=?',(eid,)).fetchone():ops.append(life.op('add','evidence',eid,0,evidence))
-    ops.append(life.op('reactivate' if known and states[obs['id']]['lifecycle']=='retired' else 'update' if known else 'add','claims',obs['id'],life.revision(db,obs['id']),claim))
+    if known and states[identifier]['lifecycle']=='active' and set(known['evidence'])==set(claim['evidence']) and freshness(store.project.root,known,records,scope)['trusted']:return None
+    ops=[life.op('add','evidence',e['id'],0,e) for e in proofs if e['id'] not in existing]
+    ops.append(life.op('reactivate' if known and states[identifier]['lifecycle']=='retired' else 'update' if known else 'add','claims',identifier,life.revision(db,identifier),claim))
     return life.batch(ops,'Source-backed lexical observation; not runtime or business semantics',{'identity':snapshot['identity'],'revision':snapshot['revision'],'kind':snapshot['snapshot_kind']})
 
 
@@ -353,6 +384,10 @@ def incremental_scope(db,state):
         for observation in old['observations']:
             for location in observation.get('occurrences',[occurrence(observation)]):
                 if location['path']==path:cached.append({**observation,**location})
+    from .persistence_identity import describe,identifier,POLICY
+    for observation in cached:
+        data=describe(observation)
+        if data is not None:observation.update(id=identifier(*data),identity_policy=POLICY)
     for observation in state['observations']:
         if any(prior['id']==observation['id'] and not equivalent_occurrence(prior,observation) for prior in cached):
             ambiguous.add(observation['id'])
@@ -367,6 +402,7 @@ def incremental_scope(db,state):
 
 
 def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incremental=False,retry_blocked=False):
+    from .persistence_identity import POLICY,LEGACY
     require(type(max_files) is int and 1<=max_files<=10000,'invalid-scan-bound')
     require(not retry_blocked or (scan_id is not None and not restart),'retry-blocked-requires-current-scan-id')
     snap=inventory(store.project.root,base,head)
@@ -389,7 +425,7 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incre
             execution=[__import__('uuid').uuid4().hex] if restart else []
             scan_id=digest([store.project.identity,snap['identity'],snap['delta'],VERSION]+(['incremental-v1',sorted(selected)] if incremental else [])+execution)
             row=db.execute('SELECT payload FROM scans WHERE id=?',(scan_id,)).fetchone()
-            state=loads(row[0]) if row else dict(id=scan_id,extractor=VERSION,snapshot=snap,coverage=deep_files(snap['files']),observations=[],candidates=[],captured_at=life.now(),complete=False,**({'incremental':True} if incremental else {}))
+            state=loads(row[0]) if row else dict(id=scan_id,extractor=VERSION,identity_policy=POLICY,snapshot=snap,coverage=deep_files(snap['files']),observations=[],candidates=[],captured_at=life.now(),complete=False,**({'incremental':True} if incremental else {}))
             if incremental and not row:
                 state.update(incremental=True,scope_paths=sorted(selected))
                 state['coverage']={p:e for p,e in state['coverage'].items() if p in selected}
@@ -402,6 +438,7 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incre
         pending=sorted((p for p,e in state['coverage'].items() if e['status']=='not-analyzed'),key=lambda p:(not p.endswith(('.csproj','.cs')),p))
         extracted_this_call=[]
         for path in pending[:max_files]:
+            state['coverage'][path]['_identity_policy']=state.get('identity_policy',LEGACY)
             try:observations,status,reason=extract(store.project.root,path,state['coverage'][path])
             except (OSError,UnicodeError) as error:
                 reason='ACCESS_DENIED' if isinstance(error,PermissionError) else 'INVALID_ENCODING' if isinstance(error,UnicodeError) else 'UNREADABLE'
@@ -445,6 +482,7 @@ def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incre
                        'remaining_files':sum(e['status']=='not-analyzed' for e in state['coverage'].values()),
                        'enumeration_and_hashing':'whole-snapshot; distinct from bounded extraction',**({'retried_blocked_files':retried} if retry_blocked else {})}
         records=store._records(db)
+        scope=identity_scope(scope,records)
         changed={e['id'] for e in records['evidence'] if fresh_evidence(store.project.root,e,scope) not in ('unchanged','anchor-valid-file-changed')}
         owners={c['id'] for c in records['claims'] if changed.intersection(c['evidence'])}
         closure=set(owners)
@@ -595,8 +633,34 @@ def reconcile(store,scan_id):
 def status(store,scan_id=None):
     with store.connection() as db:
         require(life.enabled(db),'upgrade-required')
-        rows=[loads(p) for p, in db.execute('SELECT payload FROM scans')]
+        rows=[loads(p) for p, in db.execute('SELECT payload FROM scans WHERE id=?',(scan_id,))] if scan_id is not None else [loads(p) for p, in db.execute('SELECT payload FROM scans')]
         return {'ok':True,'scans':[r for r in rows if scan_id is None or r['id']==scan_id]}
+
+
+def completed_artifact(store,scan_id):
+    """Validate persisted positive extraction without starting/extracting a scan."""
+    require(isinstance(scan_id,str) and re.fullmatch('[a-f0-9]{64}',scan_id),'invalid-scan-id')
+    with store.connection() as db:
+        row=db.execute('SELECT payload FROM scans WHERE id=?',(scan_id,)).fetchone();require(row is not None,'unknown-scan-artifact')
+        state=loads(row[0]);require(state.get('id')==scan_id and state.get('extractor')==VERSION,'incompatible-scan-artifact-extractor',
+            {'supported':VERSION,'next_action':'Preserve artifacts; review existing queue or explicitly migrate unsupported extraction. No automatic fresh scan.'})
+        snap=state['snapshot'];core={k:v for k,v in snap.items() if k not in ('identity','delta','snapshot_kind')}
+        core['files']={p:{k:v for k,v in item.items() if k!='status'} for p,item in snap['files'].items()}
+        require(digest(core)==snap['identity'],'corrupt-scan-snapshot')
+        coverage=state['coverage'];require(set(coverage)<=set(snap['files']),'corrupt-scan-coverage')
+        expected=(set(state['scope_paths'])&set(snap['files'])) if state.get('incremental') else set(snap['files'])
+        require(set(coverage)==expected and all(e.get('hash')==snap['files'][p].get('hash') for p,e in coverage.items()),'corrupt-scan-coverage')
+        remaining=sum(e['status']=='not-analyzed' for e in coverage.values())
+        require(remaining==0 and state.get('work',{}).get('remaining_files',0)==0,'scan-artifact-not-completed',{'remaining':remaining,'next_action':'Observe compatible resume options; no automatic fresh scan.'})
+        require(state.get('complete') or state.get('state')=='COMPLETED_WITH_GAPS' or any(e['status']=='blocked' or e.get('processing_status')=='partial' for e in coverage.values()),'scan-artifact-terminal-state-unknown')
+        for observation in state['observations']:
+            for location in observation.get('occurrences',[observation]):
+                p=location['path'];require(p in snap['files'] and location['content_hash']==snap['files'][p]['hash'],'corrupt-scan-observation')
+        queued={cid:loads(p) for cid,p in db.execute('SELECT id,payload FROM queue')}
+        for cid in state['candidates']:
+            require(cid in queued and (queued[cid].get('source') or {}).get('identity')==snap['identity'],'scan-candidate-binding-incompatible',{'candidate':cid})
+        return {'scan_id':scan_id,'source_identity':snap['identity'],'state':state.get('state','COMPLETED' if state['complete'] else 'COMPLETED_WITH_GAPS'),
+                'coverage_complete':state['complete'],'coverage':state.get('counters'),'extraction_reused':True,'fresh_scan_started':False}
 
 
 
@@ -801,7 +865,9 @@ def discovery_owned(db,claim,records):
         prior=loads(payload)
         if prior.get('extractor')!=VERSION or not prior['complete']:continue
         for observation in prior['observations']:
-            if observation['id']==claim['id'] and observation['statement']==claim['statement']:
+            from .persistence_identity import canonical_match
+            match=canonical_match(observation,records,{})
+            if (observation['id']==claim['id'] or match is not None and match['id']==claim['id']) and observation['statement']==claim['statement']:
                 if any(evidence[i].get('content_hash')==observation['content_hash'] and evidence[i]['source']==observation['path'] for i in claim['evidence']):return True
     return capture_owned(db,claim,records)
 
@@ -813,7 +879,10 @@ def occurrence(observation):
 def equivalent_occurrence(first,second):
     # These claims only assert that one file contains literal syntax; multiple
     # identical occurrences support the same assertion, not distinct type owners.
-    return first['category']!='declaration' and not first.get('unsupported') and not second.get('unsupported') and all(first[k]==second[k] for k in ('id','project','category','statement','path','subject'))
+    from .persistence_identity import POLICY
+    keys=('id','project','category','statement','subject')
+    if first['category']!='persistence' or first.get('identity_policy')!=POLICY or second.get('identity_policy')!=POLICY:keys+=('path',)
+    return first['category']!='declaration' and not first.get('unsupported') and not second.get('unsupported') and all(first[k]==second[k] for k in keys)
 
 
 CAPTURE_RECEIPT='capture-observation-v1:'
@@ -843,11 +912,15 @@ def capture_owned(db,claim,records):
         receipt=loads(payload)
         validate_capture_receipt(key,receipt)
         observation=receipt['observation']
-        if receipt['extractor']!=VERSION or observation['id']!=claim['id'] or observation['statement']!=claim['statement']:continue
+        from .persistence_identity import canonical_match
+        match=canonical_match(observation,records,{})
+        if receipt['extractor']!=VERSION or (observation['id']!=claim['id'] and (match is None or match['id']!=claim['id'])) or observation['statement']!=claim['statement']:continue
         if not any(evidence[i]['provenance']=={'actor':'deterministic-discovery','method':VERSION} and evidence[i]['content_hash']==observation['content_hash'] and evidence[i]['source']==observation['path'] and evidence[i]['description']==observation['anchor'] and claim['id'] in evidence[i]['substantiates'] for i in claim['evidence']):continue
         for pid,plan_json in db.execute('SELECT plan,payload FROM receipts'):
             plan=loads(plan_json);candidate=plan['candidates'].get(receipt['candidate'])
             if candidate is None or digest(candidate)!=receipt['candidate']:continue
+            candidate=plan.get('resolved',plan['candidates']).get(receipt['candidate'])
+            if candidate is None:continue
             for change in candidate.get('operations',[]):
                 if change['kind']!='claims' or change['id']!=claim['id'] or change['payload'] is None:continue
                 if change['payload']['statement']!=observation['statement']:continue
@@ -887,7 +960,7 @@ def _candidate_preview(store,paths,captured_at,record_ownership):
         records=store._records(db);states=life.latest(db)
         current={c['id']:c for c in records['claims']}
         for obs in scope['observations']:
-            if obs['path'] not in paths:continue
+            if not any(location['path'] in paths for location in obs.get('occurrences',[obs])):continue
             legacy=[c['id'] for c in records['claims'] if c['provenance']['method'] in LEGACY_METHODS and c['id']==obs['legacy_id']]
             if legacy:
                 decisions.append({'observation':obs['id'],'decision':'manual-review','legacy_ids':legacy});continue

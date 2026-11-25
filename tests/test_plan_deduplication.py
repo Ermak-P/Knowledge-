@@ -91,3 +91,51 @@ class Deduplication(unittest.TestCase):
         answer=page(rows,{'ok':True},0,1,1024)
         self.assertTrue(answer['truncated']);self.assertEqual(answer['next_cursor'],1)
         self.assertEqual(page(rows,{'ok':True},1,1,1024)['rows'],[{'id':'next'}])
+
+    def test_repeated_input_evidence_refs_have_stable_candidate_identity(self):
+        value=batch('a');other=json.loads(json.dumps(value))
+        next(op for op in other['operations'] if op['kind']=='claims')['payload']['evidence']*=3
+        first=self.store.submit(value);second=self.store.submit(other)
+        self.assertEqual(first['candidate'],second['candidate']);self.assertEqual(second['result'],'duplicate')
+
+    def test_verification_date_never_promoted_when_merging_canonical(self):
+        self.store.submit(batch('a'));first=self.store.prepare();self.store.apply(first['fingerprint'],first['fingerprint']);self.store.acknowledge(first['fingerprint'])
+        value=batch('b');next(op for op in value['operations'] if op['kind']=='claims')['payload']['last_verified']='2026-11-25'
+        self.store.submit(value);plan=self.store.prepare();self.assertTrue(plan['ok'],plan['blocked'])
+        self.store.apply(plan['fingerprint'],plan['fingerprint']);self.assertEqual(self.store.lookup('claims','a')['record']['last_verified'],'2026-11-14')
+
+    def test_completed_artifact_validation_and_unchanged_rows(self):
+        root=Path(self.temp.name);(root/'A.cs').write_text('public class A {}')
+        state=discovery.scan(self.store,max_files=100);self.assertTrue(state['complete'])
+        saved=discovery.status(self.store,state['id'])
+        recovered=discovery.completed_artifact(self.store,state['id']);self.assertTrue(recovered['extraction_reused'])
+        self.assertFalse(recovered['fresh_scan_started']);self.assertEqual(saved,discovery.status(self.store,state['id']))
+
+    def test_schema_reads_bounded_and_transaction_cache_invalidates(self):
+        import knowledge.store as module
+        from shutil import copytree
+        with tempfile.TemporaryDirectory() as temp:
+            schemas=Path(temp)/'schemas';copytree(module.SCHEMAS,schemas)
+            for i in range(10):self.store.submit(batch('s'+str(i),'Unique '+str(i)))
+            with patch.object(module,'SCHEMAS',schemas):
+                self.assertTrue(self.store.prepare()['ok'])
+                p=schemas/'claim.schema.json';value=json.loads(p.read_text());value['required'].append('synthetic_missing');p.write_text(json.dumps(value))
+                with self.assertRaisesRegex(KnowledgeError,'invalid-record'):self.store.prepare()
+
+    def test_dependent_references_remapped_with_all_proofs(self):
+        self.store.submit(batch('a'));self.store.submit(batch('b'));dependent=batch('dependent','A separate dependent fact.')
+        next(o for o in dependent['operations'] if o['kind']=='claims')['payload']['depends_on']=['b']
+        relationship=dict(id='edge',type='depends_on',**{'from':'dependent','to':'b'},provenance={'actor':'synthetic-test','method':'fixture'})
+        dependent['operations'].append(life.op('add','relationships','edge',0,relationship));self.store.submit(dependent)
+        plan=self.store.prepare();self.assertTrue(plan['ok'],plan['blocked']);self.store.apply(plan['fingerprint'],plan['fingerprint'])
+        records=self.store.export()['records'];survivor=next(c['id'] for c in records['claims'] if c['id']!='dependent')
+        self.assertEqual(next(c for c in records['claims'] if c['id']=='dependent')['depends_on'],[survivor])
+        self.assertEqual(records['relationships'][0]['to'],survivor)
+
+    def test_confidence_and_trust_conflicts_are_blocked(self):
+        for field,value in [('status','INFERRED'),('type','architecture_rule')]:
+            with self.subTest(field=field):
+                from knowledge.plan_deduplication import reconcile
+                a=batch('a');b=batch('b');c=next(o for o in b['operations'] if o['kind']=='claims')['payload'];c[field]=value
+                _,_,blocked=reconcile({'claims':[],'evidence':[],'relationships':[]},{'a':a,'b':b},{})
+                self.assertTrue(blocked)

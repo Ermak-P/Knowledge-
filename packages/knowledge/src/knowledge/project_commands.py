@@ -139,7 +139,7 @@ def job_summary(folder, binding, provider):
 
 
 def execute(command, installation, directory, value):
-    require(isinstance(value, dict) and set(value) <= {'roots', 'directory', 'action', 'approve', 'plan', 'upgrade_approval', 'migration_approval', 'base', 'head', 'max_files', 'candidates', 'resume', 'fresh', 'allow_test_double','observed_scan_id'}, 'invalid-command-input')
+    require(isinstance(value, dict) and set(value) <= {'roots', 'directory', 'action', 'approve', 'plan', 'upgrade_approval', 'migration_approval', 'base', 'head', 'max_files', 'candidates', 'resume', 'fresh', 'allow_test_double','observed_scan_id','rebuild_scan_id'}, 'invalid-command-input')
     require(all(key not in value or type(value[key]) is bool for key in ('resume', 'fresh','allow_test_double')), 'invalid-recovery-controls')
     require(value.get('observed_scan_id') is None or (value.get('resume') is True and not value.get('fresh') and value.get('action','start')=='start'),'observed-scan-requires-resume')
     installation = installation_at(installation)
@@ -243,12 +243,23 @@ def execute(command, installation, directory, value):
     finally: lease.close()
 
 
-def diagnostics(installation,directory,scope='full',section='failures',cursor=0,limit=20,max_bytes=16000,group=None):
-    require(scope in ('full','incremental') and section in ('failures','coverage','reconciliation','impact','policy','identity','scans','duplicates'), 'invalid-diagnostic-section')
+def diagnostics(installation,directory,scope='full',section='failures',cursor=0,limit=20,max_bytes=16000,group=None,candidate=None,operation=None,plan=None):
+    require(scope in ('full','incremental') and section in ('failures','coverage','reconciliation','impact','policy','identity','scans','duplicates','candidate'), 'invalid-diagnostic-section')
     require(type(cursor) is int and cursor>=0 and type(limit) is int and 1<=limit<=100,'invalid-diagnostic-page')
     installation=installation_at(installation);root=resolve_root(directory);project=Project(root)
     require(not root.is_relative_to(installation) and not installation.is_relative_to(root),'installation-and-project-must-be-separate')
     from .diagnostic_pages import page
+    if section=='candidate':
+        from .util import canonical_json
+        import hashlib
+        require(type(max_bytes) is int and 256<=max_bytes<=1000000,'invalid-byte-budget')
+        if max_bytes<1024:return {'ok':False,'error':'diagnostic-budget-too-small','minimum_budget':1024}
+        text=Store(root).candidate_text(candidate,operation,plan);require(cursor<=len(text),'invalid-diagnostic-offset')
+        end=min(len(text),cursor+max(1,min(2048,(max_bytes-768)//8)))
+        result={'ok':True,'section':section,'candidate':candidate,'operation':operation,'plan':plan,'cursor':cursor,
+                'next_cursor':end if end<len(text) else None,'total_chars':len(text),'text':text[cursor:end],
+                'record_hash':hashlib.sha256(text.encode()).hexdigest(),'canonical_unchanged':True}
+        require(len(canonical_json(result).encode())<=max_bytes,'diagnostic-budget-too-small');return result
     if section=='duplicates':
         counts,rows=Store(root).duplicate_diagnostics(group)
         return page(rows,{'ok':True,'section':section,'counts':counts,'group':group,'canonical_unchanged':True},cursor,limit,max_bytes)
@@ -352,8 +363,10 @@ def push(store, root, state_dir, binding, value):
         return {'ok': validation['ok'], 'state': 'ACKNOWLEDGED', 'fingerprint': approval, 'canonical_plan': pid,
                 'validation': validation, 'queue': dict(Counter(row['status'] for row in status['queue']))}
     require(action in ('start', 'prepare'), 'invalid-push-action')
+    recovered=discovery.completed_artifact(store,value['rebuild_scan_id']) if value.get('rebuild_scan_id') else None
     before = discovery.inventory(root)['identity']
-    prepared = store.prepare()
+    if recovered:require(recovered['source_identity']==before,'scan-artifact-source-or-policy-drift',{'next_action':'Preserve the scan. Inspect source/policy changes before selecting explicit recovery; no automatic fresh scan.'})
+    prepared = store.prepare(_source_identity=before)
     require(discovery.inventory(root)['identity'] == before, 'source-drift-during-prepare')
     seal = {**binding, 'source_identity': before, 'canonical_plan': prepared['fingerprint']}
     approval = fingerprint(seal)
@@ -364,7 +377,7 @@ def push(store, root, state_dir, binding, value):
     _write(state_dir / 'last-plan.json', prepared)
     return {'ok': prepared['ok'], 'state': 'AWAITING_EXACT_APPROVAL' if prepared['ok'] else 'BLOCKED', 'root': str(root),
             'fingerprint': approval, 'canonical_plan': prepared['fingerprint'], 'included': len(prepared['included']),
-            'operations': dict(operations), 'deduplication':prepared.get('deduplication',{}).get('counts'), 'skipped': len(prepared['skipped']), 'blocked': prepared['blocked'][:20],
+            'operations': dict(operations), 'deduplication':prepared.get('deduplication',{}).get('counts'),'recovered_scan':recovered, 'skipped': len(prepared['skipped']), 'blocked': prepared['blocked'][:20],
             'canonical_unchanged': True, 'diagnostics': str(state_dir / 'last-plan.json'),
             'next_action': 'Separate explicit approval: /knowledge-candidates-push {"approve":"' + approval + '"}. On drift prepare and review a new fingerprint.'}
 

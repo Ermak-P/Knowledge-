@@ -25,6 +25,7 @@ def envelope(value):
         source=value['source']
         require(set(source) in ({'identity','revision','kind'},{'identity','revision','kind','delta'}) and isinstance(source['identity'],str) and re.fullmatch('[a-f0-9]{64}',source['identity']) and (source['revision'] is None or isinstance(source['revision'],str)) and source['kind'] in ('committed','working-tree-with-hashes','filesystem-no-history'),'invalid-source-binding')
     require(isinstance(value['operations'],list) and 0<len(value['operations'])<=10000,'invalid-operations')
+    value=deepcopy(value)
     seen=set()
     for op in value['operations']:
         require(isinstance(op,dict) and set(op)=={'action','kind','id','expected','payload','successor'},'invalid-operation-fields')
@@ -34,6 +35,9 @@ def envelope(value):
         if op['action']=='reactivate':require(op['kind'] in ('claims','relationships'),'unsupported-reactivation-kind')
         if op['action'] in ('add','update','reactivate'):
             require(op['successor'] is None and isinstance(op['payload'],dict) and op['payload'].get('id')==op['id'],'invalid-operation-payload')
+            field='evidence' if op['kind']=='claims' else 'substantiates' if op['kind']=='evidence' else None
+            if field and isinstance(op['payload'].get(field),list) and all(isinstance(i,str) for i in op['payload'][field]):
+                op['payload'][field]=list(dict.fromkeys(op['payload'][field]))
             records=empty();records[op['kind']]=[op['payload']];shape(records)
             if op['kind']=='claims':require(bool(op['payload']['evidence']),'candidate-requires-evidence')
         else:
@@ -41,7 +45,7 @@ def envelope(value):
             require(op['kind'] in ('claims','relationships'),'unsupported-retirement-kind')
             require((op['action']=='supersede' and op['kind']=='claims' and isinstance(op['successor'],str) and op['successor']!=op['id']) or
                     (op['action']=='retire' and op['successor'] is None),'invalid-successor')
-    return deepcopy(value)
+    return value
 
 
 def op(action,kind,identifier,expected,payload=None,successor=None):
