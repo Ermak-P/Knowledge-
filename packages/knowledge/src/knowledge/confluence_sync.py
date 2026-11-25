@@ -235,7 +235,7 @@ def build_proposals(store,db,source,findings,complete):
             if not updated['evidence']:updated['evidence']=list(claim['evidence'])
     cops=[]
     for cid,claim in touched.items():
-        if canonical.get(cid)==claim:continue
+        if canonical.get(cid)==claim or (cid not in canonical and known.get(cid)==claim):continue
         cops.append(life.op('update' if cid in canonical else 'add','claims',cid,states[cid]['revision'] if cid in states else 0,claim))
     ops=list(eops.values())+cops
     # Existing v2 batches allow 10k operations. Split the projection, never facts;
@@ -320,6 +320,8 @@ def rebind(value,data,source):
 
 
 def refresh_links(db):
+    from .providers import semantic_bindings
+    bindings=semantic_bindings(db)
     links={}
     for key,payload in db.execute('SELECT key,value FROM metadata WHERE key LIKE ?',(REFRESH+'%',)):
         link=loads(payload);old=link['previous'];new=link['replacement']
@@ -329,12 +331,15 @@ def refresh_links(db):
         require(cf.is_binding(first.get('source')) and cf.is_binding(second.get('source')) and first['source']['identity']==second['source']['identity'] and first['source']['revision']<second['source']['revision'],'corrupt-confluence-refresh')
         a=cf.snapshot(db,first['source']['snapshot']);b=cf.snapshot(db,second['source']['snapshot'])
         require(a['content_hash']==b['content_hash'] and a['representation']==b['representation'] and rebind(first,b,second['source'])==second,'corrupt-confluence-refresh')
+        require(bindings.get(old)==bindings.get(new),'confluence-refresh-semantic-binding-mismatch')
         links[old]=link
     return links
 
 
 def refresh_unchanged_pending(store,source):
+    from .providers import semantic_bindings
     with store.connection() as db:
+        bindings=semantic_bindings(db)
         existing=refresh_links(db);new=cf.snapshot(db,source['snapshot']);owned={cid for p, in db.execute("SELECT payload FROM plans WHERE status='COMMITTED'") for cid in loads(p)['included']}
         work=[]
         for cid,payload,status in db.execute('SELECT id,payload,status FROM queue'):
@@ -346,7 +351,7 @@ def refresh_unchanged_pending(store,source):
             if prior['content_hash']==new['content_hash'] and prior['representation']==new['representation']:work.append((cid,rebind(value,new,source)))
     updated=[]
     for previous,value in work:
-        result=store.submit(value);replacement=result['candidate']
+        result=store.submit(value,semantic_binding=bindings.get(previous));replacement=result['candidate']
         with store.connection(True) as db:
             link=dict(version=1,previous=previous,replacement=replacement,at=life.now());db.execute('INSERT OR REPLACE INTO metadata VALUES (?,?)',(REFRESH+previous,canonical_json(link)))
         updated.append(replacement)

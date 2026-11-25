@@ -36,6 +36,22 @@ class ConfluenceSync(unittest.TestCase):
         self.apply();rows=self.records();self.assertEqual(len(rows['claims']),1);self.assertEqual(rows['evidence'][0]['source']['revision'],2)
         with self.s.connection() as db:self.assertEqual(db.execute('SELECT count(*) FROM confluence_blobs').fetchone()[0],1)
         self.assertEqual(self.page(b)['last_applied_version'],2)
+
+    def test_same_body_refresh_preserves_provider_binding_and_refuses_drift(self):
+        from knowledge.providers import shared,semantic_bindings
+        provider=self.root/'provider.json';provider.write_text(json.dumps({'provider':{'endpoint':'http://127.0.0.1:9000/v1/chat/completions','model':'synthetic-live','evidence':'live'}}))
+        config,reference=shared(provider)
+        binding={'version':1,'provider_ref':reference,'model':config['model'],'evidence':'live','contract':'reviewed-v2-v1'}
+        a=self.register()
+        with self.s.connection() as db:batches,_=sync.build_proposals(self.s,db,a,[finding()],True)
+        old=self.s.submit(batches[0],semantic_binding=binding)['candidate']
+        sync.analyze(self.s,a,[finding()])
+        self.register(version=2)
+        with self.s.connection() as db:
+            links=sync.refresh_links(db);replacement=links[old]['replacement'];self.assertEqual(semantic_bindings(db)[replacement],binding)
+        self.assertTrue(self.s.prepare()['ok'])
+        provider.write_text(json.dumps({'provider':{'endpoint':'http://127.0.0.1:9000/v1/chat/completions','model':'changed-live','evidence':'live'}}))
+        prepared=self.s.prepare();self.assertFalse(prepared['ok']);self.assertIn('provider',str(prepared['blocked']))
     def test_changed_page_reuses_claim_and_supersedes_only_its_evidence(self):
         a=self.register();sync.analyze(self.s,a,[finding()]);self.apply();cid=self.records()['claims'][0]['id']
         b=self.register(version=2,content=RULE+' Extra details.');sync.analyze(self.s,b,[finding()]);self.apply()

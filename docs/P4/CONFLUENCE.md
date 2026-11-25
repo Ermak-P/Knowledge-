@@ -165,3 +165,8 @@ No candidate is automatically applied. Different claim/proof revisions changing
 meaning require explicit resolution; only verified source-specific proof changes
 and compatible evidence enrichment reconcile automatically. Ordinary context
 remains offline and deterministic. See CONFLUENCE-COMMAND-RU.md for operator steps.
+
+Same-content native revision refresh preserves any original semantic provider
+binding exactly. Provider drift still requires reanalysis; refresh never renews
+provider authority or approval. Reobserving an identical already pending claim
+produces no empty duplicate claim update.
