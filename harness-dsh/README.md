@@ -1,113 +1,96 @@
 # Harness for DeepSeek Harness (DSH)
 
-Status: DSH-01 approved and implemented; native integration validation pending. DSH-02 onward require separate owner agreement.
+**Approved scope:** the owner approved the consolidated DSH-01–06 roadmap on 2026-11-26 and authorized mocked validation where the native environment is unavailable. Implementation candidate, **not native-qualified**. See [VALIDATION.md](VALIDATION.md).
 
 ## Boundaries
 
-- DSH is the only target runtime for the new Harness. Use its native LLM calls, subagents, contexts, MCP, sessions, permissions and trajectory wherever they satisfy the requirements.
-- This directory is isolated from the legacy Harness and Knowledge source/test trees. Do not copy their test suites or import their private implementation modules.
-- Knowledge remains a separate service, accessible through standard MCP. No Knowledge changes, database migrations, installers, packaging/distribution automation or OpenCode adapters in this directory.
-- Keep production code and dependencies minimal. No speculative abstractions, custom agent runtime, custom dashboard or background service.
-- Any additional behavior, dependency or feature outside the agreed scope requires explicit owner approval before implementation. Prefer deleting unnecessary code over adding another abstraction.
-- Work in-place, without Git worktrees. Never modify main or legacy code as part of this initiative.
-- Run only the new directory's tests for this work. Do not trigger legacy or Knowledge test suites deliberately. Use targeted commands from this directory; document the exact command once the test framework is selected.
+DSH only, in-place, isolated under harness-dsh/. No changes to legacy Harness, Knowledge, main, installers, migrations, databases, custom model providers, agent loop, custom fingerprint engine or dashboard. Knowledge remains an independent MCP service. Do not execute legacy tests. Additional features require approval.
 
-## Tasks (DSH-01 approved; DSH-02 onward pending approval)
+## Architecture
 
-| ID | Task | Acceptance criteria |
+Alternative D: import the public verification library primitives, without activating the Goal-bound VerificationService or forking upstream. Task contracts are immutable, minted by the trusted host from Planning's structured output; the actual current user message is the basis. Origin is truthfully model-self-declared (Planning), not a claim of independent upstream intent capture. The host checks plan shape and file scope; final Reviewing checks original intent.
+
+- `src/index.ts`: DSH-01 passive observer retained independently.
+- `src/engineering.ts`: native tool entry points, direct native subagent activations, tool-result capture and monotonic execution guard. Native role presets are configurable; defaults use the installed standard preset, with role prompts and host guards. Native Workflow is not required for this sequential design.
+- `src/lifecycle.ts`: task-scoped immutable contracts, globally ordered in-memory evidence and capture failures, exact selectors, upstream oracles and CompletionGate, bounded repair and final review.
+- `src/dotnet.ts`: Git-based project discovery, scoped paths, trusted native shell build/test, fresh TRX interpretation, real exit status, cancellation and timeout.
+- `src/tdd.ts` and `src/reprolab/`: TDD controller and reused MIT pure RED/GREEN/regression functions. No worktrees.
+
+Planning -> for each task (optional Testing/RED -> Coding -> Testing if applicable -> GREEN if TDD -> Verification/Task Gate) -> final revalidation -> independent Reviewing -> complete or targeted repair. Deterministic missing/stale checks run through the native shell service without extra model requests. Already-current canonical tool evidence is reused. Semantic ACs require a fresh independent verifier that actually read the cited target. Reviewing reads changed planned files and receives the original request, plan, and a bounded real Git diff. Only the host sets COMPLETED. Missing evidence, unavailable freshness, cancellation, infrastructure problems or exhausted repair attempts never become success. The default repair budget is three Coding attempts per task; at most one explicitly requested TDD refactor (followed by GREEN) per task.
+
+The library contract identity uses the parent session as source basis; task/run identity and actual producer agent/session are recorded separately. Native tool results and direct trusted host checks are distinguished. The host assigns fresh reserved child ids before activation; model arguments cannot assign themselves a role or task. Capture uses the final immutable native tools/result event, not model summaries. No independent Goal lifecycle or permit replay is introduced. Evidence is intentionally in-memory for a live run; native sessions retain their own tool history, but interrupted Harness runs are not resumed automatically.
+
+stalegreen supplies fingerprint computation/comparison, not its advisory claim-blocking plugin. Its unknown-fingerprint fallback is not accepted. The upstream verification library handles evidence binding and gates; compact host receipts preserve freshness and ordering without another receipt database. All nonignored Git paths are included (no extra fingerprint ignore list for ordinary acceptance). Checks are conservative: later changes invalidate earlier evidence until rechecked. This may cost time on large projects; the real IPM benchmark remains pending.
+
+## Approved roadmap and implementation status
+
+| ID | Implementation | Acceptance |
 |---|---|---|
-| DSH-01 | Minimal native DSH plugin and isolated tests | Plugin loads and exposes one observable test event; use public APIs, a minimal test setup and no custom provider. Verify how branch CI can be restricted without changing existing workflows; do not claim isolation until verified. |
-| DSH-02 | Minimal engineering workflow | A user request can progress through plan, implementation, verification and independent review. Use native agents and contexts. Read-only requests need no development workflow; no manual task enrollment prerequisite. Exact role division to be agreed. |
-| DSH-03 | Build and test verification | Agree a minimal .NET verification contract; discover relevant *Tests.csproj without fixed project lists; report real exit status, failures and absence of tests. Do not claim success when mandatory verification fails. Agree TDD and coverage policy before implementation. |
-| DSH-04 | Minimal guard and bounded retries | Establish required non-bypassable checks for write/execute and completion using DSH public hooks/permissions. Stop repeated unsuccessful repair attempts. Agree specific restrictions and retry limits before implementation. |
-| DSH-05 | Live visibility | Show current phase, active agent and operation via native DSH trajectory/events, including blocked/waiting states as supported. No extra LLM requests for status and no hidden secondary LLM loop. |
-| DSH-06 | End-to-end acceptance | Verify a small .NET change in an isolated project using native DSH and local llama-server/Qwen on Windows; exercise success, failed tests, denied operation and cancellation. Verify existing Knowledge MCP can be used without changes; no Knowledge tests. |
+| DSH-01 | Passive native plugin | Prior isolated observer test passed; native loading/disposal pending |
+| DSH-02.1 | Library PoC, two task contracts, exact evidence, supersede and freshness | Mock scenarios passed; real imports and native dispatcher tests provided, NOT RUN |
+| DSH-02.2 | Contracts, evidence, freshness, minimal guard | Implemented; host/core doubles exercised; native qualification pending |
+| DSH-02.3 | Direct native subagents, sequential roles and bounded repair | Implemented; mocked native host scenario passed |
+| DSH-02.4 | Merged into 02.2 | Freshness fail-closed in mock tests; real large Git fingerprint pending |
+| DSH-02.5 | Final gate + independent Reviewing; targeted repair | Implemented, mocked scenarios passed |
+| DSH-03.1 | Discover tracked/untracked nonignored *Tests.csproj, build, fresh TRX, classification | Implemented; pure TRX scenarios passed; real filesystem/shell/Windows tests pending |
+| DSH-03.2 | Testing role, test-only write scope, coverage/test quality assessment | Implemented with structured agent results; actual quality/quantitative coverage pending |
+| DSH-03.3 | RED/GREEN, optional refactor/retest, frozen test inputs, regression | Implemented using ReproLab pure functions; native .NET validation pending |
+| DSH-04 | Monotonic native guard + per-task repair cap | Implemented for allowed native calls; actual sandbox/PTC boundary pending; no speculative extended detector |
+| DSH-05 | Native child labels/trajectory and deterministic terminal phase logs | Implemented; inspect live UI, especially direct host checks |
+| DSH-06 | Isolated native acceptance procedure | NOT RUN: Windows/local Qwen/Knowledge MCP inaccessible |
 
-Each task should be discussed and explicitly approved before coding. Implement in small commits with focused tests. A proposed feature is not an approved feature.
+## Morning verification
 
-## Not included in the MVP unless separately approved
+From this directory only, on a machine with compatible Node (the reviewed DSH source requires Node ^24.22.3 or >=26.13.1), Git, and .NET SDK:
 
-Universal runtime support, migration of old task state, automatic Knowledge capture, custom Knowledge commands, custom token accounting/budget dashboard, new database, persistent workflow recovery beyond native DSH behavior, custom compaction, custom MCP discovery, additional agents or telemetry infrastructure. Existing required quality and security guarantees must be discussed before any reduction; do not silently assume DSH equivalents.
-
-## Planned layout
-
-```text
-harness-dsh/
-  README.md
-  src/       # only approved DSH integration and engineering logic
-  tests/     # only tests for this new Harness
-```
-
-Add source, tests and minimal tool configuration only when needed. No placeholder implementation.
-
-## DSH-01: passive native plugin
-
-The plugin exports the standard Cordis `name`, `inject`, and `apply` fields.
-It subscribes to DSH's public `session/event`, logs turn/step boundaries and
-tool call/result events (only session ID, event type and tool name), and relies
-on Cordis to dispose the subscription. No prompts, tool arguments, results,
-LLM calls, agent creation, or workflow policy are added.
-
-Reviewed upstream: [DSH 4b399c39](https://github.com/deepseek-ai/deepseek-harness/tree/4b399c39a6d1479cd84ca591b4d7c88e24d38a96).
-Public references: [plugin loading](https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/docs/user/develop/basic/index.md),
-[effect cleanup](https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/docs/cordis-tutorial/02-lifecycle-and-effects.md),
-[session events](https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/packages/core/session/src/index.ts).
-
-### Focused tests
-
-From this directory, with Node 22.16 or a compatible newer Node:
-
-```sh
+```powershell
+git switch feature/deepseek-harness
+git pull --ff-only
+Set-Location harness-dsh
 npm test
-```
-
-This runs one dependency-free unit test using a small context double. It does
-not prove actual Cordis/DSH loading or disposal. No install or legacy tests needed.
-
-For native integration use the Node version required by the reviewed DSH
-checkout (Node ^24.22.3 or >=26.13.1), and install the test-only dependencies:
-
-```sh
 npm install
+npm run test:library
 npm run test:native
 ```
 
-The native test drives the actual DSH agent loop and tool dispatcher with a
-scripted model adapter. It checks the observed event sequence, tool execution,
-exact number of model requests, and absence of observer output after unload.
-The test package versions match the reviewed upstream source manifests; npm
-availability and dependency resolution have not been verified. No runtime
-version equality check is performed by the plugin. No runtime dependencies
-are bundled.
+The first command suite is dependency-free: Node test runner, Git and filesystem only, with explicit test-only doubles. It never imports external packages through production apply(). The second suite imports actual upstream packages; native suite uses actual DSH agent loop/dispatcher with scripted model and a controlled tool result. If npm reports incompatible peers or missing packages, STOP and investigate; do not silently downgrade DSH, activate the upstream Goal plugin, or substitute mocks in production. Package versions are taken from the inspected manifests; registry resolution has not been verified. No runtime version-equality gate is implemented. No lockfile could be generated in the offline environment.
 
-Validation recorded: `npm test` passed (1 test, Node 22.16.0).
-Native test syntax checked; native execution is **NOT RUN** because this
-environment cannot resolve registry.npmjs.org and lacks the reviewed DSH Node
-version. Native DSH loading, event delivery and unload acceptance remain open.
+### Native smoke (separate disposable profile/project first)
 
-### Manual smoke check
+Use the standard native-tool executor preset, not PTC/code mode, unrestricted shell or a profile with third-party plugins that can bypass the host guard. Configure the plugin in a disposable DSH profile with [overlay.example.yml](overlay.example.yml), replacing both absolute paths. For a DSH source checkout use the normal upstream launcher, e.g.:
 
-For a DSH source checkout that already runs its web profile, use an overlay
-outside this project with the absolute path to the plugin:
-
-```yaml
-- insert:
-    - id: harness-dsh
-      name: '/absolute/path/to/Knowledge-/harness-dsh/src/index.ts'
+```powershell
+pnpm dsh web --patch C:/Temp/harness-dsh-overlay.yml
 ```
 
-Start DSH as documented by its upstream guide, e.g.
-`pnpm dsh web --patch /absolute/path/to/overlay.yml`.
-Confirm a loaded line in its terminal, run one ordinary read-only task that
-calls a tool, check turn/step/tool event lines, and unload the plugin via the
-native configuration lifecycle. The installed desktop/web host has not been
-validated by this task.
+In the disposable Git workspace create a small .NET solution and an existing test project ending in Tests.csproj, add appropriate project references, ignore bin/obj, and commit a baseline. No installer is provided. Open a native DSH session whose cwd is inside that repo, with the local llama.cpp model configured in DSH. Ask for a specific small behavior change and explicitly mention using harness_run. Verify:
 
-### CI boundary
+1. Planning produces exact paths and acceptance criteria; no root writes outside harness_run.
+2. Coding and Testing receive separate sessions with their role labels; forbidden shell/PTC/goal/nested delegation, out-of-scope paths, test/production cross-writes and unknown MCP tools are denied.
+3. Native harness_run_check results and direct host checks yield actual evidence; task-level failures repair only the affected task; no missing or stale evidence passes.
+4. Force a failing test, no discovered tests, a timeout and cancellation separately; inspect BLOCKED/CANCELLED and disposal; no success claim from the actual harness_run result.
+5. Exercise a TDD task with an expected failing test, same test inputs GREEN, optional refactor and re-test.
+6. Review actual native trajectory/child sessions and terminal logs; verify current task/phase and failure reason. Then explicitly test an existing Knowledge read-only MCP tool in the allowed list. Do not modify Knowledge.
+7. Only after these pass, benchmark fingerprint budget and selected build/test commands in a disposable copy of the real .NET project (not the production checkout).
 
-The five existing workflows were inspected at the branch baseline. Their
-push filters do not match `feature/deepseek-harness`; no workflow files are
-changed and no legacy workflow is requested. The P4 workflow does match PRs
-targeting main, so do not open such a PR or dispatch legacy workflows for this
-isolated development phase. Separate CI automation, if needed, requires an
-explicit follow-up decision.
+### Conservative restrictions and open items
+
+- The plugin is deliberately restricted to the configured Git workspace and native standard tool execution. It does not claim an OS security boundary against arbitrary plugin code, external processes, or test/build code itself. PTC direct effects and Windows sandbox completeness need live qualification. Use native read/edit/write; apply_patch, arbitrary shell, dynamic subagents and mutating MCP tools are denied in scope. All role-specific writes must be listed by Planning and pass path/symlink and test-directory guards. Build-control files require separate approval.
+- Set readOnlyTools only to exact, reviewed native MCP public names (mcp__server__tool). No automatic Knowledge capture.
+- .NET checks use installed dotnet, explicit existing solution/project and selected test projects; final gate revalidates all mandatory plan checks. No forced scan of ignored files or automatic full-repo suite beyond the agreed plan. Zero tests, skipped required tests, missing/invalid TRX, infrastructure/timeout/cancel are unverified. Older .NET Framework/MSBuild-only projects and unusual TRX formats need validation.
+- Testing performs qualitative coverage and assertion review; measured coverage collection is not enabled automatically. TDD freezes planned test files and relevant test/build configuration, checks the expected failing name/message, and rejects changed frozen inputs. Existing baseline failures are not silently accepted as GREEN. No worktrees.
+- Automatic acceptance only in this candidate; manual approval UI was optional and is not added. No automatic replay/recovery, aggregate token meter, external status service or dashboard. Main must report the actual harness_run status, not its own claim.
+- Native shell checks write TRX to a temporary directory, using the existing native sandbox root grant if required, never a wider permission mode. Windows may not honor extra roots; failure blocks the task.
+- Fingerprint is bounded (default 5 seconds, configurable), unavailable is fail-closed. Git-ignored inputs and concurrent external changes require environmental discipline; there is no cross-process workspace lock. Semantic review is independent model judgement anchored to actual read calls, not a formal proof.
+- Final review receives bounded HEAD diff and baseline-changed planned paths; a dirty pre-existing diff may include user edits. Full persistent audit/replay, measured coverage and a native Windows qualification are not claimed.
+
+## Upstream references
+
+- [DSH 4b399c39](https://github.com/deepseek-ai/deepseek-harness/tree/4b399c39a6d1479cd84ca591b4d7c88e24d38a96) — native subagent startActivation, tools.guard, tools/result, shell.execute(...).result(), sandbox policy.
+- [dsh-verification f7828e9](https://github.com/bpc-oss/dsh-verification/tree/f7828e9b77095e570eefe221f7e48bfbf44a3944) — Apache-2.0 library exports and exact binder.
+- [stalegreen 9e4cbca](https://github.com/pavangupta352/stalegreen/tree/9e4cbca4787558ea739c2e4ae9cc8314cdc9c173) — MIT public fingerprint library.
+- [dsh-reprolab bdf332e](https://github.com/yuttfu/dsh-reprolab/tree/bdf332e37b19fbe50e2377ad8911e6d600d44d30) — MIT pure verifiers, retained notice.
+
+## CI isolation
+
+Existing workflows at the branch baseline do not match feature/deepseek-harness push. No workflows changed, no PR to main, no legacy test dispatch. Do not open a PR targeting main before reviewing its P4 workflow trigger.
