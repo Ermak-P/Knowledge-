@@ -164,15 +164,24 @@ def create_server(installation, workspace=None):
         return await invoke(ctx,lambda r:execute('knowledge-candidates-update',installation,r,{'candidates':proposals,'allow_test_double':allow_test_double}),max_bytes)
 
     @server.tool()
-    async def knowledge_plan(ctx:Context,action:Literal['prepare','rebuild','apply','recover']='prepare',approve:str|None=None,max_bytes:int=16000,scan_id:str|None=None)->CallToolResult:
-        """Prepare; apply only a separately explicitly approved exact fingerprint."""
+    async def knowledge_plan(ctx:Context,action:Literal['prepare','rebuild','status','cancel','resume','apply','recover']='prepare',approve:str|None=None,max_bytes:int=16000,scan_id:str|None=None,job_id:str|None=None,wait_seconds:float|None=None)->CallToolResult:
+        """Prepare or observe a durable job. Apply requires a separate exact approval."""
         def call(r):
             from .project_commands import execute
-            require(action in ('prepare','rebuild') or isinstance(approve,str),'exact-approval-required')
+            mutation = action in ('apply', 'recover')
+            require(not mutation or isinstance(approve,str),'exact-approval-required')
             require((action=='rebuild')==(scan_id is not None),'rebuild-requires-scan-id')
-            value={} if action in ('prepare','rebuild') else {'action':'recover','plan':approve} if action=='recover' else {'approve':approve}
+            value={'action': 'prepare' if action == 'rebuild' else action}
+            if mutation:
+                value['plan' if action == 'recover' else 'approve'] = approve
             if scan_id is not None:value['rebuild_scan_id']=scan_id
-            require(action not in ('prepare','rebuild') or approve is None,'prepare-is-not-approval')
+            if job_id is not None:
+                require(action in ('status', 'cancel', 'resume'), 'invalid-plan-job-control')
+                value['job_id'] = job_id
+            if wait_seconds is not None:
+                require(action in ('prepare', 'rebuild', 'resume'), 'invalid-plan-job-control')
+                value['wait_seconds'] = wait_seconds
+            require(mutation or approve is None,'prepare-is-not-approval')
             return execute('knowledge-candidates-push',installation,r,value)
         return await invoke(ctx,call,max_bytes)
 

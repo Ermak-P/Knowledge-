@@ -95,7 +95,7 @@ def owned_job(folder, owner=None):
     require(isinstance(state, dict) and state.get('version') == 1 and type(state.get('pid')) is int
             and state['pid'] > 0 and state.get('state') in ACTIVE | TERMINAL
             and isinstance(state.get('job'), str) and 0 < len(state['job']) <= 128
-            and isinstance(state.get('scope'), dict) and state['scope'].get('kind') in ('full', 'incremental'),
+            and isinstance(state.get('scope'), dict) and state['scope'].get('kind') in ('full', 'incremental', 'plan'),
             'invalid-scan-job-state')
     if owner is not None:
         binding = state.get('binding')
@@ -108,8 +108,12 @@ def owned_job(folder, owner=None):
                             for key in ('base', 'head')), 'invalid-scan-job-scope')
         else:
             require(set(scope) == {'kind'}, 'invalid-scan-job-scope')
-        expected = 'full' if scope['kind'] == 'full' else 'incremental-' + digest(scope)
-        require(Path(folder).name == expected, 'scan-job-scope-binding-mismatch')
+        expected = 'incremental-' + digest(scope) if scope['kind'] == 'incremental' else scope['kind']
+        if scope['kind'] == 'plan':
+            require(Path(folder).parent.name == 'plan' and Path(folder).name == state['job'],
+                    'plan-job-scope-binding-mismatch')
+        else:
+            require(Path(folder).name == expected, 'scan-job-scope-binding-mismatch')
     return state
 
 
@@ -138,9 +142,7 @@ def checkpoint_status(folder, state):
     return {'scan_id': saved['scan_id'], 'checkpoint_format': saved['version']}
 
 
-def status(folder, owner=None):
-    folder = Path(folder)
-    state = owned_job(folder, owner)
+def worker_state(folder, state):
     launcher = safe_path(folder / 'launcher.json')
     launched = read_json(launcher, max_bytes=8192) if launcher.exists() else {}
     launcher_pid = launched.get('pid') if launched.get('job') == state['job'] else None
@@ -164,6 +166,12 @@ def status(folder, owner=None):
     elif state['state'] in TERMINAL and living:
         # A Windows venv redirector can outlive its Python worker briefly.
         state.update(state='RUNNING', phase='FINALIZING')
+    return state
+
+
+def status(folder, owner=None):
+    folder = Path(folder)
+    state = worker_state(folder, owned_job(folder, owner))
     last = safe_path(folder / 'progress.json')
     if last.exists():
         value = read_json(last, max_bytes=65536)
@@ -267,6 +275,27 @@ def cancel(folder, owner, scope):
         lease.close()
 
 
+def launch(folder, state, module):
+    metadata = safe_path(folder / 'job.json')
+    with safe_path(folder / 'progress.log').open('ab') as log:
+        flags = (subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS) if os.name == 'nt' else 0
+        if os.name == 'nt' and os.environ.get('KNOWLEDGE_OWNED_JOB') == '1':
+            flags |= subprocess.CREATE_BREAKAWAY_FROM_JOB
+        options = {'creationflags': flags} if os.name == 'nt' else {'start_new_session': True}
+        write_json(metadata, state)
+        try:
+            process = subprocess.Popen([sys.executable, '-I', '-B', '-X', 'utf8', '-m', module, '--worker', str(folder)],
+                                       stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, close_fds=True, **options)
+        except OSError:
+            state.update(state='BLOCKED', pid=os.getpid(), process_stamp=None, error='scan-worker-launch-failed', next_action=OBSERVE)
+            write_json(metadata, state)
+            raise
+    _children[process.pid] = process
+    write_json(safe_path(folder / 'launcher.json'), {'version': 1, 'job': state['job'], 'pid': process.pid,
+               'process_stamp': process_stamp(process.pid)})
+    return process
+
+
 def start(folder, root, scope, binding, max_files=100, resume=False, fresh=False, observed_scan_id=None):
     require(not (resume and fresh), 'invalid-recovery-controls')
     require(type(max_files) is int and 1 <= max_files <= 10000, 'invalid-scan-bound')
@@ -323,22 +352,7 @@ def start(folder, root, scope, binding, max_files=100, resume=False, fresh=False
                  'process_stamp': process_stamp(os.getpid()), 'diagnostics': str(folder)}
         if continuation:
             state['resume_context'] = resume_details(context, binding, 'checkpoint-verification-pending', resume_id)
-        with safe_path(folder / 'progress.log').open('ab') as log:
-            flags = (subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS) if os.name == 'nt' else 0
-            if os.name == 'nt' and os.environ.get('KNOWLEDGE_OWNED_JOB') == '1':
-                flags |= subprocess.CREATE_BREAKAWAY_FROM_JOB
-            options = {'creationflags': flags} if os.name == 'nt' else {'start_new_session': True}
-            write_json(metadata, state)
-            try:
-                process = subprocess.Popen([sys.executable, '-I', '-B', '-X', 'utf8', '-m', 'knowledge.scan_jobs', '--worker', str(folder)],
-                                           stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT, close_fds=True, **options)
-            except OSError:
-                state.update(state='BLOCKED', pid=os.getpid(), process_stamp=None, error='scan-worker-launch-failed', next_action=OBSERVE)
-                write_json(metadata, state)
-                raise
-        _children[process.pid] = process
-        write_json(safe_path(folder / 'launcher.json'), {'version': 1, 'job': state['job'], 'pid': process.pid,
-                   'process_stamp': process_stamp(process.pid)})
+        process = launch(folder, state, 'knowledge.scan_jobs')
     finally:
         lease.close()
 

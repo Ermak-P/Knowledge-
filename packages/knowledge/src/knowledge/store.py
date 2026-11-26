@@ -606,6 +606,7 @@ class Store:
             tick('building-final-plan')
             tick('generating-fingerprint')
             pid = fingerprint(preview)
+            tick('persisting-plan', total_candidates=len(preview['candidates']) + len(preview['skipped']))
             db.execute('INSERT OR IGNORE INTO plans VALUES (?,?,?)',(pid,canonical_json(preview),'PREPARED'))
         tick('blocked' if preview['blocked'] else 'prepared')
         return {'ok':not preview['blocked'],'fingerprint':pid,**preview}

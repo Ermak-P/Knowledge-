@@ -256,6 +256,8 @@ def lexical_scan(installation, project, store, state_dir, kind, action, value):
 def execute(command, installation, directory, value):
     if command=='knowledge-update':command='knowledge-candidates-push'
     extra={'scope','operations','extra_operations','capabilities','request'} if command=='knowledge-confluence' else set()
+    if command == 'knowledge-candidates-push':
+        extra = {'job_id', 'wait_seconds'}
     require(isinstance(value, dict) and set(value) <= {'roots', 'directory', 'action', 'approve', 'plan', 'upgrade_approval', 'migration_approval', 'base', 'head', 'max_files', 'candidates', 'resume', 'fresh', 'allow_test_double','observed_scan_id','rebuild_scan_id'}|extra, 'invalid-command-input')
     require(all(key not in value or type(value[key]) is bool for key in ('resume', 'fresh','allow_test_double')), 'invalid-recovery-controls')
     require(value.get('observed_scan_id') is None or (value.get('resume') is True and not value.get('fresh') and value.get('action','start')=='start'),'observed-scan-requires-resume')
@@ -270,6 +272,15 @@ def execute(command, installation, directory, value):
             (command == 'knowledge-candidates-update' and 'candidates' not in value)):
         kind = 'full' if command == 'knowledge-init' else 'incremental'
         return lexical_scan(installation, project, store, state_dir, kind, action, value)
+    if command == 'knowledge-candidates-push' and action != 'capabilities':
+        from . import plan_jobs
+        if action in ('status', 'cancel', 'resume', 'prepare') or action == 'start' and 'approve' not in value:
+            require('approve' not in value and 'plan' not in value, 'prepare-is-not-approval')
+            require('rebuild_scan_id' not in value or action in ('start', 'prepare'), 'rebuild-requires-prepare')
+            project_configuration(installation, project)
+            plan_binding = machine_binding(installation, project)[0] if action not in ('status', 'cancel') else None
+            return plan_jobs.dispatch(state_dir / 'plan', project, 'prepare' if action == 'start' else action, value, plan_binding)
+        require(action in ('start', 'apply', 'recover'), 'invalid-push-action')
     binding, provider = machine_binding(installation, project)
     if action=='capabilities':
         from .machine_mcp import TOOL_NAMES
@@ -428,10 +439,10 @@ def submit_reviewed(store, root, proposals, semantic_binding=None):
     finally: lease.close()
 
 
-def push(store, root, state_dir, binding, value):
+def push(store, root, state_dir, binding, value, observe_progress=None):
     action = value.get('action', 'start')
     plans = state_dir / 'plans'
-    if value.get('approve') or action == 'recover':
+    if 'approve' in value or action in ('recover', 'apply'):
         approval = value.get('approve') or value.get('plan')
         require(isinstance(approval, str) and approval.startswith('sha256:') and len(approval) == 71
                 and all(c in '0123456789abcdef' for c in approval[7:]), 'exact-approval-required')
@@ -459,6 +470,8 @@ def push(store, root, state_dir, binding, value):
     import time
     started=time.monotonic();progress_state={}
     def progress(stage,**counts):
+        if observe_progress:
+            observe_progress(stage, **counts)
         progress_state.update(stage=stage,elapsed_seconds=round(time.monotonic()-started,3),**counts)
         _write(state_dir/'plan-progress.json',progress_state)
     try:
