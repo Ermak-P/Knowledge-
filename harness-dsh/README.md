@@ -1,6 +1,6 @@
 # Harness for DeepSeek Harness (DSH)
 
-Status: proposed MVP scope; implementation requires owner agreement on the tasks below.
+Status: DSH-01 approved and implemented; native integration validation pending. DSH-02 onward require separate owner agreement.
 
 ## Boundaries
 
@@ -12,7 +12,7 @@ Status: proposed MVP scope; implementation requires owner agreement on the tasks
 - Work in-place, without Git worktrees. Never modify main or legacy code as part of this initiative.
 - Run only the new directory's tests for this work. Do not trigger legacy or Knowledge test suites deliberately. Use targeted commands from this directory; document the exact command once the test framework is selected.
 
-## Proposed tasks (approval pending)
+## Tasks (DSH-01 approved; DSH-02 onward pending approval)
 
 | ID | Task | Acceptance criteria |
 |---|---|---|
@@ -39,3 +39,75 @@ harness-dsh/
 ```
 
 Add source, tests and minimal tool configuration only when needed. No placeholder implementation.
+
+## DSH-01: passive native plugin
+
+The plugin exports the standard Cordis `name`, `inject`, and `apply` fields.
+It subscribes to DSH's public `session/event`, logs turn/step boundaries and
+tool call/result events (only session ID, event type and tool name), and relies
+on Cordis to dispose the subscription. No prompts, tool arguments, results,
+LLM calls, agent creation, or workflow policy are added.
+
+Reviewed upstream: [DSH 4b399c39](https://github.com/deepseek-ai/deepseek-harness/tree/4b399c39a6d1479cd84ca591b4d7c88e24d38a96).
+Public references: [plugin loading](https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/docs/user/develop/basic/index.md),
+[effect cleanup](https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/docs/cordis-tutorial/02-lifecycle-and-effects.md),
+[session events](https://github.com/deepseek-ai/deepseek-harness/blob/4b399c39a6d1479cd84ca591b4d7c88e24d38a96/packages/core/session/src/index.ts).
+
+### Focused tests
+
+From this directory, with Node 22.16 or a compatible newer Node:
+
+```sh
+npm test
+```
+
+This runs one dependency-free unit test using a small context double. It does
+not prove actual Cordis/DSH loading or disposal. No install or legacy tests needed.
+
+For native integration use the Node version required by the reviewed DSH
+checkout (Node ^24.22.3 or >=26.13.1), and install the test-only dependencies:
+
+```sh
+npm install
+npm run test:native
+```
+
+The native test drives the actual DSH agent loop and tool dispatcher with a
+scripted model adapter. It checks the observed event sequence, tool execution,
+exact number of model requests, and absence of observer output after unload.
+The test package versions match the reviewed upstream source manifests; npm
+availability and dependency resolution have not been verified. No runtime
+version equality check is performed by the plugin. No runtime dependencies
+are bundled.
+
+Validation recorded: `npm test` passed (1 test, Node 22.16.0).
+Native test syntax checked; native execution is **NOT RUN** because this
+environment cannot resolve registry.npmjs.org and lacks the reviewed DSH Node
+version. Native DSH loading, event delivery and unload acceptance remain open.
+
+### Manual smoke check
+
+For a DSH source checkout that already runs its web profile, use an overlay
+outside this project with the absolute path to the plugin:
+
+```yaml
+- insert:
+    - id: harness-dsh
+      name: '/absolute/path/to/Knowledge-/harness-dsh/src/index.ts'
+```
+
+Start DSH as documented by its upstream guide, e.g.
+`pnpm dsh web --patch /absolute/path/to/overlay.yml`.
+Confirm a loaded line in its terminal, run one ordinary read-only task that
+calls a tool, check turn/step/tool event lines, and unload the plugin via the
+native configuration lifecycle. The installed desktop/web host has not been
+validated by this task.
+
+### CI boundary
+
+The five existing workflows were inspected at the branch baseline. Their
+push filters do not match `feature/deepseek-harness`; no workflow files are
+changed and no legacy workflow is requested. The P4 workflow does match PRs
+targeting main, so do not open such a PR or dispatch legacy workflows for this
+isolated development phase. Separate CI automation, if needed, requires an
+explicit follow-up decision.
