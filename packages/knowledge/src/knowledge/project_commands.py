@@ -119,8 +119,8 @@ def _write(path, value):
 
 def ready(store):
     require(store.path.exists(), 'project-not-initialized-run-knowledge-init')
-    preview = lifecycle.upgrade_preview(store)
-    require(preview['already_upgraded'], 'upgrade-required', preview)
+    if not store.upgraded():
+        raise KnowledgeError('upgrade-required', lifecycle.upgrade_preview(store))
 
 
 def no_scan(root):
@@ -257,7 +257,7 @@ def execute(command, installation, directory, value):
     if command=='knowledge-update':command='knowledge-candidates-push'
     extra={'scope','operations','extra_operations','capabilities','request'} if command=='knowledge-confluence' else set()
     if command == 'knowledge-candidates-push':
-        extra = {'job_id', 'wait_seconds'}
+        extra = {'job_id', 'wait_seconds', 'execution_seconds'}
     require(isinstance(value, dict) and set(value) <= {'roots', 'directory', 'action', 'approve', 'plan', 'upgrade_approval', 'migration_approval', 'base', 'head', 'max_files', 'candidates', 'resume', 'fresh', 'allow_test_double','observed_scan_id','rebuild_scan_id'}|extra, 'invalid-command-input')
     require(all(key not in value or type(value[key]) is bool for key in ('resume', 'fresh','allow_test_double')), 'invalid-recovery-controls')
     require(value.get('observed_scan_id') is None or (value.get('resume') is True and not value.get('fresh') and value.get('action','start')=='start'),'observed-scan-requires-resume')
@@ -281,11 +281,13 @@ def execute(command, installation, directory, value):
             plan_binding = machine_binding(installation, project)[0] if action not in ('status', 'cancel') else None
             return plan_jobs.dispatch(state_dir / 'plan', project, 'prepare' if action == 'start' else action, value, plan_binding)
         require(action in ('start', 'apply', 'recover'), 'invalid-push-action')
+        require(not ({'job_id', 'wait_seconds', 'execution_seconds'} & value.keys()), 'invalid-plan-job-control')
     binding, provider = machine_binding(installation, project)
     if action=='capabilities':
         from .machine_mcp import TOOL_NAMES
         return {'ok':True,'contract':'knowledge-machine-v2','tools':sorted(TOOL_NAMES),'root':str(root),
                 'scan_actions':['start','status','resume','fresh','cancel'],
+                'plan_actions':['prepare','rebuild','status','cancel','resume','apply','recover'],
                 'provider':{'endpoint':provider['endpoint'],'model':provider['model'],'evidence':provider['evidence']},
                 'provider_reference':binding['provider_reference'],'host_permission':'Not granted by backend discovery; actual MCP calls remain host-authorized.'}
     if command=='knowledge-confluence':
@@ -330,7 +332,7 @@ def execute(command, installation, directory, value):
 
 
 def diagnostics(installation,directory,scope='full',section='failures',cursor=0,limit=20,max_bytes=16000,group=None,candidate=None,operation=None,plan=None,collection=None,scan_id=None):
-    require(scope in ('full','incremental') and section in ('failures','coverage','reconciliation','impact','policy','identity','scans','checkpoint','duplicates','candidate','plan-progress'), 'invalid-diagnostic-section')
+    require(scope in ('full','incremental') and section in ('failures','coverage','reconciliation','impact','policy','identity','scans','checkpoint','duplicates','candidate','plan-progress','plan-dispositions'), 'invalid-diagnostic-section')
     require(type(cursor) is int and cursor>=0 and type(limit) is int and 1<=limit<=100,'invalid-diagnostic-page')
     if scan_id is not None:
         import re
@@ -340,9 +342,22 @@ def diagnostics(installation,directory,scope='full',section='failures',cursor=0,
     installation=installation_at(installation);root=resolve_root(directory);project=Project(root)
     require(not root.is_relative_to(installation) and not installation.is_relative_to(root),'installation-and-project-must-be-separate')
     from .diagnostic_pages import page
-    if section=='plan-progress':
-        path=safe_path(installation/'state/projects'/project.identity/'plan-progress.json')
-        return page([read_json(path)] if path.exists() else [],{'ok':True,'section':section,'observation':'Last recorded stage; not a liveness or canonical-commit proof.','canonical_unchanged':True},cursor,limit,max_bytes)
+    if section in ('plan-progress', 'plan-dispositions'):
+        from . import plan_jobs
+        base = safe_path(installation / 'state/projects' / project.identity)
+        job = plan_jobs.summary(plan_jobs.read_state(base / 'plan', project.describe()))
+        if section == 'plan-progress':
+            path = safe_path(base / 'plan-progress.json')
+            progress = job.get('progress')
+            if progress:
+                progress = {**progress, 'job_id': job['job_id'], 'worker_state': job['worker_state']}
+            elif path.exists():
+                progress = read_json(path, max_bytes=65536)
+            return page([progress] if progress else [], {'ok':True, 'section':section}, cursor, limit, max_bytes)
+        pid = plan or job.get('canonical_plan')
+        require(pid is not None, 'plan-dispositions-require-prepared-plan')
+        return page(Store(root).plan_dispositions(pid), {'ok':True, 'section':section, 'plan':pid},
+                    cursor, limit, max_bytes)
     if section=='candidate':
         from .util import canonical_json
         import hashlib
@@ -450,17 +465,21 @@ def push(store, root, state_dir, binding, value, observe_progress=None):
         saved = loads(path.read_text(encoding='utf-8'))
         require(fingerprint(saved['binding']) == approval, 'corrupt-machine-plan')
         pid = saved['binding']['canonical_plan']
-        states = {row['fingerprint']: row['state'] for row in store.status()['plans']}
         if action == 'recover':
+            states = {row['fingerprint']: row['state'] for row in store.status()['plans']}
             require(saved.get('approved') is True and states.get(pid) in ('COMMITTED', 'ACKNOWLEDGED'), 'no-approved-commit-to-recover')
         else:
-            expected = {**binding, 'source_identity': discovery.inventory(root)['identity'] if saved['binding']['source_identity'] is not None else None, 'canonical_plan': pid}
+            snapshot = discovery.inventory(root) if saved['binding']['source_identity'] is not None else None
+            expected = {**binding, 'source_identity': snapshot['identity'] if snapshot else None, 'canonical_plan': pid}
+            incremental_validation = saved['binding'].get('source_validation') == 'incremental-git-v1'
+            if incremental_validation:
+                expected['source_validation'] = 'incremental-git-v1'
             require(expected == saved['binding'], 'machine-plan-drift-prepare-again')
             # Durable intent allows acknowledgement recovery after an unknown
             # post-commit outcome; it never approves a replacement plan.
             saved['approved'] = True
             _write(path, saved)
-            store.apply(pid, pid)
+            store.apply(pid, pid, source_snapshot=snapshot, reconcile_git=incremental_validation)
         store.acknowledge(pid)
         validation = store.validate()
         status = store.status()
@@ -472,33 +491,61 @@ def push(store, root, state_dir, binding, value, observe_progress=None):
     def progress(stage,**counts):
         if observe_progress:
             observe_progress(stage, **counts)
-        progress_state.update(stage=stage,elapsed_seconds=round(time.monotonic()-started,3),**counts)
-        _write(state_dir/'plan-progress.json',progress_state)
+        else:
+            progress_state.update(stage=stage,elapsed_seconds=round(time.monotonic()-started,3),**counts)
+            _write(state_dir/'plan-progress.json',progress_state)
+    source_identity = None
+
+    def observe_source(snapshot):
+        nonlocal source_identity
+        source_identity = snapshot['identity']
+
     try:
         progress('loading-completed-scan-artifacts')
         recovered=discovery.completed_artifact(store,value['rebuild_scan_id']) if value.get('rebuild_scan_id') else None
-        progress('verifying-current-source-inventory')
-        before = discovery.inventory(root)['identity'] if recovered or store.pending_git_sources() else None
-        if recovered:require(recovered['source_identity']==before,'scan-artifact-source-or-policy-drift',{'next_action':'Preserve the scan. Inspect source/policy changes before selecting explicit recovery; no automatic fresh scan.'})
-        prepared = store.prepare(_source_identity=before,progress=progress)
-        progress('verifying-post-prepare-source')
-        require(before is not None or not any(v.get('source') is not None and v['source']['kind']!='confluence' for v in prepared['candidates'].values()),'source-set-changed-during-prepare')
-        if before is not None:require(discovery.inventory(root)['identity'] == before, 'source-drift-during-prepare')
-        progress('blocked' if prepared['blocked'] else 'awaiting-exact-approval')
+        snapshot = None
+        if recovered:
+            progress('verifying-current-source-inventory')
+            snapshot = discovery.inventory(root)
+            require(recovered['source_identity']==snapshot['identity'],'scan-artifact-source-or-policy-drift',
+                    {'next_action':'Preserve the scan. Inspect source/policy changes before selecting explicit recovery.'})
+        prepared = store.prepare(progress=progress, source_snapshot=snapshot, reconcile_git=True, observe_source=observe_source)
+        progress('blocked' if prepared['blocked'] else 'awaiting-exact-approval',
+                 processed_candidates=len(prepared['candidates']) + len(prepared['skipped']),
+                 total_candidates=len(prepared['candidates']) + len(prepared['skipped']))
     except Exception as error:
         progress('failed',error=getattr(error,'code',type(error).__name__));raise
-    seal = {**binding, 'source_identity': before, 'canonical_plan': prepared['fingerprint']}
+    seal = {**binding, 'source_identity': source_identity, 'canonical_plan': prepared['fingerprint'],
+            'source_validation': 'incremental-git-v1'}
     approval = fingerprint(seal)
     if prepared['ok']:
         path = plans / (approval[7:] + '.json')
         if not path.exists(): _write(path, {'version': 1, 'binding': seal, 'approved': False})
-    operations = Counter(op['action'] for candidate in prepared.get('resolved',prepared['candidates']).values() if candidate for op in candidate.get('operations', []))
-    _write(state_dir / 'last-plan.json', prepared)
-    return {'ok': prepared['ok'], 'state': 'AWAITING_EXACT_APPROVAL' if prepared['ok'] else 'BLOCKED', 'root': str(root),
-            'fingerprint': approval, 'canonical_plan': prepared['fingerprint'], 'included': len(prepared['included']),
-            'operations': dict(operations), 'deduplication':prepared.get('deduplication',{}).get('counts'),'recovered_scan':recovered, 'skipped': len(prepared['skipped']), 'blocked': prepared['blocked'][:20],
-            'canonical_unchanged': True, 'skipped_details':prepared['skipped'][:20], 'diagnostics': str(state_dir / 'last-plan.json'),
-            'next_action': 'Separate explicit approval: /knowledge-candidates-push {"approve":"' + approval + '"}. On drift prepare and review a new fingerprint.'}
+    from .diagnostic_pages import compact
+    from .git_reconciliation import local
+    resolved = prepared.get('resolved', prepared['candidates'])
+    included = prepared['included']
+    deferred = prepared['skipped']
+    operations = Counter(op['action'] for cid in included if resolved[cid] for op in resolved[cid].get('operations', []))
+    counts = {'pending': len(prepared['candidates']) + len(deferred), 'included': len(included),
+              'skipped': len(deferred), 'blocked_by_plan': len(prepared['candidates']) - len(included),
+              'coalesced_within_included': sum(resolved[cid] is None for cid in included)}
+    dispositions = Counter(row['reason'] for row in deferred)
+    next_action = ('Separate explicit approval: /knowledge-candidates-push {"approve":"' + approval
+                   + '"}. On drift prepare and review a new fingerprint.' if prepared['ok'] else
+                   'Inspect plan-dispositions and resolve the reported blockers before preparing again.')
+    path = state_dir / 'last-plan.json'
+    summary = {'ok': prepared['ok'], 'state': 'AWAITING_EXACT_APPROVAL' if prepared['ok'] else 'BLOCKED',
+               'root': str(root), 'fingerprint': approval, 'canonical_plan': prepared['fingerprint'],
+               'included': len(included), 'operations': dict(operations), 'candidate_counts': counts,
+               'source_revalidated_git': sum(local(item) and item['source']['identity'] != source_identity
+                                             for item in prepared['candidates'].values()),
+               'skipped_by_reason': dict(dispositions), 'deduplication': prepared.get('deduplication', {}).get('counts'),
+               'recovered_scan': recovered, 'skipped': len(deferred), 'blocked': [compact(row) for row in prepared['blocked'][:8]],
+               'canonical_unchanged': True, 'skipped_details': [compact(row) for row in deferred[:8]],
+               'diagnostics': str(path), 'next_action': next_action}
+    _write(path, {'version': 2, 'diagnostic_projection': True, **summary})
+    return summary
 
 
 def main():

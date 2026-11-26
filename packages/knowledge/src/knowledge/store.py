@@ -7,6 +7,7 @@ apply and acknowledgment are deliberately separate durable transactions.
 from contextlib import contextmanager
 from contextvars import ContextVar
 from copy import deepcopy
+import hashlib
 import os
 from pathlib import Path
 import re
@@ -163,6 +164,10 @@ class Store:
         tables = ('records', 'queue', 'plans')
         with self._telemetry_connection(set(tables)) as db:
             return {table: db.execute('SELECT count(*) FROM ' + table).fetchone()[0] for table in tables}
+
+    def upgraded(self):
+        with self._telemetry_connection(set()) as db:
+            return life.enabled(db)
 
     @contextmanager
     def _telemetry_connection(self, tables):
@@ -544,13 +549,15 @@ class Store:
                 checkpoint('queue-written')
         return receipts
 
-    def _preview(self, db, source_identity=None, progress=None):
+    def _preview(self, db, source_identity=None, progress=None, *, source_snapshot=None,
+                 reconcile_git=False, observe_source=None):
         tick=progress or (lambda *args,**kwargs:None)
         tick('loading-canonical-knowledge')
         current = self._records(db)
         tick('loading-candidate-operations')
         queued=view(db,'validated-queue',lambda:self._check_control(db))
         pending = {cid:item for cid,status,raw,item in sorted(queued) if status=='pending'}
+        tick('candidate-loading-complete', processed_candidates=len(pending), total_candidates=len(pending))
         if life.enabled(db):
             from .discovery import candidate_refreshes
             refreshed=candidate_refreshes(db)
@@ -559,24 +566,48 @@ class Store:
             from .confluence import pending_partition
             pending,source_skipped,blocked=pending_partition(db,pending)
             skipped.extend(source_skipped)
+            if reconcile_git:
+                from . import discovery, git_reconciliation
+                if source_snapshot is None and any(git_reconciliation.local(item) for item in pending.values()):
+                    tick('verifying-current-source-inventory')
+                    source_snapshot = discovery.inventory(self.project.root)
+                if source_snapshot is not None:
+                    if observe_source:
+                        observe_source(source_snapshot)
+                    tick('reconciling-git-sources', discovered_files=len(source_snapshot['files']),
+                         total_candidates=len(pending))
+                    pending, deferred = git_reconciliation.partition(
+                        db, self.project.root, pending, source_snapshot, tick)
+                    skipped.extend(deferred)
+                    if deferred and not pending:
+                        from collections import Counter
+                        blocked.append({'code': 'source-drift-before-commit-rescan-required',
+                                        'details': {'dispositions': dict(Counter(row['reason'] for row in deferred)),
+                                                    'next_action': 'Inspect plan dispositions to identify the required source refresh or review.'}})
             if db.execute("SELECT 1 FROM plans WHERE status='COMMITTED' LIMIT 1").fetchone():
                 blocked=[{'code':'pending-acknowledgment-recover-first','details':None}]
+            revisions = life.latest(db)
             try:
                 if not blocked:
                     from .providers import verify_semantic_bindings
                     bindings=verify_semantic_bindings(db,pending)
-                    life.verify_source_bindings(self,pending.values(),db,git_identity=source_identity)
+                    tick('validating-source-bindings', total_candidates=len(pending))
+                    verified = pending.values()
+                    if reconcile_git:
+                        verified = (item for item in verified if not git_reconciliation.local(item))
+                    life.verify_source_bindings(self,verified,db,git_identity=source_identity)
                     from .plan_deduplication import reconcile
                     from .persistence_identity import recovery_projection
                     tick('loading-scan-artifacts')
                     derived,preferred=recovery_projection(db,pending)
-                    resolved,diagnostic,conflicts=reconcile(current,derived,life.latest(db),bindings,preferred=preferred,project=self.project.identity,progress=tick)
+                    resolved,diagnostic,conflicts=reconcile(current,derived,revisions,bindings,preferred=preferred,project=self.project.identity,progress=tick)
                     blocked.extend(conflicts)
                     if not blocked:
                         tick('validating-operations',total_operations=diagnostic['counts']['proposed_operations'])
-                        life.simulate(self,db,{cid:v for cid,v in resolved.items() if v is not None},check_source=False)
+                        life.simulate(self,db,{cid:v for cid,v in resolved.items() if v is not None},
+                                      check_source=False,records=current,revisions=revisions)
             except KnowledgeError as e:blocked=[{'code':e.code,'details':e.details}]
-            base=life.state_fingerprint(self,db)
+            base=fingerprint({'records':current, 'revisions':revisions})
             if not blocked and bindings:base=fingerprint({'canonical':base,'semantic_bindings':bindings})
             result={'version':1,'project':self.project.identity,'base':base,
                     'candidates':pending,'included':list(pending) if not blocked else [],'skipped':skipped, 'blocked':blocked}
@@ -598,27 +629,21 @@ class Store:
                 'candidates':pending,'included':list(pending) if not blocked else [],
                 'skipped':[], 'blocked':blocked}
 
-    def prepare(self, _source_identity=None, progress=None):
+    def prepare(self, _source_identity=None, progress=None, *, source_snapshot=None,
+                reconcile_git=False, observe_source=None):
         tick=progress or (lambda *args,**kwargs:None)
         tick('loading-store')
         with self.connection(True) as db:
-            preview = self._preview(db,_source_identity,tick)
+            preview = self._preview(db,_source_identity,tick,source_snapshot=source_snapshot,
+                                    reconcile_git=reconcile_git,observe_source=observe_source)
             tick('building-final-plan')
             tick('generating-fingerprint')
-            pid = fingerprint(preview)
+            payload = canonical_json(preview)
+            pid = 'sha256:' + hashlib.sha256(payload.encode('utf-8')).hexdigest()
             tick('persisting-plan', total_candidates=len(preview['candidates']) + len(preview['skipped']))
-            db.execute('INSERT OR IGNORE INTO plans VALUES (?,?,?)',(pid,canonical_json(preview),'PREPARED'))
+            db.execute('INSERT OR IGNORE INTO plans VALUES (?,?,?)',(pid,payload,'PREPARED'))
         tick('blocked' if preview['blocked'] else 'prepared')
         return {'ok':not preview['blocked'],'fingerprint':pid,**preview}
-
-    def pending_git_sources(self):
-        """Machine approval inventory applies only to actual local-source work."""
-        from .confluence import is_binding
-        from .discovery import candidate_refreshes
-        with self.connection() as db:
-            refreshed=candidate_refreshes(db) if life.enabled(db) else {}
-            return any(not is_binding(item.get('source'))
-                       for cid,status,raw,item in view(db,'validated-queue',lambda:self._check_control(db)) if status=='pending' and cid not in refreshed)
 
     def duplicate_diagnostics(self,group=None):
         from .plan_deduplication import reconcile,operations
@@ -658,6 +683,17 @@ class Store:
                 items=operations(item);require(operation<len(items),'invalid-candidate-operation');item=items[operation]
             return canonical_json(item)
 
+    def plan_dispositions(self, pid):
+        with self._telemetry_connection({'plans'}) as db:
+            plan, _ = self._plan(db, pid)
+        included = set(plan['included'])
+        resolved = plan.get('resolved', plan['candidates'])
+        rows = [{'candidate': cid, 'disposition': ('blocked-by-plan' if cid not in included else
+                  'coalesced' if resolved[cid] is None else 'included')}
+                for cid in plan['candidates']]
+        rows.extend({**row, 'disposition': 'skipped'} for row in plan['skipped'])
+        return rows
+
     def _plan(self, db, pid):
         require(isinstance(pid,str) and re.fullmatch(r'sha256:[a-f0-9]{64}',pid), 'invalid-fingerprint')
         row = db.execute('SELECT payload,status FROM plans WHERE id=?',(pid,)).fetchone()
@@ -666,7 +702,7 @@ class Store:
         require(fingerprint(value) == pid, 'corrupt-plan')
         return value,row[1]
 
-    def apply(self, pid, approval):
+    def apply(self, pid, approval, *, source_snapshot=None, reconcile_git=False):
         require(approval == pid, 'exact-approval-required')
         with self.connection(True) as db:
             plan,state = self._plan(db,pid)
@@ -674,7 +710,7 @@ class Store:
                 self._verify_committed(db,pid,plan)
                 return {'ok':True,'state':state,'fingerprint':pid,'result':'already-committed'}
             require(not plan['blocked'], 'blocked-plan')
-            preview=self._preview(db)
+            preview=self._preview(db,source_snapshot=source_snapshot,reconcile_git=reconcile_git)
             if plan['version']==1 and life.enabled(db) and all(v['version']==1 for v in plan['candidates'].values()) and plan['base']==fingerprint(self._records(db)):
                 # A P0 prepared approval survives a metadata-only upgrade, never a source/canonical edit.
                 preview=dict(preview,base=plan['base'])
@@ -694,7 +730,17 @@ class Store:
             if life.enabled(db):
                 from .providers import verify_semantic_bindings
                 verify_semantic_bindings(db,plan['candidates'])
-                life.verify_source_bindings(self,plan['candidates'].values(),db)
+                sources = plan['candidates'].values()
+                if reconcile_git:
+                    from . import discovery, git_reconciliation
+                    sources = [item for item in sources if not git_reconciliation.local(item)]
+                    require(source_snapshot is not None or len(sources) == len(plan['candidates']),
+                            'source-snapshot-required')
+                    if source_snapshot is not None:
+                        require(discovery.inventory(self.project.root)['identity'] == source_snapshot['identity'],
+                                'source-drift-before-commit-rescan-required',
+                                {'next_action': 'Prepare against the current source and review a new fingerprint.'})
+                life.verify_source_bindings(self,sources,db)
                 db.execute('INSERT INTO receipts VALUES (?,?)',(pid,canonical_json(plan)))
             db.execute("UPDATE plans SET status='COMMITTED' WHERE id=?",(pid,))
             from .confluence_sync import record_applied

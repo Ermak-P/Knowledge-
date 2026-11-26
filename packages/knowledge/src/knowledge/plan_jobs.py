@@ -8,6 +8,7 @@ import uuid
 from . import scan_jobs
 from .auto_init import read_json, write_json
 from .coordination import gate
+from .diagnostic_pages import compact
 from .execution_lock import ExecutionLock, ProjectExecutionLock
 from .project import Project, safe_path
 from .store import Store
@@ -39,10 +40,13 @@ def summary(state):
         return {'ok': True, 'state': 'NOT_STARTED', 'job_id': None}
     worker = state['state']
     progress = state.get('progress')
+    if progress and worker in scan_jobs.ACTIVE and state.get('started_at'):
+        progress = {**progress, 'elapsed_seconds': round(max(progress['elapsed_seconds'],
+                                                            time.time() - state['started_at']), 3)}
     result = state.get('result') or {}
     report = {'ok': worker not in ('BLOCKED', 'OUTCOME_UNKNOWN'), 'state': worker,
               'worker_state': worker, 'job_id': state['job'], 'progress': progress,
-              'diagnostics': state['diagnostics']}
+              'job_diagnostics': state['diagnostics']}
     if worker in scan_jobs.TERMINAL:
         return {**report, **result}
     if worker == 'OUTCOME_UNKNOWN':
@@ -55,7 +59,11 @@ def dispatch(base, project, action, value, binding=None):
     owner = project.describe()
     job = value.get('job_id')
     if action == 'status':
+        require(not ({'wait_seconds', 'execution_seconds'} & value.keys()), 'invalid-plan-job-control')
         return summary(read_state(base, owner, job))
+    duration = value.get('execution_seconds')
+    require(duration is None or (action != 'cancel' and type(duration) in (int, float)
+            and 0 < duration < float('inf')), 'invalid-plan-execution-deadline')
     wait_seconds = value.get('wait_seconds', 2)
     require(type(wait_seconds) in (int, float) and 0 <= wait_seconds <= 30, 'invalid-plan-observation-deadline')
     if action == 'cancel' and not base.exists():
@@ -75,7 +83,7 @@ def dispatch(base, project, action, value, binding=None):
     try:
         latest = read_state(base, owner)
         if action == 'cancel':
-            state = read_state(base, owner, job) if job else latest
+            state = read_state(base, owner, job) if job is not None else latest
             if state is None:
                 return summary(state)
             response = summary(state)
@@ -84,18 +92,22 @@ def dispatch(base, project, action, value, binding=None):
                 if not marker.exists():
                     write_json(marker, {'version': 1, 'job': state['job']})
                 response['cancellation'] = 'requested at the next preparation stage'
+            elif state['state'] == 'OUTCOME_UNKNOWN':
+                response['cancellation'] = 'worker outcome unknown; inspect this job before requesting resume'
             else:
                 response['cancellation'] = 'already terminal'
             return response
         require(action in ('prepare', 'resume'), 'invalid-push-action')
-        request = {'rebuild_scan_id': value.get('rebuild_scan_id')}
+        request = {'rebuild_scan_id': value.get('rebuild_scan_id'), 'execution_seconds': duration}
         if action == 'resume':
-            state = read_state(base, owner, job) if job else latest
+            state = read_state(base, owner, job) if job is not None else latest
             require(state is not None, 'unknown-plan-job')
             require(latest['job'] == state['job'], 'plan-job-superseded')
             require(state['state'] in ('OUTCOME_UNKNOWN', 'CANCELLED', 'BLOCKED')
                     and not state.get('legacy_worker_may_be_active'), 'plan-job-not-resumable', summary(state))
-            request = state['request']
+            request = state['request'].copy()
+            if 'execution_seconds' in value:
+                request['execution_seconds'] = duration
         else:
             require(job is None, 'use-plan-status-with-job-id')
             state = latest
@@ -115,7 +127,7 @@ def dispatch(base, project, action, value, binding=None):
             next_state = {'version': 1, 'job': job, 'scope': {'kind': 'plan'}, 'root': owner['root'],
                           'binding': binding, 'request': request, 'state': 'STARTING', 'pid': os.getpid(),
                           'process_stamp': scan_jobs.process_stamp(os.getpid()), 'diagnostics': str(folder),
-                          'progress': {'stage': 'starting', 'elapsed_seconds': 0}}
+                          'started_at': time.time(), 'progress': {'stage': 'starting', 'elapsed_seconds': 0}}
             write_json(safe_path(folder / 'job.json'), next_state)
             write_json(safe_path(base / 'current.json'), {'version': 1, 'job': job})
             scan_jobs.launch(folder, next_state, 'knowledge.plan_jobs')
@@ -142,14 +154,18 @@ def worker(folder):
     metadata = safe_path(folder / 'job.json')
     marker = safe_path(folder / 'cancel.json')
     started = time.monotonic()
+    duration = state['request'].get('execution_seconds')
     write_json(metadata, state)
     lease = None
 
     def progress(stage, **counts):
-        if stage not in ('prepared', 'awaiting-exact-approval', 'blocked', 'failed') and marker.exists():
-            if read_json(marker, max_bytes=8192).get('job') == state['job']:
-                raise Cancelled
-        state['progress'] = dict(stage=stage, elapsed_seconds=round(time.monotonic()-started, 3), **counts)
+        elapsed = time.monotonic()-started
+        if stage not in ('prepared', 'awaiting-exact-approval', 'blocked', 'failed'):
+            if marker.exists() and read_json(marker, max_bytes=8192).get('job') == state['job']:
+                raise Cancelled('cancellation-requested')
+            if duration is not None and elapsed >= duration:
+                raise Cancelled('plan-execution-deadline')
+        state['progress'] = dict(stage=stage, elapsed_seconds=round(elapsed, 3), **counts)
         write_json(metadata, state)
 
     try:
@@ -161,13 +177,14 @@ def worker(folder):
             ready(store)
             result = push(store, project.root, folder.parent.parent, state['binding'], state['request'], observe_progress=progress)
         state.update(state='COMPLETED' if result['ok'] else 'BLOCKED', result=result)
-    except Cancelled:
+    except Cancelled as error:
         state.update(state='CANCELLED', result={'ok': True, 'state': 'CANCELLED',
+                     'reason': str(error),
                      'next_action': 'Use resume with this job ID to retry preparation.'})
     except Exception as error:
         state.update(state='BLOCKED', result={'ok': False, 'state': 'BLOCKED',
                      'error': getattr(error, 'code', 'plan-prepare-worker-failed'),
-                     'details': getattr(error, 'details', None),
+                     'details': compact(getattr(error, 'details', None)),
                      'next_action': 'Inspect progress and resolve the blocker before requesting resume.'})
         if not isinstance(error, KnowledgeError):
             import traceback

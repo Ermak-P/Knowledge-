@@ -80,9 +80,11 @@ def state_fingerprint(store,db):
     return fingerprint({'records':store._records(db),'revisions':latest(db)})
 
 
-def simulate(store,db,items,check_source=True):
-    records=store._records(db); current={r['id']:(g,r) for g,rs in records.items() for r in rs}
-    states=latest(db); versions={i:s['revision'] for i,s in states.items()};touched=set(); checked_sources=set()
+def simulate(store,db,items,check_source=True,*,records=None,revisions=None):
+    records=store._records(db) if records is None else records
+    current={r['id']:(g,r) for g,rs in records.items() for r in rs}
+    states=latest(db) if revisions is None else dict(revisions)
+    versions={i:s['revision'] for i,s in states.items()};touched=set()
     if check_source:verify_source_bindings(store,items.values(),db)
     for value in items.values():
         if value['version']==1:
