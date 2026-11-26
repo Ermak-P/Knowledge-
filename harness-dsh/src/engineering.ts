@@ -47,7 +47,7 @@ export function mountEngineering(ctx,config,libs,xml){
   const timeoutMs=config.checkTimeoutMs??300000
   if(!Number.isInteger(timeoutMs)||timeoutMs<1000||timeoutMs>3600000)throw Error('invalid checkTimeoutMs')
   const trustedReads=new Set(config.readOnlyTools??[])
-  if([...trustedReads].some(n=>typeof n!=='string'||!n.startsWith('mcp:')))throw Error('readOnlyTools must contain exact, manually audited MCP tool names')
+  if([...trustedReads].some(n=>typeof n!=='string'||!n.startsWith('mcp__')))throw Error('readOnlyTools must contain exact, manually audited MCP tool names')
   const presets=config.presets??{}
   const runs=new Map(),assignments=new Map(),seenTurns=new Map()
   const fresh=(ignore=[])=>s.computeFingerprint(root,{budgetMs,ignore,maxRehashFiles:10000,maxRehashBytes:128*1024*1024})
