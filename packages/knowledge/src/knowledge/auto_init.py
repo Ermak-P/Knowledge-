@@ -28,6 +28,12 @@ class ScanCancelled(ScanError):
     pass
 
 
+class CheckpointError(ScanError):
+    def __init__(self, message, code='invalid-scan-checkpoint'):
+        super().__init__(message)
+        self.code = code
+
+
 @contextmanager
 def lease_options(handles):
     """A committed chunk child retains writer ownership if its worker dies."""
@@ -42,9 +48,17 @@ def lease_options(handles):
         for handle,inherited in previous.items():os.set_handle_inheritable(handle,inherited)
 
 
-def read_json(path):
+def read_json(path, max_bytes=None):
     """Windows readers share delete so atomic writers can replace metadata."""
-    if os.name != 'nt': return json.loads(Path(path).read_text(encoding='utf-8'))
+    def decode(stream):
+        data = stream.read() if max_bytes is None else stream.read(max_bytes + 1)
+        if max_bytes is not None and len(data) > max_bytes:
+            raise ScanError('Scan metadata exceeds its supported size.')
+        return json.loads(data.decode('utf-8'))
+
+    if os.name != 'nt':
+        with Path(path).open('rb') as stream:
+            return decode(stream)
     import ctypes
     import msvcrt
     from .windows_lock import k, INVALID
@@ -56,7 +70,8 @@ def read_json(path):
         time.sleep(.01)
     try: fd = msvcrt.open_osfhandle(handle, os.O_RDONLY | os.O_BINARY)
     except BaseException: k.CloseHandle(handle); raise
-    with os.fdopen(fd, 'r', encoding='utf-8') as stream: return json.load(stream)
+    with os.fdopen(fd, 'rb') as stream:
+        return decode(stream)
 
 
 def short_message(value, limit=240):
@@ -87,22 +102,24 @@ def inside(path, root):
 
 
 def read_checkpoint(path):
-    saved=read_json(path)
-    if not isinstance(saved,dict):raise ScanError('Invalid checkpoint object.')
-    if saved.get('version')==2:
+    saved=read_json(path, max_bytes=32768)
+    if not isinstance(saved,dict):raise CheckpointError('Invalid checkpoint object.')
+    version = saved.get('version')
+    if type(version) is not int or version not in (1, 2):
+        raise CheckpointError('Unsupported checkpoint version.', 'unsupported-checkpoint-format')
+    if version == 2:
         body={k:v for k,v in saved.items() if k!='checksum'}
         if saved.get('checksum')!=hashlib.sha256(json.dumps(body,sort_keys=True).encode()).hexdigest():
-            raise ScanError('Corrupt checkpoint checksum; observe diagnostics section=scans before explicit recovery.')
-    elif saved.get('version')!=1:raise ScanError('Unsupported checkpoint version.')
+            raise CheckpointError('Corrupt checkpoint checksum; observe diagnostics section=scans before explicit recovery.')
     scan_id=saved.get('scan_id')
     if not isinstance(scan_id,str) or len(scan_id)!=64 or any(c not in '0123456789abcdef' for c in scan_id):
-        raise ScanError('Invalid checkpoint scan_id; observe diagnostics section=scans.')
+        raise CheckpointError('Invalid checkpoint scan_id; observe diagnostics section=scans.')
     return saved
 
 
 def run(root, output, scan_id=None, max_files=100, max_calls=10000,
         command_timeout=600, fresh=False, base=None, head=None, incremental=False, retry_blocked=False,
-        cancel_path=None, cancel_job=None, refresh=False, lease_fds=(), persistent=True):
+        cancel_path=None, cancel_job=None, refresh=False, lease_fds=(), persistent=True, session=None):
     root = Path(root).resolve(strict=True)
     if not root.is_dir():
         raise ScanError('--root must be an existing project directory.')
@@ -129,12 +146,12 @@ def run(root, output, scan_id=None, max_files=100, max_calls=10000,
     if scan_id:
         print('Scan ID: ' + short_message(scan_id), flush=True)
     previous = None
-    session = None
-    if persistent:
+    if persistent or session is not None:
+        from .util import KnowledgeError
+    if persistent and session is None:
+        from . import lifecycle
         from .discovery import ScanSession
         from .store import Store
-        from . import lifecycle
-        from .util import KnowledgeError
 
         store = Store(root)
         if not store.path.exists():
@@ -215,6 +232,8 @@ def run(root, output, scan_id=None, max_files=100, max_calls=10000,
         first_id = scan_id is None
         scan_id = returned_id
         saved = {'version': 2, 'root': str(root), 'scan_id': scan_id, 'scope': {'base': base, 'head': head, 'incremental': incremental}}
+        if cancel_job is not None:
+            saved['job'] = cancel_job
         saved['checksum'] = hashlib.sha256(json.dumps(saved,sort_keys=True).encode()).hexdigest()
         write_json(checkpoint, saved)
         if first_id:

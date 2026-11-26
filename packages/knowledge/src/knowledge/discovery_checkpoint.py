@@ -27,6 +27,19 @@ TABLE_SQL = {
 }
 
 
+def verify_schema(db):
+    required = {
+        'scans': ['id', 'payload'],
+        'discovery_runs': ['id', 'initial', 'initial_hash', 'sequence', 'tail'],
+        'discovery_chunks': ['scan', 'sequence', 'payload', 'checksum'],
+    }
+    present = {name: [row[1] for row in db.execute(f'PRAGMA table_info({name})')] for name in required}
+    require(present['scans'] == required['scans']
+            and (not present['discovery_runs'] and not present['discovery_chunks']
+                 or all(present[name] == required[name] for name in TABLE_SQL)),
+            'incompatible-scan-database-schema')
+
+
 def create(db):
     for sql in TABLE_SQL.values():
         db.execute(sql.replace('CREATE TABLE ', 'CREATE TABLE IF NOT EXISTS ', 1))

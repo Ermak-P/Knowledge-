@@ -16,6 +16,7 @@ from . import discovery_cache as file_cache
 from . import discovery_history as scan_history
 
 VERSION='dotnet-lexical-v3'
+RESUME_CONTRACT = 'lexical-scan-v1'
 LEGACY_METHODS={'dotnet-lexical-v1','dotnet-lexical-v2'}
 DISCOVERY_METHODS=LEGACY_METHODS|{VERSION}
 CURRENT_EVIDENCE=('unchanged','anchor-valid-file-changed','current-registered-confluence-snapshot','unchanged-content-newer-confluence-version')
@@ -700,8 +701,13 @@ class ScanSession:
         self.generation = None
         self.by_file = {}
 
-    def _open(self, scan_id, base, head, restart, incremental):
-        from .persistence_identity import POLICY
+    def prepare_resume(self, scan_id, base, head, incremental):
+        """Verify and retain the durable state before the worker may extract."""
+        require(scan_id is not None, 'unknown-scan')
+        self._open(scan_id, base, head, False, incremental, verify_resume=True)
+
+    def _open(self, scan_id, base, head, restart, incremental, verify_resume=False):
+        from .persistence_identity import LEGACY, POLICY
         from uuid import uuid4
 
         root = self.store.project.root
@@ -715,6 +721,8 @@ class ScanSession:
                              + ([uuid4().hex] if restart else []))
         with self.store.connection() as db:
             require(life.enabled(db), 'upgrade-required')
+            if verify_resume:
+                scan_checkpoint.verify_schema(db)
             persisted = _load_checkpoint(db, scan_id, self.by_file)
             self.legacy = _legacy_scan(db, scan_id)
             terminal = scan_history.decode(db, scan_id, self.legacy) if self.legacy and not persisted else None
@@ -725,11 +733,32 @@ class ScanSession:
             self.by_file.update(file_cache.historical_observations(state))
         else:
             require(not provided or restart, 'unknown-scan')
-            state = dict(id=scan_id, extractor=VERSION, identity_policy=POLICY, snapshot=snap,
+            state = dict(id=scan_id, extractor=VERSION, identity_policy=POLICY, resume_contract=RESUME_CONTRACT, snapshot=snap,
                          observations=[], candidates=[], captured_at=life.now(), complete=False)
             if incremental:
                 state.update(incremental=True, scope_paths=sorted(chosen))
+        if verify_resume:
+            saved = state['snapshot']
+            require(state['id'] == scan_id, 'corrupt-scan-checkpoint')
+            require(state.get('resume_contract', 'lexical-scan-v1') == RESUME_CONTRACT, 'incompatible-scan-resume-contract')
+            require(state.get('identity_policy', LEGACY) in (POLICY, LEGACY), 'incompatible-scan-identity-policy')
+            require(state['extractor'] == VERSION, 'stale-extractor-restart-required')
+            require(saved['policy'] == snap['policy'], 'stale-discovery-policy')
+            require(saved.get('delta') == snap.get('delta'), 'scan-range-mismatch-restart-required')
+            require(saved['revision'] == snap['revision'], 'stale-scan-git-revision')
+            require('git_branch' in state or snap['revision'] is None, 'scan-git-branch-unverified')
+            require(state.get('git_branch') == self.branch, 'stale-scan-git-branch')
         require(state['snapshot']['identity'] == snap['identity'], 'stale-scan-restart-required')
+        if verify_resume and incremental:
+            require(state.get('scope_paths') == sorted(chosen), 'scan-scope-mismatch-restart-required')
+        if verify_resume and not persisted:
+            # Older monolithic artifacts have no envelope checksum. Check their
+            # coverage against the source just verified before retaining work.
+            paths = snap['files'].keys() if not incremental else snap['files'].keys() & chosen
+            coverage = state['coverage']
+            require(coverage.keys() == paths and all(
+                entry['hash'] == snap['files'][path]['hash'] for path, entry in coverage.items()),
+                'corrupt-scan-checkpoint')
         require(state['extractor'] == VERSION, 'stale-extractor-restart-required')
         if base or head:
             require(state['snapshot']['delta'] == snap['delta'], 'scan-range-mismatch-restart-required')

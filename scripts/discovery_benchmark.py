@@ -262,8 +262,13 @@ def worker(store, folder, chunk, worker_python):
 
     folder.mkdir()
     root = str(store.project.root)
-    binding = {'root': {'root': root}, 'provider_reference': 'synthetic'}
+    owner = store.project.describe()
+    reference = {'path': 'synthetic', 'hash': 'synthetic'}
+    binding = {'root': owner, 'provider_reference': reference, 'runtime_release': 'synthetic'}
+    folder = folder / 'full'
+    folder.mkdir()
     auto_init.write_json(folder / 'job.json', {'version': 1, 'job': 'benchmark', 'pid': os.getpid(),
+        'process_stamp': scan_jobs.process_stamp(os.getpid()), 'root': root,
         'state': 'RUNNING', 'binding': binding, 'scope': {'kind': 'full'}})
     stopped = threading.Event()
     latencies = []
