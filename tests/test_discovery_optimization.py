@@ -3,6 +3,7 @@ import contextlib
 import io
 from pathlib import Path
 import os
+import sqlite3
 import subprocess
 import tempfile
 import unittest
@@ -131,6 +132,35 @@ class DiscoveryOptimization(unittest.TestCase):
         with self.assertRaisesRegex(KnowledgeError, 'capture-observation-cache-incomplete') as error:
             discovery.candidate_observe(self.store, ['A.cs'])
         self.assertEqual(error.exception.details['path_sample'], ['B.cs'])
+
+    def test_busy_checkpoint_retries_a_valid_delta_without_reextracting(self):
+        for name in ('A', 'B', 'C'):
+            self.write(f'{name}.cs', f'class {name} {{}}')
+        session = discovery.ScanSession(self.store)
+        first = session.scan(max_files=1)
+        reader = sqlite3.connect(self.store.path)
+        self.addCleanup(reader.close)
+        reader.execute('BEGIN')
+        reader.execute('SELECT count(*) FROM scans').fetchone()
+        original = self.store.discovery_checkpoint_connection
+        retries = []
+
+        @contextlib.contextmanager
+        def observed():
+            try:
+                with original() as db:
+                    yield db
+            except KnowledgeError as error:
+                retries.append(error.code)
+                reader.rollback()
+                raise
+
+        with (patch.object(self.store, 'discovery_checkpoint_connection', observed),
+              patch.object(discovery, 'extract', wraps=discovery.extract) as extracts):
+            second = session.scan(first['id'], max_files=1)
+        self.assertEqual(retries, ['store-busy-retry'])
+        self.assertEqual(extracts.call_count, 1)
+        self.assertEqual(second['work']['remaining_files'], 1)
 
     def test_checkpoint_checksum_blocks_recovery_before_any_extraction(self):
         self.write('A.cs', 'class A {}')

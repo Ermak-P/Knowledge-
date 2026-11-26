@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 import subprocess
 import tempfile
+import time
 import xml.etree.ElementTree as ET
 from .util import canonical_json, digest, fingerprint, loads, require, KnowledgeError
 from .project import safe_path
@@ -295,11 +296,13 @@ def fresh_evidence(root,e,scope=None,db=None):
         if method in DISCOVERY_METHODS and method not in LEGACY_METHODS and scope is None:
             scope = analysis_scope(root)
         reads = scope.get('_evidence_sources') if scope is not None else None
-        if reads is not None and relative in reads:
+        wanted = scope.get('_evidence_anchors', {}).get(relative, ()) if reads is not None else ()
+        reusable = reads is not None and (method not in DISCOVERY_METHODS or e['description'] in wanted)
+        if reusable and relative in reads:
             source = reads[relative]
         else:
-            source = _evidence_source(root, relative, scope)
-            if reads is not None:
+            source = _evidence_source(root, relative, scope, wanted if reusable else (e['description'],))
+            if reusable:
                 reads[relative] = source
         if isinstance(source, str):
             return source
@@ -320,7 +323,7 @@ def fresh_evidence(root,e,scope=None,db=None):
     return 'changed'
 
 
-def _evidence_source(root, relative, scope):
+def _evidence_source(root, relative, scope, wanted):
     path = safe_path(Path(root)/relative)
     if not path.is_file() or path.is_symlink():
         return 'missing'
@@ -338,7 +341,7 @@ def _evidence_source(root, relative, scope):
     text, metadata = source_reader.read(root,relative,entry,config)
     if metadata['partial']:
         return 'not-analyzed'
-    return entry, {line.strip() for line in text.splitlines()}
+    return entry, {line for raw in text.splitlines() if (line := raw.strip()) in wanted} if wanted else set()
 
 
 def positive_scope_complete(scope,identifiers):
@@ -386,6 +389,13 @@ def identity_scope(scope,records):
     coverage = scope.get('verification_coverage', scope['snapshot']['files'])
     incomplete = {e['partition'] for path, e in scope['snapshot']['files'].items()
                   if file_cache.code_file(path) and (path not in coverage or not file_cache.verified(coverage[path]))}
+    anchors = {}
+    for evidence in records['evidence']:
+        path = evidence['source']
+        if isinstance(path, dict):
+            path = path.get('reference')
+        if evidence['provenance']['method'] in DISCOVERY_METHODS and isinstance(path, str):
+            anchors.setdefault(Path(path).as_posix(), set()).add(evidence['description'])
     dependents = {}
     by_statement = {}
     for claim in records['claims']:
@@ -394,7 +404,8 @@ def identity_scope(scope,records):
             dependents.setdefault(dependency, []).append(claim['id'])
     return {**scope, 'identity_aliases': aliases, '_identity_records': records, '_canonical_index': canonical,
             '_observations_by_id': by_id, '_incomplete_projects': incomplete, '_dependents': dependents,
-            '_evidence_sources': {}, '_evidence_by_id': {e['id']: e for e in records['evidence']},
+            '_evidence_sources': {}, '_evidence_anchors': anchors,
+            '_evidence_by_id': {e['id']: e for e in records['evidence']},
             '_claims_by_id': {c['id']: c for c in records['claims']}, '_claims_by_statement': by_statement}
 
 
@@ -519,7 +530,8 @@ def _cached_scope(db, project, state, by_file, *, dependencies=False, root=None)
         'missing_files': missing, 'ambiguous_ids': sorted(ambiguous), 'unrelated_files_extracted': 0,
         'dependency_files_extracted': extracted_dependencies,
     }
-    coverage = {p: {**snapshot['files'][p], 'status': 'analyzed', 'processing_status': 'processed'} for p in cached}
+    covered = {'status': 'analyzed', 'processing_status': 'processed'}
+    coverage = dict.fromkeys(cached, covered)
     coverage.update(state['coverage'])
     return {'snapshot': snapshot, 'observations': observations, 'ambiguous': ambiguous,
             'complete': state['complete'] and not missing, 'verification_coverage': coverage,
@@ -667,6 +679,20 @@ def _legacy_scan(db, scan_id):
     return row[0] if row else None
 
 
+def _retry_busy(operation):
+    # A SQLite BUSY commit is rolled back when the connection closes. Retry the
+    # same durable operation without repeating extraction or widening timeouts.
+    delays = (.025, .075, .150)
+    for delay in delays:
+        try:
+            return operation()
+        except KnowledgeError as error:
+            if error.code != 'store-busy-retry':
+                raise
+            time.sleep(delay)
+    return operation()
+
+
 class ScanSession:
     # One bounded, reusable source snapshot owned by a scan execution.
 
@@ -776,37 +802,47 @@ class ScanSession:
             if diagnostic:
                 delta['details'] = diagnostic
             encoded = scan_checkpoint.encode(state['id'], self.generation, self.initial, delta)
-            with self.store.discovery_checkpoint_connection() as db:
-                if self.generation is None:
-                    require(_legacy_scan(db, state['id']) == self.legacy, 'concurrent-scan-checkpoint-changed')
-                version = scan_checkpoint.append(db, state['id'], self.generation, encoded)
-            self.generation = version
+            def append():
+                with self.store.discovery_checkpoint_connection() as db:
+                    if self.generation is None:
+                        require(_legacy_scan(db, state['id']) == self.legacy, 'concurrent-scan-checkpoint-changed')
+                    return scan_checkpoint.append(db, state['id'], self.generation, encoded)
+
+            self.generation = _retry_busy(append)
+            self.initial = None
         else:
-            with self.store.discovery_completion_connection() as db:
-                require(life.enabled(db), 'upgrade-required')
-                require(_legacy_scan(db, state['id']) == self.legacy and scan_checkpoint.generation(db, state['id']) == self.generation,
-                        'concurrent-scan-checkpoint-changed')
-                records = self.store._records(db)
-                states = life.latest(db)
-                scope = identity_scope(_scan_scope(db, state, self.by_file), records)
-                new_queue, receipts, refreshes, cache_rows = _prepare_completion(self.store, db, state, self.by_file, records, states, scope)
-                if reconcile_result:
-                    reconciliation = _reconcile(self.store, db, state, records, states, scope)
-                state['source_verified'] = True
-                payload = canonical_json(state)
-                current = inventory(root, base, head)
-                require(current['identity'] == snap['identity'] and (not (base or head) or current['delta'] == snap['delta'])
-                        and _branch(root, current) == self.branch, 'source-changed-during-scan-restart')
-                db.executemany('INSERT INTO queue VALUES (?,?,?,NULL)', new_queue)
-                db.executemany('INSERT OR IGNORE INTO metadata VALUES (?,?)', receipts)
-                _write_refreshes(db, refreshes)
-                if cache_rows is not None:
-                    file_cache.save(db, *cache_rows)
-                scan_checkpoint.publish(db, state['id'], self.generation, payload)
+            state, reconciliation = _retry_busy(lambda: self._complete(base, head, reconcile_result))
+            self.state = state
         result = {'ok': True, **state}
         if reconciliation is not None:
             result['reconciliation'] = reconciliation
         return result
+
+    def _complete(self, base, head, reconcile_result):
+        state = dict(self.state, candidates=list(self.state['candidates']))
+        root = self.store.project.root
+        snap = state['snapshot']
+        with self.store.discovery_completion_connection() as db:
+            require(life.enabled(db), 'upgrade-required')
+            require(_legacy_scan(db, state['id']) == self.legacy and scan_checkpoint.generation(db, state['id']) == self.generation,
+                    'concurrent-scan-checkpoint-changed')
+            records = self.store._records(db)
+            states = life.latest(db)
+            scope = identity_scope(_scan_scope(db, state, self.by_file), records)
+            new_queue, receipts, refreshes, cache_rows = _prepare_completion(self.store, db, state, self.by_file, records, states, scope)
+            reconciliation = _reconcile(self.store, db, state, records, states, scope) if reconcile_result else None
+            state['source_verified'] = True
+            payload = canonical_json(state)
+            current = inventory(root, base, head)
+            require(current['identity'] == snap['identity'] and (not (base or head) or current['delta'] == snap['delta'])
+                    and _branch(root, current) == self.branch, 'source-changed-during-scan-restart')
+            db.executemany('INSERT INTO queue VALUES (?,?,?,NULL)', new_queue)
+            db.executemany('INSERT OR IGNORE INTO metadata VALUES (?,?)', receipts)
+            _write_refreshes(db, refreshes)
+            if cache_rows is not None:
+                file_cache.save(db, *cache_rows)
+            scan_checkpoint.publish(db, state['id'], self.generation, payload)
+        return state, reconciliation
 
 
 def scan(store, scan_id=None, max_files=50, base=None, head=None, restart=False, incremental=False,
