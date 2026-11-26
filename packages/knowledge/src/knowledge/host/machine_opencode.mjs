@@ -6,6 +6,18 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const names = ["knowledge-init", "knowledge-candidates-update", "knowledge-candidates-push", "knowledge-confluence", "knowledge-update"];
+const planCommands = new Set(["knowledge-candidates-push", "knowledge-update"]);
+
+function milliseconds(name, fallback) {
+  const raw = process.env[name];
+  if (raw === undefined) return fallback;
+  const value = Number(raw);
+  if (!/^\d+$/.test(raw) || !Number.isSafeInteger(value) || value > 2147483647) {
+    throw new Error("Invalid Knowledge timeout setting: " + name);
+  }
+  return value;
+}
+
 export default {
   id: "knowledge.machine",
   async setup(ctx) {
@@ -13,16 +25,32 @@ export default {
     const home = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
     const settings = JSON.parse(await readFile(path.join(home, ".knowledge-machine.json"), "utf8"));
     if (settings.version !== 1 || !path.isAbsolute(settings.python) || !path.isAbsolute(settings.launcher)) throw new Error("Invalid Knowledge machine registration");
+    const commandWait = milliseconds("KNOWLEDGE_COMMAND_WAIT_MS", 0);
+    const observationWait = milliseconds("KNOWLEDGE_OBSERVE_MS", 15000);
     const templates = Object.fromEntries(await Promise.all(names.map(async name => [name, (await readFile(path.join(home, "knowledge-machine-templates", name + ".md"), "utf8")).replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "")])));
     const run = (command, value, directory) => new Promise((resolve, reject) => {
       const child = spawn(settings.python, ["-I", "-B", settings.launcher, "command", command], { shell: false, windowsHide: true });
       let stdout = "";
-      const timer = setTimeout(() => { child.kill(); reject(new Error("Knowledge command outcome unknown. Observe durable status/recover before retrying.")); }, 30000);
+      let oversized = false;
+      const timer = commandWait ? setTimeout(() => {
+        reject(new Error("Knowledge stopped waiting for a command response. Inspect durable status before retrying."));
+      }, commandWait) : undefined;
       child.on("error", error => { clearTimeout(timer); reject(error); });
+      child.stdin.on("error", error => { clearTimeout(timer); reject(error); });
       child.stdout.setEncoding("utf8");child.stderr.resume();
-      child.stdout.on("data", text => { stdout += text; if (stdout.length > 1000000) child.kill(); });
+      child.stdout.on("data", text => {
+        if (oversized) return;
+        if (stdout.length + text.length > 1000000) {
+          oversized = true;
+          stdout = "";
+        } else stdout += text;
+      });
       child.on("close", () => {
         clearTimeout(timer);
+        if (oversized) {
+          reject(new Error("Knowledge response exceeded the display limit. Inspect durable status."));
+          return;
+        }
         try { resolve(JSON.parse(stdout)); } catch { reject(new Error("Invalid Knowledge backend output; inspect installation diagnostics.")); }
       });
       child.stdin.end(JSON.stringify({ ...value, directory }));
@@ -62,16 +90,21 @@ export default {
             const required = ["knowledge_capabilities", "knowledge_scan", "knowledge_scan_diagnostics", "knowledge_submit_candidates", "knowledge_plan", "knowledge_confluence"];
             const missing = required.filter(item => !preflight.tools?.includes(item));
             if (!preflight.ok || missing.length) throw new Error("Knowledge backend capabilities unavailable: " + (preflight.error || missing.join(", ")) + ". Upgrade/restart MCP and rediscover tools; no operation started. Host permission denial is separate.");
-            const operation = ["knowledge-candidates-push", "knowledge-update"].includes(name) ? "knowledge_plan" : name === "knowledge-confluence" ? "knowledge_confluence" : Array.isArray(value.candidates) ? "knowledge_submit_candidates" : "knowledge_scan";
+            const isPlan = planCommands.has(name);
+            const operation = isPlan ? "knowledge_plan" : name === "knowledge-confluence" ? "knowledge_confluence" : Array.isArray(value.candidates) ? "knowledge_submit_candidates" : "knowledge_scan";
             await ctx.permission.assert({ sessionID, agent: prompt.agent ?? session.agent,
               action: "knowledge_machine_" + operation, resources: ["*"],
               metadata: { command: name, action: value.action || (value.approve ? "apply" : "start") } });
-            let state = await run(name, value, directory);
-            const deadline = Date.now() + 15000;
+            const deadline = performance.now() + observationWait;
+            const observes = name !== "knowledge-confluence" && !value.approve && !["status", "cancel", "recover"].includes(value.action);
+            const request = isPlan && observes && value.wait_seconds === undefined ? { ...value, wait_seconds: 0 } : value;
+            let state = await run(name, request, directory);
             let reportedScan = false;
-            while (!["knowledge-candidates-push", "knowledge-update", "knowledge-confluence"].includes(name) && ["RUNNING", "STARTING"].includes(state.state) && Date.now() < deadline) {
-              await new Promise(resolve => setTimeout(resolve, 250));
-              state = await run(name, { ...value, action: "status" }, directory);
+            while (observes && ["RUNNING", "STARTING"].includes(state.state) && performance.now() < deadline) {
+              await new Promise(resolve => setTimeout(resolve, Math.min(250, Math.max(0, deadline - performance.now()))));
+              if (performance.now() >= deadline) break;
+              const status = isPlan ? { action: "status", job_id: state.job_id } : { action: "status", base: value.base, head: value.head };
+              state = await run(name, status, directory);
               if (state.scan_id && !reportedScan) {
                 reportedScan = true;
                 await ctx.session.synthetic({ sessionID, text: "Knowledge scan ID: " + state.scan_id + "; diagnostics: " + state.diagnostics + ". Candidates remain unapproved." });

@@ -91,7 +91,8 @@ def create_server(installation, workspace=None):
             provider,reference=shared(Path(installation)/'config/provider.json')
             return {'ok':True,'contract':'knowledge-machine-v2','tools':sorted(TOOL_NAMES),
                     'scan_actions':['start','status','resume','fresh','cancel'],
-                    'diagnostic_sections':['failures','coverage','reconciliation','impact','policy','identity','scans','duplicates','candidate','plan-progress'],
+                    'plan_actions':['prepare','rebuild','status','cancel','resume','apply','recover'],
+                    'diagnostic_sections':['failures','coverage','reconciliation','impact','policy','identity','scans','checkpoint','duplicates','candidate','plan-progress','plan-dispositions'],
                     'plan_deduplication':'exact-utf8-v1','plan_formats':[1,2],
                     'candidate_actions':['submit','prepare','rebuild','apply','recover'],
                     'source_kinds':['git','confluence'],'confluence_actions':['register_snapshot','inventory','related','snapshot','observe','failure','analyze','resume_analysis','confirm_deleted','gc','scope','start','status','progress','diagnostics','next','complete_work','terms','retry','finish'],
@@ -116,11 +117,11 @@ def create_server(installation, workspace=None):
         return await invoke(ctx,call,max_bytes)
 
     @server.tool()
-    async def knowledge_scan_diagnostics(ctx:Context,scope:Literal['full','incremental']='full',section:Literal['failures','coverage','reconciliation','impact','policy','identity','scans','duplicates','candidate','plan-progress']='failures',
-                                         cursor:int=0,limit:int=20,max_bytes:int=16000,group:str|None=None,candidate:str|None=None,operation:int|None=None,plan:str|None=None,collection:str|None=None)->CallToolResult:
-        """Read paged file diagnostics or reconciliation, without filesystem/SQL access."""
+    async def knowledge_scan_diagnostics(ctx:Context,scope:Literal['full','incremental']='full',section:Literal['failures','coverage','reconciliation','impact','policy','identity','scans','checkpoint','duplicates','candidate','plan-progress','plan-dispositions']='failures',
+                                         cursor:int=0,limit:int=20,max_bytes:int=16000,group:str|None=None,candidate:str|None=None,operation:int|None=None,plan:str|None=None,collection:str|None=None,scan_id:str|None=None)->CallToolResult:
+        """Read paged diagnostics, current checkpoint metadata, or an identified historical scan."""
         from .project_commands import diagnostics
-        return await invoke(ctx,lambda r:diagnostics(installation,r,scope,section,cursor,limit,max_bytes,group,candidate,operation,plan,collection),max_bytes)
+        return await invoke(ctx,lambda r:diagnostics(installation,r,scope,section,cursor,limit,max_bytes,group,candidate,operation,plan,collection,scan_id),max_bytes)
 
     @server.tool()
     async def knowledge_source_read(path:str,ctx:Context,start_line:int=1,max_lines:int=60,start_column:int=0,max_bytes:int=16000)->CallToolResult:
@@ -164,15 +165,25 @@ def create_server(installation, workspace=None):
         return await invoke(ctx,lambda r:execute('knowledge-candidates-update',installation,r,{'candidates':proposals,'allow_test_double':allow_test_double}),max_bytes)
 
     @server.tool()
-    async def knowledge_plan(ctx:Context,action:Literal['prepare','rebuild','apply','recover']='prepare',approve:str|None=None,max_bytes:int=16000,scan_id:str|None=None)->CallToolResult:
-        """Prepare; apply only a separately explicitly approved exact fingerprint."""
+    async def knowledge_plan(ctx:Context,action:Literal['prepare','rebuild','status','cancel','resume','apply','recover']='prepare',approve:str|None=None,max_bytes:int=16000,scan_id:str|None=None,job_id:str|None=None,wait_seconds:float|None=None,execution_seconds:float|None=None)->CallToolResult:
+        """Prepare or observe a durable job. Apply requires a separate exact approval."""
         def call(r):
             from .project_commands import execute
-            require(action in ('prepare','rebuild') or isinstance(approve,str),'exact-approval-required')
+            mutation = action in ('apply', 'recover')
+            require(not mutation or isinstance(approve,str),'exact-approval-required')
             require((action=='rebuild')==(scan_id is not None),'rebuild-requires-scan-id')
-            value={} if action in ('prepare','rebuild') else {'action':'recover','plan':approve} if action=='recover' else {'approve':approve}
+            value={'action': 'prepare' if action == 'rebuild' else action}
+            if mutation:
+                value['plan' if action == 'recover' else 'approve'] = approve
             if scan_id is not None:value['rebuild_scan_id']=scan_id
-            require(action not in ('prepare','rebuild') or approve is None,'prepare-is-not-approval')
+            if job_id is not None:
+                require(action in ('status', 'cancel', 'resume'), 'invalid-plan-job-control')
+                value['job_id'] = job_id
+            for name, duration in (('wait_seconds', wait_seconds), ('execution_seconds', execution_seconds)):
+                if duration is not None:
+                    require(action in ('prepare', 'rebuild', 'resume'), 'invalid-plan-job-control')
+                    value[name] = duration
+            require(mutation or approve is None,'prepare-is-not-approval')
             return execute('knowledge-candidates-push',installation,r,value)
         return await invoke(ctx,call,max_bytes)
 

@@ -53,6 +53,24 @@ def machine_binding(installation, project):
     return {'root': project.describe(), 'provider_reference': reference, 'runtime_release': current['release_sha256']}, provider
 
 
+def scan_binding(installation, project):
+    """Provider telemetry is optional for deterministic lexical jobs."""
+    path = safe_path(installation / 'current.json')
+    current = loads(path.read_text(encoding='utf-8'))
+    binding = {'root': project.describe(), 'runtime_release': current['release_sha256']}
+    try:
+        provider, reference = shared(installation / 'config/provider.json')
+    except FileNotFoundError:
+        return {**binding, 'provider_state': 'missing'}, {}
+    except OSError:
+        return {**binding, 'provider_state': 'unavailable'}, {}
+    except ValueError:
+        return {**binding, 'provider_state': 'invalid'}, {}
+    binding['provider_reference'] = reference
+    binding['provider_fields'] = {key: digest(provider.get(key)) for key in ('endpoint', 'model', 'evidence', 'key_env')}
+    return binding, provider
+
+
 def configure_project(installation, project, connect_runner=True):
     reference = str(installation / 'config/provider.json')
     runner = safe_path(project.root / '.harness/runner.json')
@@ -101,29 +119,25 @@ def _write(path, value):
 
 def ready(store):
     require(store.path.exists(), 'project-not-initialized-run-knowledge-init')
-    preview = lifecycle.upgrade_preview(store)
-    require(preview['already_upgraded'], 'upgrade-required', preview)
+    if not store.upgraded():
+        raise KnowledgeError('upgrade-required', lifecycle.upgrade_preview(store))
 
 
 def no_scan(root):
     store=Store(root)
-    counts={}
-    if store.path.exists():
-        store.validate()  # Preserve detailed identity diagnostics before job creation.
-        with store.connection() as db:
-            counts={t:db.execute('SELECT count(*) FROM '+t).fetchone()[0] for t in ('records','queue','plans')}
-    return {'ok':True,'state':'NOT_STARTED','phase':'PRE_SCAN','scan_id':None,'job':None,
-            'database':str(store.path),'database_present':store.path.exists(),'existing_counts':counts,
+    present = store.path.exists()
+    return {'ok':True,'state':'NOT_STARTED','worker_state':'NOT_STARTED','phase':'PRE_SCAN','scan_id':None,'job':None,
+            'database':str(store.path),'database_present':present,'existing_counts':store.scan_counts() if present else {},
             'next_action':'No job was created for this invocation. Existing database data is separate from scan progress. Identity mismatch requires explicit SQLite identity migration; fresh/restart cannot repair it.'}
 
 
 def job_summary(folder, binding, provider):
     if not (Path(folder)/'job.json').exists():return no_scan(binding['root']['root'])
-    state = scan_jobs.status(folder)
-    require(state['binding'] == binding, 'scan-provider-configuration-drift')
+    state = scan_jobs.status(folder, binding['root'])
+    compatibility = scan_jobs.compatibility(state, binding)
     result = {'ok': state['state'] not in ('BLOCKED', 'OUTCOME_UNKNOWN'), 'state': state['state'],
-              'root': binding['root']['root'], 'version': __version__, 'provider_reference': binding['provider_reference'],
-              'provider_evidence': provider['evidence'], 'job': state['job'], 'scan_id': state.get('scan_id'),
+              'root': binding['root']['root'], 'version': __version__, 'provider_reference': binding.get('provider_reference'),
+              'provider_evidence': provider.get('evidence'), 'worker_state': state['state'], 'compatibility': compatibility, 'job': state['job'], 'scan_id': state.get('scan_id'),
               'coverage_complete': state['state'] == 'COMPLETED' and state.get('coverage_complete', False), 'work': {k: v for k, v in (state.get('work') or {}).items() if k != 'paths_this_call'}, 'scope': state['scope'],
               'coverage':state.get('counters'), 'processing_complete':state.get('processing_complete',False),'phase':state.get('phase'),
               'source':state.get('source'),'source_verified':state['state'] in ('COMPLETED','COMPLETED_WITH_GAPS') and state.get('source_verified',False),'checkpoint_error':state.get('checkpoint_error'),
@@ -137,13 +151,113 @@ def job_summary(folder, binding, provider):
     if result['semantic_status'] == 'BLOCKED_CAPABILITY':
         result['next_action'] = 'Inspect identity diagnostics, then explicitly run full knowledge-init or submit reviewed candidates.'
     if 'error' in state: result.update(error=state['error'], next_action=state['next_action'])
-    if state.get('checkpoint_error'):result['next_action']=state['next_action']
+    if state['state'] in ('CANCELLED', 'OUTCOME_UNKNOWN') or state.get('checkpoint_error'):
+        result['next_action'] = compatibility['next_action']
+    if state.get('resume_failure'):
+        result.update(ok=False, error='resume-scan-configuration-drift', details=state['resume_failure'],
+                      next_action=compatibility['next_action'])
     return result
+
+
+def last_incremental(state_dir):
+    path = safe_path(state_dir / 'last-incremental.json')
+    if not path.exists():
+        return None
+    name = read_json(path, max_bytes=8192).get('folder')
+    require(isinstance(name, str) and len(name) == 76 and name.startswith('incremental-')
+            and all(c in '0123456789abcdef' for c in name[12:]), 'invalid-incremental-pointer')
+    return safe_path(state_dir / name)
+
+
+def project_configuration(installation, project):
+    config = loads(safe_path(project.base / 'machine.json').read_text(encoding='utf-8'))
+    require(config.get('installation') == str(installation) and config.get('project') == project.identity,
+            'project-machine-configuration-conflict')
+
+
+def lexical_scan(installation, project, store, state_dir, kind, action, value):
+    root = project.root
+    owner = project.describe()
+    require(action in ('start', 'status', 'cancel'), 'invalid-scan-action')
+    resume, fresh = value.get('resume', False), value.get('fresh', False)
+    require(not (resume and fresh) and (action == 'start' or not (resume or fresh)), 'invalid-recovery-controls')
+    base, head = value.get('base'), value.get('head')
+    scope = {'kind': kind}
+    if kind == 'full':
+        folder = state_dir / 'full'
+    elif not (base or head) and (action != 'start' or resume):
+        folder = last_incremental(state_dir)
+    else:
+        folder = None
+    if not (base or head) and folder is not None and not fresh:
+        if safe_path(folder / 'job.json').exists():
+            scope = scan_jobs.owned_job(folder, owner)['scope']
+    elif base or head or kind == 'incremental':
+        if kind == 'full':
+            require(isinstance(base, str) and isinstance(head, str), 'base-and-head-required')
+        scope.update(base=discovery.git(root, 'rev-parse', '--verify', (base or 'HEAD') + '^{commit}', required=True),
+                     head=discovery.git(root, 'rev-parse', '--verify', (head or 'HEAD') + '^{commit}', required=True))
+        if kind == 'incremental':
+            folder = state_dir / ('incremental-' + digest(scope))
+    if folder is None:
+        if resume:
+            missing = {'binding': {'root': owner}, 'state': 'NOT_STARTED'}
+            binding, _ = scan_binding(installation, project)
+            raise KnowledgeError('resume-scan-configuration-drift',
+                                 scan_jobs.resume_details(missing, binding, 'scan-outcome-observation-required'))
+        return no_scan(root)
+
+    metadata = safe_path(folder / 'job.json')
+    if action == 'cancel':
+        return scan_jobs.cancel(folder, owner, scope) if metadata.exists() else no_scan(root)
+    binding, provider = scan_binding(installation, project)
+    if action == 'status':
+        if metadata.exists() and (base or head):
+            require(scan_jobs.owned_job(folder, owner)['scope'] == scope, 'scan-job-scope-binding-mismatch')
+        return job_summary(folder, binding, provider)
+
+    configured = {}
+    if metadata.exists():
+        active = scan_jobs.status(folder, owner)
+        if active['state'] in scan_jobs.ACTIVE:
+            if resume:
+                raise KnowledgeError('scan-worker-active', scan_jobs.resume_details(active, binding, 'scan-worker-active'))
+            require(not fresh, 'scan-active-cancel-before-fresh')
+            require(active['scope'] == scope, 'active-scan-scope-mismatch')
+            return job_summary(folder, binding, provider)
+    if not resume and kind == 'full':
+        if not store.path.exists() and (root / '.ai').exists():
+            from . import migration
+            preview = migration.preview(root)
+            require(value.get('migration_approval') == preview['fingerprint'], 'legacy-migration-approval-required', preview)
+            migration.apply(root, value['migration_approval'])
+        if not store.path.exists():
+            store.init()
+            lifecycle.upgrade(store, lifecycle.upgrade_preview(store)['fingerprint'])
+        else:
+            preview = lifecycle.upgrade_preview(store)
+            if not preview['already_upgraded']:
+                require(value.get('upgrade_approval') == preview['fingerprint'], 'upgrade-approval-required', preview)
+                lifecycle.upgrade(store, value['upgrade_approval'])
+        configured = configure_project(installation, project, connect_runner=bool(provider))
+    elif kind == 'incremental' and not resume:
+        ready(store)
+        project_configuration(installation, project)
+    if resume and safe_path(project.base / 'machine.json').exists():
+        project_configuration(installation, project)
+
+    launched = scan_jobs.start(folder, root, scope, binding, max_files=value.get('max_files', 100),
+                               resume=resume, fresh=fresh, observed_scan_id=value.get('observed_scan_id'))
+    if failure := launched.get('resume_failure'):
+        raise KnowledgeError('resume-scan-configuration-drift', failure)
+    return {**job_summary(folder, binding, provider), **configured}
 
 
 def execute(command, installation, directory, value):
     if command=='knowledge-update':command='knowledge-candidates-push'
     extra={'scope','operations','extra_operations','capabilities','request'} if command=='knowledge-confluence' else set()
+    if command == 'knowledge-candidates-push':
+        extra = {'job_id', 'wait_seconds', 'execution_seconds'}
     require(isinstance(value, dict) and set(value) <= {'roots', 'directory', 'action', 'approve', 'plan', 'upgrade_approval', 'migration_approval', 'base', 'head', 'max_files', 'candidates', 'resume', 'fresh', 'allow_test_double','observed_scan_id','rebuild_scan_id'}|extra, 'invalid-command-input')
     require(all(key not in value or type(value[key]) is bool for key in ('resume', 'fresh','allow_test_double')), 'invalid-recovery-controls')
     require(value.get('observed_scan_id') is None or (value.get('resume') is True and not value.get('fresh') and value.get('action','start')=='start'),'observed-scan-requires-resume')
@@ -153,12 +267,27 @@ def execute(command, installation, directory, value):
     project = Project(root)
     store = Store(root)
     state_dir = safe_path(installation / 'state/projects' / project.identity)
-    binding, provider = machine_binding(installation, project)
     action = value.get('action', 'start')
+    if action != 'capabilities' and (command == 'knowledge-init' or
+            (command == 'knowledge-candidates-update' and 'candidates' not in value)):
+        kind = 'full' if command == 'knowledge-init' else 'incremental'
+        return lexical_scan(installation, project, store, state_dir, kind, action, value)
+    if command == 'knowledge-candidates-push' and action != 'capabilities':
+        from . import plan_jobs
+        if action in ('status', 'cancel', 'resume', 'prepare') or action == 'start' and 'approve' not in value:
+            require('approve' not in value and 'plan' not in value, 'prepare-is-not-approval')
+            require('rebuild_scan_id' not in value or action in ('start', 'prepare'), 'rebuild-requires-prepare')
+            project_configuration(installation, project)
+            plan_binding = machine_binding(installation, project)[0] if action not in ('status', 'cancel') else None
+            return plan_jobs.dispatch(state_dir / 'plan', project, 'prepare' if action == 'start' else action, value, plan_binding)
+        require(action in ('start', 'apply', 'recover'), 'invalid-push-action')
+        require(not ({'job_id', 'wait_seconds', 'execution_seconds'} & value.keys()), 'invalid-plan-job-control')
+    binding, provider = machine_binding(installation, project)
     if action=='capabilities':
         from .machine_mcp import TOOL_NAMES
         return {'ok':True,'contract':'knowledge-machine-v2','tools':sorted(TOOL_NAMES),'root':str(root),
                 'scan_actions':['start','status','resume','fresh','cancel'],
+                'plan_actions':['prepare','rebuild','status','cancel','resume','apply','recover'],
                 'provider':{'endpoint':provider['endpoint'],'model':provider['model'],'evidence':provider['evidence']},
                 'provider_reference':binding['provider_reference'],'host_permission':'Not granted by backend discovery; actual MCP calls remain host-authorized.'}
     if command=='knowledge-confluence':
@@ -180,87 +309,19 @@ def execute(command, installation, directory, value):
         requested=value.get('action','start')
         request=value.get('request',{k:v for k,v in value.items() if k in ('operations','extra_operations','capabilities','resume','fresh')})
         return dispatch(store,requested,request)
-    if action == 'cancel' and command == 'knowledge-init':
-        if not (state_dir/'full/job.json').exists():return no_scan(root)
-        state=scan_jobs.status(state_dir / 'full');require(state['binding']==binding,'scan-provider-configuration-drift')
-        return scan_jobs.cancel(state_dir / 'full')
-    if action == 'status' and command == 'knowledge-init':
-        return job_summary(state_dir / 'full', binding, provider)
-    if action=='start' and command=='knowledge-init' and (state_dir/'full/job.json').exists():
-        active=scan_jobs.status(state_dir/'full')
-        if active['state'] in ('STARTING','RUNNING'):
-            require(not value.get('fresh',False),'scan-active-cancel-before-fresh')
-            require(active['binding']==binding,'active-scan-configuration-drift')
-            return job_summary(state_dir/'full',binding,provider)
-    if action in ('status','cancel') and command == 'knowledge-candidates-update' and not value.get('base') and not value.get('head'):
-        if not (state_dir/'last-incremental.json').exists():return no_scan(root)
-        pointer = loads(safe_path(state_dir / 'last-incremental.json').read_text(encoding='utf-8'))
-        require(isinstance(pointer.get('folder'), str) and pointer['folder'].startswith('incremental-') and len(pointer['folder']) == 76 and all(c in '0123456789abcdef' for c in pointer['folder'][12:]), 'invalid-incremental-pointer')
-        if action=='cancel':
-            state=scan_jobs.status(state_dir / pointer['folder']);require(state['binding']==binding,'scan-provider-configuration-drift')
-            return scan_jobs.cancel(state_dir / pointer['folder'])
-        return job_summary(state_dir / pointer['folder'], binding, provider)
-    if command == 'knowledge-init':
-        full_scope={'kind':'full'}
-        if value.get('base') or value.get('head'):
-            require(isinstance(value.get('base'),str) and isinstance(value.get('head'),str),'base-and-head-required')
-            full_scope.update(base=discovery.git(root,'rev-parse','--verify',value['base']+'^{commit}',required=True),
-                              head=discovery.git(root,'rev-parse','--verify',value['head']+'^{commit}',required=True))
-        elif value.get('resume') and (state_dir/'full/job.json').exists():full_scope=scan_jobs.status(state_dir/'full')['scope']
-        if not store.path.exists() and (root / '.ai').exists():
-            from . import migration
-            preview = migration.preview(root)
-            require(value.get('migration_approval') == preview['fingerprint'], 'legacy-migration-approval-required', preview)
-            migration.apply(root, value['migration_approval'])
-        new = not store.path.exists()
-        if new:
-            store.init()
-            lifecycle.upgrade(store, lifecycle.upgrade_preview(store)['fingerprint'])
-        else:
-            preview = lifecycle.upgrade_preview(store)
-            if not preview['already_upgraded']:
-                require(value.get('upgrade_approval') == preview['fingerprint'], 'upgrade-approval-required', preview)
-                lifecycle.upgrade(store, value['upgrade_approval'])
-        configured = configure_project(installation, project) if action == 'start' else {}
-        folder = state_dir / 'full'
-        if action == 'start':
-            scan_jobs.start(folder, root, full_scope, binding, max_files=value.get('max_files', 100), resume=value.get('resume', False), fresh=value.get('fresh', False),observed_scan_id=value.get('observed_scan_id'))
-        else:
-            require(action == 'status', 'invalid-init-action')
-        return {**job_summary(folder, binding, provider), **configured}
     ready(store)
-    config = loads(safe_path(project.base / 'machine.json').read_text(encoding='utf-8'))
-    require(config.get('installation') == str(installation) and config.get('project') == project.identity, 'project-machine-configuration-conflict')
+    project_configuration(installation, project)
     if command == 'knowledge-candidates-update':
-        if 'candidates' in value:
-            from .confluence import is_binding
-            require(isinstance(value['candidates'],list) and all(isinstance(p,dict) for p in value['candidates']),'invalid-candidate-batch')
-            if all(is_binding(p.get('source')) for p in value['candidates']):return submit_reviewed(store,root,value['candidates'])
-            from .providers import semantic_preflight
-            semantic_preflight(provider,value.get('allow_test_double',False),value['candidates'])
-            semantic_binding={'version':1,'provider_ref':binding['provider_reference'],'model':provider['model'],
-                              'evidence':provider['evidence'],'contract':'reviewed-v2-v1'}
-            return submit_reviewed(store, root, value['candidates'],semantic_binding)
-        base = value.get('base') or 'HEAD'
-        head = value.get('head') or 'HEAD'
-        if value.get('resume') and not value.get('base') and not value.get('head'):
-            pointer=read_json(safe_path(state_dir/'last-incremental.json'));name=pointer.get('folder','')
-            require(len(name)==76 and name.startswith('incremental-') and all(c in '0123456789abcdef' for c in name[12:]),'invalid-incremental-pointer')
-            previous=scan_jobs.status(state_dir/name)
-            base,head=previous['scope']['base'],previous['scope']['head']
-        # Resolve refs once, so continuation remains bound to an exact range.
-        b = discovery.git(root, 'rev-parse', '--verify', base + '^{commit}', required=True)
-        h = discovery.git(root, 'rev-parse', '--verify', head + '^{commit}', required=True)
-        scope = {'kind': 'incremental', 'base': b, 'head': h}
-        folder = state_dir / ('incremental-' + digest(scope))
-        if action == 'start':
-            scan_jobs.start(folder, root, scope, binding, max_files=value.get('max_files', 100), resume=value.get('resume', False), fresh=value.get('fresh', False),observed_scan_id=value.get('observed_scan_id'))
-            _write(state_dir / 'last-incremental.json', {'folder': folder.name})
-        elif action=='cancel':
-            state=scan_jobs.status(folder);require(state['binding']==binding,'scan-provider-configuration-drift')
-            return scan_jobs.cancel(folder)
-        else: require(action == 'status', 'invalid-update-action')
-        return job_summary(folder, binding, provider)
+        from .confluence import is_binding
+        require(isinstance(value['candidates'], list) and all(isinstance(p, dict) for p in value['candidates']),
+                'invalid-candidate-batch')
+        if all(is_binding(p.get('source')) for p in value['candidates']):
+            return submit_reviewed(store, root, value['candidates'])
+        from .providers import semantic_preflight
+        semantic_preflight(provider, value.get('allow_test_double', False), value['candidates'])
+        semantic_binding = {'version': 1, 'provider_ref': binding['provider_reference'], 'model': provider['model'],
+                            'evidence': provider['evidence'], 'contract': 'reviewed-v2-v1'}
+        return submit_reviewed(store, root, value['candidates'], semantic_binding)
     require(command == 'knowledge-candidates-push', 'unknown-command')
     from .coordination import gate
     lease = ProjectExecutionLock(root).acquire()
@@ -270,15 +331,33 @@ def execute(command, installation, directory, value):
     finally: lease.close()
 
 
-def diagnostics(installation,directory,scope='full',section='failures',cursor=0,limit=20,max_bytes=16000,group=None,candidate=None,operation=None,plan=None,collection=None):
-    require(scope in ('full','incremental') and section in ('failures','coverage','reconciliation','impact','policy','identity','scans','duplicates','candidate','plan-progress'), 'invalid-diagnostic-section')
+def diagnostics(installation,directory,scope='full',section='failures',cursor=0,limit=20,max_bytes=16000,group=None,candidate=None,operation=None,plan=None,collection=None,scan_id=None):
+    require(scope in ('full','incremental') and section in ('failures','coverage','reconciliation','impact','policy','identity','scans','checkpoint','duplicates','candidate','plan-progress','plan-dispositions'), 'invalid-diagnostic-section')
     require(type(cursor) is int and cursor>=0 and type(limit) is int and 1<=limit<=100,'invalid-diagnostic-page')
+    if scan_id is not None:
+        import re
+        require(isinstance(scan_id, str) and re.fullmatch('[0-9a-f]{64}', scan_id)
+                and section in ('scans','failures','coverage','reconciliation','impact','policy','identity'),
+                'invalid-diagnostic-scan-id')
     installation=installation_at(installation);root=resolve_root(directory);project=Project(root)
     require(not root.is_relative_to(installation) and not installation.is_relative_to(root),'installation-and-project-must-be-separate')
     from .diagnostic_pages import page
-    if section=='plan-progress':
-        path=safe_path(installation/'state/projects'/project.identity/'plan-progress.json')
-        return page([read_json(path)] if path.exists() else [],{'ok':True,'section':section,'observation':'Last recorded stage; not a liveness or canonical-commit proof.','canonical_unchanged':True},cursor,limit,max_bytes)
+    if section in ('plan-progress', 'plan-dispositions'):
+        from . import plan_jobs
+        base = safe_path(installation / 'state/projects' / project.identity)
+        job = plan_jobs.summary(plan_jobs.read_state(base / 'plan', project.describe()))
+        if section == 'plan-progress':
+            path = safe_path(base / 'plan-progress.json')
+            progress = job.get('progress')
+            if progress:
+                progress = {**progress, 'job_id': job['job_id'], 'worker_state': job['worker_state']}
+            elif path.exists():
+                progress = read_json(path, max_bytes=65536)
+            return page([progress] if progress else [], {'ok':True, 'section':section}, cursor, limit, max_bytes)
+        pid = plan or job.get('canonical_plan')
+        require(pid is not None, 'plan-dispositions-require-prepared-plan')
+        return page(Store(root).plan_dispositions(pid), {'ok':True, 'section':section, 'plan':pid},
+                    cursor, limit, max_bytes)
     if section=='candidate':
         from .util import canonical_json
         import hashlib
@@ -294,23 +373,30 @@ def diagnostics(installation,directory,scope='full',section='failures',cursor=0,
         counts,rows=Store(root).duplicate_diagnostics(group)
         return page(rows,{'ok':True,'section':section,'counts':counts,'group':group,'canonical_unchanged':True},cursor,limit,max_bytes)
     if section=='scans':
-        scans=discovery.status(Store(root),summaries=True)['scans']
+        scans=discovery.status(Store(root),scan_id,summaries=True)['scans']
         rows=[{'scan_id':s['id'],'source_identity':s['snapshot']['identity'],'revision':s['snapshot']['revision'],
                'complete':s['complete'],'state':s.get('state'),'coverage':s.get('counters'),'incremental':s.get('incremental',False)} for s in scans]
         return page(rows,{'ok':True,'section':section,'canonical_unchanged':True},cursor,limit,max_bytes)
     base=safe_path(installation / 'state/projects' / project.identity)
-    if not (base/'full/job.json').exists() and scope=='full':return no_scan(root)
-    if scope=='incremental' and not (base/'last-incremental.json').exists():return no_scan(root)
-    if scope=='full':folder=base/'full'
-    else:
-        pointer=read_json(safe_path(base/'last-incremental.json'));name=pointer.get('folder','')
-        require(len(name)==76 and name.startswith('incremental-') and all(c in '0123456789abcdef' for c in name[12:]),'invalid-incremental-pointer')
-        folder=base/name
-    if not (folder/'job.json').exists():return no_scan(root)
-    job=scan_jobs.status(folder);binding,provider=machine_binding(installation,project)
-    require(job['binding']['root']==project.describe(),'scan-job-root-binding-mismatch')
-    require(job.get('scan_id'),'scan-checkpoint-not-yet-available',{'next_action':'Use diagnostics section=scans to observe the durable result before explicit resume with observed_scan_id, or choose fresh. Never start an unobserved retry.'})
-    scans=discovery.status(Store(root),job['scan_id'])['scans'];require(len(scans)==1,'unknown-scan');state=scans[0]
+    job = None
+    compatibility = None
+    if scan_id is None:
+        folder = base / 'full' if scope == 'full' else last_incremental(base)
+        if folder is None or not safe_path(folder / 'job.json').exists():
+            return no_scan(root)
+        binding, _ = scan_binding(installation, project)
+        job = scan_jobs.status(folder, binding['root'])
+        compatibility = scan_jobs.compatibility(job, binding)
+        scan_id = job.get('scan_id')
+    if section == 'checkpoint':
+        rows = [{'scan_id': scan_id, 'job_id': job['job'], 'worker_state': job['state'],
+                 'scope': job['scope'], **compatibility}]
+        return page(rows, {'ok':True,'section':section,'canonical_unchanged':True}, cursor, limit, max_bytes)
+    require(scan_id, 'scan-checkpoint-not-yet-available', compatibility)
+    scans=discovery.status(Store(root),scan_id)['scans']
+    require(len(scans)==1,'unknown-scan')
+    state=scans[0]
+    require(bool(state.get('incremental')) == (scope == 'incremental'), 'scan-job-scope-binding-mismatch')
     if section in ('failures','coverage'):
         rows=[{'path':path,**{k:v for k,v in entry.items() if k not in ('working_blob','git_blob','head_blob')}}
               for path,entry in sorted(state['coverage'].items())
@@ -324,10 +410,11 @@ def diagnostics(installation,directory,scope='full',section='failures',cursor=0,
         identity=state.get('identity_verification') or {}
         rows=[{'path':path,'reason':'missing-compatible-cached-analysis'} for path in identity.get('missing_files',[])]+[{'id':identifier,'reason':'ambiguous-identity'} for identifier in identity.get('ambiguous_ids',[])]
     else:
-        review=discovery.reconcile(Store(root),job['scan_id']);rows=review['claims']+review['negative_evidence_gaps']
-    return page(rows,{'ok':True,'section':section,'scan_id':state['id'],'state':job['state'],'coverage':state.get('counters'),
+        review=discovery.reconcile(Store(root),state['id']);rows=review['claims']+review['negative_evidence_gaps']
+    return page(rows,{'ok':True,'section':section,'scan_id':state['id'],'state':job['state'] if job else state.get('state'),'coverage':state.get('counters'),
             **({'impact_summary':{k:len(v) for k,v in state.get('impact',{}).items() if isinstance(v,list)},'collection':collection} if section=='impact' else {}),
-            'binding_matches_current':job['binding']==binding,'canonical_unchanged':True},cursor,limit,max_bytes)
+            **({'binding_matches_current':compatibility['configuration'] == 'unchanged', 'compatibility':compatibility} if job else {}),
+            'canonical_unchanged':True},cursor,limit,max_bytes)
 
 
 def submit_reviewed(store, root, proposals, semantic_binding=None):
@@ -367,10 +454,10 @@ def submit_reviewed(store, root, proposals, semantic_binding=None):
     finally: lease.close()
 
 
-def push(store, root, state_dir, binding, value):
+def push(store, root, state_dir, binding, value, observe_progress=None):
     action = value.get('action', 'start')
     plans = state_dir / 'plans'
-    if value.get('approve') or action == 'recover':
+    if 'approve' in value or action in ('recover', 'apply'):
         approval = value.get('approve') or value.get('plan')
         require(isinstance(approval, str) and approval.startswith('sha256:') and len(approval) == 71
                 and all(c in '0123456789abcdef' for c in approval[7:]), 'exact-approval-required')
@@ -378,17 +465,21 @@ def push(store, root, state_dir, binding, value):
         saved = loads(path.read_text(encoding='utf-8'))
         require(fingerprint(saved['binding']) == approval, 'corrupt-machine-plan')
         pid = saved['binding']['canonical_plan']
-        states = {row['fingerprint']: row['state'] for row in store.status()['plans']}
         if action == 'recover':
+            states = {row['fingerprint']: row['state'] for row in store.status()['plans']}
             require(saved.get('approved') is True and states.get(pid) in ('COMMITTED', 'ACKNOWLEDGED'), 'no-approved-commit-to-recover')
         else:
-            expected = {**binding, 'source_identity': discovery.inventory(root)['identity'] if saved['binding']['source_identity'] is not None else None, 'canonical_plan': pid}
+            snapshot = discovery.inventory(root) if saved['binding']['source_identity'] is not None else None
+            expected = {**binding, 'source_identity': snapshot['identity'] if snapshot else None, 'canonical_plan': pid}
+            incremental_validation = saved['binding'].get('source_validation') == 'incremental-git-v1'
+            if incremental_validation:
+                expected['source_validation'] = 'incremental-git-v1'
             require(expected == saved['binding'], 'machine-plan-drift-prepare-again')
             # Durable intent allows acknowledgement recovery after an unknown
             # post-commit outcome; it never approves a replacement plan.
             saved['approved'] = True
             _write(path, saved)
-            store.apply(pid, pid)
+            store.apply(pid, pid, source_snapshot=snapshot, reconcile_git=incremental_validation)
         store.acknowledge(pid)
         validation = store.validate()
         status = store.status()
@@ -398,33 +489,63 @@ def push(store, root, state_dir, binding, value):
     import time
     started=time.monotonic();progress_state={}
     def progress(stage,**counts):
-        progress_state.update(stage=stage,elapsed_seconds=round(time.monotonic()-started,3),**counts)
-        _write(state_dir/'plan-progress.json',progress_state)
+        if observe_progress:
+            observe_progress(stage, **counts)
+        else:
+            progress_state.update(stage=stage,elapsed_seconds=round(time.monotonic()-started,3),**counts)
+            _write(state_dir/'plan-progress.json',progress_state)
+    source_identity = None
+
+    def observe_source(snapshot):
+        nonlocal source_identity
+        source_identity = snapshot['identity']
+
     try:
         progress('loading-completed-scan-artifacts')
         recovered=discovery.completed_artifact(store,value['rebuild_scan_id']) if value.get('rebuild_scan_id') else None
-        progress('verifying-current-source-inventory')
-        before = discovery.inventory(root)['identity'] if recovered or store.pending_git_sources() else None
-        if recovered:require(recovered['source_identity']==before,'scan-artifact-source-or-policy-drift',{'next_action':'Preserve the scan. Inspect source/policy changes before selecting explicit recovery; no automatic fresh scan.'})
-        prepared = store.prepare(_source_identity=before,progress=progress)
-        progress('verifying-post-prepare-source')
-        require(before is not None or not any(v.get('source') is not None and v['source']['kind']!='confluence' for v in prepared['candidates'].values()),'source-set-changed-during-prepare')
-        if before is not None:require(discovery.inventory(root)['identity'] == before, 'source-drift-during-prepare')
-        progress('blocked' if prepared['blocked'] else 'awaiting-exact-approval')
+        snapshot = None
+        if recovered:
+            progress('verifying-current-source-inventory')
+            snapshot = discovery.inventory(root)
+            require(recovered['source_identity']==snapshot['identity'],'scan-artifact-source-or-policy-drift',
+                    {'next_action':'Preserve the scan. Inspect source/policy changes before selecting explicit recovery.'})
+        prepared = store.prepare(progress=progress, source_snapshot=snapshot, reconcile_git=True, observe_source=observe_source)
+        progress('blocked' if prepared['blocked'] else 'awaiting-exact-approval',
+                 processed_candidates=len(prepared['candidates']) + len(prepared['skipped']),
+                 total_candidates=len(prepared['candidates']) + len(prepared['skipped']))
     except Exception as error:
         progress('failed',error=getattr(error,'code',type(error).__name__));raise
-    seal = {**binding, 'source_identity': before, 'canonical_plan': prepared['fingerprint']}
+    seal = {**binding, 'source_identity': source_identity, 'canonical_plan': prepared['fingerprint'],
+            'source_validation': 'incremental-git-v1'}
     approval = fingerprint(seal)
     if prepared['ok']:
         path = plans / (approval[7:] + '.json')
         if not path.exists(): _write(path, {'version': 1, 'binding': seal, 'approved': False})
-    operations = Counter(op['action'] for candidate in prepared.get('resolved',prepared['candidates']).values() if candidate for op in candidate.get('operations', []))
-    _write(state_dir / 'last-plan.json', prepared)
-    return {'ok': prepared['ok'], 'state': 'AWAITING_EXACT_APPROVAL' if prepared['ok'] else 'BLOCKED', 'root': str(root),
-            'fingerprint': approval, 'canonical_plan': prepared['fingerprint'], 'included': len(prepared['included']),
-            'operations': dict(operations), 'deduplication':prepared.get('deduplication',{}).get('counts'),'recovered_scan':recovered, 'skipped': len(prepared['skipped']), 'blocked': prepared['blocked'][:20],
-            'canonical_unchanged': True, 'skipped_details':prepared['skipped'][:20], 'diagnostics': str(state_dir / 'last-plan.json'),
-            'next_action': 'Separate explicit approval: /knowledge-candidates-push {"approve":"' + approval + '"}. On drift prepare and review a new fingerprint.'}
+    from .diagnostic_pages import compact
+    from .git_reconciliation import local
+    resolved = prepared.get('resolved', prepared['candidates'])
+    included = prepared['included']
+    deferred = prepared['skipped']
+    operations = Counter(op['action'] for cid in included if resolved[cid] for op in resolved[cid].get('operations', []))
+    counts = {'pending': len(prepared['candidates']) + len(deferred), 'included': len(included),
+              'skipped': len(deferred), 'blocked_by_plan': len(prepared['candidates']) - len(included),
+              'coalesced_within_included': sum(resolved[cid] is None for cid in included)}
+    dispositions = Counter(row['reason'] for row in deferred)
+    next_action = ('Separate explicit approval: /knowledge-candidates-push {"approve":"' + approval
+                   + '"}. On drift prepare and review a new fingerprint.' if prepared['ok'] else
+                   'Inspect plan-dispositions and resolve the reported blockers before preparing again.')
+    path = state_dir / 'last-plan.json'
+    summary = {'ok': prepared['ok'], 'state': 'AWAITING_EXACT_APPROVAL' if prepared['ok'] else 'BLOCKED',
+               'root': str(root), 'fingerprint': approval, 'canonical_plan': prepared['fingerprint'],
+               'included': len(included), 'operations': dict(operations), 'candidate_counts': counts,
+               'source_revalidated_git': sum(local(item) and item['source']['identity'] != source_identity
+                                             for item in prepared['candidates'].values()),
+               'skipped_by_reason': dict(dispositions), 'deduplication': prepared.get('deduplication', {}).get('counts'),
+               'recovered_scan': recovered, 'skipped': len(deferred), 'blocked': [compact(row) for row in prepared['blocked'][:8]],
+               'canonical_unchanged': True, 'skipped_details': [compact(row) for row in deferred[:8]],
+               'diagnostics': str(path), 'next_action': next_action}
+    _write(path, {'version': 2, 'diagnostic_projection': True, **summary})
+    return summary
 
 
 def main():
