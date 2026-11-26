@@ -10,6 +10,11 @@ provider and CLI launch settings parser both enable these features.
 [Launch settings parser](https://github.com/dotnet/sdk/blob/v9.0.300/src/Cli/dotnet/commands/dotnet-run/LaunchSettings/LaunchSettingsManager.cs)
 
 `*.jsonc` accepts line and block comments with trailing commas disabled.
+This policy also covers `global.json`, `*.runtimeconfig.json`,
+`*.runtimeconfig.dev.json`, and `*.deps.json`. Their .NET host readers
+enable comments and leave trailing commas disabled. Knowledge validates the
+complete input. [Corehost JSON parser](https://github.com/dotnet/runtime/blob/main/src/native/corehost/json_parser.cpp)
+
 Other `*.json` files use `strict-json`. UTF-8 with or without a BOM is
 supported. Escaped quotes and comment-like text inside strings stay intact.
 Diagnostic line and column numbers refer to the original source, and reads
@@ -58,6 +63,8 @@ Most sections page by row using `cursor`, `limit` from 1 to 100, and the
 returned `next_cursor`. Individual candidate text pages by character offset
 using `cursor`. The existing `limit` argument is accepted for candidate text.
 Omit all section-specific arguments outside their listed section.
+The history list includes both scopes. When passing an incremental `scan_id`
+to a scan detail section, also pass `scope: "incremental"`.
 
 | Section | Purpose | Section-specific arguments and discovery | Minimal invocation |
 | --- | --- | --- | --- |

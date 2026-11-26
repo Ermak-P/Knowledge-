@@ -889,10 +889,10 @@ class ScanSession:
         require(not (prior.get('ambiguous') and incremental), 'scan-recovery-observations-require-fresh', hint)
         self.by_file.update(by_file)
         cache_context = {}
+        previous_context = file_cache.configuration(old)
+        require(file_cache.configuration(snap, old['policy']) == previous_context,
+                'scan-recovery-code-context-changed', hint)
         if incremental:
-            previous_context = file_cache.configuration(old)
-            require(file_cache.configuration(snap, old['policy']) == previous_context,
-                    'scan-recovery-code-context-changed', hint)
             if previous_context != file_cache.configuration(snap):
                 cache_context['recovery_cache_context'] = previous_context
         return {**{k: deepcopy(prior[k]) for k in ('observations', 'ambiguous', 'gaps') if k in prior},

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
 const { default: plugin } = await import(pathToFileURL(process.argv[2]));
@@ -53,6 +54,18 @@ assert.equal(unsupported.commands.size + unsupported.mcp.size, 0);
 const conflict = host("20.0.1", "knowledge-candidates-push");
 await assert.rejects(plugin.setup(conflict.ctx), /command conflict/);
 assert.equal(conflict.commands.size + conflict.mcp.size, 0);
+
+const config = new URL("../.knowledge-machine.json", pathToFileURL(process.argv[2]));
+const settings = JSON.parse(await readFile(config, "utf8"));
+await writeFile(config, JSON.stringify({ ...settings, mode: "readonly" }));
+const consumer = host("20.0.1");
+delete consumer.ctx.command;
+delete consumer.ctx.mcp.list;
+const disposeConsumer = await plugin.setup(consumer.ctx);
+assert.equal(consumer.commands.size, 0);
+assert.equal(consumer.mcp.size, 1);
+await disposeConsumer();
+assert.equal(consumer.mcp.size, 0);
 
 const observed = await readScanDiagnostics({
   knowledge_capabilities: async () => ({ ok: true }),

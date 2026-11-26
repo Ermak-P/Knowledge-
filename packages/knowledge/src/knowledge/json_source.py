@@ -17,10 +17,14 @@ def dialect(path, config):
     for pattern, selected in sorted(config.get('json_dialects', {}).items()):
         if matches(path, pattern):
             return selected
+    if config.get('reader') == 'source-reader-v1':
+        return STRICT
     name = PurePosixPath(path).name.casefold()
     if name in ('appsettings.json', 'launchsettings.json') or (name.startswith('appsettings.') and name.endswith('.json')):
-        return DOTNET if config.get('reader') != 'source-reader-v1' else STRICT
-    return JSONC if name.endswith('.jsonc') else STRICT
+        return DOTNET
+    if name == 'global.json' or name.endswith(('.jsonc', '.runtimeconfig.json', '.runtimeconfig.dev.json', '.deps.json')):
+        return JSONC
+    return STRICT
 
 
 def syntax_error(text, position, reason):

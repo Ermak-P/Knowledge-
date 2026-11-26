@@ -30,7 +30,7 @@ export default {
     if (settings.version !== 1 || !path.isAbsolute(settings.python) || !path.isAbsolute(settings.launcher)) throw new Error("Invalid Knowledge machine registration");
     const consumer = settings.mode === "readonly";
     const capabilities = {
-      mcp: ["transform", "list"],
+      mcp: consumer ? ["transform"] : ["transform", "list"],
       ...(consumer ? {} : { command: ["transform"], session: ["get", "prompt", "synthetic"], permission: ["assert"] }),
     };
     if (typeof ctx?.location?.directory !== "string") throw incompatible("location.directory");

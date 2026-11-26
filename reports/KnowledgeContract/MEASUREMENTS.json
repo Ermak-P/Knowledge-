@@ -1,0 +1,405 @@
+{
+  "baseline_commit": "15d2a2b",
+  "platform": "Linux",
+  "replay": {
+    "before": {
+      "baseline": true,
+      "schema_bytes": 6022,
+      "catalog_bytes": 7795,
+      "tool_count": 13,
+      "candidate_workflow": {
+        "invalid_calls": 2,
+        "corrective_retries": 1,
+        "completed": false,
+        "calls": [
+          {
+            "tool": "knowledge_scan_diagnostics",
+            "error": "invalid-diagnostic-scan-id",
+            "state": null,
+            "payload_bytes": 64,
+            "result_bytes": 126
+          },
+          {
+            "tool": "knowledge_scan_diagnostics",
+            "error": "invalid-candidate-identifier",
+            "state": null,
+            "payload_bytes": 66,
+            "result_bytes": 128
+          }
+        ]
+      },
+      "instruction_workflow": {
+        "invalid_calls": 0,
+        "corrective_retries": 1,
+        "completed": false,
+        "calls": [
+          {
+            "tool": "knowledge_instructions",
+            "error": null,
+            "state": "no-match",
+            "payload_bytes": 187,
+            "result_bytes": 272
+          },
+          {
+            "tool": "knowledge_instructions",
+            "error": null,
+            "state": "no-match",
+            "payload_bytes": 187,
+            "result_bytes": 272
+          }
+        ]
+      },
+      "structured_workflow": {
+        "completed": false,
+        "scan_state": "COMPLETED_WITH_GAPS",
+        "syntax_reason": "unsupported-json-comments",
+        "calls": [
+          {
+            "tool": "knowledge_source_read",
+            "error": "EXTRACTION_FAILED",
+            "state": null,
+            "payload_bytes": 542,
+            "result_bytes": 650
+          }
+        ]
+      }
+    },
+    "after": {
+      "baseline": false,
+      "schema_bytes": 6361,
+      "catalog_bytes": 8232,
+      "tool_count": 13,
+      "candidate_workflow": {
+        "invalid_calls": 0,
+        "corrective_retries": 0,
+        "completed": true,
+        "calls": [
+          {
+            "tool": "knowledge_scan_diagnostics",
+            "error": null,
+            "state": null,
+            "payload_bytes": 451,
+            "result_bytes": 540
+          },
+          {
+            "tool": "knowledge_scan_diagnostics",
+            "error": null,
+            "state": null,
+            "payload_bytes": 1910,
+            "result_bytes": 2287
+          }
+        ]
+      },
+      "instruction_workflow": {
+        "invalid_calls": 0,
+        "corrective_retries": 0,
+        "completed": true,
+        "calls": [
+          {
+            "tool": "knowledge_instructions",
+            "error": null,
+            "state": "matched",
+            "payload_bytes": 858,
+            "result_bytes": 985
+          }
+        ]
+      },
+      "structured_workflow": {
+        "completed": true,
+        "scan_state": "COMPLETED",
+        "syntax_reason": null,
+        "calls": [
+          {
+            "tool": "knowledge_source_read",
+            "error": null,
+            "state": null,
+            "payload_bytes": 744,
+            "result_bytes": 887
+          }
+        ]
+      },
+      "bad_call_recovery": {
+        "invalid_calls": 1,
+        "corrective_retries": 1,
+        "completed": true,
+        "calls": [
+          {
+            "tool": "knowledge_scan_diagnostics",
+            "error": "invalid-diagnostic-arguments",
+            "state": null,
+            "payload_bytes": 399,
+            "result_bytes": 919
+          },
+          {
+            "tool": "knowledge_scan_diagnostics",
+            "error": null,
+            "state": null,
+            "payload_bytes": 451,
+            "result_bytes": 540
+          },
+          {
+            "tool": "knowledge_scan_diagnostics",
+            "error": null,
+            "state": null,
+            "payload_bytes": 1910,
+            "result_bytes": 2287
+          }
+        ]
+      }
+    }
+  },
+  "synthetic_1605_file_recovery": {
+    "baseline": {
+      "coverage": {
+        "discovered_files": 1606,
+        "eligible_files": 1605,
+        "policy_excluded_files": 1,
+        "classified_excluded_files": 0,
+        "pruned_directories": 1,
+        "out_of_scope_files": 0,
+        "processed_files": 1604,
+        "partially_processed_files": 0,
+        "failed_files": 1,
+        "remaining_files": 0,
+        "pending_retries": 0
+      },
+      "seconds": 0.367
+    },
+    "recovered": {
+      "state": "COMPLETED",
+      "coverage": {
+        "discovered_files": 1605,
+        "eligible_files": 1605,
+        "policy_excluded_files": 0,
+        "classified_excluded_files": 0,
+        "pruned_directories": 1,
+        "out_of_scope_files": 0,
+        "processed_files": 1605,
+        "partially_processed_files": 0,
+        "failed_files": 0,
+        "remaining_files": 0,
+        "pending_retries": 0
+      },
+      "extracted": [
+        "appsettings.json"
+      ],
+      "seconds": 0.367,
+      "active_candidates": 1,
+      "historically_refreshed_candidates": 1,
+      "duplicate_groups": 0,
+      "repeat_extractions": 0
+    }
+  },
+  "synthetic_25000_candidate_storage": {
+    "synthetic": true,
+    "pending_before": 25000,
+    "pending_after": 25001,
+    "initial": {
+      "file_bytes": 22634496,
+      "allocated_bytes": 22634496,
+      "freelist_bytes": 0,
+      "allocated_by_category": {
+        "other_tables": 16384,
+        "plans": 4096,
+        "candidates": 20533248,
+        "receipts": 4096,
+        "canonical": 4096,
+        "revisions": 4096,
+        "scan_history": 4096,
+        "indexes": 2064384
+      },
+      "payload": {
+        "canonical": {},
+        "candidates": {
+          "pending": {
+            "rows": 25000,
+            "payload_bytes": 15897230
+          }
+        },
+        "plans": {},
+        "receipts": {
+          "rows": 0,
+          "payload_bytes": 0
+        },
+        "revisions": {
+          "rows": 0,
+          "payload_bytes": 0
+        },
+        "scans": {
+          "rows": 0,
+          "payload_bytes": 0
+        }
+      }
+    },
+    "after_first_prepare": {
+      "file_bytes": 41922560,
+      "allocated_bytes": 41922560,
+      "freelist_bytes": 0,
+      "allocated_by_category": {
+        "other_tables": 16384,
+        "plans": 19292160,
+        "candidates": 20533248,
+        "receipts": 4096,
+        "canonical": 4096,
+        "revisions": 4096,
+        "scan_history": 4096,
+        "indexes": 2064384
+      },
+      "payload": {
+        "canonical": {},
+        "candidates": {
+          "pending": {
+            "rows": 25000,
+            "payload_bytes": 15897230
+          }
+        },
+        "plans": {
+          "PREPARED": {
+            "rows": 1,
+            "payload_bytes": 19272455
+          }
+        },
+        "receipts": {
+          "rows": 0,
+          "payload_bytes": 0
+        },
+        "revisions": {
+          "rows": 0,
+          "payload_bytes": 0
+        },
+        "scans": {
+          "rows": 0,
+          "payload_bytes": 0
+        }
+      }
+    },
+    "before_cleanup": {
+      "file_bytes": 61218816,
+      "allocated_bytes": 61218816,
+      "freelist_bytes": 0,
+      "allocated_by_category": {
+        "other_tables": 16384,
+        "plans": 38584320,
+        "candidates": 20537344,
+        "receipts": 4096,
+        "canonical": 4096,
+        "revisions": 4096,
+        "scan_history": 4096,
+        "indexes": 2064384
+      },
+      "payload": {
+        "canonical": {},
+        "candidates": {
+          "pending": {
+            "rows": 25001,
+            "payload_bytes": 15897869
+          }
+        },
+        "plans": {
+          "PREPARED": {
+            "rows": 2,
+            "payload_bytes": 38545684
+          }
+        },
+        "receipts": {
+          "rows": 0,
+          "payload_bytes": 0
+        },
+        "revisions": {
+          "rows": 0,
+          "payload_bytes": 0
+        },
+        "scans": {
+          "rows": 0,
+          "payload_bytes": 0
+        }
+      }
+    },
+    "after_cleanup": {
+      "file_bytes": 41730048,
+      "allocated_bytes": 41730048,
+      "freelist_bytes": 0,
+      "allocated_by_category": {
+        "other_tables": 16384,
+        "plans": 19296256,
+        "candidates": 20537344,
+        "receipts": 4096,
+        "canonical": 4096,
+        "revisions": 4096,
+        "scan_history": 4096,
+        "indexes": 1863680
+      },
+      "payload": {
+        "canonical": {},
+        "candidates": {
+          "pending": {
+            "rows": 25001,
+            "payload_bytes": 15897869
+          }
+        },
+        "plans": {
+          "PREPARED": {
+            "rows": 1,
+            "payload_bytes": 19273229
+          }
+        },
+        "receipts": {
+          "rows": 0,
+          "payload_bytes": 0
+        },
+        "revisions": {
+          "rows": 0,
+          "payload_bytes": 0
+        },
+        "scans": {
+          "rows": 0,
+          "payload_bytes": 0
+        }
+      }
+    },
+    "removed_plans": 1,
+    "removed_payload_bytes": 19272455,
+    "seconds": {
+      "first_prepare": 6.259,
+      "second_prepare": 10.592,
+      "preview": 14.001,
+      "cleanup_and_vacuum": 39.761
+    }
+  },
+  "native_opencode": {
+    "2.4.0": {
+      "checks": {
+        "global_commands_discovered": "PASS",
+        "global_mcp_connected": "PASS",
+        "real_code_mode_search_and_mcp_operations": "PASS",
+        "real_code_mode_permission_denial_enforced": "PASS",
+        "init_native_hook_and_durable_scan": "PASS",
+        "incremental_native_hook": "PASS",
+        "separate_exact_native_approval_apply_ack": "PASS",
+        "confluence_native_hook_persisted_scope_and_work": "PASS",
+        "knowledge_update_native_alias": "PASS",
+        "no_project_command_copy": "PASS",
+        "native_command_host_permission_enforced": "PASS"
+      },
+      "platform": "Linux",
+      "live_model": false
+    },
+    "2.4.2": {
+      "checks": {
+        "global_commands_discovered": "PASS",
+        "global_mcp_connected": "PASS",
+        "real_code_mode_search_and_mcp_operations": "PASS",
+        "real_code_mode_permission_denial_enforced": "PASS",
+        "init_native_hook_and_durable_scan": "PASS",
+        "incremental_native_hook": "PASS",
+        "separate_exact_native_approval_apply_ack": "PASS",
+        "confluence_native_hook_persisted_scope_and_work": "PASS",
+        "knowledge_update_native_alias": "PASS",
+        "no_project_command_copy": "PASS",
+        "native_command_host_permission_enforced": "PASS"
+      },
+      "platform": "Linux",
+      "live_model": false
+    }
+  }
+}
