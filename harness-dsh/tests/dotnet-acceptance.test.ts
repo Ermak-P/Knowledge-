@@ -72,17 +72,32 @@ test('real DSH shell, SDK build/test, discovery and TRX with a Unicode workspace
   expect(timed,'unverified')
   assert.equal(timed.classifier,'timed_out',timed.summary)
   const markerDir=mkdtempSync(join(tmpdir(),'dsh-child-'))
-  const marker=join(markerDir,'pid')
-  process.env.HARNESS_FIXTURE_SIGNAL_FILE=marker
   t.after(()=>{delete process.env.HARNESS_FIXTURE_SIGNAL_FILE;rmSync(markerDir,{recursive:true,force:true})})
-  const controller=new AbortController()
-  const pending=check('test',projects[1],{signal:controller.signal})
-  try{
-    for(let attempt=0;attempt<300&&!existsSync(marker);attempt++)await setTimeout(50)
-    assert.ok(existsSync(marker),'the live test host did not write its PID')
-  }finally{controller.abort()}
-  expect(await pending,'unverified')
-  const pid=Number(readFileSync(marker,'utf8'))
+  async function whileTestRuns(markerName,action){
+    const marker=join(markerDir,markerName)
+    process.env.HARNESS_FIXTURE_SIGNAL_FILE=marker
+    const controller=new AbortController()
+    const pending=check('test',projects[1],{signal:controller.signal})
+    try{
+      for(let attempt=0;attempt<300&&!existsSync(marker);attempt++)await setTimeout(50)
+      assert.ok(existsSync(marker),'the live test host did not write its PID')
+      await action(marker,controller)
+      return {result:await pending,pid:Number(readFileSync(marker,'utf8'))}
+    }finally{
+      controller.abort()
+      await pending
+    }
+  }
+  const stale=await whileTestRuns('stale',marker=>{
+    writeFileSync(production,originalCode+'\n// Edited while the test host ran.\n')
+    writeFileSync(marker+'.release','')
+  })
+  expect(stale.result,'unverified')
+  assert.match(stale.result.summary,/workspace changed/)
+  writeFileSync(production,originalCode)
+
+  const {result,pid}=await whileTestRuns('cancel',(_marker,controller)=>controller.abort())
+  expect(result,'unverified')
   assert.ok(Number.isInteger(pid)&&pid>0)
   let state='exited'
   try{

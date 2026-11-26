@@ -64,14 +64,16 @@ async function mountRuntime(ctx,tmp){
   return harness
 }
 
-for(const scenario of ['first-attempt acceptance','review repair','read-only Knowledge MCP','build repair','test repair','review refusal','repair limit','two tasks','verification cancellation','missing verification infrastructure'])test(
+for(const scenario of ['first-attempt acceptance','review repair','read-only Knowledge MCP','build repair','test repair','review refusal','repair limit','two tasks','verification cancellation','missing verification infrastructure','TDD RED GREEN and refactor'])test(
   'native Harness lifecycle with '+scenario,
   {timeout:180000,skip:scenario==='read-only Knowledge MCP'&&!process.env.DSH_KNOWLEDGE_PYTHON||
-    ['build repair','test repair'].includes(scenario)&&process.env.DSH_DOTNET_ACCEPTANCE!=='1'},
+    ['build repair','test repair','TDD RED GREEN and refactor'].includes(scenario)&&process.env.DSH_DOTNET_ACCEPTANCE!=='1'},
   async t=>{
   const repair=scenario==='review repair'
   const knowledge=scenario==='read-only Knowledge MCP'
   const dotnet=['build repair','test repair'].includes(scenario)
+  const tdd=scenario==='TDD RED GREEN and refactor'
+  const testFile='ArithmeticTests/SumTests.cs'
   const limit=scenario==='repair limit'
   const refusal=scenario==='review refusal'
   const two=scenario==='two tasks'
@@ -81,9 +83,9 @@ for(const scenario of ['first-attempt acceptance','review repair','read-only Kno
   const tmp=realpathSync(mkdtempSync(join(tmpdir(),'dsh-runtime-')))
   const root=join(tmp,'workspace')
   execFileSync('git',['init','-q',root])
-  if(dotnet||unavailable)cpSync(new URL('../fixtures/dotnet/',import.meta.url),root,{recursive:true,filter:path=>!/[\\/](bin|obj|TestResults)$/.test(path)})
+  if(dotnet||tdd||unavailable)cpSync(new URL('../fixtures/dotnet/',import.meta.url),root,{recursive:true,filter:path=>!/[\\/](bin|obj|TestResults)$/.test(path)})
   else writeFileSync(join(root,'.gitignore'),'bin/\nobj/\n')
-  const good=dotnet?readFileSync(join(root,source),'utf8'):''
+  const good=dotnet||tdd?readFileSync(join(root,source),'utf8'):''
   const bad=scenario==='build repair'?'not valid C#':good.replace('left + right','left - right')
   const ctx=new Context()
   t.after(async()=>{try{await ctx.fiber.dispose()}finally{rmSync(tmp,{recursive:true,force:true})}})
@@ -112,7 +114,19 @@ for(const scenario of ['first-attempt acceptance','review repair','read-only Kno
     codeFile('value.txt','first'),['harness_run_check',{criterion_id:'file'}],output(pass),
   ]
   const semanticTask={...task,criteria:[{...criterion,kind:'review'}]}
-  const workflow=cancel?[
+  const tddTask={...buildTask,tdd:true,refactor:true,testFiles:[testFile]}
+  const updatedTest=tdd?readFileSync(join(root,testFile),'utf8').replace(
+    '\n}', '\n    [Fact] public void AppliesSpecialCase() => Assert.Equal(16, Calculator.Sum(10, 5));\n}'
+  ):''
+  const updatedCode=good.replace('left + right','left == 10 && right == 5 ? 16 : left + right')
+  const refactored=updatedCode.replace('left == 10 && right == 5','(left, right) == (10, 5)')
+  const workflow=tdd?[
+    readFile(testFile),codeFile(testFile,updatedTest),
+    output({...testsPass,expectedFailures:[{name:'SumTests.AppliesSpecialCase',message:'Expected: 16'}]}),
+    readFile(source),codeFile(source,updatedCode),output(pass),
+    readFile(source),codeFile(source,refactored),output(pass),
+    readFile(source),readFile(testFile),output({...pass,issues:[]}),
+  ]:cancel?[
     codeFile('value.txt','first'),output(pass),
     [async ({signal})=>{inVerification.resolve();await setTimeout(30000,undefined,{signal})}],
   ]:unavailable?[
@@ -133,7 +147,7 @@ for(const scenario of ['first-attempt acceptance','review repair','read-only Kno
   const script=new Script([
     ['harness_run',{}],
     ...knowledge?[[knowledgeTool,{task:'write the value'}],['mcp__knowledge__knowledge_get_claim',{identifier:'missing'}]]:[],
-    output({tasks:dotnet||unavailable?[buildTask]:cancel?[semanticTask]:two?[task,alternate]:[task]}),
+    output({tasks:tdd?[tddTask]:dotnet||unavailable?[buildTask]:cancel?[semanticTask]:two?[task,alternate]:[task]}),
     ...workflow,...cancel?[]:[[]],
   ])
   ctx.llm.registerAdapter(['script'],script)
@@ -202,9 +216,9 @@ for(const scenario of ['first-attempt acceptance','review repair','read-only Kno
     assert.equal(outcome.status,'blocked')
     assert.match(outcome.reason,limit?/repair limit reached/:unavailable?/unverified/:/review blocked/)
   }else{
-    const tasks=dotnet?[{id:'dotnet',attempts:2}]:[{id:'value',attempts:repair?2:1},...two?[{id:'other',attempts:1}]:[]]
+    const tasks=dotnet||tdd?[{id:'dotnet',attempts:tdd?1:2}]:[{id:'value',attempts:repair?2:1},...two?[{id:'other',attempts:1}]:[]]
     assert.deepEqual(outcome,{status:'completed',tasks})
-    assert.equal(readFileSync(join(root,dotnet?source:'value.txt'),'utf8'),dotnet?good:repair?'repaired':'first')
+    assert.equal(readFileSync(join(root,dotnet||tdd?source:'value.txt'),'utf8'),tdd?refactored:dotnet?good:repair?'repaired':'first')
   }
   assert.equal(script.steps.length,0)
   if(knowledge){
@@ -215,7 +229,7 @@ for(const scenario of ['first-attempt acceptance','review repair','read-only Kno
     assert.match(knowledgeResults[1].content[0].text,/outside the assigned role/)
     assert.deepEqual(databaseStatus(),before)
   }
-  assert.equal(children.size,unavailable?3:dotnet?6:repair?5:two?4:3)
+  assert.equal(children.size,unavailable?3:tdd?5:dotnet?6:repair?5:two?4:3)
   for(const childId of children)assert.equal(ctx.agents.get(childId),undefined)
   ctx.loader.remove(entry)
   await ctx.loader.await()
