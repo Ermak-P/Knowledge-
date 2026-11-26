@@ -296,14 +296,14 @@ def worker(store, folder, chunk, worker_python):
 
 def harness_capture(journal, initial, current, event):
     from harness.capture import deliver
-    from harness.runtime import stamp
 
     run = dict(version=1, id='fixture-delivery', project=journal.project.identity,
                task={'initial_source': initial}, final_source=util.digest(current),
-               capture_time=stamp(), capture_event=event)
+               capture_time=lifecycle.now(), capture_event=event)
     journal.save(run)
     deliver(journal, run, {'capture': 'required', 'limits': {}})
     deliveries = journal.outbox(run['id'])
+    assert run['capture']['state'] == 'delivered' and deliveries, run['capture']
     deliver(journal, run, {'capture': 'required', 'limits': {}})
     assert deliveries == journal.outbox(run['id'])
     return {'delivery': run['capture'], 'outbox_count': len(deliveries), 'replay_equal': True}
