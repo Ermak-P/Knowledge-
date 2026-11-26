@@ -83,7 +83,15 @@ test('real Git freshness and upstream gate reject old, replaced and interrupted 
   assert.equal(fresh().available,false)
   await gate(task,'blocked')
   git('update-index','--no-assume-unchanged','App.cs')
+  edit('.gitignore','Ignored.cs\n**/obj/\n')
   await capture(task)
+  await gate(task,'pass')
+  edit('Ignored.cs','untracked build input')
+  assert.match(fresh().reason,/Git-ignored .NET input/)
+  await gate(task,'blocked')
+  edit('.gitignore','**/obj/\n')
+  await capture(task)
+  await gate(task,'pass')
   const shell={resolve:x=>x,async execute(){
     edit('App.cs','changed during build')
     return {result:async()=>({exitCode:0})}

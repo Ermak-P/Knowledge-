@@ -194,6 +194,13 @@ function workspaceSeal(root,ignore,budgetMs,pathIgnorer,started){
   for(const path of git(['ls-files','--others','--exclude-standard','-z'])){
     if(!excluded(path))paths.add(path)
   }
+  const dotnetInputs=['*.cs','*.fs','*.vb','*.*proj','*.props','*.targets','*.sln','*.slnx','*.runsettings','global.json','NuGet.Config']
+  const generatedDirs=['bin','obj','node_modules','TestResults']
+  const hidden=git(['ls-files','--others','--ignored','--exclude-standard','-z','--',
+    ...dotnetInputs.map(pattern=>':(glob,icase)**/'+pattern),
+    ...generatedDirs.map(dir=>':(exclude,glob,icase)**/'+dir+'/**'),
+  ])
+  if(hidden.length)throw Error('Git-ignored .NET input: '+hidden[0])
   const hash=createHash('sha256')
   for(const path of [...paths].sort()){
     checkBudget()
