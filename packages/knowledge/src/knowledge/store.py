@@ -22,6 +22,7 @@ from .util import canonical_json, digest, fingerprint, loads, require, Knowledge
 from .sqlite_snapshot import Connection, view
 
 GROUPS = {'claims': 'knowledge/claims', 'evidence': 'evidence', 'relationships': 'knowledge/relationships'}
+GIT_BATCH_LIMIT = 100
 KINDS = {'claims': 'claim', 'evidence': 'evidence', 'relationships': 'relationship'}
 SCHEMAS = Path(__file__).parent / 'schemas'
 _schema_snapshot=ContextVar('knowledge-validation-schema-snapshot',default=None)
@@ -183,7 +184,61 @@ class Store:
                 if db is not None:db.close()
 
     @contextmanager
-    def _connection(self, write=False):
+    def discovery_checkpoint_connection(self):
+        """Provisional checkpoint writes have no authority over canonical tables."""
+        from .coordination import gate
+        from . import discovery_checkpoint
+        with gate(self.project.root):
+            safe_tree(self.base)
+            db = None
+            try:
+                db = sqlite3.connect(self.path.as_uri()+'?mode=rw', uri=True, timeout=0.15)
+                db.execute('PRAGMA foreign_keys=ON')
+                db.execute('PRAGMA synchronous=FULL')
+                db.execute('BEGIN IMMEDIATE')
+                metadata = dict(db.execute("SELECT key,value FROM metadata WHERE key IN ('format','project','p1','migration')"))
+                require(metadata.get('format') == 'knowledge-sqlite-v1', 'unsupported-store-format')
+                require(metadata.get('project') == self.project.identity, 'project-identity-mismatch')
+                require(metadata.get('p1') == '1', 'upgrade-required')
+                legacy = self.project.root/'.ai'
+                require(not legacy.exists() or not any(legacy.iterdir()) or 'migration' in metadata, 'ambiguous-dual-stores')
+
+                if not discovery_checkpoint.exists(db):
+                    discovery_checkpoint.create(db)
+
+                def authorize(action, table, column, database, trigger):
+                    if action == sqlite3.SQLITE_READ and table in ('sqlite_master', 'scans') and not trigger:
+                        return sqlite3.SQLITE_OK
+                    if action in (sqlite3.SQLITE_READ, sqlite3.SQLITE_INSERT, sqlite3.SQLITE_UPDATE, sqlite3.SQLITE_DELETE):
+                        return sqlite3.SQLITE_OK if table in ('discovery_runs', 'discovery_chunks') and not trigger else sqlite3.SQLITE_DENY
+                    return sqlite3.SQLITE_OK if action in (sqlite3.SQLITE_SELECT, sqlite3.SQLITE_TRANSACTION) else sqlite3.SQLITE_DENY
+
+                db.set_authorizer(authorize)
+                yield db
+                checkpoint('before-commit')
+                db.commit()
+            except sqlite3.OperationalError as error:
+                raise KnowledgeError('store-busy-retry' if 'locked' in str(error) else 'database-unavailable-or-corrupt') from error
+            except sqlite3.DatabaseError as error:
+                raise KnowledgeError('corrupt-database') from error
+            finally:
+                if db is not None:
+                    db.close()
+
+    @contextmanager
+    def discovery_completion_connection(self):
+        """Validate and compute against one SQLite snapshot, then promote to write.
+
+        A concurrent write prevents promotion and the caller can retry from the
+        durable checkpoint. The read phase holds no reserved writer lock.
+        """
+        from .coordination import gate
+        with gate(self.project.root):
+            with self._connection(write=True, deferred=True) as db:
+                yield db
+
+    @contextmanager
+    def _connection(self, write=False, deferred=False):
         safe_tree(self.base)
         require(self.path.is_file(), 'knowledge-absent')
         db = None
@@ -191,7 +246,7 @@ class Store:
             db = sqlite3.connect(self.path.as_uri() + '?mode=rw', uri=True, timeout=0.15, factory=Connection)
             db.execute('PRAGMA foreign_keys=ON')
             db.execute('PRAGMA synchronous=FULL')
-            db.execute('BEGIN IMMEDIATE' if write else 'BEGIN')
+            db.execute('BEGIN IMMEDIATE' if write and not deferred else 'BEGIN')
             require(db.execute('PRAGMA quick_check').fetchone() == ('ok',), 'corrupt-database')
             metadata = dict(db.execute('SELECT key,value FROM metadata'))
             require(metadata.get('format') == 'knowledge-sqlite-v1', 'unsupported-store-format')
@@ -341,6 +396,9 @@ class Store:
             return {'ok': True, 'counts': {g:len(v) for g,v in records.items()},
                     'warning': 'Structural validation does not prove truth, authority or freshness.'}
 
+    def _queue_rows(self, db):
+        return view(db,'validated-queue',lambda:self._check_control(db))
+
     def submit(self, value, semantic_binding=None):
         item = candidate(value)
         if semantic_binding is not None:
@@ -355,7 +413,7 @@ class Store:
             # _check_control has checked every row in this same snapshot. Keep
             # the old table traversal order and exact raw TEXT equality, including
             # predecessor IDs/noncanonical JSON; a digest never replaces equality.
-            queued=view(db,'validated-queue',lambda:self._check_control(db))
+            queued=self._queue_rows(db)
             serialized=canonical_json(item)
             row=next((r for r in queued if r[0]==cid or r[2]==serialized),None)
             if row:
@@ -373,8 +431,13 @@ class Store:
                     db.execute('INSERT INTO metadata VALUES (?,?)',(SEMANTIC_PREFIX+cid,canonical_json(semantic_binding)))
                     checkpoint('semantic-candidate-written')
                 if item['source'] is not None and not is_binding(item['source']):
-                    from .discovery import inventory,refresh_pending
-                    if inventory(self.project.root)['identity']==item['source']['identity']:refresh_pending(db,cid,item)
+                    from .discovery import inventory,proposal_identity,refresh_pending
+                    signature=proposal_identity(item)
+                    if any(status=='pending' and prior['version']==2 and prior['source'] is not None
+                           and prior['source']['identity']!=item['source']['identity'] and proposal_identity(prior)==signature
+                           for _,status,_,prior in queued):
+                        if inventory(self.project.root)['identity']==item['source']['identity']:
+                            refresh_pending(db,cid,item)
                 return {'ok':True,'candidate':cid,'result':'submitted','status':'pending'}
             known_ids = {r['id'] for v in current.values() for r in v}
             statements = {statement_key(c['statement']) for c in current['claims']}
@@ -407,6 +470,68 @@ class Store:
             db.execute('INSERT INTO queue VALUES (?,?,?,NULL)', (cid,canonical_json(item),'pending'))
             checkpoint('queue-written')
         return {'ok':True,'candidate':cid,'result':'submitted','status':'pending'}
+
+    def submit_git_batch(self, values):
+        """Atomically admit bounded Git observations for one source snapshot.
+
+        Receipts follow input order, including duplicates. The caller can
+        replay the original payloads if delivery acknowledgments were lost.
+        """
+        from .confluence import is_binding
+        from .discovery import CandidateIndex, inventory, refresh_pending, _write_refreshes
+
+        require(isinstance(values, list) and 1 <= len(values) <= GIT_BATCH_LIMIT, 'invalid-git-candidate-batch-size')
+        items = []
+        identity = None
+        for index, value in enumerate(values):
+            try:
+                item = candidate(value)
+                source = item.get('source')
+                require(item['version']==2 and source is not None and not is_binding(source),
+                        'incompatible-git-candidate-batch')
+                if identity is None:
+                    identity = source['identity']
+                require(source['identity']==identity, 'incompatible-git-candidate-batch')
+            except KnowledgeError as error:
+                raise KnowledgeError(error.code, {'index': index, 'details': error.details}) from error
+            items.append(item)
+
+        with self.discovery_completion_connection() as db:
+            require(life.enabled(db), 'upgrade-required')
+            self._records(db)
+            queue = self._queue_rows(db)
+            by_id = {}
+            by_payload = {}
+            for position, (cid, status, raw, item) in enumerate(queue):
+                row = (position, cid, status, item)
+                by_id[cid] = row
+                by_payload.setdefault(raw, row)
+            pending = []
+            receipts = []
+            for item in items:
+                cid = digest(item)
+                serialized = canonical_json(item)
+                matches = [row for row in (by_id.get(cid), by_payload.get(serialized)) if row is not None]
+                if matches:
+                    _, existing, status, registered = min(matches, key=lambda row: row[0])
+                    require(registered==item, 'candidate-identity-conflict')
+                    receipts.append({'ok':True,'candidate':existing,'result':'duplicate','status':status})
+                    continue
+                row = (len(queue)+len(pending), cid, 'pending', item)
+                by_id[cid] = by_payload[serialized] = row
+                pending.append((cid, serialized, item))
+                receipts.append({'ok':True,'candidate':cid,'result':'submitted','status':'pending'})
+            if pending:
+                index = CandidateIndex(db, (row for row in queue if row[3].get('source') is not None))
+                refreshes = []
+                for cid, _, item in pending:
+                    refresh_pending(db,cid,item,index,staged=refreshes)
+                require(inventory(self.project.root)['identity']==identity, 'source-changed-before-candidate-batch')
+                db.executemany('INSERT INTO queue VALUES (?,?,?,NULL)',
+                               ((cid,raw,'pending') for cid,raw,_ in pending))
+                _write_refreshes(db, refreshes)
+                checkpoint('queue-written')
+        return receipts
 
     def _preview(self, db, source_identity=None, progress=None):
         tick=progress or (lambda *args,**kwargs:None)

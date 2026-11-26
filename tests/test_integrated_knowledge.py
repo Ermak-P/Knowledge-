@@ -49,6 +49,12 @@ class KnowledgeIntegration(unittest.TestCase):
  def test_two_harness_tasks_commit_refresh_exact_approval_and_dispositions(self):
   with tempfile.TemporaryDirectory() as tmp:
    root=self.checkout(Path(tmp)/'project');project(root);git(root,'add','.');git(root,'commit','-m','Harness fixture');s=upgraded(root);plans=[];old=[]
+   # Exercise automatic capture with an explicitly verified baseline. Retain
+   # the setup candidates and their dispositions without applying any claims.
+   baseline=disc.scan(s,max_files=100)
+   self.assertTrue(baseline['complete'])
+   for candidate_id in baseline['candidates']:
+    life.dispose(s,candidate_id,'deferred','Fixture baseline review')
    for n,desired in enumerate(('public class ImprovedFeature {}\n','public class ImprovedFeature : System.Object {}\n')):
     expected_test(root,desired)
     with http_provider(FixtureProvider(desired=desired)) as endpoint:

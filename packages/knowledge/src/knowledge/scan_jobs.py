@@ -92,7 +92,7 @@ def status(folder):
         if value.get('job')==state['job']:
             state.update(identity_verification=value.get('identity_verification'), coverage_complete=value.get('complete', False), work=value.get('work'), candidates=value.get('candidates',0),
                          counters=value.get('counters'), processing_complete=(value.get('work') or {}).get('remaining_files')==0,
-                         gaps=value.get('gaps',0),source=value.get('source'), semantic_coverage_complete=False)
+                         gaps=value.get('gaps',0),source=value.get('source'), source_verified=value.get('source_verified',False), semantic_coverage_complete=False)
     cancellation=folder / 'cancel.json'
     if state['state'] in ('STARTING','RUNNING') and cancellation.exists() and read_json(cancellation).get('job')==state['job']:
         state['phase']='CANCELLING_AT_CHUNK_BOUNDARY'
@@ -189,7 +189,7 @@ def worker(folder):
         observed_id=state.get('observed_scan_id')
         run(state['root'], folder,scan_id=observed_id, max_files=state['max_files'], fresh=fresh,
             base=scope.get('base'), head=scope.get('head'), incremental=scope['kind'] == 'incremental', retry_blocked=bool(state.get('resume') and (checkpoint.exists() or observed_id) and not fresh),
-            cancel_path=folder / 'cancel.json',cancel_job=state['job'],refresh=state.get('previous_success',False),lease_fds=lease.fds)
+            cancel_path=folder / 'cancel.json',cancel_job=state['job'],refresh=state.get('previous_success',False),persistent=True)
         after = {row['id'] for row in store.status()['queue']}
         observed = read_json(folder / 'last-result.json')
         reconciliation = observed['reconciliation']

@@ -151,9 +151,9 @@ class ProjectCommandsTests(unittest.TestCase):
             result = wait(install, root, 'knowledge-candidates-update')
             self.assertEqual(result['scope']['kind'], 'incremental')
             self.assertEqual(result['work']['durable_extracted_files'], 1)
-            with Store(root).connection() as db:
-                row = db.execute('SELECT payload FROM scans WHERE id=?', (result['scan_id'],)).fetchone()
-            self.assertEqual(set(json.loads(row[0])['coverage']), {'Class3.cs'})
+            scans = discovery.status(Store(root), result['scan_id'])['scans']
+            self.assertEqual(len(scans), 1)
+            self.assertEqual(set(scans[0]['coverage']), {'Class3.cs'})
             self.assertFalse(Store(root).export()['records']['claims'])
 
     def test_root_ambiguity_p0_and_legacy_are_not_silently_migrated(self):
@@ -235,7 +235,7 @@ class HelperFailureTests(unittest.TestCase):
             for number, case in enumerate(cases):
                 options = {'side_effect': case} if isinstance(case, Exception) else {'return_value': case}
                 with self.subTest(case=number), patch.object(auto_init.subprocess, 'run', **options) as invoked:
-                    with self.assertRaises(ScanError): run(root, install / ('failure' + str(number)))
+                    with self.assertRaises(ScanError): run(root, install / ('failure' + str(number)), persistent=False)
                     self.assertEqual(invoked.call_count, 1)
             self.assertEqual(json.loads((install / 'failure2/last-error.json').read_text())['error'], 'command-timeout-outcome-unknown')
 
