@@ -77,7 +77,19 @@ def prepare(db, state):
     inserts = [(key, _encode(raw)) for key, raw in raw_blocks.items() if key not in saved]
     header = {k: v for k, v in snapshot.items() if k not in maps and k != 'exclusions'}
     body = {**state, 'snapshot': header}
-    packed = _encode(_raw({'state': body, 'maps': sorted(maps), 'blocks': sorted(refs), 'exclusions': exclusion_ref}))
+    manifest = {'state': body, 'maps': sorted(maps), 'blocks': sorted(refs), 'exclusions': exclusion_ref}
+    # Full coverage carries most of the same fields as the immutable inventory.
+    # Store only the processing additions/replacements when all original keys
+    # survive. Leave uncommon legacy shapes and small incremental coverage intact.
+    coverage = state['coverage']
+    files = maps['files']
+    if not state.get('incremental') and coverage.keys() == files.keys() and all(
+            files[p].keys() <= entry.keys() for p, entry in coverage.items()):
+        body['coverage'] = {p: {key: item for key, item in entry.items()
+                                if key not in files[p] or files[p][key] != item}
+                            for p, entry in coverage.items()}
+        manifest['coverage_overlay'] = True
+    packed = _encode(_raw(manifest))
     envelope = {'format': FORMAT, 'id': state['id'], 'source': snapshot['identity'],
                 'revision': snapshot.get('revision'), 'extractor': state['extractor'],
                 'full': not state.get('incremental', False), 'complete': state['complete'], 'body': packed,
@@ -107,7 +119,9 @@ def _materialize(db, envelope, *, observations_only=False):
     if 'format' not in envelope:
         return envelope
     value = _json(_decode(envelope['body']))
-    require(isinstance(value,dict) and set(value)=={'state','maps','blocks','exclusions'},
+    fields = {'state','maps','blocks','exclusions'}
+    require(isinstance(value,dict) and (set(value)==fields or
+            (set(value)==fields|{'coverage_overlay'} and value['coverage_overlay'] is True)),
             'corrupt-discovery-history')
     state = value['state']
     require(isinstance(state,dict) and isinstance(state.get('snapshot'),dict)
@@ -145,6 +159,12 @@ def _materialize(db, envelope, *, observations_only=False):
             mappings[name].update(entries)
     require(found==len(refs)+1, 'missing-discovery-snapshot-block')
     snapshot.update((name, dict(sorted(entries.items()))) for name, entries in mappings.items())
+    if value.get('coverage_overlay'):
+        files = snapshot['files']
+        coverage = state['coverage']
+        require(isinstance(coverage,dict) and coverage.keys()==files.keys() and
+                all(isinstance(entry,dict) for entry in coverage.values()), 'corrupt-discovery-history')
+        state['coverage'] = {path: {**files[path], **entry} for path, entry in coverage.items()}
     return state
 
 
