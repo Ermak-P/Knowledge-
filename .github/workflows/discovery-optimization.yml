@@ -10,6 +10,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  statuses: write
 jobs:
   qualify:
     strategy:
@@ -23,6 +24,12 @@ jobs:
       PYTHONIOENCODING: utf-8
       PYTHONPATH: tests
     steps:
+      - name: Report qualification status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          gh api "repos/$env:GITHUB_REPOSITORY/statuses/$env:GITHUB_SHA" -f state=pending -f "context=Discovery/$env:RUNNER_OS" -f "target_url=$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID" --silent
       - uses: actions/checkout@v4
         env:
           GIT_CONFIG_COUNT: '1'
@@ -58,3 +65,12 @@ jobs:
         with:
           name: discovery-qualification-${{ runner.os }}
           path: ${{ runner.temp }}/discovery-qualification/
+      - name: Report qualification result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        shell: pwsh
+        run: |
+          $State = if ($env:JOB_STATUS -eq 'success') { 'success' } else { 'failure' }
+          gh api "repos/$env:GITHUB_REPOSITORY/statuses/$env:GITHUB_SHA" -f "state=$State" -f "context=Discovery/$env:RUNNER_OS" -f "target_url=$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID" --silent
