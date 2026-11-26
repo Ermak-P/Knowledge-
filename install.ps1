@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$McpDir)
+param([Parameter(Mandatory=$true)][string]$McpDir,[ValidateSet('readonly','maintainer')][string]$Mode)
 $ErrorActionPreference = 'Stop'
 $env:PYTHONUTF8 = '1'
 $env:PYTHONIOENCODING = 'utf-8'
@@ -20,5 +20,7 @@ if (-not $SelectedPython) {
   }
 }
 if (-not $SelectedPython) { throw 'Python 3.12 is required. Install Python 3.12 from python.org, then rerun this command.' }
-& $SelectedPython @PythonArgs -I -X utf8 (Join-Path $PSScriptRoot 'install.py') --mcp-dir $McpDir
+$ModeArgs = @()
+if ($Mode) { $ModeArgs = @('--mode', $Mode) }
+& $SelectedPython @PythonArgs -I -X utf8 (Join-Path $PSScriptRoot 'install.py') --mcp-dir $McpDir @ModeArgs
 exit $LASTEXITCODE

@@ -38,15 +38,17 @@ class OperationalStore(Store):
             super().__init__(root)
         else:
             base = shared_root(shared)
-            self.project = SimpleNamespace(root=base, base=base, db=base/'store.sqlite3',
+            self.project = SimpleNamespace(root=base, base=base, db=base/'store.sqlite3', global_store=True,
                 identity=digest('shared:'+os.path.normcase(str(base.absolute()))))
             self.base, self.path = base, base/'store.sqlite3'
 
     def ensure(self):
+        from .access import require_maintainer
+        require_maintainer()
         if self.scope == 'shared':
             safe_tree(self.base)
             self.base.mkdir(parents=True, exist_ok=True, mode=0o700)
-        with gate(self.project.root, exclusive=True):
+        with gate(self.project.root, exclusive=True, global_store=self.scope == 'shared'):
             if not self.path.exists():
                 if self.scope == 'project':
                     self.init()

@@ -131,7 +131,7 @@ def checkpoint_status(folder, state):
         return {'checkpoint_error': getattr(error, 'code', 'invalid-scan-checkpoint')}
     # After fresh starts, the previous locator can survive until the first
     # committed chunk. It cannot prove the outcome of the new worker.
-    if ((state.get('fresh') or (state.get('previous_success') and not state.get('resume')))
+    if ((state.get('fresh') or state.get('recovery_of') or (state.get('previous_success') and not state.get('resume')))
             and saved.get('job') != state['job']
             and not (saved.get('job') is None and state.get('progress_scan_id') == saved['scan_id'])):
         return {'checkpoint_error': 'scan-checkpoint-precedes-fresh-worker'}
@@ -296,8 +296,8 @@ def launch(folder, state, module):
     return process
 
 
-def start(folder, root, scope, binding, max_files=100, resume=False, fresh=False, observed_scan_id=None):
-    require(not (resume and fresh), 'invalid-recovery-controls')
+def start(folder, root, scope, binding, max_files=100, resume=False, fresh=False, observed_scan_id=None, recovery_of=None):
+    require(sum(map(bool, (resume, fresh, recovery_of))) <= 1, 'invalid-recovery-controls')
     require(type(max_files) is int and 1 <= max_files <= 10000, 'invalid-scan-bound')
     require(observed_scan_id is None or (resume and isinstance(observed_scan_id, str)
             and re.fullmatch('[0-9a-f]{64}', observed_scan_id)), 'invalid-observed-scan-resume')
@@ -311,18 +311,18 @@ def start(folder, root, scope, binding, max_files=100, resume=False, fresh=False
         if old and old.get('legacy_worker_may_be_active'):
             raise KnowledgeError(UNVERIFIED_WORKER, resume_details(old, binding, UNVERIFIED_WORKER))
         if old and old['state'] in ACTIVE:
-            require(not resume, 'scan-worker-active', resume_details(old, binding, 'scan-worker-active'))
+            require(not (resume or recovery_of), 'scan-worker-active', resume_details(old, binding, 'scan-worker-active'))
             require(not fresh, 'scan-active-cancel-before-fresh')
             require(old['scope'] == scope, 'active-scan-scope-mismatch')
             return old
-        if old and not (resume or fresh):
+        if old and not (resume or fresh or recovery_of):
             require(old['state'] == 'COMPLETED', 'scan-recovery-required',
                     resume_details(old, binding, 'scan-recovery-required'))
         if resume and old:
             require(old['scope'] == scope, 'resume-scan-configuration-drift',
                     resume_details(old, binding, 'scan-scope-mismatch-restart-required'))
 
-        continuation = resume or (old is not None and not fresh)
+        continuation = resume or (old is not None and not (fresh or recovery_of))
         resume_id = None
         if continuation:
             recorded = context.get('scan_id')
@@ -333,7 +333,7 @@ def start(folder, root, scope, binding, max_files=100, resume=False, fresh=False
                     resume_details(context, binding, context.get('checkpoint_error', 'scan-outcome-observation-required')))
             require(context.get('checkpoint_error') != 'scan-checkpoint-ownership-mismatch',
                     'resume-scan-configuration-drift', resume_details(context, binding, 'scan-checkpoint-ownership-mismatch'))
-        elif old is None and not fresh:
+        elif old is None and not (fresh or recovery_of):
             require(not safe_path(folder / 'checkpoint.json').exists(), 'scan-recovery-required',
                     resume_details(context, binding, 'scan-outcome-observation-required'))
 
@@ -352,6 +352,8 @@ def start(folder, root, scope, binding, max_files=100, resume=False, fresh=False
                  'process_stamp': process_stamp(os.getpid()), 'diagnostics': str(folder)}
         if continuation:
             state['resume_context'] = resume_details(context, binding, 'checkpoint-verification-pending', resume_id)
+        if recovery_of:
+            state['recovery_of'] = recovery_of
         process = launch(folder, state, 'knowledge.scan_jobs')
     finally:
         lease.close()
@@ -391,11 +393,14 @@ def worker(folder):
             write_json(safe_path(folder.parent / 'last-incremental.json'), {'folder': folder.name})
         store = Store(state['root'])
         session = None
-        if resume_id:
+        if resume_id or state.get('recovery_of'):
             state['phase'] = 'VERIFYING_RESUME'
             write_json(folder / 'job.json', state)
             session = ScanSession(store)
-            session.prepare_resume(resume_id, base, head, incremental)
+            if resume_id:
+                session.prepare_resume(resume_id, base, head, incremental)
+            else:
+                resume_id = session.prepare_recovery(state['recovery_of'], base, head, incremental)
             state['resume_verified'] = True
             state.pop('phase')
             write_json(folder / 'job.json', state)
@@ -415,7 +420,11 @@ def worker(folder):
     except ScanCancelled as error:
         state.update(state='CANCELLED',chunk_started=(folder/'checkpoint.json').exists(),error=str(error),next_action='Resume the compatible checkpoint explicitly, or choose fresh for a new execution.')
     except Exception as error:
-        if resume_id and not state.get('resume_verified'):
+        if state.get('recovery_of') and not state.get('resume_verified'):
+            reason = getattr(error, 'code', 'scan-checkpoint-verification-failed')
+            details = getattr(error, 'details', None) or {}
+            state.update(state='BLOCKED', error=reason, recovery_failure=details, next_action=details.get('next_action', OBSERVE))
+        elif resume_id and not state.get('resume_verified'):
             reason = getattr(error, 'code', 'scan-checkpoint-verification-failed')
             failure = resume_details(state, state['binding'], reason, resume_id)
             context = state['resume_context']

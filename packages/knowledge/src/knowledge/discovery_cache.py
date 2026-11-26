@@ -13,11 +13,11 @@ def exists(db):
     return db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='discovery_file_cache'").fetchone() is not None
 
 
-def configuration(snapshot):
+def configuration(snapshot, policy=None):
     shared = [[p, e['hash']] for p, e in sorted(snapshot['files'].items())
               if PurePosixPath(p).suffix.lower() in ('.props', '.targets', '.sln', '.config')
               or PurePosixPath(p).name.casefold() == 'global.json']
-    return digest([snapshot['policy'], snapshot['extractor'], POLICY, shared])
+    return digest([snapshot['policy'] if policy is None else policy, snapshot['extractor'], POLICY, shared])
 
 
 def binding(project, snapshot, path, context):

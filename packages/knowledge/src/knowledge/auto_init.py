@@ -123,6 +123,8 @@ def run(root, output, scan_id=None, max_files=100, max_calls=10000,
     root = Path(root).resolve(strict=True)
     if not root.is_dir():
         raise ScanError('--root must be an existing project directory.')
+    from .access import require_maintainer
+    require_maintainer()
     output = Path(output).resolve()
     if inside(output, root):
         raise ScanError('Output must be outside --root to avoid changing the scan snapshot.')

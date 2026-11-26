@@ -37,6 +37,11 @@ def _json(raw):
         raise KnowledgeError('corrupt-discovery-history') from error
 
 
+def _summary(state):
+    return {'state': state.get('state'), 'counters': state.get('counters'),
+            **({'recovery_of': state['recovery_of']} if state.get('recovery_of') else {})}
+
+
 def exists(db):
     return db.execute("SELECT 1 FROM sqlite_schema WHERE type='table' AND name=?", (TABLE,)).fetchone() is not None
 
@@ -93,7 +98,7 @@ def prepare(db, state):
     envelope = {'format': FORMAT, 'id': state['id'], 'source': snapshot['identity'],
                 'revision': snapshot.get('revision'), 'extractor': state['extractor'],
                 'full': not state.get('incremental', False), 'complete': state['complete'], 'body': packed,
-                'summary': {'state':state.get('state'), 'counters':state.get('counters')}}
+                'summary': _summary(state)}
     return canonical_json({**envelope, 'checksum': digest(envelope)}), inserts
 
 
@@ -130,7 +135,7 @@ def _materialize(db, envelope, *, observations_only=False):
     require(state['id']==envelope['id'] and snapshot['identity']==envelope['source']
             and snapshot.get('revision')==envelope['revision'] and state['extractor']==envelope['extractor']
             and state['complete']==envelope['complete'] and (not state.get('incremental', False))==envelope['full']
-            and envelope['summary']=={'state':state.get('state'),'counters':state.get('counters')},
+            and envelope['summary'] in (_summary(state), {'state': state.get('state'), 'counters': state.get('counters')}),
             'corrupt-discovery-history')
     if observations_only:
         return {'observations':state['observations']}

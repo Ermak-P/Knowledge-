@@ -55,8 +55,8 @@ def main():
         original_host = unrelated.read_bytes()
         def install_args(source, target, ready):
             if os.name == 'nt':
-                return ['powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', source / 'install.ps1', '-McpDir', target]
-            return [sys.executable, '-I', '-X', 'utf8', source / ('machine-install.py' if ready else 'install.py'), '--mcp-dir', target]
+                return ['powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', source / 'install.ps1', '-McpDir', target, '-Mode', 'maintainer']
+            return [sys.executable, '-I', '-X', 'utf8', source / ('machine-install.py' if ready else 'install.py'), '--mcp-dir', target, '--mode', 'maintainer']
         first = command('ready-kit-install', install_args(kit, runtime, True), env, cwd)
         assert first.startswith('INSTALLED'), first
         pointer = read(runtime / 'current.json')

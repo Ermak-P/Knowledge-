@@ -9,6 +9,7 @@ import time
 import xml.etree.ElementTree as ET
 from .util import canonical_json, digest, fingerprint, loads, require, KnowledgeError
 from .project import safe_path
+from .runtime_paths import DIRECTORY as RUNTIME_DIR
 from . import lifecycle as life
 from . import source_reader
 from . import discovery_checkpoint as scan_checkpoint
@@ -21,7 +22,7 @@ LEGACY_METHODS={'dotnet-lexical-v1','dotnet-lexical-v2'}
 DISCOVERY_METHODS=LEGACY_METHODS|{VERSION}
 CURRENT_EVIDENCE=('unchanged','anchor-valid-file-changed','current-registered-confluence-snapshot','unchanged-content-newer-confluence-version')
 EXCLUDED={'.git','.knowledge','.ai','.venv','.local','node_modules','vendor','packages','bin','obj','dist','build','.vs','TestResults'}
-SUFFIXES={'.cs','.csproj','.props','.targets','.sln','.json','.md','.yaml','.yml','.xml','.config'}
+SUFFIXES={'.cs','.csproj','.props','.targets','.sln','.json','.jsonc','.md','.yaml','.yml','.xml','.config'}
 LIMIT=512000
 
 
@@ -92,7 +93,7 @@ def inventory(root,base=None,head=None):
             relative=p.relative_to(root).as_posix()
             rule=source_reader.exclusion(relative+'/',config)
             included=any(source_reader.matches(relative+'/',pattern) or pattern.startswith(relative+'/') for pattern in config['include'])
-            administrative=name in {'.git','.knowledge','.ai','.venv','.local','.harness','.maintenance'}
+            administrative=name.casefold() in {'.git',RUNTIME_DIR,'.ai','.venv','.local','.harness','.maintenance'}
             try:excluded_dir=administrative or p.is_symlink() or p.is_junction() or ((name in EXCLUDED or name.startswith('.')) and not included)
             except OSError as error:
                 gap(error,'inspect-directory');dirs.remove(name);continue
@@ -105,7 +106,7 @@ def inventory(root,base=None,head=None):
             rule=source_reader.exclusion(rel,config)
             if rule:
                 excluded.append({'path':rel,'status':'excluded','kind':'file',**rule});continue
-            if p.suffix.lower() not in SUFFIXES or re.search(r'(?i)(secret|credential|\.env|appsettings\.(?!json)|\.g\.cs|\.designer\.cs)',name):
+            if p.suffix.lower() not in SUFFIXES or re.search(r'(?i)(secret|credential|\.env|\.g\.cs|\.designer\.cs)',name):
                 excluded.append({'path':rel,'status':'excluded','kind':'file','reason':'EXCLUDED_GENERATED' if p.suffix.lower() in SUFFIXES else 'EXCLUDED_BINARY','rule':'default-extension/generated/credential-filter'});continue
             try:
                 if p.is_symlink():
@@ -294,6 +295,14 @@ def fresh_evidence(root,e,scope=None,db=None):
     if p.is_absolute() or '..' in p.parts:return 'not-verifiable'
     relative = p.as_posix()
     method=e.get('provenance',{}).get('method')
+    if any(part.casefold() == RUNTIME_DIR for part in p.parts):
+        if method == 'update-by-cr-v1':
+            from .cr_workflow import artifact_freshness
+            try:
+                return artifact_freshness(root, e, db)
+            except (OSError, UnicodeError, KnowledgeError):
+                return 'not-verifiable'
+        return 'not-verifiable'
     try:
         if method in DISCOVERY_METHODS and method not in LEGACY_METHODS and scope is None:
             scope = analysis_scope(root)
@@ -326,6 +335,8 @@ def fresh_evidence(root,e,scope=None,db=None):
 
 
 def _evidence_source(root, relative, scope, wanted):
+    if any(part.casefold() == RUNTIME_DIR for part in Path(relative).parts):
+        return 'not-analyzed'
     path = safe_path(Path(root)/relative)
     if not path.is_file() or path.is_symlink():
         return 'missing'
@@ -473,8 +484,8 @@ def _validate_snapshot(snapshot):
     require(digest(core)==snapshot['identity'],'corrupt-scan-snapshot')
 
 
-def _historical_baseline(db, snapshot):
-    context = file_cache.configuration(snapshot)
+def _historical_baseline(db, snapshot, context=None):
+    context = context or file_cache.configuration(snapshot)
     for _, old in scan_history.scan_rows(db, full=True, complete=True, extractor=VERSION, newest=True):
         if old.get('ambiguous') or file_cache.configuration(old['snapshot']) != context:
             continue
@@ -507,6 +518,11 @@ def _cached_scope(db, project, state, by_file, *, dependencies=False, root=None)
     outside = {p for p in snapshot['files'] if file_cache.code_file(p) and p not in state['coverage']}
     context = file_cache.configuration(snapshot)
     cached = file_cache.compatible(db, project, snapshot, outside, context, lambda: _historical_baseline(db, snapshot))
+    reused = {}
+    if previous_context := state.get('recovery_cache_context'):
+        reused = file_cache.compatible(db, project, snapshot, outside - cached.keys(), previous_context,
+                                       lambda: _historical_baseline(db, snapshot, previous_context))
+        cached.update(reused)
     extracted_dependencies = []
     if dependencies:
         # Partition metadata contributes its own observations. A cold capture
@@ -534,7 +550,7 @@ def _cached_scope(db, project, state, by_file, *, dependencies=False, root=None)
     coverage.update(state['coverage'])
     return {'snapshot': snapshot, 'observations': observations, 'ambiguous': ambiguous,
             'complete': state['complete'] and not missing, 'verification_coverage': coverage,
-            'cached_sources': cached, 'cache_context': context}
+            'cached_sources': cached, 'cache_context': context, 'recovery_cache_sources': reused}
 
 
 def incremental_scope(db, state, by_file=None):
@@ -706,16 +722,25 @@ class ScanSession:
         require(scan_id is not None, 'unknown-scan')
         self._open(scan_id, base, head, False, incremental, verify_resume=True)
 
-    def _open(self, scan_id, base, head, restart, incremental, verify_resume=False):
+    def prepare_recovery(self, parent, base, head, incremental):
+        """Use a separate, deterministic checkpoint for compatible gap recovery."""
+        self._open(None, base, head, False, incremental, parent=parent)
+        return self.state['id']
+
+    def _open(self, scan_id, base, head, restart, incremental, verify_resume=False, parent=None):
+        from .access import require_maintainer
         from .persistence_identity import LEGACY, POLICY
         from uuid import uuid4
 
+        require_maintainer()
         root = self.store.project.root
         snap = inventory(root, base, head)
         self.branch = _branch(root, snap)
         chosen = _selected_paths(root, snap, incremental)
         provided = scan_id
-        if scan_id is None or restart:
+        if parent:
+            scan_id = digest(['gap-recovery-v1', self.store.project.identity, parent, snap['identity'], snap['delta']])
+        elif scan_id is None or restart:
             scan_id = digest([self.store.project.identity, snap['identity'], snap['delta'], VERSION]
                              + (['incremental-v1', sorted(chosen)] if incremental else [])
                              + ([uuid4().hex] if restart else []))
@@ -726,12 +751,17 @@ class ScanSession:
             persisted = _load_checkpoint(db, scan_id, self.by_file)
             self.legacy = _legacy_scan(db, scan_id)
             terminal = scan_history.decode(db, scan_id, self.legacy) if self.legacy and not persisted else None
+            if parent and not (persisted or terminal):
+                prior_payload = _legacy_scan(db, parent)
+                require(prior_payload is not None, 'unknown-scan', {'scan_id': parent})
+                prior = scan_history.decode(db, parent, prior_payload)
+                state = self._recover_state(prior, scan_id, snap, chosen, incremental)
         if persisted:
             state, self.generation = persisted
         elif self.legacy:
             state = terminal
             self.by_file.update(file_cache.historical_observations(state))
-        else:
+        elif not parent:
             require(not provided or restart, 'unknown-scan')
             state = dict(id=scan_id, extractor=VERSION, identity_policy=POLICY, resume_contract=RESUME_CONTRACT, snapshot=snap,
                          observations=[], candidates=[], captured_at=life.now(), complete=False)
@@ -773,6 +803,10 @@ class ScanSession:
                 if any(entry['status'] in ('not-analyzed','blocked') for entry in state['coverage'].values()):
                     self.initial = deepcopy({k: v for k, v in state.items() if k != 'snapshot'})
                     self.initial['snapshot'] = state['snapshot']
+            elif parent:
+                from copy import deepcopy
+                self.initial = deepcopy({k: v for k, v in state.items() if k != 'snapshot'})
+                self.initial.update(snapshot=snap, counters=coverage_counters(state))
             else:
                 self.initial = dict(state, observations=[], candidates=[])
         if 'coverage' not in state:
@@ -783,6 +817,91 @@ class ScanSession:
         self.arguments = (base, head, incremental)
         self.index = {o['id']: o for o in state['observations']}
         self.pending = iter(self._pending())
+        self.completed_recovery = bool(parent and terminal)
+
+    def _recover_state(self, prior, scan_id, snap, chosen, incremental):
+        from copy import deepcopy
+        from .persistence_identity import POLICY
+
+        old = prior['snapshot']
+        hint = {'scan_id': prior['id'], 'next_action': 'Restore the expected source and policy or explicitly start a fresh scan.'}
+        require(prior.get('state') == 'COMPLETED_WITH_GAPS' and prior.get('source_verified'),
+                'scan-recovery-requires-verified-gaps', hint)
+        require(prior.get('resume_contract', 'lexical-scan-v1') == RESUME_CONTRACT and
+                prior.get('identity_policy') == POLICY and prior['extractor'] == VERSION,
+                'incompatible-scan-recovery-extractor', hint)
+        additions = snap['files'].keys() - old['files'].keys()
+        require(bool(prior.get('incremental')) == incremental and old['delta'] == snap['delta']
+                and old['revision'] == snap['revision'] and prior.get('git_branch') == self.branch
+                and (not incremental or set(prior.get('scope_paths', [])) == chosen - additions),
+                'scan-recovery-scope-or-revision-changed', hint)
+        formerly_filtered = {item['path'] for item in old['exclusions']
+                             if item.get('rule') == 'default-extension/generated/credential-filter'}
+        newly_supported = {path for path in additions if old['policy'].get('reader') == 'source-reader-v1'
+                           and path in formerly_filtered and (Path(path).suffix.casefold() == '.jsonc'
+                           or source_reader.json_source.dialect(path, snap['policy']) == source_reader.json_source.DOTNET)}
+        require(not old.get('coverage_errors') and not snap.get('coverage_errors')
+                and old['files'].keys() <= snap['files'].keys() and additions == newly_supported,
+                'scan-recovery-inventory-changed', hint)
+        allowed_drift = {'reader', 'json_dialects', 'suffixes'}
+        require({k:v for k,v in old['policy'].items() if k not in allowed_drift} ==
+                {k:v for k,v in snap['policy'].items() if k not in allowed_drift}
+                and old['policy'].get('reader') in ('source-reader-v1', source_reader.VERSION),
+                'scan-recovery-policy-incompatible', hint)
+        recovered = []
+        coverage = deepcopy(prior['coverage'])
+        for path, current in snap['files'].items():
+            if path in additions:
+                if not incremental or path in chosen:
+                    coverage[path] = dict(current)
+                    if current['status'] == 'not-analyzed':
+                        recovered.append(path)
+                continue
+            previous = old['files'][path]
+            entry = coverage.get(path)
+            failed = entry is not None and entry['status'] == 'blocked'
+            changed = current['hash'] != previous['hash']
+            require(not changed or failed, 'scan-recovery-successful-source-changed', {**hint, 'path': path})
+            require(all(current.get(key) == previous.get(key) for key in
+                        ('partition', 'partition_ambiguous', 'head_blob')), 'scan-recovery-ownership-changed', hint)
+            structured = Path(path).suffix.casefold() in ('.json', '.jsonc')
+            dialect_changed = structured and (
+                source_reader.json_source.dialect(path, old['policy']) != source_reader.json_source.dialect(path, snap['policy']))
+            policy_changed = structured and old['policy'].get('reader') != snap['policy'].get('reader')
+            if entry is not None and (dialect_changed or (failed and (changed or policy_changed or entry.get('retry_eligible')))):
+                require(not changed or (not file_cache.code_file(path) and not path.endswith(('.props', '.targets', '.sln', '.config'))),
+                        'scan-recovery-code-context-changed', {**hint, 'path': path})
+                if current['status'] != 'not-analyzed' or current['hash'] is None:
+                    require(failed and current['status'] == 'blocked', 'scan-recovery-source-unavailable', {**hint, 'path': path})
+                    if current != previous:
+                        coverage[path] = dict(current)
+                    continue
+                coverage[path] = dict(current)
+                recovered.append(path)
+            else:
+                require(current == previous and snap.get('index_blobs', {}).get(path) == old.get('index_blobs', {}).get(path),
+                        'scan-recovery-successful-source-binding-changed', {**hint, 'path': path})
+        require(recovered, 'scan-recovery-no-eligible-files', {
+            'scan_id': prior['id'], 'next_action': 'Correct failed source syntax or update its extraction policy before recovery.'})
+        require(not any(o['path'] in recovered or any(l['path'] in recovered for l in o.get('occurrences', []))
+                        for o in prior['observations']), 'scan-recovery-observations-require-fresh', hint)
+        by_file = file_cache.historical_observations(prior)
+        require(not (prior.get('ambiguous') and incremental), 'scan-recovery-observations-require-fresh', hint)
+        self.by_file.update(by_file)
+        cache_context = {}
+        previous_context = file_cache.configuration(old)
+        require(file_cache.configuration(snap, old['policy']) == previous_context,
+                'scan-recovery-code-context-changed', hint)
+        if incremental:
+            if previous_context != file_cache.configuration(snap):
+                cache_context['recovery_cache_context'] = previous_context
+        return {**{k: deepcopy(prior[k]) for k in ('observations', 'ambiguous', 'gaps') if k in prior},
+                **({'scope_paths': sorted(chosen), 'incremental': True} if incremental else {}),
+                **cache_context,
+                'id': scan_id, 'recovery_of': prior['id'], 'extractor': VERSION,
+                'identity_policy': POLICY, 'resume_contract': RESUME_CONTRACT, 'snapshot': snap,
+                'coverage': coverage, 'candidates': list(prior['candidates']), 'captured_at': life.now(), 'complete': False,
+                'recovery_paths': sorted(recovered)}
 
     def _pending(self):
         return sorted((p for p, e in self.state['coverage'].items() if e['status'] == 'not-analyzed'),
@@ -790,7 +909,9 @@ class ScanSession:
 
     def scan(self, scan_id=None, max_files=50, base=None, head=None, restart=False, incremental=False,
              retry_blocked=False, details=False, reconcile_result=False):
+        from .access import require_maintainer
         from itertools import islice
+        require_maintainer()
         require(type(max_files) is int and 1 <= max_files <= 10000, 'invalid-scan-bound')
         require(not retry_blocked or (scan_id is not None and not restart), 'retry-blocked-requires-current-scan-id')
         if self.state is None:
@@ -799,6 +920,11 @@ class ScanSession:
             require(scan_id == self.state['id'] and not restart and (base, head, incremental) == self.arguments,
                     'scan-execution-binding-mismatch')
         state = self.state
+        if self.completed_recovery:
+            result = {'ok': True, **state, 'work': {**state['work'], 'extracted_this_call': 0, 'paths_this_call': []}}
+            if reconcile_result:
+                result['reconciliation'] = reconcile(self.store, state['id'])
+            return result
         root = self.store.project.root
         snap = state['snapshot']
         retried = []
@@ -952,6 +1078,7 @@ def _prepare_completion(store, db, state, by_file, records, states, scope):
 
     cacheable = {p: observations for p, observations in by_file.items()
                  if file_cache.code_file(p) and file_cache.verified(state['coverage'][p])}
+    cacheable.update(scope.get('recovery_cache_sources', {}))
     cache_rows = None
     if not snap.get('coverage_errors') and (cacheable or scope.get('cached_sources')):
         if not file_cache.exists(db):
@@ -1281,6 +1408,7 @@ def analysis_scope(root,snapshot=None):
             complete = False
             continue
         try:
+            entry['_source_policy'] = snapshot['policy']
             by_file[path], entry['status'], _ = extract(root,path,entry)
         except (OSError,UnicodeError,KnowledgeError):
             entry['status'] = 'blocked'
@@ -1302,8 +1430,8 @@ def negative_coverage_gaps(snapshot):
     administrative={'.maintenance','.harness','.knowledge-control.lock','.git','.gitignore','.gitattributes','.editorconfig','.knowledge','.ai','.venv','.local','.vs','TestResults'}
     for excluded in snapshot['exclusions']:
         path=Path(excluded['path'])
-        if any(part in administrative for part in path.parts):continue
-        relevant=path.suffix.lower() in {'.cs','.csproj','.props','.targets','.fs','.vb','.razor','.json','.config'} or not path.suffix
+        if any(part.casefold() in administrative for part in path.parts):continue
+        relevant=path.suffix.lower() in {'.cs','.csproj','.props','.targets','.fs','.vb','.razor','.json','.jsonc','.config'} or not path.suffix
         if not relevant:continue
         for project in projects or ['.']:
             directory=Path(project).parent
@@ -1408,8 +1536,9 @@ def capture_owned(db,claim,records):
         match=canonical_match(observation,records,{})
         if receipt['extractor']!=VERSION or (observation['id']!=claim['id'] and (match is None or match['id']!=claim['id'])) or observation['statement']!=claim['statement']:continue
         if not any(evidence[i]['provenance']=={'actor':'deterministic-discovery','method':VERSION} and evidence[i]['content_hash']==observation['content_hash'] and evidence[i]['source']==observation['path'] and evidence[i]['description']==observation['anchor'] and claim['id'] in evidence[i]['substantiates'] for i in claim['evidence']):continue
-        for pid,plan_json in db.execute('SELECT plan,payload FROM receipts'):
-            plan=loads(plan_json);candidate=plan['candidates'].get(receipt['candidate'])
+        from .plan_receipts import plans
+        for pid,plan in plans(db):
+            candidate=plan['candidates'].get(receipt['candidate'])
             if candidate is None or digest(candidate)!=receipt['candidate']:continue
             candidate=plan.get('resolved',plan['candidates']).get(receipt['candidate'])
             if candidate is None:continue

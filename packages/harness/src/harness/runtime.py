@@ -208,6 +208,7 @@ def config(root):
 def validate_config(value):
     from knowledge.providers import resolve_runner
     value=resolve_runner(value)
+    value={'capture':'off', **value}
     require(isinstance(value,dict) and {'version','provider','recipes','limits','capture'}<=set(value)<=({'version','provider','recipes','limits','capture','dotnet','memory','provider_reference'} if value.get('version')==2 else {'version','provider','recipes','limits','capture','memory','provider_reference'}),'invalid-runner-config')
     if 'memory' in value:
         from .instructions import validate_policy
@@ -259,6 +260,9 @@ def validate_config(value):
 
 
 def configure(root,value,initialize_knowledge=False):
+    if initialize_knowledge:
+        from knowledge.access import require_maintainer
+        require_maintainer()
     journal=Journal(root);effective=validate_config(value)
     with Lease(journal):
         path=journal.base/'runner.json';safe_path(path)

@@ -1,6 +1,7 @@
 """Optional read-only stdio MCP adapter using the same Store and resolver."""
 import argparse
 from .store import Store
+from .access import consumer_scope
 from .util import KnowledgeError, canonical_json
 from mcp.types import CallToolResult, TextContent
 
@@ -8,21 +9,28 @@ from mcp.types import CallToolResult, TextContent
 def create_server(root,shared_root=None):
     from mcp.server.fastmcp import FastMCP
     server=FastMCP('knowledge')
-    store=Store(root)
+    with consumer_scope():
+        store=Store(root)
 
     def call(fn, *args, **kwargs):
         try:
-            return fn(*args,**kwargs)
+            with consumer_scope():
+                return fn(*args,**kwargs)
         except (KnowledgeError,OSError,ValueError,TypeError) as e:
             return {'ok':False,'error':getattr(e,'code','memory-or-filesystem-error'),'details':getattr(e,'details',None)}
 
     @server.tool()
-    def knowledge_instructions(tool:str,name:str,max_bytes:int=12000,environment:dict|None=None)->CallToolResult:
+    def knowledge_instructions(tool:str|None=None,name:str|None=None,max_bytes:int=12000,environment:dict|None=None)->CallToolResult:
         """Read applicable operational instructions; never creates user authority."""
         from .operations import lookup
+        from .tool_help import builtin, discovery_hint
+        from .machine_mcp import READ_TOOLS
         import platform
-        value=call(lookup,root,{'tool':tool,'name':name},{'machine':platform.node(),'os':__import__('sys').platform,**(environment or {})},shared=shared_root,max_bytes=max_bytes)
-        return CallToolResult(content=[TextContent(type='text',text=canonical_json(value))])
+        available = READ_TOOLS - {'knowledge_capabilities'}
+        value = builtin(tool, name, available)
+        if value is None:
+            value = discovery_hint(call(lookup,root,{'tool':tool,'name':name},{'machine':platform.node(),'os':__import__('sys').platform,**(environment or {})},shared=shared_root,max_bytes=max_bytes), tool, available)
+        return bounded(value, max_bytes)
 
     @server.tool()
     def knowledge_context(task:str,max_bytes:int=16000,max_items:int=10,include_unconfirmed:bool=False)->CallToolResult:

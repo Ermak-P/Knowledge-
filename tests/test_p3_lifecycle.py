@@ -102,7 +102,7 @@ class LifecycleTests(unittest.TestCase):
                         value=json.loads(data);value['counts']['.knowledge']['records']+=1;data=json.dumps(value).encode()
                     new.writestr(info,data)
             with self.assertRaisesRegex(KnowledgeError,'backup-semantic-count-mismatch'):m.preview(root,'restore',archive=base/'bad-counts.zip',recovery=base/'saved')
-            marker=root/'.maintenance/product-state.json';marker.parent.mkdir(exist_ok=True);marker.write_text('{"version":99}')
+            marker=root/'.knowledge/maintenance/product-state.json';marker.parent.mkdir(exist_ok=True);marker.write_text('{"version":99}')
             with self.assertRaisesRegex(KnowledgeError,'unsupported-maintenance-version'):m.preview(root,'upgrade',base/'upgrade.zip')
     def test_exclusive_freeze_refuses_an_independent_canonical_writer(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -120,7 +120,7 @@ class LifecycleTests(unittest.TestCase):
             class Crash(Exception):pass
             with patch.object(m,'fault',side_effect=lambda phase:(_ for _ in ()).throw(Crash()) if phase=='maintenance-prepared' else None):
                 with self.assertRaises(Crash):m.apply(root,plan['preview'],plan['fingerprint'])
-            state=m.status(root);txn=state['active']['transaction'];staged=root/'.maintenance/transactions'/txn/'staged/.harness/runner.json';staged.write_text('{"version":99}')
+            state=m.status(root);txn=state['active']['transaction'];staged=root/'.knowledge/maintenance/transactions'/txn/'staged/.harness/runner.json';staged.write_text('{"version":99}')
             with self.assertRaisesRegex(KnowledgeError,'restore-staged-state-conflict'):m.recover(root)
             self.assertTrue((root/'.knowledge/store.sqlite3').exists());self.assertTrue(m.status(root)['active'])
     def test_legacy_sqlite_writer_without_new_gate_is_refused(self):

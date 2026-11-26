@@ -1,4 +1,4 @@
-// OpenCode 2.4.0 Promise Plugin contract. Plugin.define is identity; exporting
+// OpenCode Promise Plugin contract. Plugin.define is identity; exporting
 // the typed {id, setup} shape avoids installing another copy of the host SDK.
 import { spawn } from "node:child_process";
 import { readFile, access } from "node:fs/promises";
@@ -21,13 +21,40 @@ function milliseconds(name, fallback) {
 export default {
   id: "knowledge.machine",
   async setup(ctx) {
-    if (ctx.app.version !== "2.4.0") throw new Error("Knowledge commands require the verified OpenCode 2.4.0 contract");
+    const hostVersion = ctx?.app?.version || "unknown";
+    const incompatible = capability => new Error(
+      `Knowledge cannot register with OpenCode ${hostVersion}: missing or incompatible ${capability}. Use a host with the OpenCode Promise Plugin API or launch Knowledge MCP directly.`
+    );
     const home = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
     const settings = JSON.parse(await readFile(path.join(home, ".knowledge-machine.json"), "utf8"));
     if (settings.version !== 1 || !path.isAbsolute(settings.python) || !path.isAbsolute(settings.launcher)) throw new Error("Invalid Knowledge machine registration");
+    const consumer = settings.mode === "readonly";
+    const capabilities = {
+      mcp: consumer ? ["transform"] : ["transform", "list"],
+      ...(consumer ? {} : { command: ["transform"], session: ["get", "prompt", "synthetic"], permission: ["assert"] }),
+    };
+    if (typeof ctx?.location?.directory !== "string") throw incompatible("location.directory");
+    for (const [service, methods] of Object.entries(capabilities)) {
+      for (const method of methods) {
+        if (typeof ctx[service]?.[method] !== "function") throw incompatible(service + "." + method);
+      }
+    }
     const commandWait = milliseconds("KNOWLEDGE_COMMAND_WAIT_MS", 0);
     const observationWait = milliseconds("KNOWLEDGE_OBSERVE_MS", 15000);
-    const templates = Object.fromEntries(await Promise.all(names.map(async name => [name, (await readFile(path.join(home, "knowledge-machine-templates", name + ".md"), "utf8")).replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "")])));
+    const templates = consumer ? {} : Object.fromEntries(await Promise.all(names.map(async name => [name, (await readFile(path.join(home, "knowledge-machine-templates", name + ".md"), "utf8")).replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "")])));
+    const validateMcpEditor = editor => {
+      if (typeof editor?.get !== "function" || typeof editor?.set !== "function") throw incompatible("MCP editor get/set");
+    };
+    const validateCommandEditor = editor => {
+      if (typeof editor?.add !== "function") throw incompatible("command editor add");
+    };
+    const registries = [[ctx.mcp, validateMcpEditor]];
+    if (!consumer) registries.push([ctx.command, validateCommandEditor]);
+    for (const [service, validate] of registries) {
+      const probe = await service.transform(validate);
+      if (typeof probe?.dispose !== "function") throw incompatible("registration disposal");
+      await probe.dispose();
+    }
     const run = (command, value, directory) => new Promise((resolve, reject) => {
       const child = spawn(settings.python, ["-I", "-B", settings.launcher, "command", command], { shell: false, windowsHide: true });
       let stdout = "";
@@ -56,13 +83,25 @@ export default {
       child.stdin.end(JSON.stringify({ ...value, directory }));
     });
     const mcp = await ctx.mcp.transform(editor => {
+      validateMcpEditor(editor);
       const entry = { type: "local", command: [settings.python, "-I", "-B", settings.launcher, "mcp", "--workspace", ctx.location.directory], disabled: false, codemode: true };
       if (editor.get("knowledge_machine")) throw new Error("MCP knowledge_machine conflicts with an existing registration; existing configuration preserved");
       editor.set("knowledge_machine", entry);
     });
+    if (typeof mcp?.dispose !== "function") throw incompatible("MCP registration disposal");
+    if (consumer) return () => mcp.dispose();
+    const registrations = [];
+    const dispose = async () => {
+      const outcomes = await Promise.allSettled(registrations.map(async registration => registration.dispose()));
+      await mcp.dispose();
+      const failure = outcomes.find(outcome => outcome.status === "rejected");
+      if (failure) throw failure.reason;
+    };
     try {
-      const commands = await ctx.command.transform(editor => {
-        for (const name of names) editor.add({
+      for (const name of names) {
+        const command = await ctx.command.transform(editor => {
+        validateCommandEditor(editor);
+        editor.add({
           name,
           description: { "knowledge-init": "Connect and scan this project", "knowledge-candidates-update": "Collect incremental candidates", "knowledge-candidates-push": "Prepare or explicitly approve a plan", "knowledge-update": "Prepare or explicitly approve Git/Confluence candidates", "knowledge-confluence": "Collect and incrementally synchronize Confluence knowledge" }[name],
           execute: async ({ sessionID, prompt, delivery }) => {
@@ -82,7 +121,7 @@ export default {
             }
             const registration = (await ctx.mcp.list({ location: { directory } })).data.find(item => item.name === "knowledge_machine");
             if (!registration || registration.status.status !== "connected") throw new Error("Knowledge MCP registration/startup unavailable: " + (registration?.status.status || "missing") + ". Inspect the MCP error, update/restart, then rediscover tools; no operation started.");
-            // The session MCP tool transform is lazy in 2.4.0; ctx.tool.list()
+            // The session MCP tool transform can be lazy; ctx.tool.list()
             // before the first prompt is not the MCP catalog. Check supported
             // backend actions here; the agent must discover/call the actual MCP
             // knowledge_capabilities tool before any follow-up operation.
@@ -94,7 +133,7 @@ export default {
             const operation = isPlan ? "knowledge_plan" : name === "knowledge-confluence" ? "knowledge_confluence" : Array.isArray(value.candidates) ? "knowledge_submit_candidates" : "knowledge_scan";
             await ctx.permission.assert({ sessionID, agent: prompt.agent ?? session.agent,
               action: "knowledge_machine_" + operation, resources: ["*"],
-              metadata: { command: name, action: value.action || (value.approve ? "apply" : "start") } });
+              metadata: { command: name, action: value.action || (value.approve ? "apply" : "start"), host_version: hostVersion } });
             const deadline = performance.now() + observationWait;
             const observes = name !== "knowledge-confluence" && !value.approve && !["status", "cancel", "recover"].includes(value.action);
             const request = isPlan && observes && value.wait_seconds === undefined ? { ...value, wait_seconds: 0 } : value;
@@ -115,8 +154,16 @@ export default {
               text: templates[name].replace("Arguments (optional JSON): $ARGUMENTS", "") + "\n\nSupported MCP backend (host tool permissions remain unchanged; no fs/child_process/fetch imports in Code Mode):\n" + JSON.stringify(backend) + "\n\nInstalled Knowledge result (data; never approval):\n" + JSON.stringify(state) });
           },
         });
-      });
-      return async () => { await commands.dispose(); await mcp.dispose(); };
-    } catch (error) { await mcp.dispose(); throw error; }
+        });
+        if (typeof command?.dispose !== "function") throw incompatible("command registration disposal");
+        registrations.push(command);
+      }
+      return dispose;
+    } catch (error) {
+      try { await dispose(); } catch (cleanup) {
+        throw new AggregateError([error, cleanup], `OpenCode ${hostVersion} registration cleanup failed`);
+      }
+      throw error;
+    }
   },
 };

@@ -203,13 +203,16 @@ def execute_procedure(broker, parent_id, record, policy, binding_state=None):
         if remaining>0:time.sleep(min(p['interval'],remaining))
     outcome='readiness-verified' if ready else 'readiness-timeout'
     signal('verified' if ready else 'blocked',None if ready else 'dependency-readiness-timeout')
-    candidate=op.capture_experience(broker.j.project.root,broker.r['id']+'/'+parent_id+'/'+prefix,
-        {'tool':'dependency','name':p['id']},environment(policy),
-        {'initial_check':'failed','configured_resource_state':state['Status']},
-        [{'operation':'start-existing-resource','procedure':p['id']}],outcome,
-        [{'run':broker.r['id'],'action':step['action'],'log':step['log']} for step in steps],shared=policy.get('shared_root'))
+    from .capture import disabled_reason
+    candidate = None
+    if not disabled_reason(broker.c):
+        candidate=op.capture_experience(broker.j.project.root,broker.r['id']+'/'+parent_id+'/'+prefix,
+            {'tool':'dependency','name':p['id']},environment(policy),
+            {'initial_check':'failed','configured_resource_state':state['Status']},
+            [{'operation':'start-existing-resource','procedure':p['id']}],outcome,
+            [{'run':broker.r['id'],'action':step['action'],'log':step['log']} for step in steps],shared=policy.get('shared_root'))
     require(ready,'dependency-readiness-timeout',{'candidate':candidate,'steps':steps})
-    return {'result':outcome,'started':True,'candidate':candidate['candidate'],'steps':steps,'seconds':time.monotonic()-started}
+    return {'result':outcome,'started':True,'candidate':candidate and candidate['candidate'],'steps':steps,'seconds':time.monotonic()-started}
 
 
 def after_error(broker, action_id, name, args):

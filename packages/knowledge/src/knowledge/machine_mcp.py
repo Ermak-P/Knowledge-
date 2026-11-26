@@ -7,31 +7,92 @@ import sys
 from urllib.parse import unquote, urlsplit
 from typing import Literal
 from mcp.server.fastmcp import Context, FastMCP
+from mcp.server.fastmcp.exceptions import ToolError
 from mcp.types import CallToolResult, TextContent, ClientCapabilities, RootsCapability
+from pydantic import ValidationError
+from .access import consumer_scope, readonly
 from .util import KnowledgeError, canonical_json, require
 from .store import Store
+from .diagnostic_contract import Section, SECTIONS
 
 TOOL_NAMES={'knowledge_context','knowledge_get_claim','knowledge_get_evidence','knowledge_instructions',
             'knowledge_capabilities','knowledge_scan','knowledge_scan_diagnostics','knowledge_submit_candidates',
             'knowledge_plan','knowledge_semantic_preflight','knowledge_change_review','knowledge_source_read','knowledge_confluence'}
+READ_TOOLS = {'knowledge_context', 'knowledge_get_claim', 'knowledge_get_evidence',
+              'knowledge_instructions', 'knowledge_capabilities'}
 
 
 def result(value, max_bytes=16000):
     if type(max_bytes) is not int or not 256 <= max_bytes <= 1000000:
-        value = {'ok': False, 'error': 'invalid-byte-budget'}
+        value = {'ok': False, 'error': 'invalid-byte-budget', 'details': {'argument': 'max_bytes', 'minimum': 256, 'maximum': 1000000}}
+        max_bytes = 256
     elif len(canonical_json(value).encode()) > max_bytes:
-        value = {'ok': False, 'error': 'response-budget-exceeded', 'partial': True,
-                 'next_action':'Reduce the diagnostic page size. For a mutation, observe state before retrying; never blindly replay apply.'}
-    return CallToolResult(content=[TextContent(type='text', text=canonical_json(value))],isError=value.get('ok') is False)
+        if value.get('ok') is False and value.get('error'):
+            value = {'ok': False, 'error': value['error'], 'details_truncated': True}
+        else:
+            value = {'ok': False, 'error': 'response-budget-exceeded', 'partial': True,
+                     'next_action': 'Reduce the diagnostic page size. Observe durable mutation status before retrying.'}
+    payload = canonical_json(value)
+    failed = value.get('ok') is False
+    return CallToolResult(content=[TextContent(type='text', text=payload)], isError=failed,
+                          structuredContent=value if failed and len(payload.encode()) * 2 <= max_bytes else None)
+
+
+class KnowledgeServer(FastMCP):
+    def __init__(self, installation, consumer):
+        self.installation = installation
+        self.consumer = consumer
+        super().__init__('knowledge')
+
+    async def list_tools(self):
+        tools = await super().list_tools()
+        if self.consumer or readonly(self.installation):
+            tools = [tool for tool in tools if tool.name in READ_TOOLS]
+        for tool in tools:
+            if tool.name == 'knowledge_scan_diagnostics':
+                tool.inputSchema['allOf'] = [{
+                    'if': {'properties': {'section': {'const': 'candidate'}}, 'required': ['section']},
+                    'then': {'required': ['candidate'], 'properties': {'candidate': {'type': 'string'}}},
+                }]
+        return tools
+
+    async def call_tool(self, name, arguments):
+        budget = arguments.get('max_bytes', 16000)
+        available = {tool.name: tool for tool in await self.list_tools()}
+        try:
+            if name in TOOL_NAMES - READ_TOOLS and (self.consumer or readonly(self.installation)):
+                raise KnowledgeError('knowledge-readonly', {'mode': 'readonly', 'next_invocation': {'tool': 'knowledge_capabilities'}})
+            require(name in available, 'unknown-tool', {'next_invocation': {'tool': 'knowledge_capabilities'}})
+            schema = available[name].inputSchema
+            extra = sorted(set(arguments) - schema['properties'].keys())
+            require(not extra, 'invalid-tool-arguments', {'unexpected_arguments': extra,
+                    'next_invocation': {'tool': 'knowledge_instructions', 'arguments': {'tool': name}}})
+            return await super().call_tool(name, arguments)
+        except KnowledgeError as error:
+            return result({'ok': False, 'error': error.code, 'details': error.details}, budget)
+        except ToolError as error:
+            cause = error.__cause__
+            if isinstance(cause, ValidationError):
+                fields = [{'argument': '.'.join(map(str, item['loc'])), 'reason': item['type']}
+                          for item in cause.errors(include_url=False, include_context=False, include_input=False)[:5]]
+                return result({'ok': False, 'error': 'invalid-tool-arguments',
+                               'details': {'fields': fields, 'retryable_with_corrected_arguments': True,
+                                           'next_invocation': {'tool': 'knowledge_instructions', 'arguments': {'tool': name}}}}, budget)
+            return result({'ok': False, 'error': 'backend-execution-failed',
+                           'details': {'next_action': 'Inspect durable status before repeating a mutation.'}}, budget)
 
 
 def create_server(installation, workspace=None):
-    server = FastMCP('knowledge')
+    consumer = readonly(installation)
+    server = KnowledgeServer(installation, consumer)
+    tools = READ_TOOLS if consumer else TOOL_NAMES
 
     @server.resource('knowledge://machine/capabilities-v2',mime_type='application/json')
     def registered_capabilities():
         """Static discovery contract. No project access and no permission grant."""
-        return canonical_json({'contract':'knowledge-machine-v2','tools':sorted(TOOL_NAMES)})
+        read_only = consumer or readonly(installation)
+        return canonical_json({'contract': 'knowledge-machine-v2', 'tools': sorted(READ_TOOLS if read_only else TOOL_NAMES),
+                               'mode': 'readonly' if read_only else 'maintainer'})
 
     async def root(ctx):
         directory = workspace or os.getcwd()
@@ -52,10 +113,12 @@ def create_server(installation, workspace=None):
     async def invoke(ctx, fn, max_bytes):
         try:
             require(type(max_bytes) is int and 256<=max_bytes<=1000000,'invalid-byte-budget')
-            import asyncio
-            value = await asyncio.to_thread(fn,await root(ctx))
+            with consumer_scope(consumer or readonly(installation)):
+                value = await asyncio.to_thread(fn,await root(ctx))
         except (KnowledgeError, OSError, ValueError, TypeError, KeyError, TimeoutError) as error:
             value = {'ok': False, 'error': 'backend-permission-denied' if isinstance(error,PermissionError) else getattr(error, 'code', 'project-or-filesystem-error'), 'details': getattr(error, 'details', None)}
+            if value['error'] == 'knowledge-absent':
+                value['details'] = {'next_action': 'Select a project with an existing Knowledge database or ask a maintainer to initialize it.'}
         return result(value, max_bytes)
 
     @server.tool()
@@ -75,11 +138,20 @@ def create_server(installation, workspace=None):
         return await invoke(ctx, lambda r: Store(r).lookup('evidence', identifier), max_bytes)
 
     @server.tool()
-    async def knowledge_instructions(tool: str, name: str, ctx: Context, max_bytes: int = 12000, environment: dict | None = None) -> CallToolResult:
-        """Read applicable instructions; never creates execution authority."""
+    async def knowledge_instructions(ctx: Context, tool: str | None = None, name: str | None = None, max_bytes: int = 12000, environment: dict | None = None) -> CallToolResult:
+        """List packaged help with no arguments, get a tool overview by tool, or look up a named project instruction."""
         from .operations import lookup
+        from .tool_help import builtin, discovery_hint
         import platform
-        return await invoke(ctx, lambda r: lookup(r, {'tool': tool, 'name': name}, {'machine': platform.node(), 'os': sys.platform, **(environment or {})}, shared=Path(installation) / 'shared', max_bytes=max_bytes), max_bytes)
+        available = READ_TOOLS if consumer or readonly(installation) else TOOL_NAMES
+        help_result = builtin(tool, name, available)
+        if help_result is not None:
+            return result(help_result, max_bytes)
+        if name is None:
+            return result({'ok': False, 'error': 'unknown-instruction-tool', 'details': {'next_invocation': {}}}, max_bytes)
+        return await invoke(ctx, lambda r: discovery_hint(
+            lookup(r, {'tool': tool, 'name': name}, {'machine': platform.node(), 'os': sys.platform, **(environment or {})},
+                   shared=Path(installation) / 'shared', max_bytes=max_bytes), tool, available), max_bytes)
 
     @server.tool()
     async def knowledge_capabilities(ctx:Context,max_bytes:int=16000)->CallToolResult:
@@ -88,11 +160,14 @@ def create_server(installation, workspace=None):
             from .project_commands import installation_at
             from .providers import shared
             installation_at(installation)
+            if readonly():
+                return {'ok': True, 'contract': 'knowledge-machine-v2', 'tools': sorted(READ_TOOLS),
+                        'mode': 'readonly', 'root': str(r), 'semantic_provider_contacted': False}
             provider,reference=shared(Path(installation)/'config/provider.json')
-            return {'ok':True,'contract':'knowledge-machine-v2','tools':sorted(TOOL_NAMES),
-                    'scan_actions':['start','status','resume','fresh','cancel'],
+            return {'ok':True,'contract':'knowledge-machine-v2','tools':sorted(TOOL_NAMES),'mode':'maintainer',
+                    'scan_actions':['start','status','resume','fresh','cancel','recover'],
                     'plan_actions':['prepare','rebuild','status','cancel','resume','apply','recover'],
-                    'diagnostic_sections':['failures','coverage','reconciliation','impact','policy','identity','scans','checkpoint','duplicates','candidate','plan-progress','plan-dispositions'],
+                    'diagnostic_sections':list(SECTIONS),
                     'plan_deduplication':'exact-utf8-v1','plan_formats':[1,2],
                     'candidate_actions':['submit','prepare','rebuild','apply','recover'],
                     'source_kinds':['git','confluence'],'confluence_actions':['register_snapshot','inventory','related','snapshot','observe','failure','analyze','resume_analysis','confirm_deleted','gc','scope','start','status','progress','diagnostics','next','complete_work','terms','retry','finish'],
@@ -104,22 +179,23 @@ def create_server(installation, workspace=None):
         return await invoke(ctx,read,max_bytes)
 
     @server.tool()
-    async def knowledge_scan(ctx:Context,action:Literal['start','status','resume','fresh','cancel']='status',scope:Literal['full','incremental']='full',
-                             max_files:int=100,base:str|None=None,head:str|None=None,upgrade_approval:str|None=None,migration_approval:str|None=None,observed_scan_id:str|None=None,max_bytes:int=16000)->CallToolResult:
-        """Start/observe/resume/fresh/cancel a durable scan. No canonical application."""
+    async def knowledge_scan(ctx:Context,action:Literal['start','status','resume','fresh','cancel','recover']='status',scope:Literal['full','incremental']='full',
+                             max_files:int=100,base:str|None=None,head:str|None=None,upgrade_approval:str|None=None,migration_approval:str|None=None,observed_scan_id:str|None=None,max_bytes:int=16000,scan_id:str|None=None)->CallToolResult:
+        """Manage a durable scan. Recover requires scan_id from diagnostics scans."""
         def call(r):
             from .project_commands import execute
             value={'action':'start' if action in ('resume','fresh') else action,'max_files':max_files}
             if action in ('resume','fresh'):value[action]=True
+            if scan_id is not None:value['recovery_of']=scan_id
             for key,item in (('base',base),('head',head),('upgrade_approval',upgrade_approval),('migration_approval',migration_approval),('observed_scan_id',observed_scan_id)):
                 if item is not None:value[key]=item
             return execute('knowledge-init' if scope=='full' else 'knowledge-candidates-update',installation,r,value)
         return await invoke(ctx,call,max_bytes)
 
     @server.tool()
-    async def knowledge_scan_diagnostics(ctx:Context,scope:Literal['full','incremental']='full',section:Literal['failures','coverage','reconciliation','impact','policy','identity','scans','checkpoint','duplicates','candidate','plan-progress','plan-dispositions']='failures',
+    async def knowledge_scan_diagnostics(ctx:Context,scope:Literal['full','incremental']='full',section:Section='failures',
                                          cursor:int=0,limit:int=20,max_bytes:int=16000,group:str|None=None,candidate:str|None=None,operation:int|None=None,plan:str|None=None,collection:str|None=None,scan_id:str|None=None)->CallToolResult:
-        """Read paged diagnostics, current checkpoint metadata, or an identified historical scan."""
+        """Use candidates to discover IDs and candidate to inspect one. Use instructions (tool=knowledge_scan_diagnostics, name=sections) for argument rules."""
         from .project_commands import diagnostics
         return await invoke(ctx,lambda r:diagnostics(installation,r,scope,section,cursor,limit,max_bytes,group,candidate,operation,plan,collection,scan_id),max_bytes)
 
@@ -201,6 +277,8 @@ def create_server(installation, workspace=None):
             require('host_session' not in request,'native-host-ingress-required')
             return execute(r,action,request)
         return await invoke(ctx,call,max_bytes)
+    for name in TOOL_NAMES - tools:
+        server.remove_tool(name)
     return server
 
 
@@ -211,7 +289,7 @@ async def self_test(installation):
         async with ClientSession(read, write) as session:
             await session.initialize()
             names = {t.name for t in (await session.list_tools()).tools}
-            require(names == TOOL_NAMES, 'mcp-tool-contract-mismatch')
+            require(names == (READ_TOOLS if readonly(installation) else TOOL_NAMES), 'mcp-tool-contract-mismatch')
     print(canonical_json({'ok': True, 'transport': 'stdio', 'tools': sorted(names), 'project_access': False}))
 
 

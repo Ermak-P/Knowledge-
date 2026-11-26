@@ -30,6 +30,7 @@ class DockerContract:
         self.root=root;self.ready=ready;self.after_start=after_start;self.daemon=daemon;self.resource=resource;self.commands=[];self.action={}
         self.j=SimpleNamespace(project=SimpleNamespace(root=root),action=self.action_io,cancelled=lambda _:False)
         self.r={'id':uuid.uuid4().hex,'started':time.time()};self.limits={'elapsed_seconds':30}
+        self.c={'capture':'required'}
     def action_io(self,run,identifier,value=None):
         if value is not None:self.action=deepcopy(value)
         return deepcopy(self.action)
@@ -127,7 +128,7 @@ class ReviewedInstructions(unittest.TestCase):
             root,shared,cfg=setup_fixture(tmp);cfg['memory']['bindings']=[binding()];configure(root,cfg)
             saved=ingress(root,'Remember for all projects: encoding preservation.')
             self.assertEqual(saved['scope'],'shared');self.assertTrue(saved['executable'])
-            self.assertFalse((root/'.knowledge').exists())
+            self.assertFalse((root/'.knowledge/store.sqlite3').exists())
             other=Path(tmp)/'other';other.mkdir()
             got=op.lookup(other,{'tool':'patch','name':'Feature.cs'},{},shared=shared)
             self.assertEqual(got['stores']['project'],'absent');self.assertEqual(got['records'][0]['id'],saved['id'])

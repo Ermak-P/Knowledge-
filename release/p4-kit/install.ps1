@@ -1,6 +1,7 @@
 [CmdletBinding(DefaultParameterSetName='Legacy', PositionalBinding=$false)]
 param(
   [Parameter(ParameterSetName='Machine', Mandatory=$true)][string]$McpDir,
+  [Parameter(ParameterSetName='Machine')][ValidateSet('readonly','maintainer')][string]$Mode,
   [Parameter(ParameterSetName='Legacy', ValueFromRemainingArguments=$true)][string[]]$InstallArgs
 )
 $ErrorActionPreference = 'Stop'
@@ -23,7 +24,9 @@ if (-not $SelectedPython) {
   }
 }
 if ($McpDir) {
-  & $SelectedPython @PythonArgs -I -X utf8 (Join-Path $PSScriptRoot 'machine-install.py') --mcp-dir $McpDir
+  $ModeArgs = @()
+  if ($Mode) { $ModeArgs = @('--mode', $Mode) }
+  & $SelectedPython @PythonArgs -I -X utf8 (Join-Path $PSScriptRoot 'machine-install.py') --mcp-dir $McpDir @ModeArgs
 } else {
   & $SelectedPython @PythonArgs (Join-Path $PSScriptRoot 'install.py') @InstallArgs
 }

@@ -17,7 +17,8 @@ import tempfile
 import unicodedata
 from . import legacy_validator as legacy
 from . import lifecycle as life
-from .project import Project, safe_tree
+from . import plan_receipts
+from .project import Project, safe_path, safe_tree
 from .retrieval import ContextEngine
 from .util import canonical_json, digest, fingerprint, loads, require, KnowledgeError
 from .sqlite_snapshot import Connection, view
@@ -118,22 +119,16 @@ def create_tables(db, identity):
 
 
 def publish_directory(staged, project):
-    """Atomically publish a fully committed store, never replace nonempty data.
-
-    Renaming the directory avoids a crash window with duplicate hardlinks.
-    Target must be absent or an empty directory on POSIX. Windows requires an
-    absent destination; native behavior is explicitly not certified by P0.
-    """
+    """Publish a committed database under the exclusive control gate."""
+    from .runtime_paths import data_entries
     safe_tree(project.base)
-    require(not project.base.exists() or (project.base.is_dir() and not any(project.base.iterdir())),
-            'store-publication-target-not-empty')
-    require(os.name=='posix' or not project.base.exists(), 'publication-requires-absent-target')
+    require(not data_entries(project.base), 'store-publication-target-not-empty')
     try:
-        os.rename(staged,project.base)
+        os.rename(staged / 'store.sqlite3', project.db)
     except OSError as e:
         raise KnowledgeError('store-publication-conflict') from e
     if os.name=='posix':
-        fd=os.open(project.root,os.O_RDONLY)
+        fd=os.open(project.base,os.O_RDONLY)
         try:
             os.fsync(fd)
         finally:
@@ -148,7 +143,10 @@ class Store:
     @contextmanager
     def connection(self,write=False):
         from .coordination import gate
-        with gate(self.project.root):
+        from .access import require_maintainer, readonly
+        if write:
+            require_maintainer()
+        with gate(self.project.root, readonly=readonly(), global_store=getattr(self.project, 'global_store', False)):
             with self._connection(write) as db:yield db
 
     def progress_connection(self):
@@ -172,9 +170,12 @@ class Store:
     @contextmanager
     def _telemetry_connection(self, tables):
         from .coordination import gate
-        with gate(self.project.root):
-            safe_tree(self.base);require(self.path.is_file(),'knowledge-absent');db=None
+        from .access import readonly, verify_readable_database
+        with gate(self.project.root, readonly=readonly(), global_store=getattr(self.project, 'global_store', False)):
+            self._safe_database_paths(readonly());require(self.path.is_file(),'knowledge-absent');db=None
             try:
+                if readonly():
+                    verify_readable_database(self.path)
                 db=sqlite3.connect(self.path.as_uri()+'?mode=ro',uri=True,timeout=0.15)
                 allowed=tables | {'metadata','sqlite_master'}
                 def authorize(action,table,column,database,trigger):
@@ -204,6 +205,8 @@ class Store:
         """Provisional checkpoint writes have no authority over canonical tables."""
         from .coordination import gate
         from . import discovery_checkpoint
+        from .access import require_maintainer
+        require_maintainer()
         with gate(self.project.root):
             safe_tree(self.base)
             db = None
@@ -255,11 +258,18 @@ class Store:
 
     @contextmanager
     def _connection(self, write=False, deferred=False):
-        safe_tree(self.base)
+        from .access import require_maintainer, readonly, verify_readable_database
+        if write:
+            require_maintainer()
+        read_only = readonly()
+        self._safe_database_paths(read_only)
         require(self.path.is_file(), 'knowledge-absent')
         db = None
         try:
-            db = sqlite3.connect(self.path.as_uri() + '?mode=rw', uri=True, timeout=0.15, factory=Connection)
+            if read_only:
+                verify_readable_database(self.path)
+            db = sqlite3.connect(self.path.as_uri() + ('?mode=ro' if read_only else '?mode=rw'),
+                                 uri=True, timeout=0.15, factory=Connection)
             db.execute('PRAGMA foreign_keys=ON')
             db.execute('PRAGMA synchronous=FULL')
             db.execute('BEGIN IMMEDIATE' if write and not deferred else 'BEGIN')
@@ -290,6 +300,14 @@ class Store:
         finally:
             if db is not None:
                 db.close()
+
+    def _safe_database_paths(self, read_only):
+        if read_only:
+            safe_path(self.path)
+            for suffix in ('-journal', '-wal', '-shm'):
+                safe_path(self.path.with_name(self.path.name + suffix))
+        else:
+            safe_tree(self.base)
 
     def _check_control(self, db):
         from .confluence import validate_control,validate_candidate
@@ -360,7 +378,7 @@ class Store:
             for identifier,kind,payload in rows:
                 require(states[identifier]['record']==loads(payload) and states[identifier]['kind']==kind,'canonical-revision-mismatch')
             for pid,payload in db.execute('SELECT plan,payload FROM receipts'):
-                require(pid in plans and plans[pid][1]!='PREPARED' and loads(payload)==plans[pid][0],'receipt-plan-mismatch')
+                require(pid in plans and plans[pid][1]!='PREPARED' and plan_receipts.matches(pid,payload,plans[pid][0]),'receipt-plan-mismatch')
                 self._verify_committed(db,pid,plans[pid][0])
         view(db,'validated-queue',lambda:queue)
         from .confluence_sync import validate_relations
@@ -368,15 +386,20 @@ class Store:
         return queue
 
     def init(self):
+        from .access import require_maintainer
         from .coordination import gate
-        with gate(self.project.root):return self._init()
+        require_maintainer()
+        with gate(self.project.root, exclusive=True):return self._init()
 
     def _init(self):
         require(not (self.project.root/'.ai').exists(), 'legacy-store-present-use-migration')
         if self.path.exists():
             return self.validate()
         safe_tree(self.base)
-        with tempfile.TemporaryDirectory(prefix='knowledge-init-',dir=self.project.root) as tmp:
+        from .runtime_paths import ignore_runtime
+        ignore_runtime(self.project.runtime)
+        self.project.runtime.temp.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix='knowledge-init-',dir=self.project.runtime.temp) as tmp:
             staged = Path(tmp)/'store.sqlite3'
             db = sqlite3.connect(staged)
             try:
@@ -642,6 +665,17 @@ class Store:
             pid = 'sha256:' + hashlib.sha256(payload.encode('utf-8')).hexdigest()
             tick('persisting-plan', total_candidates=len(preview['candidates']) + len(preview['skipped']))
             db.execute('INSERT OR IGNORE INTO plans VALUES (?,?,?)',(pid,payload,'PREPARED'))
+            if db.execute('SELECT status FROM plans WHERE id=?', (pid,)).fetchone() == ('PREPARED',):
+                from .plan_storage import PREPARED_PREFIX, SERIES_PREFIX
+                db.execute('INSERT OR IGNORE INTO metadata VALUES (?,?)',
+                           (PREPARED_PREFIX + pid, str(life.now())))
+                scope = 'git-reconciliation' if reconcile_git else 'canonical'
+                if preview['blocked']:
+                    scope += '-blocked'
+                if _source_identity:
+                    scope += '-' + digest(_source_identity)
+                db.execute('INSERT INTO metadata VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value '
+                           'WHERE value<>excluded.value', (SERIES_PREFIX + scope, pid))
         tick('blocked' if preview['blocked'] else 'prepared')
         return {'ok':not preview['blocked'],'fingerprint':pid,**preview}
 
@@ -676,11 +710,14 @@ class Store:
                 require(identifier in value['candidates'],'unknown-plan-candidate')
                 item=value.get('resolved',value['candidates'])[identifier]
             else:
-                row=db.execute('SELECT payload FROM queue WHERE id=?',(identifier,)).fetchone();require(row is not None,'unknown-candidate')
+                row=db.execute('SELECT payload FROM queue WHERE id=?',(identifier,)).fetchone()
+                require(row is not None,'unknown-candidate',{'argument':'candidate','next_invocation':{'section':'candidates'}})
                 item=loads(row[0])
             if operation is not None:
                 require(type(operation) is int and operation>=0 and item is not None,'invalid-candidate-operation')
-                items=operations(item);require(operation<len(items),'invalid-candidate-operation');item=items[operation]
+                items=operations(item)
+                require(operation<len(items),'invalid-candidate-operation',{'argument':'operation','available_operations':len(items)})
+                item=items[operation]
             return canonical_json(item)
 
     def plan_dispositions(self, pid):
@@ -741,8 +778,12 @@ class Store:
                                 'source-drift-before-commit-rescan-required',
                                 {'next_action': 'Prepare against the current source and review a new fingerprint.'})
                 life.verify_source_bindings(self,sources,db)
-                db.execute('INSERT INTO receipts VALUES (?,?)',(pid,canonical_json(plan)))
+                db.execute('INSERT INTO receipts VALUES (?,?)',(pid,plan_receipts.reference(pid)))
             db.execute("UPDATE plans SET status='COMMITTED' WHERE id=?",(pid,))
+            from .plan_storage import APPROVAL_PREFIX, PREPARED_PREFIX
+            db.executemany('DELETE FROM metadata WHERE key=?', ((prefix + pid,) for prefix in (PREPARED_PREFIX, APPROVAL_PREFIX)))
+            # Keep the series head pointing to the last plan after commit. An
+            # earlier preparation must not become active again by implication.
             from .confluence_sync import record_applied
             record_applied(db,plan,pid)
             db.execute('INSERT INTO history(payload) VALUES (?)',(canonical_json({'event':'import','fingerprint':pid,'candidates':plan['included']}),))
@@ -752,7 +793,7 @@ class Store:
     def _verify_committed(self, db, pid, plan):
         if life.enabled(db):
             receipt=db.execute('SELECT payload FROM receipts WHERE plan=?',(pid,)).fetchone()
-            require(receipt is not None and loads(receipt[0])==plan,'committed-receipt-mismatch')
+            require(receipt is not None and plan_receipts.matches(pid,receipt[0],plan),'committed-receipt-mismatch')
         for cid in plan['included']:
             expected = plan['candidates'][cid]
             row = db.execute('SELECT payload,status,binding FROM queue WHERE id=?',(cid,)).fetchone()
@@ -820,7 +861,7 @@ class Store:
         return {'view':'all-latest-with-lifecycle; use context for trusted current',
                 'revisions':[loads(p) for p, in db.execute('SELECT payload FROM revisions ORDER BY id,revision')],
                 'reviews':[loads(p) for p, in db.execute('SELECT payload FROM reviews ORDER BY sequence')],
-                'receipts':[{'fingerprint':i,'plan':loads(p)} for i,p in db.execute('SELECT plan,payload FROM receipts ORDER BY plan')]}
+                'receipts':[{'fingerprint':i,'plan':plan} for i,plan in plan_receipts.plans(db)]}
 
     def export(self):
         from .cr_workflow import export_workflows

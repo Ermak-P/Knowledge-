@@ -105,7 +105,7 @@ data fails closed. Input/state/artifact changes require a new preview; counts
 alone do not prove preservation. The default aggregate source/file limit is
 128 MiB per source row snapshot/file; exceeding it is a blocker, not truncation.
 
-Journal: `<root>/.maintenance/identity-<transaction>.json`. BUILDING records
+The journal lives at `<root>/.knowledge/maintenance/identity-<transaction>.json`. BUILDING records
 prepublication progress; PREPARED plus active.json fences cutover. Publication
 renames original directories into the external workspace and staged .knowledge
 into place. Under the fence, the published store validates before COMPLETED is

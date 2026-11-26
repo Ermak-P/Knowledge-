@@ -26,6 +26,7 @@ def main():
     source.add_argument('--installation', type=Path)
     source.add_argument('--kit', type=Path)
     parser.add_argument('--host', type=Path, required=True)
+    parser.add_argument('--expected-version', default='2.4.0')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
@@ -33,10 +34,10 @@ def main():
         with tempfile.TemporaryDirectory(prefix='knowledge-native-machine-') as temporary:
             base = Path(temporary); machine = base / 'installed runtime'
             env = {**os.environ, 'XDG_CONFIG_HOME': str(base / 'config'), 'XDG_DATA_HOME': str(base / 'data'), 'XDG_CACHE_HOME': str(base / 'cache'), 'XDG_STATE_HOME': str(base / 'state')}
-            process = subprocess.run([sys.executable, '-I', '-X', 'utf8', str(args.kit.absolute() / 'machine-install.py'), '--mcp-dir', str(machine)], env=env, capture_output=True, text=True, encoding='utf-8')
+            process = subprocess.run([sys.executable, '-I', '-X', 'utf8', str(args.kit.absolute() / 'machine-install.py'), '--mcp-dir', str(machine), '--mode', 'maintainer'], env=env, capture_output=True, text=True, encoding='utf-8')
             (args.output / 'machine-install.log').write_text(process.stdout + process.stderr, encoding='utf-8')
             if process.returncode: raise RuntimeError('Private native fixture installation failed; inspect machine-install.log')
-            process = subprocess.run([sys.executable, '-I', '-X', 'utf8', str(Path(__file__).resolve()), '--installation', str(machine), '--host', str(args.host.absolute()), '--output', str(args.output.absolute())], env=env)
+            process = subprocess.run([sys.executable, '-I', '-X', 'utf8', str(Path(__file__).resolve()), '--installation', str(machine), '--host', str(args.host.absolute()), '--expected-version', args.expected_version, '--output', str(args.output.absolute())], env=env)
             shutil.copytree(machine / 'logs', args.output / 'installation-logs', dirs_exist_ok=True)
             if process.returncode: raise RuntimeError('Native host acceptance failed; inspect diagnostics')
         return
@@ -112,7 +113,7 @@ def main():
             self.send_response(200); self.send_header('Content-Type', 'text/event-stream'); self.send_header('Content-Length', str(len(body))); self.end_headers(); self.wfile.write(body)
     provider = ThreadingHTTPServer(('127.0.0.1', 0), Provider)
     threading.Thread(target=provider.serve_forever, daemon=True).start()
-    result = {'installation': json.loads((installation / 'current.json').read_text(encoding='utf-8')), 'profile': 'native-opencode-2.4.0-controlled-provider', 'live_model': False, 'checks': {}}
+    result = {'installation': json.loads((installation / 'current.json').read_text(encoding='utf-8')), 'profile': f'native-opencode-{args.expected_version}-controlled-provider', 'live_model': False, 'checks': {}}
     with tempfile.TemporaryDirectory(prefix='knowledge-native-') as tmp:
         base = Path(tmp); root = base / 'проект Ω'; root.mkdir()
         (root / 'Example.csproj').write_text('<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>')
@@ -130,7 +131,7 @@ def main():
         env = {**os.environ, 'XDG_CONFIG_HOME': str(config_home), 'XDG_DATA_HOME': str(base / 'data'), 'XDG_STATE_HOME': str(base / 'state'), 'XDG_CACHE_HOME': str(base / 'cache'), 'npm_config_cache': str(base / 'npm'), 'NPM_CONFIG_CACHE': str(base / 'npm'), 'OPENCODE_DISABLE_AUTOUPDATE': '1', 'OPENCODE_DISABLE_MODELS_FETCH': '1'}
         env.pop('OPENCODE_DISABLE_DEFAULT_PLUGINS', None)
         result['version'] = subprocess.check_output([str(args.host), '--version'], env=env, text=True).strip().removeprefix('opencode v')
-        assert result['version'] == '2.4.0'
+        assert result['version'] == args.expected_version
         with socket.socket() as sock:
             sock.bind(('127.0.0.1', 0)); port = sock.getsockname()[1]
         log = (args.output / 'host.log').open('wb')

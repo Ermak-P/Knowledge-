@@ -52,6 +52,28 @@ def validate_workflows(db,project):
     for key,payload in db.execute('SELECT key,value FROM metadata WHERE key LIKE ?',(PREFIX+'%',)):validate_state(loads(payload),project,key)
 
 
+def artifact_freshness(root, evidence, db=None):
+    """Verify a registered CR receipt without treating runtime files as sources."""
+    path, expected = evidence['source'], evidence['content_hash']
+    match = re.fullmatch(r'\.knowledge/update-cr/([a-f0-9]{32})/([a-f0-9]{64})\.json', path)
+    if not match or expected != 'sha256:' + match[2] or evidence['id'] != 'ucr.evidence.' + match[2]:
+        return 'not-verifiable'
+    if db is None:
+        with Store(root).connection() as connection:
+            return artifact_freshness(root, evidence, connection)
+    row = db.execute('SELECT value FROM metadata WHERE key=?', (PREFIX + match[1],)).fetchone()
+    if row is None or {'path': path, 'hash': expected} not in loads(row[0])['artifacts']:
+        return 'not-verifiable'
+    artifact = safe_path(Path(root) / path)
+    if not artifact.is_file():
+        return 'missing'
+    with artifact.open('rb') as stream:
+        data = stream.read(src.LIMIT + 1)
+    if len(data) > src.LIMIT:
+        return 'not-verifiable'
+    return 'unchanged' if 'sha256:' + hashlib.sha256(data).hexdigest() == expected else 'changed'
+
+
 class Workflow:
     def __init__(self,root):self.store=Store(root);self.root=self.store.project.root
     def _load(self,db,sid):

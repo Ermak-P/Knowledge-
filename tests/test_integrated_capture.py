@@ -21,6 +21,34 @@ class CaptureIntegration(unittest.TestCase):
   configure(root,c,True);taskfile=Path(tmp)/'task.json';taskfile.write_text(json.dumps(p4task()));return root,taskfile
  def effects(self,root,d,rid):
   j=Journal(root);return dict(http=len(d.bodies),source=digest(__import__('harness.runtime',fromlist=['source_snapshot']).source_snapshot(j.project,2000000)),actions=j.actions(rid),requests=j.load(rid)['requests'])
+ def test_readonly_provider_installation_suppresses_enabled_capture(self):
+  from harness.runtime import config
+  with tempfile.TemporaryDirectory() as tmp,http_provider(Decisions()) as endpoint:
+   root,t=self.setup_project(tmp,endpoint);current=config(root)
+   install=Path(tmp)/'install';provider=install/'config/provider.json';provider.parent.mkdir(parents=True)
+   provider.write_text(json.dumps({'provider':current.pop('provider')}))
+   (install/'current.json').write_text(json.dumps({'mode':'readonly'}))
+   configure(root,{**current,'provider_ref':str(provider)})
+   result=self.answer(self.invoke(root,'run',input=t,options=['--fail-submit']))
+   self.assertEqual(result['capture'],{'state':'disabled','reason':'Knowledge installation is read-only'})
+   self.assertFalse(Store(root).status()['queue'])
+ def test_missing_capture_defaults_off_and_preserves_pending_outbox(self):
+  from harness.runtime import config, validate_config
+  with tempfile.TemporaryDirectory() as tmp,http_provider(Decisions()) as endpoint:
+   root,t=self.setup_project(tmp,endpoint);previous=config(root);default=dict(previous);default.pop('capture')
+   self.assertEqual(validate_config(default)['capture'],'off')
+   initial=self.answer(self.invoke(root,'run',input=t,options=['--fail-submit']),1)
+   j=Journal(root);rid=initial['run_id'];pending=j.outbox(rid);self.assertTrue(pending)
+   configure(root,default)
+   disabled=self.answer(self.invoke(root,'capture-retry',rid),1)
+   self.assertEqual(disabled['error'],'capture-disabled');self.assertEqual(j.outbox(rid),pending)
+   self.assertFalse(Store(root).status()['queue'])
+  with tempfile.TemporaryDirectory() as tmp,http_provider(Decisions()) as endpoint:
+   root,t=self.setup_project(tmp,endpoint);default=config(root);default.pop('capture');configure(root,default)
+   result=self.answer(self.invoke(root,'run',input=t,options=['--fail-submit']))
+   self.assertEqual(result['capture']['state'],'disabled')
+   self.assertEqual(Journal(root).outbox(result['run_id']),{})
+   self.assertFalse(Store(root).status()['queue'])
  def test_capture_retry_refuses_execution_without_http_edits_or_processes(self):
   with tempfile.TemporaryDirectory() as tmp,http_provider(d:=Decisions()) as endpoint:
    root,t=self.setup_project(tmp,endpoint);self.answer(self.invoke(root,'run',input=t,options=['--die','before-first-patch']),73);j=Journal(root);rid=j.runs()[0]['id'];before=self.effects(root,d,rid);self.assertFalse(any(a['tool']=='patch' for a in before['actions'].values()))

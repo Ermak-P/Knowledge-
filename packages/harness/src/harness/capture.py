@@ -1,14 +1,27 @@
 """Durable payload-bound delivery; no canonical Knowledge approval or alternate writer."""
 from knowledge.store import Store, GIT_BATCH_LIMIT
+from knowledge.access import readonly
 from knowledge.discovery import candidate_observe
 from knowledge.util import KnowledgeError,digest
+from pathlib import Path
 from . import runtime as rt
 from .runtime import stamp,source_snapshot,DEFAULT_LIMITS
 
 
+def disabled_reason(configuration):
+    if configuration.get('capture', 'off') == 'off':
+        return 'capture policy is off'
+    reference = configuration.get('provider_reference', {}).get('path')
+    if readonly() or (reference and Path(reference).name == 'provider.json' and
+                      Path(reference).parent.name == 'config' and readonly(Path(reference).parent.parent)):
+        return 'Knowledge installation is read-only'
+    return None
+
+
 def deliver(journal,run,configuration):
-    policy=configuration['capture']
-    if policy=='off':run['capture']={'state':'disabled','reason':'explicit task configuration'};return
+    if reason := disabled_reason(configuration):
+        run['capture'] = {'state': 'disabled', 'reason': reason}
+        return
     try:
         current=source_snapshot(journal.project,{**DEFAULT_LIMITS,**configuration['limits']}['file_bytes'])
         if digest(current)!=run['final_source']:raise KnowledgeError('source-changed-before-capture')

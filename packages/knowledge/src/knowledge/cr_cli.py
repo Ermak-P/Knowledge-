@@ -5,6 +5,9 @@ from .util import loads,read_text,emit_json,KnowledgeError,require
 
 
 def execute(root,action,value):
+    if action not in ('inspect', 'installation-status'):
+        from .access import require_maintainer
+        require_maintainer()
     from .cr_workflow import Workflow
     from . import cr_sources as sources
     require(isinstance(value,dict),'ucr-input-object-required');workflow=Workflow(root)

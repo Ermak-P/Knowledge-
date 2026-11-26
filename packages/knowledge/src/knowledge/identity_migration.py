@@ -75,6 +75,8 @@ def _validate_staged(project, base):
 
 
 def inventory_connection(db, project, old, knowledge_base=None):
+    from .plan_storage import APPROVAL_PREFIX, MAINTENANCE_PREFIX, PREPARED_PREFIX, SERIES_PREFIX
+
     require(isinstance(old,str) and re.fullmatch('[a-f0-9]{64}',old),'invalid-old-project-identity')
     require(db.execute('PRAGMA integrity_check').fetchall()==[('ok',)],'identity-source-integrity-failed')
     require(set(CORE)<={r[0] for r in db.execute("SELECT name FROM sqlite_schema WHERE type='table'")},'identity-source-missing-core-tables')
@@ -86,7 +88,7 @@ def inventory_connection(db, project, old, knowledge_base=None):
     require(metadata.get('confluence-schema') in (None,*cf.SUPPORTED_SCHEMAS),'identity-unsupported-confluence-version')
     require(metadata.get('confluence-sync-schema') in (None,cs.SCHEMA),'identity-unsupported-confluence-sync-version')
     require(metadata.get(cc.META) in (None,cc.SCHEMA),'identity-unsupported-confluence-command-version')
-    require(all(k in ('format','project','p1','operations','migration','confluence-schema','confluence-sync-schema','confluence-gc-registrations',cc.META) or k.startswith((*PREFIXES,cs.REFRESH))
+    require(all(k in ('format','project','p1','operations','migration','confluence-schema','confluence-sync-schema','confluence-gc-registrations',cc.META) or k.startswith((*PREFIXES,cs.REFRESH,APPROVAL_PREFIX,MAINTENANCE_PREFIX,PREPARED_PREFIX,SERIES_PREFIX))
                 for k in metadata),'identity-unknown-metadata-extension')
     schema=list(db.execute("SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name"))
     require(not any(t in ('trigger','view') for t,_,_,_ in schema),'identity-unknown-schema-object')
@@ -197,14 +199,14 @@ def inventory(root, old):
 
 
 def files(folder):
+    from .runtime_paths import storage_files
     result={};safe_tree(folder)
     if folder.exists():
-        for p in sorted(folder.rglob('*')):
-            if not p.is_file():continue
+        for p in sorted(storage_files(folder)):
             # SQLite SHM and lock files are volatile coordination, not artifacts.
             # Originals are still archived by directory rename, never deleted.
             if p.name in ('writer.lock','init.lock') or p.name.endswith('-shm'):continue
-            primary='runs.sqlite3' if folder.name=='.harness' else 'store.sqlite3' if folder.name in ('.knowledge','staged') else None
+            primary='runs.sqlite3' if folder.name=='.harness' else 'store.sqlite3'
             if primary and p.parent==folder and p.name in (primary,primary+'-wal',primary+'-journal'):continue
             require(p.stat().st_size<=LIMIT,'identity-artifact-too-large')
             result[p.relative_to(folder).as_posix()]=m.sha(p.read_bytes())
@@ -233,11 +235,11 @@ def _preview(project,old,workspace):
     result=inventory(project.root,old)
     existing=m.status(project.root)
     require(all(j.get('status')=='COMPLETED' for j in existing['transactions']),'identity-existing-maintenance-recovery-required')
-    identity_journals=list((project.root/'.maintenance').glob('identity-*.json'))
+    identity_journals=list((project.runtime.maintenance).glob('identity-*.json'))
     require(all(loads(p.read_text(encoding='utf-8')).get('state') in ('COMPLETED','ROLLED_BACK') for p in identity_journals),'identity-existing-migration-recovery-required')
     harness,_=harness_snapshot(project,old)
     artifacts={'knowledge':files(project.base),'harness':files(project.root/'.harness'),
-               'maintenance':files(project.root/'.maintenance')}
+               'maintenance':files(project.runtime.maintenance)}
     value={'version':1,'operation':'sqlite-identity-migration','rule':RULE,'root':str(project.root),
            'new_identity':project.identity,'old_identity':old,'workspace':str(work),
            'source':result,'harness':harness,'artifacts':artifacts,
@@ -287,10 +289,11 @@ def physical_copy(source,target):
     """Preserve pre-release physical bytes including WAL/journal, plus API snapshot."""
     if not source.exists():return {}
     safe_tree(source);target.mkdir(mode=0o700);manifest={}
-    for p in sorted(source.rglob('*')):
+    from .runtime_paths import storage_files
+    for p in sorted(storage_files(source)):
         relative=p.relative_to(source);dest=target/relative
-        if p.is_dir():dest.mkdir(mode=0o700);continue
         if p.name in ('writer.lock','init.lock'):continue
+        dest.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
         require(p.stat().st_size<=LIMIT,'identity-physical-file-too-large')
         before=m.sha(p.read_bytes());shutil.copyfile(p,dest)
         with dest.open('r+b') as stream:os.fsync(stream.fileno())
@@ -374,7 +377,7 @@ def stage(project,snapshot,source,rows,work,txn):
 
 def journal_path(project,tid):
     require(isinstance(tid,str) and re.fullmatch('[a-f0-9]{32}',tid),'invalid-identity-transaction')
-    return safe_path(project.root/'.maintenance'/('identity-'+tid+'.json'))
+    return safe_path(project.runtime.maintenance/('identity-'+tid+'.json'))
 
 
 def read_journal(project,tid):
@@ -392,6 +395,7 @@ def read_journal(project,tid):
 
 
 def apply(root,value,approval):
+    from .runtime_paths import move_entries
     require(isinstance(value,dict) and value.get('operation')=='sqlite-identity-migration' and value.get('rule')==RULE
             and value.get('version')==1 and approval==fingerprint(value),'exact-identity-preview-approval-required')
     no_hot_journal(Project(root))
@@ -427,13 +431,17 @@ def apply(root,value,approval):
                 and files(project.root/'.harness')==value['artifacts']['harness'],'identity-source-changed-before-publication')
         journal.update(state='PREPARED',published_files=expected)
         m.write(jp,journal)
-        fence=project.root/'.maintenance/active.json';m.write(fence,{'version':1,'kind':KEY,'project':project.identity,'transaction':tid})
+        fence=project.runtime.fence;m.write(fence,{'version':1,'kind':KEY,'project':project.identity,'transaction':tid})
         fault('identity-fenced')
         m.release_reservations(project);project._maintenance_execution.release_metadata_handle()
-        os.rename(project.base,work/'knowledge-original');fault('identity-old-knowledge-archived')
+        move_entries(project.base, work/'knowledge-original')
+        journal['knowledge_archived'] = True
+        m.write(jp, journal)
+        fault('identity-old-knowledge-archived')
         if (project.root/'.harness').exists():os.rename(project.root/'.harness',work/'harness-original')
         fault('identity-old-harness-archived')
-        os.rename(staged,project.base);fault('identity-published')
+        move_entries(staged, project.base)
+        fault('identity-published')
         _validate_staged(project,project.base)
         journal['state']='COMPLETED';m.write(jp,journal);fault('identity-committed');fence.unlink()
         return {'ok':True,'state':'COMPLETED','transaction':tid,'backup':str(work/'source.sqlite3'),
@@ -458,12 +466,14 @@ def rollback_preview(root,tid):
 
 
 def recover(root,tid,rollback=False,approval=None):
+    from .runtime_paths import data_entries, move_entries
+
     with m.frozen(root,recovery=True) as project:
         jp=journal_path(project,tid);journal=read_journal(project,tid)
         value=journal['preview']
         work=Path(value['workspace']);safe_tree(work)
         require(not work.is_relative_to(project.root),'identity-invalid-recovery-workspace')
-        fence=project.root/'.maintenance/active.json'
+        fence=project.runtime.fence
         if fence.exists():
             active=loads(fence.read_text(encoding='utf-8'))
             require(active.get('kind')==KEY and active.get('project')==project.identity and active.get('transaction')==tid,'identity-unrelated-recovery-fence')
@@ -476,14 +486,29 @@ def recover(root,tid,rollback=False,approval=None):
         m.release_reservations(project);project._maintenance_execution.release_metadata_handle()
         original=work/'knowledge-original'
         if original.exists():
-            with closing(sqlite3.connect((original/'store.sqlite3').as_uri()+'?mode=ro',uri=True)) as db:
-                old,_=inventory_connection(db,project,value['old_identity'],original)
-                require(old['logical_identity']==value['source']['logical_identity'],'identity-original-changed')
-            if project.base.exists():
-                actual={'store.sqlite3':m.sha(project.db.read_bytes()),**files(project.base)}
-                require(actual==journal['published_files'],'identity-rollback-new-state-changed')
-                os.rename(project.base,work/'rolled-back-new')
-            os.rename(original,project.base)
+            if not journal.get('rollback_restoring'):
+                archived = journal.get('knowledge_archived') or (
+                    (original/'store.sqlite3').exists() and files(original) == value['artifacts']['knowledge'])
+                if archived:
+                    with closing(sqlite3.connect((original/'store.sqlite3').as_uri()+'?mode=ro',uri=True)) as db:
+                        old,_=inventory_connection(db,project,value['old_identity'],original)
+                        require(old['logical_identity']==value['source']['logical_identity'],'identity-original-changed')
+                    if data_entries(project.base):
+                        remaining = work/'staged'
+                        def published(base):
+                            database = base/'store.sqlite3'
+                            return {**({'store.sqlite3': m.sha(database.read_bytes())} if database.exists() else {}), **files(base)}
+                        pieces = [published(base) for base in (project.base, remaining, work/'rolled-back-new')]
+                        require(sum(map(len, pieces)) == len(journal['published_files']) and
+                                {**pieces[0], **pieces[1], **pieces[2]} == journal['published_files'],
+                                'identity-rollback-new-state-changed')
+                        move_entries(project.base, work/'rolled-back-new')
+                journal['rollback_restoring'] = True
+                m.write(jp, journal)
+            prior, live = files(original), files(project.base)
+            require(not (prior.keys() & live.keys()) and {**prior, **live} == value['artifacts']['knowledge'],
+                    'identity-original-changed')
+            move_entries(original, project.base)
         else:require(inventory(root,value['old_identity'])==value['source'],'identity-original-unavailable')
         original_harness=work/'harness-original'
         if original_harness.exists():
