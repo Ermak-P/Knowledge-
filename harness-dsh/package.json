@@ -1,11 +1,12 @@
 {
   "name": "harness-dsh",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --experimental-strip-types --test tests/plugin.test.ts",
-    "test:native": "node --experimental-strip-types --test tests/native.test.ts"
+    "test": "node --experimental-strip-types --test tests/plugin.test.ts tests/lifecycle.test.ts tests/dotnet.test.ts",
+    "test:native": "node --experimental-strip-types --test tests/native.test.ts",
+    "test:library": "node --experimental-strip-types --test tests/library.test.ts"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.2.0-alpha.1",
@@ -13,5 +14,11 @@
     "@deepseek-ai/dsh-llm": "0.2.3-alpha.2",
     "@deepseek-ai/dsh-session": "0.2.3-alpha.2",
     "@deepseek-ai/dsh-tools": "0.2.3-alpha.2"
+  },
+  "dependencies": {
+    "@bpc-oss/dsh-verification": "1.0.0",
+    "@bpc-oss/dsh-evidence": "1.0.0",
+    "stalegreen": "0.1.1",
+    "fast-xml-parser": "^5.3.0"
   }
 }

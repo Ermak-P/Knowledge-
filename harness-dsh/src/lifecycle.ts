@@ -282,7 +282,7 @@ class EvidenceBook {
   }
   capture(assignment,record){
     const state=this.tasks.get(assignment.taskId)
-    if(!state||!['coding','testing','verification'].includes(assignment.role)||record.name!=='harness_run_check')return
+    if(!state||!['coding','testing','verification','host'].includes(assignment.role)||record.name!=='harness_run_check')return
     const seq=++this.seq
     const job=this.captureOne(state,assignment,record,seq)
     this.pending.add(job);void job.finally(()=>this.pending.delete(job)).catch(()=>{})
@@ -297,11 +297,11 @@ class EvidenceBook {
     try{
       const value=record.value
       if(record.isError||!value||value.kind!==criterion.kind||!['pass','fail'].includes(value.outcome)||!value.fingerprint?.available||!value.fingerprint.tree){fail('failed, interrupted or unavailable check');return}
-      if(state.refs.length>=200){fail('evidence limit reached');return}
+      if(state.refs.length+state.failures.length>=200){state.captureOverflow=true;fail('evidence limit reached');return}
       let captured=e.deriveCaptured({...record,content:[],meta:undefined},{contractIdentity:state.identity,parseTestRuns:false})
       if(!captured){fail('cannot derive evidence');return}
       const payload=criterion.kind==='test'?{exitCode:value.exitCode,passCount:value.passed,failCount:value.failed,output:value.summary}:criterion.kind==='file'?{path:criterion.target,exists:value.exists}:{exitCode:value.exitCode,stdout:value.summary}
-      if(criterion.kind==='test'&&(!Number.isInteger(value.passed)||!Number.isInteger(value.failed)||value.passed+value.failed===0)){fail('no executed tests');return}
+      if(criterion.kind==='test'&&(!Number.isInteger(value.passed)||!Number.isInteger(value.failed)||value.passed+value.failed===0||value.skipped!==0||(value.outcome==='pass'&&(value.failed!==0||value.passed===0)))){fail('no executed tests');return}
       if(criterion.kind!=='file'&&(!Number.isInteger(value.exitCode)||(value.outcome==='pass'&&value.exitCode!==0))){fail('missing or inconsistent exit status');return}
       captured=e.CapturedEvidenceSchema.parse({...captured,evidenceType:criterion.kind==='test'?'test_run':criterion.kind==='file'?'file_exists':'command_output',payload,failed:value.outcome!=='pass'})
       const stored=await v.storePayload(this.store,captured)
@@ -326,6 +326,7 @@ class EvidenceBook {
   async evaluate(state){
     await this.drain()
     const {v,e,s}=this.lib
+    if(state.captureOverflow)return {status:'blocked',details:[{reason:'evidence limit reached'}],reasons:['evidence limit reached']}
     const now=this.fingerprint(),verdicts=new Map(),details=[]
     let uncertain=false
     const failure=(ac,reason,blocked=true)=>{if(blocked)uncertain=true;details.push({id:ac.id,reason});verdicts.set(ac.id,{claimId:ac.id,acId:ac.id,result:blocked?'need_human':'fail',oracleTier:'T4',contractIdentity:state.identity,detail:reason})}
@@ -337,9 +338,9 @@ class EvidenceBook {
         verdicts.set(ac.id,{claimId:ac.id,acId:ac.id,result:'pass',oracleTier:'T2',contractIdentity:state.identity,detail:r.detail});continue
       }
       const outcome=await v.bindSelectorForAc(ac,{contractIdentity:state.identity,refs:state.refs,captureFailures:state.failures,loadBlob:key=>this.store.read(key)},()=>ac.selector.evidenceType,{familyFallback:false})
-      if(outcome.kind!=='bound'){failure(ac,outcome.reason??'missing evidence');continue}
+      if(outcome.kind!=='bound'){failure(ac,outcome.reason??'missing evidence');if(outcome.kind==='no-evidence')details.at(-1).recheck=true;continue}
       const ref=state.refs.find(r=>r.resultSeq===outcome.resultSeq)
-      if(!ref||ref.taskId!==state.task.id||s.compareFingerprints(ref.fingerprint,now)!=='same'){failure(ac,'missing or stale evidence');continue}
+      if(!ref||ref.taskId!==state.task.id||s.compareFingerprints(ref.fingerprint,now)!=='same'){failure(ac,'missing or stale evidence');details.at(-1).recheck=true;continue}
       if(ref.outcome!=='pass'||outcome.evidence.failed){failure(ac,'actual check failed',false);continue}
       if(outcome.evidence.evidenceType!==ac.selector.evidenceType||!e.identitiesEqual(outcome.evidence.contractIdentity,state.identity)){failure(ac,'evidence identity/type mismatch');continue}
       try{
@@ -370,6 +371,17 @@ async function runEngineering(host,book,request,basis,runId,sessionId,signal,max
     progress('verification',s.task)
     let gate=await book.evaluate(s)
     if(gate.status==='pass')return gate
+    // Deterministic work is executed by the trusted host only when missing or stale.
+    // Fresh failed evidence is not retried until Coding repairs it.
+    if(host.check){
+      for(const detail of gate.details){
+        const c=s.task.criteria.find(c=>c.id===detail.id&&c.kind!=='review')
+        if(c&&detail.recheck){check();await host.check(s,c,signal)}
+      }
+      gate=await book.evaluate(s)
+      if(gate.status==='pass'||gate.status==='fail')return gate
+      if(!s.task.criteria.some(c=>c.kind==='review'))return gate
+    }
     const result=await child('verification',s,{...taskPrompt(s),missing:gate.details},verificationSchema)
     if(result.structured.verdict==='blocked')return {status:'blocked',details:[{reason:result.structured.detail}]}
     if(result.structured.verdict==='rework')return {status:'fail',details:[{reason:result.structured.detail}]}
@@ -389,8 +401,9 @@ async function runEngineering(host,book,request,basis,runId,sessionId,signal,max
         if(!s.red.valid)throw Error('invalid RED: '+s.red.reason)
       }
       const coded=await child('coding',s,{...taskPrompt(s),repair:reason},resultSchema)
+      if(coded.structured.verdict==='rework'){reason=coded.structured.detail;continue}
       if(coded.structured.verdict!=='pass')throw Error('Coding did not complete: '+coded.structured.detail)
-      if(!s.task.tdd&&s.task.testFiles.length){
+      if(!s.task.tdd&&(s.task.testFiles.length||s.task.criteria.some(c=>c.kind==='test'))){
         const tested=await child('testing',s,{...taskPrompt(s),mode:'test and assess coverage'},testingSchema)
         if(tested.structured.verdict!=='pass')throw Error('Testing did not accept test quality: '+tested.structured.detail)
       }
@@ -413,6 +426,7 @@ async function runEngineering(host,book,request,basis,runId,sessionId,signal,max
       check();progress('final-verification',null)
       let repaired=false
       for(const s of states){
+        if(s.red&&host.checkTdd&&!host.checkTdd(s,s.red))throw Error('frozen TDD inputs changed: '+s.task.id)
         const gate=await verify(s)
         if(gate.status==='blocked')throw Error('final verification unavailable for '+s.task.id)
         if(gate.status==='fail'){await execute(s,JSON.stringify(gate.details));repaired=true;break}

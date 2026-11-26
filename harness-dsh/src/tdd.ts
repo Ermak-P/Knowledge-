@@ -8,9 +8,10 @@ const hash=(v)=>createHash('sha256').update(JSON.stringify(v)).digest('hex')
 const classifier=(run)=>({kind:run.classifier??'infra_failure',matchedTests:(run.results??[]).map(r=>r.name),summary:run.summary,fingerprint:run.classifier==='test_failure'?hash(run.failures.map(f=>[f.name,f.message])):null})
 export function tddController(root,testProjects,check,fingerprint,compare){
   const testCriterion=s=>s.task.criteria.find(c=>c.kind==='test')
-  const testDigest=s=>hashFiles(root,[...gitFiles(root).filter(p=>isTestPath(p,testProjects)||/\.(csproj|props|targets|runsettings)$/i.test(p)),...s.task.testFiles])
+  const testDigest=s=>hashFiles(root,[...gitFiles(root).filter(p=>p===testCriterion(s).target||/\.(props|targets|runsettings)$/i.test(p)),...s.task.testFiles])
   const production=s=>fingerprint(s.task.testFiles.map(p=>'./'+p))
   return {
+    checkTdd(s,red){return testDigest(s)===red.testPatchHash&&hash(testCriterion(s))===red.commandHash},
     async baseline(s,signal){
       const run=await check(s,testCriterion(s),signal)
       return {comparable:['test_pass','test_failure'].includes(run.classifier),failures:(run.failures??[]).map(f=>f.name),productionFingerprint:production(s)}
