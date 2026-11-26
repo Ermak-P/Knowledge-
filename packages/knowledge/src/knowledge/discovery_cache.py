@@ -106,4 +106,5 @@ def save(db, obsolete, values):
     db.executemany('DELETE FROM discovery_file_cache WHERE path=?', obsolete)
     db.executemany('INSERT INTO discovery_file_cache VALUES (?,?,?,?) ON CONFLICT(path) DO UPDATE SET '
                    'binding=excluded.binding,payload=excluded.payload,checksum=excluded.checksum '
-                   'WHERE discovery_file_cache.checksum<>excluded.checksum', values)
+                   'WHERE discovery_file_cache.checksum<>excluded.checksum '
+                   'OR discovery_file_cache.binding<>excluded.binding OR discovery_file_cache.payload<>excluded.payload', values)

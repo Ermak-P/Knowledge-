@@ -103,17 +103,23 @@ def _envelope(scan_id, payload):
     return value
 
 
-def _materialize(db, envelope):
+def _materialize(db, envelope, *, observations_only=False):
     if 'format' not in envelope:
         return envelope
     value = _json(_decode(envelope['body']))
+    require(isinstance(value,dict) and set(value)=={'state','maps','blocks','exclusions'},
+            'corrupt-discovery-history')
     state = value['state']
+    require(isinstance(state,dict) and isinstance(state.get('snapshot'),dict)
+            and isinstance(state.get('observations'),list), 'corrupt-discovery-history')
     snapshot = state['snapshot']
     require(state['id']==envelope['id'] and snapshot['identity']==envelope['source']
             and snapshot.get('revision')==envelope['revision'] and state['extractor']==envelope['extractor']
             and state['complete']==envelope['complete'] and (not state.get('incremental', False))==envelope['full']
             and envelope['summary']=={'state':state.get('state'),'counters':state.get('counters')},
             'corrupt-discovery-history')
+    if observations_only:
+        return {'observations':state['observations']}
     require(value['maps'] in (['files'], ['files','index_blobs']), 'corrupt-discovery-history')
     refs = value['blocks']
     exclusion_ref = value['exclusions']
@@ -147,7 +153,7 @@ def decode(db, scan_id, payload):
 
 
 def scan_rows(db, scan_id=None, *, sources=None, revision=None, full=False, complete=False,
-              extractor=None, newest=False, summaries=False):
+              extractor=None, newest=False, summaries=False, observations_only=False):
     """Pre-filter compact manifests so unrelated history never loads its inventory."""
     sql = 'SELECT id,payload FROM scans'
     if scan_id is not None:
@@ -172,4 +178,4 @@ def scan_rows(db, scan_id=None, *, sources=None, revision=None, full=False, comp
             yield identifier, {'id':identifier,'snapshot':{'identity':value['source'],'revision':value['revision']},
                                'complete':value['complete'],'incremental':not value['full'],**value['summary']}
         else:
-            yield identifier, _materialize(db,value)
+            yield identifier, _materialize(db,value,observations_only=observations_only)

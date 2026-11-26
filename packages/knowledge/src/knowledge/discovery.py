@@ -1299,7 +1299,7 @@ def discovery_owned(db, claim, records, scope=None):
         canonical = context.get('_canonical_index') or CanonicalIndex(records)
         current = context.get('_claims_by_id') or {c['id']: c for c in records['claims']}
         index = {}
-        for _, prior in scan_history.scan_rows(db, complete=True, extractor=VERSION):
+        for _, prior in scan_history.scan_rows(db, complete=True, extractor=VERSION, observations_only=True):
             for observation in prior['observations']:
                 identifiers = {observation['id']}
                 known = canonical.match(observation) if describe(observation) is not None else None

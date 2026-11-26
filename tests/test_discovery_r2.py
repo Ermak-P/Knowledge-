@@ -145,6 +145,14 @@ class DiscoveryR2(unittest.TestCase):
         with self.assertRaisesRegex(KnowledgeError,'corrupt-discovery-observation-cache'):
             d.candidate_observe(self.store,['A.cs'],CAPTURED)
 
+    def test_verified_extraction_repairs_only_the_observed_corrupt_row(self):
+        self.warm()
+        rows = self.cache()
+        with self.store.connection(True) as db:
+            db.execute("UPDATE discovery_file_cache SET payload='[]' WHERE path='A.cs'")
+        d.candidate_observe(self.store,['A.cs'],CAPTURED)
+        self.assertEqual(self.cache(),rows)
+
     def test_capture_commit_crash_binds_receipts_and_cache_together(self):
         self.warm()
         before = self.cache()
