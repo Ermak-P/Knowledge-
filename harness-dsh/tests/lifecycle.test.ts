@@ -92,7 +92,7 @@ async function lifecycleCases(core,check){
         if(role==='reviewing'){const verdict=opts.review?.(counts.get(key),f)??{verdict:'pass',detail:'approved',issues:[]};return {structured:verdict,fingerprint:f.fingerprint()}}
         return {structured:{verdict:'pass',detail:'ok',expectedFailures:[{name:'T',message:'expected'}]}}
       },
-      baseline:async()=>({comparable:true}),red:async()=>({valid:opts.red!==false,reason:'invalid RED'}),green:async(s)=>({status:opts.green?.(s)??'pass',reason:'green'}),checkTdd:()=>opts.tddCurrent!==false
+      baseline:async()=>({comparable:true}),red:async()=>({valid:opts.red!==false,reason:'invalid RED'}),green:async(s)=>{calls.push('green:'+s.task.id);return {status:opts.green?.(s)??'pass',reason:'green'}},checkTdd:()=>opts.tddCurrent!==false
     }
     const execute=()=>core.runEngineering(host,f.book,'request',[{kind:'user-message',eventRef:'root:1',seq:1,text:'request'}],'r','root',signal,opts.maxAttempts??3)
     return {f,events,calls,counts,execute}
@@ -133,6 +133,12 @@ async function lifecycleCases(core,check){
   })
   await run('changed frozen TDD inputs block final acceptance',async()=>{
     const f=fixture(core),x=scenario({tasks:[f.task('a','test',true)],tddCurrent:false});check.equal((await x.execute()).status,'blocked');check.equal(x.counts.get('reviewing:root'),undefined)
+  })
+  await run('optional TDD refactor is bounded and repeats GREEN',async()=>{
+    const f=fixture(core),x=scenario({tasks:[{...f.task('a','test',true),refactor:true}]})
+    check.equal((await x.execute()).status,'completed')
+    check.equal(x.counts.get('coding:a'),2)
+    check.equal(x.calls.filter(c=>c==='green:a').length,2)
   })
   return cases
 }
