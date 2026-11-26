@@ -13,10 +13,13 @@ import { EvidenceBook } from '../src/lifecycle.ts'
 
 class EvidenceAdapter extends LlmAdapter {
   requests=0
+  turns=new Map()
   async resolveModel(provider,model){return {provider,id:model,name:model}}
-  async *stream(){
+  async *stream({sessionId}){
     this.requests++
-    if(this.requests%2===1){
+    const step=(this.turns.get(sessionId)??0)+1
+    this.turns.set(sessionId,step)
+    if(step===1){
       yield {type:'block-start',index:0,blockType:'tool-call'}
       yield {type:'block-end',index:0,block:{type:'tool-call',id:('call-'+this.requests) as ToolCallId,name:'harness_run_check',arguments:'{"criterion_id":"ac"}'}}
       yield {type:'finish',reason:{kind:'tool-calls'}}
@@ -29,7 +32,9 @@ class EvidenceAdapter extends LlmAdapter {
   }
 }
 
-test('real DSH tool dispatcher produces evidence in two separate native sessions', {timeout:30000}, async t=>{
+for(const concurrent of [false,true])test(
+  'real DSH tool dispatcher isolates '+(concurrent?'concurrent':'sequential')+' session evidence',
+  {timeout:30000}, async t=>{
   const ctx=new Context();t.after(()=>ctx.fiber.dispose())
   await mountAgentLoopTestDependencies(ctx)
   const fp=()=>({available:true,tree:'fixture',head:null,ms:0})
@@ -49,16 +54,25 @@ test('real DSH tool dispatcher produces evidence in two separate native sessions
     name:'harness_run_check',description:'Test-only controlled actual tool',
     parameters:{criterion_id:{type:'string',required:true}},
     output:{schema:{type:'string'},render:(_args,value)=>[{type:'text',text:value}]},
-    async execute(){return JSON.stringify({kind:'build',outcome:'pass',exitCode:0,summary:'real tool dispatch; process mocked',fingerprint:fp()})}
+    async execute(_args,exec){
+      const failed=concurrent&&exec.agent.session.id==='native-b'
+      return JSON.stringify({kind:'build',outcome:failed?'fail':'pass',exitCode:failed?1:0,summary:'real tool dispatch; process mocked',fingerprint:fp()})
+    }
   }))
   const harness=await mountAgentLoopTestHarness(ctx)
-  for(const sid of ['native-a','native-b']){
+  async function run(sid){
     const agent=await harness.create(sid as SessionId,{provider:'mock',model:'mock'})
     agent.followup(createUserMessage({content:[{type:'text',text:'run check'}],source:{kind:'user'}}))
-    await agent.whenIdle();await book.drain()
-    if(sid==='native-a'){assert.equal((await book.evaluate(a)).status,'pass');assert.equal((await book.evaluate(b)).status,'blocked')}
+    await agent.whenIdle()
   }
-  assert.equal((await book.evaluate(b)).status,'pass')
+  if(concurrent)await Promise.all([run('native-a'),run('native-b')])
+  else{
+    await run('native-a')
+    assert.equal((await book.evaluate(b)).status,'blocked')
+    await run('native-b')
+  }
+  assert.equal((await book.evaluate(a)).status,'pass')
+  assert.equal((await book.evaluate(b)).status,concurrent?'fail':'pass')
   assert.equal(a.refs[0].producerSessionId,'native-a');assert.equal(b.refs[0].producerSessionId,'native-b')
   assert.equal(adapter.requests,4)
 })
