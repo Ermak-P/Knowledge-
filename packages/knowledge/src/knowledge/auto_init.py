@@ -102,7 +102,7 @@ def read_checkpoint(path):
 
 def run(root, output, scan_id=None, max_files=100, max_calls=10000,
         command_timeout=600, fresh=False, base=None, head=None, incremental=False, retry_blocked=False,
-        cancel_path=None, cancel_job=None, refresh=False, lease_fds=()):
+        cancel_path=None, cancel_job=None, refresh=False, lease_fds=(), persistent=False):
     root = Path(root).resolve(strict=True)
     if not root.is_dir():
         raise ScanError('--root must be an existing project directory.')
@@ -129,46 +129,80 @@ def run(root, output, scan_id=None, max_files=100, max_calls=10000,
     if scan_id:
         print('Scan ID: ' + short_message(scan_id), flush=True)
     previous = None
+    session = None
+    if persistent:
+        from .discovery import ScanSession, reconcile
+        from .store import Store
+        from . import lifecycle
+        from .util import KnowledgeError
+
+        store = Store(root)
+        if not store.path.exists():
+            store.init()
+            lifecycle.upgrade(store, lifecycle.upgrade_preview(store)['fingerprint'])
+        session = ScanSession(store)
     environment = {**os.environ, 'PYTHONUTF8': '1', 'PYTHONIOENCODING': 'utf-8'}
     for number in range(1, max_calls + 1):
         if cancel_path and Path(cancel_path).exists() and read_json(cancel_path).get('job') == cancel_job:
             raise ScanCancelled('Scan cancelled at a durable chunk boundary; checkpoint and candidates preserved.')
-        command = [sys.executable, '-I', '-B', '-X', 'utf8', '-m', 'knowledge.cli', 'knowledge-init',
-                   '--root', str(root), '--max-files', str(max_files)]
-        if number == 1 and retry_blocked:
-            command.append('--retry-blocked')
-        if number == 1 and fresh:
-            command.append('--restart')
-        if incremental:
-            command.append('--incremental')
-        if base is not None:
-            command.extend(['--base', base, '--head', head])
-        if scan_id:
-            command.extend(['--scan-id', scan_id])
-        try:
-            with lease_options(lease_fds) as ownership:
-                process = subprocess.run(command, stdin=subprocess.DEVNULL,stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                         encoding='utf-8', errors='strict', env=environment,
-                                         timeout=command_timeout, check=False,**ownership)
-        except subprocess.TimeoutExpired as error:
-            # No automatic retry: the child may have committed before timeout.
-            write_json(output / 'last-error.json', {
-                'error': 'command-timeout-outcome-unknown', 'scan_id': scan_id,
-                'timeout_seconds': command_timeout})
-            raise ScanError('Command timed out; no automatic retry. Inspect Knowledge scan-status '
-                            'and the diagnostics before resuming.') from error
-        (output / 'last-stdout.txt').write_text(process.stdout, encoding='utf-8')
-        (output / 'last-stderr.txt').write_text(process.stderr, encoding='utf-8')
-        try:
-            result = json.loads(process.stdout)
-        except (ValueError, TypeError) as error:
-            raise ScanError('CLI did not return valid JSON; inspect last-stdout.txt and '
-                            'last-stderr.txt. No automatic retry.') from error
+        returncode = 0
+        if session is not None:
+            started = time.monotonic()
+            try:
+                result = session.scan(scan_id, max_files, base, head, fresh and number == 1,
+                                      incremental, retry_blocked and number == 1)
+                if result['processing_complete']:
+                    result['reconciliation'] = reconcile(store, result['id'])
+            except KnowledgeError as error:
+                result = {'ok': False, 'error': error.code, 'details': error.details}
+            if time.monotonic() - started > command_timeout:
+                write_json(output / 'last-error.json', {'error': 'command-timeout-outcome-unknown',
+                           'scan_id': scan_id, 'timeout_seconds': command_timeout})
+                raise ScanError('Chunk exceeded the command timeout. Inspect Knowledge scan-status before resuming.')
+            if result.get('ok') and not result['processing_complete']:
+                # Complete per-file diagnostics are available through scan-status.
+                result = {**{k: result[k] for k in ('ok','id','complete','work','counters','candidates')},
+                          'snapshot': {k: result['snapshot'].get(k) for k in ('identity','revision','snapshot_kind','coverage_errors')},
+                          'coverage': {p: result['coverage'][p] for p in result['work']['paths_this_call']
+                                       if result['coverage'][p]['status'] == 'blocked'}}
+        else:
+            command = [sys.executable, '-I', '-B', '-X', 'utf8', '-m', 'knowledge.cli', 'knowledge-init',
+                       '--root', str(root), '--max-files', str(max_files)]
+            if number == 1 and retry_blocked:
+                command.append('--retry-blocked')
+            if number == 1 and fresh:
+                command.append('--restart')
+            if incremental:
+                command.append('--incremental')
+            if base is not None:
+                command.extend(['--base', base, '--head', head])
+            if scan_id:
+                command.extend(['--scan-id', scan_id])
+            try:
+                with lease_options(lease_fds) as ownership:
+                    process = subprocess.run(command, stdin=subprocess.DEVNULL,stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                             encoding='utf-8', errors='strict', env=environment,
+                                             timeout=command_timeout, check=False,**ownership)
+            except subprocess.TimeoutExpired as error:
+                # No automatic retry: the child may have committed before timeout.
+                write_json(output / 'last-error.json', {
+                    'error': 'command-timeout-outcome-unknown', 'scan_id': scan_id,
+                    'timeout_seconds': command_timeout})
+                raise ScanError('Command timed out; no automatic retry. Inspect Knowledge scan-status '
+                                'and the diagnostics before resuming.') from error
+            (output / 'last-stdout.txt').write_text(process.stdout, encoding='utf-8')
+            (output / 'last-stderr.txt').write_text(process.stderr, encoding='utf-8')
+            try:
+                result = json.loads(process.stdout)
+            except (ValueError, TypeError) as error:
+                raise ScanError('CLI did not return valid JSON; inspect last-stdout.txt and '
+                                'last-stderr.txt. No automatic retry.') from error
+            returncode = process.returncode
         write_json(output / 'last-result.json', result)
         if not isinstance(result, dict):
             raise ScanError('Unexpected CLI JSON shape; expected an object.')
-        if process.returncode != 0 or result.get('ok') is not True:
-            raise ScanError('Knowledge failed: ' + short_message(result.get('error', 'exit ' + str(process.returncode))))
+        if returncode != 0 or result.get('ok') is not True:
+            raise ScanError('Knowledge failed: ' + short_message(result.get('error', 'exit ' + str(returncode))))
         returned_id = result.get('id')
         if not isinstance(returned_id, str) or not returned_id.strip():
             raise ScanError('Successful response has no scan id; unsupported CLI response.')
@@ -260,13 +294,21 @@ def main():
     base = Path(os.environ.get('LOCALAPPDATA') or tempfile.gettempdir())
     output = args.output or str(base / 'Knowledge' / 'scan-helper' / key)
     try:
-        return run(args.root, output, args.scan_id, args.max_files, args.max_calls,
-                   args.command_timeout, args.fresh, args.base, args.head, args.incremental, args.retry_blocked)
+        from .execution_lock import ProjectExecutionLock
+        from .project import Project
+        from .util import KnowledgeError
+        lease = ProjectExecutionLock(Project(args.root).root).acquire()
+        try:
+            return run(args.root, output, args.scan_id, args.max_files, args.max_calls,
+                       args.command_timeout, args.fresh, args.base, args.head, args.incremental,
+                       args.retry_blocked, persistent=True)
+        finally:
+            lease.close()
     except KeyboardInterrupt:
         print('\nInterrupted. Inspect diagnostics/scan-status before resuming; '
               'a completed chunk remains durable.', file=sys.stderr)
         return 130
-    except (ScanError, OSError, ValueError, UnicodeError) as error:
+    except (ScanError, KnowledgeError, OSError, ValueError, UnicodeError) as error:
         print('STOP: ' + short_message(error), file=sys.stderr)
         print('Full diagnostics: ' + str(Path(output).resolve()), file=sys.stderr)
         return 1

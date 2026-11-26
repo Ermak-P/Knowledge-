@@ -10,10 +10,12 @@ from .util import canonical_json, digest, fingerprint, loads, require, Knowledge
 from .project import safe_path
 from . import lifecycle as life
 from . import source_reader
+from . import discovery_checkpoint as scan_checkpoint
 
 VERSION='dotnet-lexical-v3'
 LEGACY_METHODS={'dotnet-lexical-v1','dotnet-lexical-v2'}
 DISCOVERY_METHODS=LEGACY_METHODS|{VERSION}
+CURRENT_EVIDENCE=('unchanged','anchor-valid-file-changed','current-registered-confluence-snapshot','unchanged-content-newer-confluence-version')
 EXCLUDED={'.git','.knowledge','.ai','.venv','.local','node_modules','vendor','packages','bin','obj','dist','build','.vs','TestResults'}
 SUFFIXES={'.cs','.csproj','.props','.targets','.sln','.json','.md','.yaml','.yml','.xml','.config'}
 LIMIT=512000
@@ -104,7 +106,6 @@ def inventory(root,base=None,head=None):
             try:
                 if p.is_symlink():
                     excluded.append({'path':rel,'status':'excluded','reason':'linked file'});continue
-                safe_path(p)
                 item=source_reader.fingerprint(p,config,object_format if repo else None,relative=rel,classify=True)
                 blobs[rel]=item.pop('working_blob',None);lf_blobs[rel]=item.pop('lf_blob',None)
                 files[rel]={**item,'partition':'.'}
@@ -191,8 +192,14 @@ def inventory(root,base=None,head=None):
             if '\t' in entry:
                 meta,path=entry.split('\t',1);head_blobs[path]=meta.split()[-1]
         dirty_paths={d['path'] for d in dirty}
-        ignored_raw=git_process(root,'check-ignore','--stdin','-z',input=b''.join(p.encode('utf-8')+b'\0' for p in files))
-        ignored_paths=set(ignored_raw.stdout.decode('utf-8','replace').split('\0'))
+        # Without --no-index Git never reports tracked paths as ignored.
+        # Supplying every tracked path makes check-ignore quadratic on big trees.
+        unindexed=[p for p in files if p not in index_blobs]
+        ignored_paths=set()
+        if unindexed:
+            ignored_raw=git_process(root,'check-ignore','--stdin','-z',input=b''.join(p.encode('utf-8')+b'\0' for p in unindexed))
+            require(ignored_raw.returncode in (0,1),'invalid-git-range-or-checkout')
+            ignored_paths.update(ignored_raw.stdout.decode('utf-8','replace').split('\0'))
         for path,entry in files.items():
             blob=blobs.get(path)
             indexed=index_blobs.get(path,[])
@@ -219,7 +226,8 @@ def inventory(root,base=None,head=None):
 def extract(root,path,entry):
     from .persistence_identity import POLICY,LEGACY
     identity_policy=entry.pop('_identity_policy',POLICY)
-    text,metadata=source_reader.read(root,path,entry,source_reader.policy(root,LIMIT))
+    config=entry.pop('_source_policy',None)
+    text,metadata=source_reader.read(root,path,entry,config if config is not None else source_reader.policy(root,LIMIT))
     entry.update(metadata,processing_status='partial' if metadata['partial'] else 'processed')
     lines=text.splitlines(); project=entry['partition']
     project_name=(Path(project).stem+' ['+project+']') if project!='.' else 'root [.]'
@@ -438,133 +446,302 @@ def incremental_scope(db,state):
             'complete':state['complete'] and not missing,'verification_coverage':{**{p:{**e,'processing_status':'processed'} for p,e in outside.items() if p not in missing},**state['coverage']}}
 
 
-def scan(store,scan_id=None,max_files=50,base=None,head=None,restart=False,incremental=False,retry_blocked=False):
-    from .persistence_identity import POLICY,LEGACY
-    require(type(max_files) is int and 1<=max_files<=10000,'invalid-scan-bound')
-    require(not retry_blocked or (scan_id is not None and not restart),'retry-blocked-requires-current-scan-id')
-    snap=inventory(store.project.root,base,head)
+def _selected_paths(root, snap, incremental):
     selected=None
     if incremental:
         require(snap['delta'] is not None,'incremental-requires-git-range')
-        changed=git_process(store.project.root,'diff','--name-only','-z','--no-renames',snap['delta']['base'],snap['delta']['head'])
+        changed=git_process(root,'diff','--name-only','-z','--no-renames',snap['delta']['base'],snap['delta']['head'])
         require(changed.returncode==0,'invalid-git-range-or-checkout')
         selected=set(changed.stdout.decode('utf-8').split('\0'))-{''}
         selected.update(item['path'] for item in snap['dirty'])
-    with store.connection(True) as db:
-        require(life.enabled(db),'upgrade-required')
-        if scan_id and not restart:
-            row=db.execute('SELECT payload FROM scans WHERE id=?',(scan_id,)).fetchone();require(row is not None,'unknown-scan')
-            state=loads(row[0]);require(state['snapshot']['identity']==snap['identity'],'stale-scan-restart-required')
-            require(state['extractor']==VERSION,'stale-extractor-restart-required')
-            if base or head:require(state['snapshot']['delta']==snap['delta'],'scan-range-mismatch-restart-required')
-            require(bool(state.get('incremental'))==incremental,'scan-scope-mismatch-restart-required')
-        else:
-            execution=[__import__('uuid').uuid4().hex] if restart else []
-            scan_id=digest([store.project.identity,snap['identity'],snap['delta'],VERSION]+(['incremental-v1',sorted(selected)] if incremental else [])+execution)
-            row=db.execute('SELECT payload FROM scans WHERE id=?',(scan_id,)).fetchone()
-            state=loads(row[0]) if row else dict(id=scan_id,extractor=VERSION,identity_policy=POLICY,snapshot=snap,coverage=deep_files(snap['files']),observations=[],candidates=[],captured_at=life.now(),complete=False,**({'incremental':True} if incremental else {}))
-            if incremental and not row:
-                state.update(incremental=True,scope_paths=sorted(selected))
-                state['coverage']={p:e for p,e in state['coverage'].items() if p in selected}
-        retried=0
-        if retry_blocked:
-            for path,entry in state['coverage'].items():
-                original=state['snapshot']['files'][path]
-                if entry['status']=='blocked' and entry.get('retry_eligible',True) and original['status']!='blocked' and original.get('hash') is not None:
-                    entry.update(status='not-analyzed',reason='explicit retry after observation');retried+=1
-        pending=sorted((p for p,e in state['coverage'].items() if e['status']=='not-analyzed'),key=lambda p:(not p.endswith(('.csproj','.cs')),p))
-        extracted_this_call=[]
-        observations_by_id={o['id']:o for o in state['observations']}
-        for path in pending[:max_files]:
-            state['coverage'][path]['_identity_policy']=state.get('identity_policy',LEGACY)
-            try:observations,status,reason=extract(store.project.root,path,state['coverage'][path])
-            except (OSError,UnicodeError) as error:
-                reason='ACCESS_DENIED' if isinstance(error,PermissionError) else 'INVALID_ENCODING' if isinstance(error,UnicodeError) else 'UNREADABLE'
-                observations,status=[],'blocked'
-                state['coverage'][path].update(reason_code=reason,stage='extract',exception=type(error).__name__,
-                                               processing_status='failed',retry_eligible=isinstance(error,OSError))
-            except KnowledgeError as error:
-                if error.code not in ('FILE_TOO_LARGE','INVALID_ENCODING','UNSUPPORTED_ENCODING','EXTRACTION_FAILED','EXCLUDED_BINARY','FILE_CHANGED_DURING_SCAN'):
-                    raise  # Integrity, ownership and linked-path violations are fatal.
-                observations,status,reason=[],'excluded' if error.code=='EXCLUDED_BINARY' else 'blocked',error.code
-                state['coverage'][path].update(error.details or {},processing_status='excluded' if status=='excluded' else 'failed')
-            except (ValueError,TypeError,RuntimeError) as error:
-                observations,status,reason=[],'blocked','EXTRACTION_FAILED'
-                state['coverage'][path].update(reason_code=reason,stage='extract',exception=type(error).__name__,processing_status='failed',retry_eligible=False)
-            extracted_this_call.append(path)
-            # Ambiguous identities from overloads/duplicate declarations are gaps, never guessed.
-            aggregate_observations(state,observations,path,observations_by_id)
-            state['coverage'][path].update(status=status,reason=reason)
-        state['complete']=not snap.get('coverage_errors') and not any(e['status'] in ('not-analyzed','blocked') or e.get('processing_status')=='partial' for e in state['coverage'].values())
-        state['counters']=coverage_counters(state)
-        state['processing_complete']=state['counters']['remaining_files']==0
-        state['state']='IN_PROGRESS' if not state['processing_complete'] else 'COMPLETED' if state['complete'] else 'COMPLETED_WITH_GAPS'
-        # The durable snapshot-bound chunks already contain global ambiguity state.
-        # Do not re-extract completed or not-yet-budgeted files for this scan.
-        scope=incremental_scope(db,state) if incremental else {'snapshot':state['snapshot'],'observations':state['observations'],
-               'ambiguous':dict.fromkeys(state.get('ambiguous',[])), 'complete':state['complete'],'verification_coverage':state['coverage']}
-        state['work']={'version':1,'extracted_this_call':len(extracted_this_call),'paths_this_call':extracted_this_call,
-                       'durable_extracted_files':sum(e['status']!='not-analyzed' for e in state['coverage'].values()),
-                       'remaining_files':sum(e['status']=='not-analyzed' for e in state['coverage'].values()),
-                       'enumeration_and_hashing':'whole-snapshot; distinct from bounded extraction',**({'retried_blocked_files':retried} if retry_blocked else {})}
-        records=store._records(db)
-        scope=identity_scope(scope,records)
-        changed={e['id'] for e in records['evidence'] if fresh_evidence(store.project.root,e,scope) not in ('unchanged','anchor-valid-file-changed')}
-        owners={c['id'] for c in records['claims'] if changed.intersection(c['evidence'])}
-        closure=set(owners)
-        while True:
-            expanded=closure|{c['id'] for c in records['claims'] if closure.intersection(c['depends_on'])}
-            if expanded==closure:break
-            closure=expanded
-        state['impact']={'changed_or_unverifiable_evidence':sorted(changed),'direct_claims':sorted(owners),
-                         'dependent_claims':sorted(closure-owners),
-                         'relationships':[r['id'] for r in records['relationships'] if r['from'] in closure or r['to'] in closure],
-                         'policy':('completed included scope reused' if state['complete'] else 'partial durable scope; unexamined discovery evidence is not freshly verified')+'; impact is a review request, not retirement'}
-        state['semantic_coverage_complete']=False
-        state['limits']=['No runtime/deployment proof or business rationale','C# lexical matches are partial, not compiler analysis','Non-code files are content inventory only','Untracked permitted source is included with dirty hashes; Git dirty state is separate from committed HEAD']
-        # After all chunks, positive source-backed proposals may survive unrelated
-        # file failures. Never guess identity in a partition with unexamined code.
-        if state['processing_complete']:
-            records=store._records(db);states=life.latest(db)
-            candidate_index=CandidateIndex(db)
-            state['compatibility']=[]
-            state['reintroductions']=[]
-            state['review_required']=[]
-            for obs in state['observations']:
-                if incremental and (not scope['complete'] or obs['id'] in scope['ambiguous']):continue
-                if any(e['partition']==obs['project'] and p.endswith(('.cs','.csproj')) and
-                       (e['status'] in ('not-analyzed','blocked') or e.get('processing_status')=='partial')
-                       for p,e in state['coverage'].items()):continue
-                if snap.get('coverage_errors'):continue
-                known=next((c for c in records['claims'] if c['id']==obs['id']),None)
-                if known and (states[known['id']]['lifecycle']=='superseded' or not discovery_owned(db,known,records)):
-                    state['review_required'].append({'id':known['id'],'reason':'supersession or reviewed assertion ownership requires manual review; no automatic overwrite/reactivation'})
-                legacy=[c for c in records['claims'] if c['provenance']['method'] in LEGACY_METHODS and states[c['id']]['lifecycle']=='active' and (c['id']==obs['legacy_id'] or c['statement']==obs['statement'])]
-                if legacy:
-                    state['compatibility'].append({'observation':obs,'legacy_ids':[c['id'] for c in legacy],'reason':'identity-v3 requires explicit reviewed migration; no automatic reassignment'})
-                    continue
-                value=proposal(store,db,obs,snap,state['captured_at'],records,states,scope)
-                if value:
-                    if any(o['action']=='reactivate' for o in value['operations']):
-                        state['reintroductions'].append({'id':obs['id'],'expected_revision':states[obs['id']]['revision'],
-                            'relationships':[r['id'] for r in records['relationships'] if obs['id'] in (r['from'],r['to'])],
-                            'policy':'explicit fresh approval required; relationships and superseded successors are not automatically restored'})
-                    cid=digest(value)
-                    # Equivalent decided observations retain their disposition.
-                    # Pending old snapshots get a new, separately approved binding.
-                    if equivalent_candidate(db,value,candidate_index) is None:
-                        inserted=db.execute('INSERT OR IGNORE INTO queue VALUES (?,?,?,NULL)',(cid,canonical_json(value),'pending'))
-                        if not inserted.rowcount:require(loads(db.execute('SELECT payload FROM queue WHERE id=?',(cid,)).fetchone()[0])==value,'candidate-identity-conflict')
-                        candidate_index.add(cid,value,'pending')
-                        refresh_pending(db,cid,value,candidate_index)
-                        if not state['complete']:
-                            receipt=dict(version=1,extractor=VERSION,observation=obs,candidate=cid,source=snap['identity'])
-                            db.execute('INSERT OR IGNORE INTO metadata VALUES (?,?)',(CAPTURE_RECEIPT+digest(receipt),canonical_json(receipt)))
-                        if cid not in state['candidates']:state['candidates'].append(cid)
-        require(inventory(store.project.root)['identity']==snap['identity'],'source-changed-during-scan-restart')
-        db.execute('INSERT OR REPLACE INTO scans VALUES (?,?)',(scan_id,canonical_json(state)))
-    return {'ok':True,**state}
+    return selected
 
+
+def _branch(root, snapshot):
+    return git(root, 'symbolic-ref', '--quiet', 'HEAD') if snapshot['revision'] else None
+
+
+def _initial_coverage(state):
+    selected = set(state['scope_paths']) if state.get('incremental') else None
+    return {p: dict(e) for p, e in state['snapshot']['files'].items() if selected is None or p in selected}
+
+
+def _extract_path(root, state, path):
+    from .persistence_identity import LEGACY
+    state['coverage'][path]['_identity_policy']=state.get('identity_policy',LEGACY)
+    state['coverage'][path]['_source_policy']=state['snapshot']['policy']
+    try:observations,status,reason=extract(root,path,state['coverage'][path])
+    except (OSError,UnicodeError) as error:
+        reason='ACCESS_DENIED' if isinstance(error,PermissionError) else 'INVALID_ENCODING' if isinstance(error,UnicodeError) else 'UNREADABLE'
+        observations,status=[],'blocked'
+        state['coverage'][path].update(reason_code=reason,stage='extract',exception=type(error).__name__,
+                                       processing_status='failed',retry_eligible=isinstance(error,OSError))
+    except KnowledgeError as error:
+        if error.code not in ('FILE_TOO_LARGE','INVALID_ENCODING','UNSUPPORTED_ENCODING','EXTRACTION_FAILED','EXCLUDED_BINARY'):
+            if error.code == 'FILE_CHANGED_DURING_SCAN':
+                raise KnowledgeError('source-changed-during-scan-restart', error.details) from error
+            raise  # Integrity, ownership and linked-path violations are fatal.
+        observations,status,reason=[],'excluded' if error.code=='EXCLUDED_BINARY' else 'blocked',error.code
+        state['coverage'][path].update(error.details or {},processing_status='excluded' if status=='excluded' else 'failed')
+    except (ValueError,TypeError,RuntimeError) as error:
+        observations,status,reason=[],'blocked','EXTRACTION_FAILED'
+        state['coverage'][path].update(reason_code=reason,stage='extract',exception=type(error).__name__,processing_status='failed',retry_eligible=False)
+    state['coverage'][path].pop('_source_policy',None)
+    state['coverage'][path].pop('_identity_policy',None)
+    state['coverage'][path].update(status=status, reason=reason)
+    return observations
+
+
+def _scan_progress(state, paths, retried=None):
+    snap = state['snapshot']
+    state['counters'] = coverage_counters(state)
+    remaining = state['counters']['remaining_files']
+    state['processing_complete'] = remaining == 0
+    state['complete'] = remaining == 0 and not snap.get('coverage_errors') and not any(
+        state['counters'][key] for key in ('failed_files', 'partially_processed_files'))
+    state['state'] = 'IN_PROGRESS' if remaining else 'COMPLETED' if state['complete'] else 'COMPLETED_WITH_GAPS'
+    state['semantic_coverage_complete'] = False
+    state['work'] = {'version': 1, 'extracted_this_call': len(paths), 'paths_this_call': paths,
+                     'durable_extracted_files': len(state['coverage']) - remaining, 'remaining_files': remaining,
+                     'enumeration_and_hashing': 'exact bytes checked at extraction and authoritative snapshot boundaries'}
+    if retried is not None:
+        state['work']['retried_blocked_files'] = retried
+
+
+def _replay(state, delta, index, by_file):
+    if 'coverage' not in state:
+        state['coverage'] = _initial_coverage(state)
+    for path, entry, observations in delta['updates']:
+        expected = state['snapshot']['files'].get(path)
+        require(expected is not None and path in state['coverage'] and entry['hash'] == expected['hash'],
+                'corrupt-scan-checkpoint')
+        require(all(o['path'] == path and o['content_hash'] == expected['hash'] for o in observations),
+                'corrupt-scan-checkpoint')
+        state['coverage'][path] = entry
+        by_file[path] = observations
+        aggregate_observations(state, [dict(o) for o in observations], path, index)
+    _scan_progress(state, delta['paths'], delta.get('retried'))
+
+
+def _load_checkpoint(db, scan_id, by_file=None):
+    index = None
+    if by_file is None:
+        by_file = {}
+
+    def replay(state, delta):
+        nonlocal index
+        if index is None:
+            index = {o['id']: o for o in state['observations']}
+        _replay(state, delta, index, by_file)
+
+    return scan_checkpoint.load(db, scan_id, replay)
+
+
+def _legacy_scan(db, scan_id):
+    row = db.execute('SELECT payload FROM scans WHERE id=?', (scan_id,)).fetchone()
+    return row[0] if row else None
+
+
+class ScanSession:
+    # One bounded, reusable source snapshot owned by a scan execution.
+
+    def __init__(self, store):
+        self.store = store
+        self.state = None
+        self.generation = None
+        self.by_file = {}
+
+    def _open(self, scan_id, base, head, restart, incremental):
+        from .persistence_identity import POLICY
+        from uuid import uuid4
+
+        root = self.store.project.root
+        snap = inventory(root, base, head)
+        self.branch = _branch(root, snap)
+        chosen = _selected_paths(root, snap, incremental)
+        provided = scan_id
+        if scan_id is None or restart:
+            scan_id = digest([self.store.project.identity, snap['identity'], snap['delta'], VERSION]
+                             + (['incremental-v1', sorted(chosen)] if incremental else [])
+                             + ([uuid4().hex] if restart else []))
+        with self.store.connection() as db:
+            require(life.enabled(db), 'upgrade-required')
+            persisted = _load_checkpoint(db, scan_id, self.by_file)
+            self.legacy = _legacy_scan(db, scan_id)
+        if persisted:
+            state, self.generation = persisted
+        elif self.legacy:
+            state = loads(self.legacy)
+        else:
+            require(not provided or restart, 'unknown-scan')
+            state = dict(id=scan_id, extractor=VERSION, identity_policy=POLICY, snapshot=snap,
+                         observations=[], candidates=[], captured_at=life.now(), complete=False)
+            if incremental:
+                state.update(incremental=True, scope_paths=sorted(chosen))
+        require(state['snapshot']['identity'] == snap['identity'], 'stale-scan-restart-required')
+        require(state['extractor'] == VERSION, 'stale-extractor-restart-required')
+        if base or head:
+            require(state['snapshot']['delta'] == snap['delta'], 'scan-range-mismatch-restart-required')
+        require(bool(state.get('incremental')) == incremental, 'scan-scope-mismatch-restart-required')
+        require(state.get('git_branch', self.branch) == self.branch, 'stale-scan-restart-required')
+        state['git_branch'] = self.branch
+        self.initial = None
+        if not persisted:
+            self.initial = loads(self.legacy) if self.legacy else dict(state, observations=[], candidates=[])
+            self.initial['git_branch'] = self.branch
+        if 'coverage' not in state:
+            state['coverage'] = _initial_coverage(state)
+        self.state = state
+        self.arguments = (base, head, incremental)
+        self.index = {o['id']: o for o in state['observations']}
+        self.pending = iter(self._pending())
+        self.remaining = sum(e['status'] == 'not-analyzed' for e in state['coverage'].values())
+
+    def _pending(self):
+        return sorted((p for p, e in self.state['coverage'].items() if e['status'] == 'not-analyzed'),
+                      key=lambda p: (not p.endswith(('.csproj', '.cs')), p))
+
+    def scan(self, scan_id=None, max_files=50, base=None, head=None, restart=False, incremental=False,
+             retry_blocked=False):
+        from itertools import islice
+        require(type(max_files) is int and 1 <= max_files <= 10000, 'invalid-scan-bound')
+        require(not retry_blocked or (scan_id is not None and not restart), 'retry-blocked-requires-current-scan-id')
+        if self.state is None:
+            self._open(scan_id, base, head, restart, incremental)
+        else:
+            require(scan_id == self.state['id'] and not restart and (base, head, incremental) == self.arguments,
+                    'scan-execution-binding-mismatch')
+        state = self.state
+        root = self.store.project.root
+        snap = state['snapshot']
+        retried = []
+        if retry_blocked:
+            for path, entry in state['coverage'].items():
+                original = snap['files'][path]
+                if entry['status'] == 'blocked' and entry.get('retry_eligible', True) and original['status'] != 'blocked' and original.get('hash') is not None:
+                    entry.update(status='not-analyzed', reason='explicit retry after observation')
+                    retried.append(path)
+            self.pending = iter(self._pending())
+            self.remaining += len(retried)
+        paths = list(islice(self.pending, max_files))
+        updates = []
+        for path in paths:
+            observations = _extract_path(root, state, path)
+            updates.append((path, state['coverage'][path], observations))
+            self.by_file[path] = observations
+            aggregate_observations(state, [dict(o) for o in observations], path, self.index)
+        updates.extend((p, state['coverage'][p], []) for p in retried if state['coverage'][p]['status'] == 'not-analyzed')
+        self.remaining -= len(paths)
+        _scan_progress(state, paths, len(retried) if retry_blocked else None)
+        if self.remaining:
+            if self.generation is None:
+                with self.store.connection(True) as db:
+                    require(_legacy_scan(db, state['id']) == self.legacy, 'concurrent-scan-checkpoint-changed')
+                    scan_checkpoint.create(db)
+                    version = scan_checkpoint.append(db, state['id'], self.generation, self.initial,
+                                                     {'paths': paths, 'updates': updates, 'retried': len(retried) if retry_blocked else None})
+            else:
+                with self.store.discovery_checkpoint_connection() as db:
+                    version = scan_checkpoint.append(db, state['id'], self.generation, None,
+                                                     {'paths': paths, 'updates': updates, 'retried': len(retried) if retry_blocked else None})
+            self.generation = version
+        else:
+            current = inventory(root, base, head)
+            require(current['identity'] == snap['identity'] and (not (base or head) or current['delta'] == snap['delta'])
+                    and _branch(root, current) == self.branch, 'source-changed-during-scan-restart')
+            with self.store.connection(True) as db:
+                require(life.enabled(db), 'upgrade-required')
+                require(_legacy_scan(db, state['id']) == self.legacy and scan_checkpoint.generation(db, state['id']) == self.generation,
+                        'concurrent-scan-checkpoint-changed')
+                _finish_scan(self.store, db, state)
+                scan_checkpoint.publish(db, state['id'], self.generation, canonical_json(state))
+        return {'ok': True, **state}
+
+
+def scan(store, scan_id=None, max_files=50, base=None, head=None, restart=False, incremental=False,
+         retry_blocked=False):
+    state = ScanSession(store).scan(scan_id, max_files, base, head, restart, incremental, retry_blocked)
+    if not state['processing_complete']:
+        # The explicit CLI scan historically returns provisional impact details.
+        with store.connection() as db:
+            records = store._records(db)
+            state['impact'] = _scan_impact(store, db, state, records, identity_scope(_scan_scope(db,state), records))
+    return state
+
+
+def _scan_scope(db, state):
+    if state.get('incremental'):
+        return incremental_scope(db, state)
+    return {'snapshot': state['snapshot'], 'observations': state['observations'],
+            'ambiguous': dict.fromkeys(state.get('ambiguous', [])), 'complete': state['complete'],
+            'verification_coverage': state['coverage']}
+
+
+def _finish_scan(store, db, state):
+    snap = state['snapshot']
+    incremental = state.get('incremental', False)
+    records = store._records(db)
+    scope = identity_scope(_scan_scope(db, state), records)
+    state['impact'] = _scan_impact(store, db, state, records, scope)
+    state['semantic_coverage_complete']=False
+    state['limits']=['No runtime/deployment proof or business rationale','C# lexical matches are partial, not compiler analysis','Non-code files are content inventory only','Untracked permitted source is included with dirty hashes; Git dirty state is separate from committed HEAD']
+    # After all chunks, positive source-backed proposals may survive unrelated
+    # file failures. Never guess identity in a partition with unexamined code.
+    if state['processing_complete']:
+        states=life.latest(db)
+        candidate_index=CandidateIndex(db)
+        state['compatibility']=[]
+        state['reintroductions']=[]
+        state['review_required']=[]
+        incomplete_projects={e['partition'] for p,e in state['coverage'].items()
+                              if p.endswith(('.cs','.csproj')) and (e['status'] in ('not-analyzed','blocked')
+                              or e.get('processing_status')=='partial')}
+        known_claims={c['id']:c for c in records['claims']}
+        legacy_claims=[c for c in records['claims'] if c['provenance']['method'] in LEGACY_METHODS and states[c['id']]['lifecycle']=='active']
+        added=set(state['candidates'])
+        for obs in state['observations']:
+            if incremental and (not scope['complete'] or obs['id'] in scope['ambiguous']):continue
+            if obs['project'] in incomplete_projects:continue
+            if snap.get('coverage_errors'):continue
+            known=known_claims.get(obs['id'])
+            if known and (states[known['id']]['lifecycle']=='superseded' or not discovery_owned(db,known,records)):
+                state['review_required'].append({'id':known['id'],'reason':'supersession or reviewed assertion ownership requires manual review; no automatic overwrite/reactivation'})
+            legacy=[c for c in legacy_claims if c['id']==obs['legacy_id'] or c['statement']==obs['statement']]
+            if legacy:
+                state['compatibility'].append({'observation':obs,'legacy_ids':[c['id'] for c in legacy],'reason':'identity-v3 requires explicit reviewed migration; no automatic reassignment'})
+                continue
+            value=proposal(store,db,obs,snap,state['captured_at'],records,states,scope)
+            if value:
+                if any(o['action']=='reactivate' for o in value['operations']):
+                    state['reintroductions'].append({'id':obs['id'],'expected_revision':states[obs['id']]['revision'],
+                        'relationships':[r['id'] for r in records['relationships'] if obs['id'] in (r['from'],r['to'])],
+                        'policy':'explicit fresh approval required; relationships and superseded successors are not automatically restored'})
+                cid=digest(value)
+                # Equivalent decided observations retain their disposition.
+                # Pending old snapshots get a new, separately approved binding.
+                if equivalent_candidate(db,value,candidate_index) is None:
+                    inserted=db.execute('INSERT OR IGNORE INTO queue VALUES (?,?,?,NULL)',(cid,canonical_json(value),'pending'))
+                    if not inserted.rowcount:require(loads(db.execute('SELECT payload FROM queue WHERE id=?',(cid,)).fetchone()[0])==value,'candidate-identity-conflict')
+                    candidate_index.add(cid,value,'pending')
+                    refresh_pending(db,cid,value,candidate_index)
+                    if not state['complete']:
+                        receipt=dict(version=1,extractor=VERSION,observation=obs,candidate=cid,source=snap['identity'])
+                        db.execute('INSERT OR IGNORE INTO metadata VALUES (?,?)',(CAPTURE_RECEIPT+digest(receipt),canonical_json(receipt)))
+                    if cid not in added:
+                        added.add(cid);state['candidates'].append(cid)
+
+def _scan_impact(store, db, state, records, scope):
+    changed={e['id'] for e in records['evidence'] if fresh_evidence(store.project.root,e,scope,db=db) not in CURRENT_EVIDENCE}
+    owners={c['id'] for c in records['claims'] if changed.intersection(c['evidence'])}
+    closure=set(owners)
+    while True:
+        expanded=closure|{c['id'] for c in records['claims'] if closure.intersection(c['depends_on'])}
+        if expanded==closure:break
+        closure=expanded
+    return {'changed_or_unverifiable_evidence':sorted(changed),'direct_claims':sorted(owners),
+                     'dependent_claims':sorted(closure-owners),
+                     'relationships':[r['id'] for r in records['relationships'] if r['from'] in closure or r['to'] in closure],
+                     'policy':('completed included scope reused' if state['complete'] else 'partial durable scope; unexamined discovery evidence is not freshly verified')+'; impact is a review request, not retirement'}
 
 def coverage_counters(state):
     entries=list(state['coverage'].values())
@@ -590,8 +767,11 @@ def deep_files(files):
 def reconcile(store,scan_id):
     with store.connection() as db:
         require(life.enabled(db),'upgrade-required')
-        row=db.execute('SELECT payload FROM scans WHERE id=?',(scan_id,)).fetchone();require(row is not None,'unknown-scan')
-        scan=loads(row[0]);require(inventory(store.project.root)['identity']==scan['snapshot']['identity'],'stale-scan-restart-required')
+        pending=_load_checkpoint(db,scan_id)
+        payload=_legacy_scan(db,scan_id) if pending is None else None
+        require(pending is not None or payload is not None,'unknown-scan')
+        scan=pending[0] if pending else loads(payload)
+        require(inventory(store.project.root)['identity']==scan['snapshot']['identity'],'stale-scan-restart-required')
         records=store._records(db);states=life.latest(db);out=[]
         scope=incremental_scope(db,scan) if scan.get('incremental') else {'snapshot':scan['snapshot'],'observations':scan['observations'],
                'ambiguous':dict.fromkeys(scan.get('ambiguous',[])),'complete':scan['complete']}
@@ -659,8 +839,11 @@ def reconcile(store,scan_id):
 def status(store,scan_id=None):
     with store.connection() as db:
         require(life.enabled(db),'upgrade-required')
-        rows=[loads(p) for p, in db.execute('SELECT payload FROM scans WHERE id=?',(scan_id,))] if scan_id is not None else [loads(p) for p, in db.execute('SELECT payload FROM scans')]
-        return {'ok':True,'scans':[r for r in rows if scan_id is None or r['id']==scan_id]}
+        active=scan_checkpoint.identities(db) if scan_id is None else [scan_id]
+        scanned={identifier: pending[0] for identifier in active if (pending:=_load_checkpoint(db,identifier)) is not None}
+        rows=db.execute('SELECT id,payload FROM scans WHERE id=?',(scan_id,)) if scan_id is not None else db.execute('SELECT id,payload FROM scans')
+        scanned.update((identifier,loads(payload)) for identifier,payload in rows if identifier not in scanned)
+        return {'ok':True,'scans':list(scanned.values())}
 
 
 def completed_artifact(store,scan_id):

@@ -183,6 +183,42 @@ class Store:
                 if db is not None:db.close()
 
     @contextmanager
+    def discovery_checkpoint_connection(self):
+        """Provisional checkpoint writes have no authority over canonical tables."""
+        from .coordination import gate
+        with gate(self.project.root):
+            safe_tree(self.base)
+            db = None
+            try:
+                db = sqlite3.connect(self.path.as_uri()+'?mode=rw', uri=True, timeout=0.15)
+                db.execute('PRAGMA foreign_keys=ON')
+                db.execute('PRAGMA synchronous=FULL')
+                db.execute('BEGIN IMMEDIATE')
+                metadata = dict(db.execute("SELECT key,value FROM metadata WHERE key IN ('format','project','p1','migration')"))
+                require(metadata.get('format') == 'knowledge-sqlite-v1', 'unsupported-store-format')
+                require(metadata.get('project') == self.project.identity, 'project-identity-mismatch')
+                require(metadata.get('p1') == '1', 'upgrade-required')
+                legacy = self.project.root/'.ai'
+                require(not legacy.exists() or not any(legacy.iterdir()) or 'migration' in metadata, 'ambiguous-dual-stores')
+
+                def authorize(action, table, column, database, trigger):
+                    if action in (sqlite3.SQLITE_READ, sqlite3.SQLITE_INSERT, sqlite3.SQLITE_UPDATE, sqlite3.SQLITE_DELETE):
+                        return sqlite3.SQLITE_OK if table in ('discovery_runs', 'discovery_chunks', 'sqlite_master') and not trigger else sqlite3.SQLITE_DENY
+                    return sqlite3.SQLITE_OK if action in (sqlite3.SQLITE_SELECT, sqlite3.SQLITE_TRANSACTION) else sqlite3.SQLITE_DENY
+
+                db.set_authorizer(authorize)
+                yield db
+                checkpoint('before-commit')
+                db.commit()
+            except sqlite3.OperationalError as error:
+                raise KnowledgeError('store-busy-retry' if 'locked' in str(error) else 'database-unavailable-or-corrupt') from error
+            except sqlite3.DatabaseError as error:
+                raise KnowledgeError('corrupt-database') from error
+            finally:
+                if db is not None:
+                    db.close()
+
+    @contextmanager
     def _connection(self, write=False):
         safe_tree(self.base)
         require(self.path.is_file(), 'knowledge-absent')

@@ -137,15 +137,22 @@ def read(root, relative, entry, config):
     limit = config['format_limits'].get(path.suffix.lower(), config['max_file_bytes'])
     meta = {'path': relative, 'bytes': size, 'limit_bytes': limit, 'stage': 'extract', 'retry_eligible': False}
     if size > limit and path.suffix.lower() not in STRUCTURED: failure('FILE_TOO_LARGE', **meta)
-    with path.open('rb') as stream: raw = stream.read(limit + 1)
+    with path.open('rb') as stream:
+        raw = stream.read(limit + 1)
+        hashed = hashlib.sha256(raw)
+        remaining = config['max_hash_bytes'] - len(raw)
+        while block := stream.read(min(65536, max(1, remaining + 1))):
+            remaining -= len(block)
+            if remaining < 0: failure('FILE_CHANGED_DURING_SCAN', **{**meta, 'retry_eligible': True})
+            hashed.update(block)
+    if 'sha256:' + hashed.hexdigest() != entry['hash']:
+        failure('FILE_CHANGED_DURING_SCAN', **{**meta, 'retry_eligible': True})
     partial = len(raw) > limit; raw = raw[:limit]
     selected = encoding(raw, relative, config); meta['encoding'] = selected
     try:
         decoder = codecs.getincrementaldecoder(selected)(errors='strict')
         text = decoder.decode(raw, final=not partial)
     except UnicodeError: failure('INVALID_ENCODING', **meta)
-    if not partial and 'sha256:' + hashlib.sha256(raw).hexdigest() != entry['hash']:
-        failure('FILE_CHANGED_DURING_SCAN', **{**meta, 'retry_eligible': True})
     if any(ord(char) < 9 or 13 < ord(char) < 32 for char in text[:4096]): failure('EXCLUDED_BINARY', **meta)
     meta.update(analyzed_bytes=len(raw) - len(decoder.getstate()[0]), partial=partial,
                 reason_code='PARTIAL_EXTRACTION' if partial else None,
