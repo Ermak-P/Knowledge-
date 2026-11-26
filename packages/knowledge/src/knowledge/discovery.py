@@ -13,6 +13,7 @@ from . import lifecycle as life
 from . import source_reader
 from . import discovery_checkpoint as scan_checkpoint
 from . import discovery_cache as file_cache
+from . import discovery_history as scan_history
 
 VERSION='dotnet-lexical-v3'
 LEGACY_METHODS={'dotnet-lexical-v1','dotnet-lexical-v2'}
@@ -473,11 +474,8 @@ def _validate_snapshot(snapshot):
 
 def _historical_baseline(db, snapshot):
     context = file_cache.configuration(snapshot)
-    for payload, in db.execute('SELECT payload FROM scans ORDER BY rowid DESC'):
-        old = loads(payload)
-        if old.get('incremental') or old['extractor'] != VERSION or old.get('ambiguous'):
-            continue
-        if not old['complete'] or file_cache.configuration(old['snapshot']) != context:
+    for _, old in scan_history.scan_rows(db, full=True, complete=True, extractor=VERSION, newest=True):
+        if old.get('ambiguous') or file_cache.configuration(old['snapshot']) != context:
             continue
         _validate_snapshot(old['snapshot'])
         return old
@@ -719,10 +717,11 @@ class ScanSession:
             require(life.enabled(db), 'upgrade-required')
             persisted = _load_checkpoint(db, scan_id, self.by_file)
             self.legacy = _legacy_scan(db, scan_id)
+            terminal = scan_history.decode(db, scan_id, self.legacy) if self.legacy and not persisted else None
         if persisted:
             state, self.generation = persisted
         elif self.legacy:
-            state = loads(self.legacy)
+            state = terminal
             self.by_file.update(file_cache.historical_observations(state))
         else:
             require(not provided or restart, 'unknown-scan')
@@ -739,8 +738,14 @@ class ScanSession:
         state['git_branch'] = self.branch
         self.initial = None
         if not persisted:
-            self.initial = loads(self.legacy) if self.legacy else dict(state, observations=[], candidates=[])
-            self.initial['git_branch'] = self.branch
+            if self.legacy:
+                # A legacy partial artifact can start a new provisional chain.
+                from copy import deepcopy
+                if any(entry['status'] in ('not-analyzed','blocked') for entry in state['coverage'].values()):
+                    self.initial = deepcopy({k: v for k, v in state.items() if k != 'snapshot'})
+                    self.initial['snapshot'] = state['snapshot']
+            else:
+                self.initial = dict(state, observations=[], candidates=[])
         if 'coverage' not in state:
             state['coverage'] = _initial_coverage(state)
         if not persisted:
@@ -832,7 +837,7 @@ class ScanSession:
             new_queue, receipts, refreshes, cache_rows = _prepare_completion(self.store, db, state, self.by_file, records, states, scope)
             reconciliation = _reconcile(self.store, db, state, records, states, scope) if reconcile_result else None
             state['source_verified'] = True
-            payload = canonical_json(state)
+            payload, blocks = scan_history.prepare(db, state)
             current = inventory(root, base, head)
             require(current['identity'] == snap['identity'] and (not (base or head) or current['delta'] == snap['delta'])
                     and _branch(root, current) == self.branch, 'source-changed-during-scan-restart')
@@ -841,6 +846,7 @@ class ScanSession:
             _write_refreshes(db, refreshes)
             if cache_rows is not None:
                 file_cache.save(db, *cache_rows)
+            scan_history.write_blocks(db, blocks)
             scan_checkpoint.publish(db, state['id'], self.generation, payload)
         return state, reconciliation
 
@@ -967,7 +973,7 @@ def reconcile(store,scan_id):
         pending=_load_checkpoint(db,scan_id)
         payload=_legacy_scan(db,scan_id) if pending is None else None
         require(pending is not None or payload is not None,'unknown-scan')
-        scan=pending[0] if pending else loads(payload)
+        scan=pending[0] if pending else scan_history.decode(db, scan_id, payload)
         current=inventory(store.project.root)
         require(current['identity']==scan['snapshot']['identity'] and
                 ('git_branch' not in scan or _branch(store.project.root,current)==scan['git_branch']),
@@ -996,10 +1002,8 @@ def _reconcile(store, db, scan, records, states, scope):
     delta=scan['snapshot'].get('delta')
     if scan['complete'] and not scan.get('incremental') and delta and not scan.get('gaps'):
         before={}
-        for payload, in db.execute('SELECT payload FROM scans'):
-            old=loads(payload)
-            if old['snapshot']['revision']==delta['base'] and old['complete']:
-                before.update({o['id']:(o,old['snapshot']) for o in old['observations']})
+        for _, old in scan_history.scan_rows(db, revision=delta['base'], complete=True):
+            before.update({o['id']:(o,old['snapshot']) for o in old['observations']})
         # Search one bounded source at a time; do not concatenate an entire
         # repository into memory for negative proof.
         def referenced(subject):
@@ -1038,13 +1042,12 @@ def _reconcile(store, db, scan, records, states, scope):
                         {'identity':scan['snapshot']['identity'],'revision':scan['snapshot']['revision'],'kind':scan['snapshot']['snapshot_kind'],'delta':delta}) if retirement else None
     return {'ok':True,'scan':scan['id'],'complete':scan['complete'],'claims':out,'source':scan['snapshot'],'canonical_unchanged':True,'negative_evidence_gaps':negative_gaps,'proposal':proposal}
 
-def status(store,scan_id=None):
+def status(store,scan_id=None,*,summaries=False):
     with store.connection() as db:
         require(life.enabled(db),'upgrade-required')
         active=scan_checkpoint.identities(db) if scan_id is None else [scan_id]
         scanned={identifier: pending[0] for identifier in active if (pending:=_load_checkpoint(db,identifier)) is not None}
-        rows=db.execute('SELECT id,payload FROM scans WHERE id=?',(scan_id,)) if scan_id is not None else db.execute('SELECT id,payload FROM scans')
-        scanned.update((identifier,loads(payload)) for identifier,payload in rows if identifier not in scanned)
+        scanned.update((identifier,state) for identifier,state in scan_history.scan_rows(db,scan_id,summaries=summaries) if identifier not in scanned)
         return {'ok':True,'scans':list(scanned.values())}
 
 
@@ -1055,7 +1058,7 @@ def completed_artifact(store,scan_id):
         require(scan_checkpoint.generation(db,scan_id) is None, 'scan-artifact-not-completed',
                 {'next_action':'Observe compatible resume options before rebuilding a candidate plan.'})
         row=db.execute('SELECT payload FROM scans WHERE id=?',(scan_id,)).fetchone();require(row is not None,'unknown-scan-artifact')
-        state=loads(row[0]);require(state.get('id')==scan_id and state.get('extractor')==VERSION,'incompatible-scan-artifact-extractor',
+        state=scan_history.decode(db,scan_id,row[0]);require(state.get('id')==scan_id and state.get('extractor')==VERSION,'incompatible-scan-artifact-extractor',
             {'supported':VERSION,'next_action':'Preserve artifacts; review existing queue or explicitly migrate unsupported extraction. No automatic fresh scan.'})
         snap=state['snapshot'];_validate_snapshot(snap)
         coverage=state['coverage'];require(set(coverage)<=set(snap['files']),'corrupt-scan-coverage')
@@ -1296,10 +1299,7 @@ def discovery_owned(db, claim, records, scope=None):
         canonical = context.get('_canonical_index') or CanonicalIndex(records)
         current = context.get('_claims_by_id') or {c['id']: c for c in records['claims']}
         index = {}
-        for payload, in db.execute('SELECT payload FROM scans'):
-            prior = loads(payload)
-            if prior.get('extractor') != VERSION or not prior['complete']:
-                continue
+        for _, prior in scan_history.scan_rows(db, complete=True, extractor=VERSION):
             for observation in prior['observations']:
                 identifiers = {observation['id']}
                 known = canonical.match(observation) if describe(observation) is not None else None
@@ -1424,8 +1424,13 @@ def _candidate_preview(store,paths,captured_at,record_ownership):
     selected = {path: dict(snapshot['files'][path]) for path in paths & snapshot['files'].keys()
                 if file_cache.code_file(path)}
     if not selected:
-        with store.connection() as db:
+        removed = paths - snapshot['files'].keys()
+        connection = store.discovery_completion_connection if record_ownership and removed else store.connection
+        with connection() as db:
             require(life.enabled(db), 'upgrade-required')
+            if record_ownership and removed and file_cache.exists(db):
+                _verify_capture_snapshot(root, snapshot, branch)
+                db.executemany('DELETE FROM discovery_file_cache WHERE path=?', ((path,) for path in sorted(removed)))
         return {'ok': True, 'source': snapshot['identity'], 'decisions': [], 'gaps': [],
                 'reason': 'no changed source with a supported extractor'}
     from .persistence_identity import POLICY
@@ -1468,10 +1473,22 @@ def _candidate_preview(store,paths,captured_at,record_ownership):
                 if record_ownership:
                     receipt=dict(version=1,extractor=VERSION,observation=obs,candidate=digest(value),source=snapshot['identity'])
                     receipts.append((CAPTURE_RECEIPT + digest(receipt), canonical_json(receipt)))
-        current_snapshot = inventory(root)
-        require(current_snapshot['identity'] == snapshot['identity'] and _branch(root, current_snapshot) == branch,
-                'source-changed-during-preview')
+        cache_rows = None
         if record_ownership:
+            cached = scope['cached_sources']
+            dependencies = state['identity_verification']['dependency_files_extracted']
+            updates = {p: cached[p] for p in dependencies if p in cached} if file_cache.exists(db) else cached
+            cache_rows = file_cache.rows(db, store.project.identity, snapshot, scope['cache_context'],
+                                        {**updates, **by_file})
+        _verify_capture_snapshot(root, snapshot, branch)
+        if record_ownership:
+            file_cache.save(db, *cache_rows)
             db.executemany('INSERT OR IGNORE INTO metadata VALUES (?,?)', receipts)
     return {'ok':True,'source':snapshot['identity'],'decisions':decisions,'gaps':list(scope['ambiguous']),
             'reason':'eligible changed-source syntax or explicit review' if decisions else 'no new eligible supported source fact'}
+
+
+def _verify_capture_snapshot(root, snapshot, branch):
+    current = inventory(root)
+    require(current['identity'] == snapshot['identity'] and _branch(root, current) == branch,
+            'source-changed-during-preview')

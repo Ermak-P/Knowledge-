@@ -21,9 +21,15 @@ def _unpack(payload):
 
 
 
+TABLE_SQL = {
+    'discovery_runs': 'CREATE TABLE discovery_runs (id TEXT PRIMARY KEY, initial BLOB NOT NULL, initial_hash TEXT NOT NULL, sequence INTEGER NOT NULL, tail TEXT NOT NULL)',
+    'discovery_chunks': 'CREATE TABLE discovery_chunks (scan TEXT NOT NULL, sequence INTEGER NOT NULL, payload BLOB NOT NULL, checksum TEXT NOT NULL, PRIMARY KEY(scan,sequence), FOREIGN KEY(scan) REFERENCES discovery_runs(id) ON DELETE CASCADE)',
+}
+
+
 def create(db):
-    db.execute('CREATE TABLE IF NOT EXISTS discovery_runs (id TEXT PRIMARY KEY, initial BLOB NOT NULL, initial_hash TEXT NOT NULL, sequence INTEGER NOT NULL, tail TEXT NOT NULL)')
-    db.execute('CREATE TABLE IF NOT EXISTS discovery_chunks (scan TEXT NOT NULL, sequence INTEGER NOT NULL, payload BLOB NOT NULL, checksum TEXT NOT NULL, PRIMARY KEY(scan,sequence), FOREIGN KEY(scan) REFERENCES discovery_runs(id) ON DELETE CASCADE)')
+    for sql in TABLE_SQL.values():
+        db.execute(sql.replace('CREATE TABLE ', 'CREATE TABLE IF NOT EXISTS ', 1))
 
 
 def exists(db):

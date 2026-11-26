@@ -294,7 +294,7 @@ def diagnostics(installation,directory,scope='full',section='failures',cursor=0,
         counts,rows=Store(root).duplicate_diagnostics(group)
         return page(rows,{'ok':True,'section':section,'counts':counts,'group':group,'canonical_unchanged':True},cursor,limit,max_bytes)
     if section=='scans':
-        scans=discovery.status(Store(root))['scans']
+        scans=discovery.status(Store(root),summaries=True)['scans']
         rows=[{'scan_id':s['id'],'source_identity':s['snapshot']['identity'],'revision':s['snapshot']['revision'],
                'complete':s['complete'],'state':s.get('state'),'coverage':s.get('counters'),'incremental':s.get('incremental',False)} for s in scans]
         return page(rows,{'ok':True,'section':section,'canonical_unchanged':True},cursor,limit,max_bytes)

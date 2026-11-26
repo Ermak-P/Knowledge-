@@ -6,6 +6,8 @@ on:
       - 'packages/**'
       - 'tests/**'
       - 'scripts/discovery_benchmark.py'
+      - 'scripts/discovery_r2_benchmark.py'
+      - 'scripts/verify_machine.py'
       - '.github/workflows/discovery-optimization.yml'
   workflow_dispatch:
 permissions:
@@ -24,12 +26,6 @@ jobs:
       PYTHONIOENCODING: utf-8
       PYTHONPATH: tests
     steps:
-      - name: Report qualification status
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: pwsh
-        run: |
-          gh api "repos/$env:GITHUB_REPOSITORY/statuses/$env:GITHUB_SHA" -f state=pending -f "context=Discovery/$env:RUNNER_OS" -f "target_url=$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID" --silent
       - uses: actions/checkout@v4
         env:
           GIT_CONFIG_COUNT: '1'
@@ -48,9 +44,15 @@ jobs:
           $Runtime = if ($IsWindows) { '.venv/Scripts/python.exe' } else { '.venv/bin/python' }
           $Output = Join-Path $env:RUNNER_TEMP 'discovery-qualification'
           New-Item -ItemType Directory -Force $Output | Out-Null
-          & $Runtime -B -m unittest test_discovery_optimization test_core_reliability test_machine_commands test_p1 test_p1_r2 test_p3_platform test_plan_recovery_diagnostics test_persistence_recovery test_integrated_capture test_integrated_knowledge test_confluence_source test_confluence_sync test_confluence_progress test_update_by_cr test_update_by_cr_r1 test_update_cr_replay 2>&1 |
+          & $Runtime -B -m unittest test_discovery_optimization test_discovery_r2 test_core_reliability test_machine_commands test_p1 test_p1_r2 test_p3_platform test_plan_recovery_diagnostics test_persistence_recovery test_integrated_capture test_integrated_knowledge test_confluence_source test_confluence_sync test_confluence_progress test_update_by_cr test_update_by_cr_r1 test_update_cr_replay 2>&1 |
             Tee-Object -FilePath (Join-Path $Output 'regressions.log')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Installed machine and OpenCode qualification
+        shell: pwsh
+        run: |
+          $Runtime = if ($IsWindows) { '.venv/Scripts/python.exe' } else { '.venv/bin/python' }
+          & $Runtime -B scripts/verify_machine.py
+          exit $LASTEXITCODE
       - name: Benchmark populated synthetic repositories
         shell: pwsh
         run: |
@@ -64,9 +66,12 @@ jobs:
         if: always()
         with:
           name: discovery-qualification-${{ runner.os }}
-          path: ${{ runner.temp }}/discovery-qualification/
+          path: |
+            ${{ runner.temp }}/discovery-qualification/
+            reports/AutomaticInstaller-fast/
       - name: Report qualification result
         if: always()
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
           JOB_STATUS: ${{ job.status }}

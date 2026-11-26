@@ -22,6 +22,7 @@ from .util import canonical_json, digest, fingerprint, loads, require, Knowledge
 from .sqlite_snapshot import Connection, view
 
 GROUPS = {'claims': 'knowledge/claims', 'evidence': 'evidence', 'relationships': 'knowledge/relationships'}
+GIT_BATCH_LIMIT = 100
 KINDS = {'claims': 'claim', 'evidence': 'evidence', 'relationships': 'relationship'}
 SCHEMAS = Path(__file__).parent / 'schemas'
 _schema_snapshot=ContextVar('knowledge-validation-schema-snapshot',default=None)
@@ -469,6 +470,68 @@ class Store:
             db.execute('INSERT INTO queue VALUES (?,?,?,NULL)', (cid,canonical_json(item),'pending'))
             checkpoint('queue-written')
         return {'ok':True,'candidate':cid,'result':'submitted','status':'pending'}
+
+    def submit_git_batch(self, values):
+        """Atomically admit bounded Git observations for one source snapshot.
+
+        Receipts follow input order, including duplicates. The caller can
+        replay the original payloads if delivery acknowledgments were lost.
+        """
+        from .confluence import is_binding
+        from .discovery import CandidateIndex, inventory, refresh_pending, _write_refreshes
+
+        require(isinstance(values, list) and 1 <= len(values) <= GIT_BATCH_LIMIT, 'invalid-git-candidate-batch-size')
+        items = []
+        identity = None
+        for index, value in enumerate(values):
+            try:
+                item = candidate(value)
+                source = item.get('source')
+                require(item['version']==2 and source is not None and not is_binding(source),
+                        'incompatible-git-candidate-batch')
+                if identity is None:
+                    identity = source['identity']
+                require(source['identity']==identity, 'incompatible-git-candidate-batch')
+            except KnowledgeError as error:
+                raise KnowledgeError(error.code, {'index': index, 'details': error.details}) from error
+            items.append(item)
+
+        with self.discovery_completion_connection() as db:
+            require(life.enabled(db), 'upgrade-required')
+            self._records(db)
+            queue = self._queue_rows(db)
+            by_id = {}
+            by_payload = {}
+            for position, (cid, status, raw, item) in enumerate(queue):
+                row = (position, cid, status, item)
+                by_id[cid] = row
+                by_payload.setdefault(raw, row)
+            pending = []
+            receipts = []
+            for item in items:
+                cid = digest(item)
+                serialized = canonical_json(item)
+                matches = [row for row in (by_id.get(cid), by_payload.get(serialized)) if row is not None]
+                if matches:
+                    _, existing, status, registered = min(matches, key=lambda row: row[0])
+                    require(registered==item, 'candidate-identity-conflict')
+                    receipts.append({'ok':True,'candidate':existing,'result':'duplicate','status':status})
+                    continue
+                row = (len(queue)+len(pending), cid, 'pending', item)
+                by_id[cid] = by_payload[serialized] = row
+                pending.append((cid, serialized, item))
+                receipts.append({'ok':True,'candidate':cid,'result':'submitted','status':'pending'})
+            if pending:
+                index = CandidateIndex(db, (row for row in queue if row[3].get('source') is not None))
+                refreshes = []
+                for cid, _, item in pending:
+                    refresh_pending(db,cid,item,index,staged=refreshes)
+                require(inventory(self.project.root)['identity']==identity, 'source-changed-before-candidate-batch')
+                db.executemany('INSERT INTO queue VALUES (?,?,?,NULL)',
+                               ((cid,raw,'pending') for cid,raw,_ in pending))
+                _write_refreshes(db, refreshes)
+                checkpoint('queue-written')
+        return receipts
 
     def _preview(self, db, source_identity=None, progress=None):
         tick=progress or (lambda *args,**kwargs:None)

@@ -1,5 +1,5 @@
 """Durable payload-bound delivery; no canonical Knowledge approval or alternate writer."""
-from knowledge.store import Store
+from knowledge.store import Store, GIT_BATCH_LIMIT
 from knowledge.discovery import candidate_observe
 from knowledge.util import KnowledgeError,digest
 from . import runtime as rt
@@ -30,20 +30,49 @@ def deliver(journal,run,configuration):
                 run['capture_prepared']=True;run['capture']={'state':'pending' if preview['decisions'] else 'no-candidate','reason':preview['reason']}
                 db.execute('UPDATE runs SET payload=? WHERE id=?',(canonical_json(run),run['id']))
             rt.fault('capture-outbox')
-        for identifier,item in journal.outbox(run['id']).items():
-            if item['state']!='pending':continue
-            item['attempts']+=1;journal.update_outbox(identifier,item)
+        pending = [(identifier,item) for identifier,item in journal.outbox(run['id']).items() if item['state']=='pending']
+        store = Store(journal.project.root)
+        for batch in _delivery_batches(pending):
+            for identifier,item in batch:
+                item['attempts']+=1
+                journal.update_outbox(identifier,item)
+            payloads = [item['decision']['payload'] for _,item in batch]
             try:
-                receipt=Store(journal.project.root).submit(item['decision']['payload'])
-                rt.fault('capture-after-submit')
-                item.update(state='delivered',receipt=receipt,delivered_at=stamp());journal.update_outbox(identifier,item)
-                journal.event(run['id'],'capture-delivered',outbox=identifier,candidate=receipt.get('candidate'))
-            except KnowledgeError as e:
-                item['error']=e.code;journal.update_outbox(identifier,item)
+                receipts = [store.submit(payloads[0])] if len(batch)==1 else store.submit_git_batch(payloads)
+            except KnowledgeError as error:
+                for identifier,item in batch:
+                    item['error']=error.code
+                    journal.update_outbox(identifier,item)
                 raise
+            for (identifier,item),receipt in zip(batch,receipts,strict=True):
+                rt.fault('capture-after-submit')
+                item.pop('error',None)
+                item.update(state='delivered',receipt=receipt,delivered_at=stamp())
+                journal.update_outbox(identifier,item)
+                journal.event(run['id'],'capture-delivered',outbox=identifier,candidate=receipt.get('candidate'))
         items=journal.outbox(run['id'])
         pending=any(i['state']=='pending' for i in items.values());manual=any(i['state']=='manual-review' for i in items.values())
         run['capture']={'state':'pending' if pending else 'manual-review' if manual else 'delivered' if items else 'no-candidate','outbox':list(items)}
     except KnowledgeError as e:
         run['capture']={'state':'pending','error':e.code,**({'details':e.details} if e.details is not None else {})}
     journal.save(run)
+
+
+def _delivery_batches(pending):
+    batch = []
+    identity = None
+    for row in pending:
+        value = row[1]['decision']['payload']
+        source = value.get('source') if isinstance(value, dict) else None
+        key = (source.get('identity') if isinstance(source, dict) and source.get('kind') in
+               ('committed','working-tree-with-hashes','filesystem-no-history') and value.get('version')==2 else None)
+        if batch and (key is None or key!=identity or len(batch)==GIT_BATCH_LIMIT):
+            yield batch
+            batch = []
+        if key is None:
+            yield [row]
+        else:
+            identity = key
+            batch.append(row)
+    if batch:
+        yield batch

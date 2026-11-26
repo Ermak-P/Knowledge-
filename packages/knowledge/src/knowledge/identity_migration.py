@@ -5,6 +5,7 @@ keeps its identity checks. Publication replaces directories under the existing
 maintenance fence, never source SQL rows. No model/provider or Harness dependency.
 """
 from contextlib import closing
+from base64 import b64encode
 from copy import copy
 import hashlib
 import os
@@ -21,6 +22,7 @@ from .sqlite_snapshot import view
 from . import confluence as cf
 from . import confluence_sync as cs
 from . import confluence_command as cc
+from . import discovery_history, discovery_checkpoint, discovery_cache
 
 KEY = 'sqlite-identity-migration-v1'
 RULE = 'canonical-and-revisions-active-control-objects-historical-v1'
@@ -29,6 +31,15 @@ CORE = {'metadata': ('key','value'), 'records': ('id','kind','payload'),
         'history': ('sequence','payload')}
 P1 = {'revisions': ('id','revision','payload'), 'scans': ('id','payload'),
       'reviews': ('sequence','payload'), 'receipts': ('plan','payload')}
+DISCOVERY = {
+    'discovery_runs': ('id','initial','initial_hash','sequence','tail'),
+    'discovery_chunks': ('scan','sequence','payload','checksum'),
+    'discovery_file_cache': ('path','binding','payload','checksum'),
+    discovery_history.TABLE: ('digest','payload'),
+}
+DISCOVERY_SQL = {**discovery_checkpoint.TABLE_SQL, 'discovery_file_cache': discovery_cache.TABLE_SQL,
+                 discovery_history.TABLE: discovery_history.TABLE_SQL}
+DISCOVERY_BLOBS = {'discovery_runs':1, 'discovery_chunks':2}
 OPS = {'operational_current': ('id','revision','payload'),
        'operational_history': ('id','revision','payload'), 'operational_events': ('id','payload')}
 PREFIXES = ('update-by-cr:', 'operational-transfer:', 'candidate-refresh-v1:',
@@ -80,14 +91,18 @@ def inventory_connection(db, project, old, knowledge_base=None):
     schema=list(db.execute("SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name"))
     require(not any(t in ('trigger','view') for t,_,_,_ in schema),'identity-unknown-schema-object')
     require(all(t!='index' or sql is None or (metadata.get('confluence-schema') in cf.SUPPORTED_SCHEMAS and n in cf.INDEX_SQL) or (metadata.get('confluence-sync-schema')==cs.SCHEMA and n in cs.INDEX_SQL) or (metadata.get(cc.META)==cc.SCHEMA and n in cc.INDEX_SQL) for t,n,_,sql in schema),'identity-unknown-index')
-    expected={**CORE,**(P1 if metadata.get('p1')=='1' else {}),
+    source_tables={n for t,n,_,_ in schema if t=='table'}
+    checkpoints={'discovery_runs','discovery_chunks'}
+    require(not (source_tables & checkpoints) or checkpoints <= source_tables, 'identity-incomplete-discovery-checkpoint-schema')
+    extensions={t:columns for t,columns in DISCOVERY.items() if t in source_tables and metadata.get('p1')=='1'}
+    expected={**CORE,**(P1 if metadata.get('p1')=='1' else {}),**extensions,
               **(OPS if metadata.get('operations')=='1' else {}),**(cf.schema_tables(metadata['confluence-schema']) if metadata.get('confluence-schema') else {}),**(cs.TABLES if metadata.get('confluence-sync-schema') else {}),**(cc.TABLES if metadata.get(cc.META) else {})}
     require({n for t,n,_,_ in schema if t=='table'}==set(expected),'identity-unknown-or-missing-table')
     # Recognize constraints/indexes as well as column names. Never execute DDL
     # from a supplied source while constructing the destination.
     with closing(sqlite3.connect(':memory:')) as known:
         create_tables(known,'schema-only')
-        for table,sql in {**P1_SQL,**OPS_SQL}.items():
+        for table,sql in {**P1_SQL,**OPS_SQL,**DISCOVERY_SQL}.items():
             if table in expected:known.execute(sql)
         if metadata.get('confluence-schema'):
             for sql in cf.schema_sql(metadata['confluence-schema']):known.execute(sql)
@@ -103,7 +118,12 @@ def inventory_connection(db, project, old, knowledge_base=None):
         require(tuple(r[1] for r in db.execute('PRAGMA table_info("'+table+'")'))==columns,
                 'identity-unsupported-table-columns',{'table':table})
         values=list(db.execute('SELECT * FROM "'+table+'" ORDER BY '+','.join(str(i+1) for i in range(len(columns)))))
-        require(all(all(v is None or type(v) in (str,int) for v in row) for row in values),'identity-unsupported-sql-value')
+        blob = DISCOVERY_BLOBS.get(table)
+        require(all(all(v is None or type(v) in (str,int) or (i==blob and type(v) is bytes)
+                        for i,v in enumerate(row)) for row in values),'identity-unsupported-sql-value')
+        if blob is not None:
+            require(all(type(row[blob]) is bytes for row in values),'identity-unsupported-sql-value')
+            values=[(*row[:blob], {'base64':b64encode(row[blob]).decode('ascii')}, *row[blob+1:]) for row in values]
         rows[table]=values
         manifest[table]={'columns':list(columns),'count':len(values),
                          'rows':[digest(list(row)) for row in values],
@@ -120,11 +140,15 @@ def inventory_connection(db, project, old, knowledge_base=None):
                 'identity-corrupt-revision-history')
             records=empty();records[v['kind']]=[v['record']];shape(records);previous[identifier]=revision
         for identifier,payload in rows['scans']:
-            state=loads(payload)
+            state=discovery_history.decode(db,identifier,payload)
             require(isinstance(state,dict) and state.get('id')==identifier and re.fullmatch('[a-f0-9]{64}',identifier)
                     and state.get('extractor') in ('dotnet-lexical-v1','dotnet-lexical-v2','dotnet-lexical-v3')
                     and isinstance(state.get('snapshot'),dict) and isinstance(state.get('coverage'),dict)
                     and isinstance(state.get('observations'),list) and type(state.get('complete')) is bool,'identity-unsupported-scan')
+    if 'discovery_runs' in rows:
+        from .discovery import _load_checkpoint
+        require(all(_load_checkpoint(db,row[0]) is not None for row in rows['discovery_runs']),
+                'identity-corrupt-discovery-checkpoint')
     for k,payload in rows['metadata']:
         if k.startswith('operational-transfer:'):
             require(loads(payload)['phase']=='completed','identity-transfer-recovery-required',{'key':k})
@@ -294,9 +318,9 @@ def _validate_archive(db):
     if not row:return None
     value=loads(row[0]);require(isinstance(value,dict) and value.get('version')==1 and value.get('rule')==RULE
         and value.get('new_identity')==dict(db.execute('SELECT key,value FROM metadata'))['project']
-        and isinstance(value.get('tables'),dict) and set(CORE)<=set(value['tables'])<=set(CORE)|set(P1)|set(OPS)|set(cf.TABLES)|set(cs.TABLES)|set(cc.TABLES), 'identity-corrupt-archive-marker')
+        and isinstance(value.get('tables'),dict) and set(CORE)<=set(value['tables'])<=set(CORE)|set(P1)|set(DISCOVERY)|set(OPS)|set(cf.TABLES)|set(cs.TABLES)|set(cc.TABLES), 'identity-corrupt-archive-marker')
     for table,entry in value['tables'].items():
-        require(isinstance(entry,dict) and entry.get('columns')==list({**CORE,**P1,**OPS,**cf.TABLES,**cs.TABLES,**cc.TABLES}[table])
+        require(isinstance(entry,dict) and entry.get('columns')==list({**CORE,**P1,**DISCOVERY,**OPS,**cf.TABLES,**cs.TABLES,**cc.TABLES}[table])
                 and type(entry.get('count')) is int and entry['count']>=0 and isinstance(entry.get('rows'),list)
                 and len(entry['rows'])==entry['count']
                 and all(isinstance(h,str) and re.fullmatch('[a-f0-9]{64}',h) for h in entry['rows']), 'identity-corrupt-archive-table')

@@ -79,9 +79,9 @@ def preferences(db,pending,observations=None):
         result[o['id']]=preferred
         if observations is not None:observations.setdefault(o['id'],[]).append(o)
     sources={source for _,source in wanted.values()}
-    for payload, in db.execute('SELECT payload FROM scans'):
-        state=loads(payload);snap=state.get('snapshot',{})
-        if snap.get('identity') not in sources or state.get('extractor')!=METHOD:continue
+    from .discovery_history import scan_rows
+    for _,state in scan_rows(db,sources=sources,extractor=METHOD):
+        snap=state['snapshot']
         core={k:v for k,v in snap.items() if k not in ('identity','delta','snapshot_kind')}
         core['files']={p:{k:v for k,v in item.items() if k!='status'} for p,item in snap['files'].items()}
         require(digest(core)==snap['identity'],'corrupt-persistence-scan-snapshot')

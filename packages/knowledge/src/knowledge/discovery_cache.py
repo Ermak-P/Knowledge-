@@ -97,8 +97,12 @@ def rows(db, project, snapshot, context, observations):
     return obsolete, values
 
 
+TABLE_SQL = 'CREATE TABLE discovery_file_cache (path TEXT PRIMARY KEY, binding TEXT NOT NULL, payload TEXT NOT NULL, checksum TEXT NOT NULL)'
+
+
 def save(db, obsolete, values):
-    db.execute('CREATE TABLE IF NOT EXISTS discovery_file_cache (path TEXT PRIMARY KEY, binding TEXT NOT NULL, payload TEXT NOT NULL, checksum TEXT NOT NULL)')
+    if not exists(db):
+        db.execute(TABLE_SQL)
     db.executemany('DELETE FROM discovery_file_cache WHERE path=?', obsolete)
     db.executemany('INSERT INTO discovery_file_cache VALUES (?,?,?,?) ON CONFLICT(path) DO UPDATE SET '
                    'binding=excluded.binding,payload=excluded.payload,checksum=excluded.checksum '
