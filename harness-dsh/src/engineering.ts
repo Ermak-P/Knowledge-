@@ -30,7 +30,7 @@ function resultForCapture(value){
   return {...rest,...(failures?{failures:failures.slice(0,20)}:{})}
 }
 const roleInstructions={
-  planning:'Plan only; no mutations. Return the structured plan. Each task has exact repo-relative codingFiles and testFiles, an objective, tdd boolean, and criteria. Each criterion has id, desc, kind (build/test/file/review), target (repo-relative file or existing .NET project/solution). C# changes need build and test criteria. Use discovered test project paths. Use review criteria for semantic behavior that commands cannot prove. TDD requires exactly one test criterion and explicit test files. Keep scopes minimal.',
+  planning:'Plan only; no mutations. Return the structured plan. Each task has exact repo-relative codingFiles and testFiles, an objective, tdd boolean, optional refactor boolean for a necessary TDD refactor, and criteria. Each criterion has id, desc, kind (build/test/file/review), target (repo-relative file or existing .NET project/solution). C# changes need build and test criteria. Use discovered test project paths. Use review criteria for semantic behavior that commands cannot prove. TDD requires exactly one test criterion and explicit test files. Keep scopes minimal.',
   coding:'Implement only this task and only its codingFiles. Use native read/edit/write. Never change tests or build/test controls. You can run harness_run_check with a criterion_id from the contract. Do not approve the task. Return a factual summary.',
   testing:'Independently analyze test design, coverage of acceptance criteria, missing cases and assertion quality. Write only listed testFiles. In RED mode create tests before production changes; identify exact TRX test names and expected failure-message substrings. Never weaken existing assertions to match incorrect behavior. If no test files were approved, analyze read-only. Report coverage as qualitative unless measured evidence is available.',
   verification:'Read the actual files for each review criterion and independently compare expected and actual. Native read results are required for every cited path. Return one criterion verdict per review criterion with exact repo-relative paths and a specific reason. Use harness_run_check only for checks explicitly missing or stale. Do not modify files or approve the task yourself.',
@@ -139,7 +139,7 @@ export function mountEngineering(ctx,config,libs,xml){
         const cancel=()=>{if(activation&&!disposal){disposal=activation.dispose();void disposal.catch(()=>{})}}
         try{
           const prompt=roleInstructions[role]+'\n'+JSON.stringify({...extra,workspace:root,...(role==='planning'?{testProjects:run.testProjects}:{} )})
-          activation=await ctx.subagents.startActivation({provider:'spawn',childId:id,parent,cwd:root,label:(state?state.task.id+' ':'')+role,delivery:'caller',signal:childSignal,maxDepth:1,prompt:[{type:'text',text:prompt}],outputSchema:schema,...(presets[role]?{agentPreset:presets[role]}:{})})
+          activation=await ctx.subagents.startActivation({provider:'spawn',childId:id,parent,cwd:root,label:(state?state.task.id+' ':'')+role,delivery:'caller',signal:childSignal,maxDepth:1,prompt:[{type:'text',text:prompt}],outputSchema:schema,agentPreset:presets[role]??'standard'})
           if(String(activation.childId)!==id)throw Error('native child did not preserve reserved identity')
           childSignal.addEventListener('abort',cancel,{once:true})
           if(childSignal.aborted)cancel()

@@ -11,6 +11,8 @@ function validatePlan(raw){
   return freeze(raw.tasks.map(t=>{
     if(!str(t.id)||! /^[a-zA-Z0-9_-]{1,48}$/.test(t.id)||ids.has(t.id)||!str(t.objective))throw Error('invalid or duplicate task id/objective')
     ids.add(t.id)
+    if(t.refactor!==undefined&&typeof t.refactor!=='boolean')throw Error('invalid refactor flag')
+    if(t.refactor&&!t.tdd)throw Error('refactor stage requires TDD')
     if(typeof t.tdd!=='boolean'||!Array.isArray(t.criteria)||!t.criteria.length||t.criteria.length>32)throw Error('invalid task criteria')
     const codingFiles=files(t.codingFiles),testFiles=files(t.testFiles)
     if(codingFiles.some(x=>testFiles.includes(x)))throw Error('overlapping coding/testing scope')
@@ -21,7 +23,7 @@ function validatePlan(raw){
       return {id:c.id,desc:c.desc,kind:c.kind,target:c.target}
     })
     if(t.tdd&&(!testFiles.length||criteria.filter(c=>c.kind==='test').length!==1))throw Error('TDD requires test files and exactly one frozen test criterion')
-    return {id:t.id,objective:t.objective,codingFiles,testFiles,tdd:t.tdd,criteria}
+    return {id:t.id,objective:t.objective,codingFiles,testFiles,tdd:t.tdd,refactor:t.refactor??false,criteria}
   }))
 }
 
@@ -54,6 +56,7 @@ const planSchema = {
           "tdd": {
             "type": "boolean"
           },
+            "refactor": {"type":"boolean"},
           "criteria": {
             "type": "array",
             "items": {
@@ -407,7 +410,20 @@ async function runEngineering(host,book,request,basis,runId,sessionId,signal,max
         const tested=await child('testing',s,{...taskPrompt(s),mode:'test and assess coverage'},testingSchema)
         if(tested.structured.verdict!=='pass')throw Error('Testing did not accept test quality: '+tested.structured.detail)
       }
-      if(s.red){const g=await host.green(s,s.red,signal);if(g.status==='blocked')throw Error(g.reason);if(g.status==='fail'){reason=g.reason;continue}}
+      if(s.red){
+        const g=await host.green(s,s.red,signal)
+        if(g.status==='blocked')throw Error(g.reason)
+        if(g.status==='fail'){reason=g.reason;continue}
+        if(s.task.refactor&&!s.refactored){
+          s.refactored=true;progress('refactor',s.task)
+          const r=await child('coding',s,{...taskPrompt(s),mode:'refactor only; preserve behavior',repair:''},resultSchema)
+          if(r.structured.verdict==='blocked')throw Error('refactor blocked: '+r.structured.detail)
+          if(r.structured.verdict!=='pass'){reason=r.structured.detail;continue}
+          const after=await host.green(s,s.red,signal)
+          if(after.status==='blocked')throw Error(after.reason)
+          if(after.status==='fail'){reason=after.reason;continue}
+        }
+      }
       const gate=await verify(s)
       if(gate.status==='pass'){progress('accepted',s.task);return}
       if(gate.status==='blocked')throw Error('unverified '+s.task.id+': '+JSON.stringify(gate.details))

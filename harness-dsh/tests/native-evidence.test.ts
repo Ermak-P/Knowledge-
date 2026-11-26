@@ -1,0 +1,64 @@
+import assert from 'node:assert/strict'
+import { test } from 'node:test'
+import { Context } from '@deepseek-ai/cordis'
+import { mountAgentLoopTestDependencies, mountAgentLoopTestHarness } from '@deepseek-ai/dsh-agent-loop-testkit'
+import { createUserMessage, LlmAdapter, type StreamChunk, type ToolCallId } from '@deepseek-ai/dsh-llm'
+import type { SessionId } from '@deepseek-ai/dsh-session'
+import { defineTool } from '@deepseek-ai/dsh-tools'
+
+import * as v from '@bpc-oss/dsh-verification'
+import * as e from '@bpc-oss/dsh-evidence'
+import * as s from 'stalegreen'
+import { EvidenceBook } from '../src/lifecycle.ts'
+
+class EvidenceAdapter extends LlmAdapter {
+  requests=0
+  async resolveModel(provider,model){return {provider,id:model,name:model}}
+  async *stream(){
+    this.requests++
+    if(this.requests%2===1){
+      yield {type:'block-start',index:0,blockType:'tool-call'}
+      yield {type:'block-end',index:0,block:{type:'tool-call',id:('call-'+this.requests) as ToolCallId,name:'harness_run_check',arguments:'{"criterion_id":"ac"}'}}
+      yield {type:'finish',reason:{kind:'tool-calls'}}
+    }else{
+      yield {type:'block-start',index:0,blockType:'text'}
+      yield {type:'text-delta',index:0,text:'done'}
+      yield {type:'block-end',index:0,block:{type:'text',text:'done'}}
+      yield {type:'finish',reason:{kind:'stop'}}
+    }
+  }
+}
+
+test('real DSH tool dispatcher produces evidence in two separate native sessions', {timeout:30000}, async t=>{
+  const ctx=new Context();t.after(()=>ctx.fiber.dispose())
+  await mountAgentLoopTestDependencies(ctx)
+  const fp=()=>({available:true,tree:'fixture',head:null,ms:0})
+  const book=new EvidenceBook({v,e,s},fp)
+  const task=id=>({id,objective:'build '+id,codingFiles:[],testFiles:[],tdd:false,criteria:[{id:'ac',desc:'build succeeds',kind:'build',target:'App.csproj'}]})
+  const a=book.add(task('a'),'run','root',[{kind:'user-message',eventRef:'root:1',seq:1,text:'build'}])
+  const b=book.add(task('b'),'run','root',[{kind:'user-message',eventRef:'root:1',seq:1,text:'build'}])
+  const bySession=new Map([['native-a','a'],['native-b','b']])
+  ctx.on('tools/result',(exec,result)=>{
+    if(exec.name!=='harness_run_check'||!exec.agent)return
+    const sid=String(exec.agent.session.id),taskId=bySession.get(sid)
+    if(!taskId)return
+    void book.capture({taskId,role:'verification',agentId:String(exec.agent.id),sessionId:sid},{callId:String(exec.callId),name:exec.name,arguments:exec.arguments,isError:result.isError,value:result.isError?undefined:JSON.parse(result.value)})
+  })
+  const adapter=new EvidenceAdapter();ctx.llm.registerAdapter(['mock'],adapter)
+  ctx.tools.register(defineTool({
+    name:'harness_run_check',description:'Test-only controlled actual tool',
+    parameters:{type:'object',properties:{criterion_id:{type:'string'}},required:['criterion_id'],additionalProperties:false},
+    output:{schema:{type:'string'},render:(_args,value)=>[{type:'text',text:value}]},
+    async execute(){return JSON.stringify({kind:'build',outcome:'pass',exitCode:0,summary:'real tool dispatch; process mocked',fingerprint:fp()})}
+  }))
+  const harness=await mountAgentLoopTestHarness(ctx)
+  for(const sid of ['native-a','native-b']){
+    const agent=await harness.create(sid as SessionId,{provider:'mock',model:'mock'})
+    agent.followup(createUserMessage({content:[{type:'text',text:'run check'}],source:{kind:'user'}}))
+    await agent.whenIdle();await book.drain()
+    if(sid==='native-a'){assert.equal((await book.evaluate(a)).status,'pass');assert.equal((await book.evaluate(b)).status,'blocked')}
+  }
+  assert.equal((await book.evaluate(b)).status,'pass')
+  assert.equal(a.refs[0].producerSessionId,'native-a');assert.equal(b.refs[0].producerSessionId,'native-b')
+  assert.equal(adapter.requests,4)
+})
