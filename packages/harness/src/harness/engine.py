@@ -199,6 +199,8 @@ def capture_retry(root,run_id):
         if run['execution']!='passed' or not all(k in run for k in ('final_source','capture_time','capture_event')):
             return {**result(run),'ok':False,'error':'capture-retry-ineligible','reason':'Execution has not passed; use resume for execution recovery.'}
         configuration=config(root)
+        if reason := capture.disabled_reason(configuration):
+            return {**result(run), 'ok': False, 'error': 'capture-disabled', 'reason': reason}
         require(digest(configuration)==run['config_hash'],'configuration-changed-revalidation-required')
         if 'automatic_tests' in run:
             from .testing import guard
