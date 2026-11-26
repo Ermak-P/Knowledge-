@@ -131,7 +131,7 @@ def run(root, output, scan_id=None, max_files=100, max_calls=10000,
     previous = None
     session = None
     if persistent:
-        from .discovery import ScanSession, reconcile
+        from .discovery import ScanSession
         from .store import Store
         from . import lifecycle
         from .util import KnowledgeError
@@ -150,9 +150,7 @@ def run(root, output, scan_id=None, max_files=100, max_calls=10000,
             started = time.monotonic()
             try:
                 result = session.scan(scan_id, max_files, base, head, fresh and number == 1,
-                                      incremental, retry_blocked and number == 1)
-                if result['processing_complete']:
-                    result['reconciliation'] = reconcile(store, result['id'])
+                                      incremental, retry_blocked and number == 1, reconcile_result=True)
             except KnowledgeError as error:
                 result = {'ok': False, 'error': error.code, 'details': error.details}
             if time.monotonic() - started > command_timeout:
@@ -162,7 +160,7 @@ def run(root, output, scan_id=None, max_files=100, max_calls=10000,
             if result.get('ok') and not result['processing_complete']:
                 # Complete per-file diagnostics are available through scan-status.
                 result = {**{k: result[k] for k in ('ok','id','complete','work','counters','candidates')},
-                          'snapshot': {k: result['snapshot'].get(k) for k in ('identity','revision','snapshot_kind','coverage_errors')},
+                          'source_verified': False, 'snapshot': {k: result['snapshot'].get(k) for k in ('identity','revision','snapshot_kind','coverage_errors')},
                           'coverage': {p: result['coverage'][p] for p in result['work']['paths_this_call']
                                        if result['coverage'][p]['status'] == 'blocked'}}
         else:
@@ -230,7 +228,7 @@ def run(root, output, scan_id=None, max_files=100, max_calls=10000,
             raise ScanError('Invalid coverage entries; unsupported CLI response.')
         write_json(output / 'progress.json', {'version':1,'job':cancel_job,'scan_id':scan_id,
                    'source':{'identity':snapshot['identity'],'revision':snapshot['revision'],'kind':snapshot['snapshot_kind']},
-                   'complete':result.get('complete',False),'counters':result.get('counters'),
+                   'complete':result.get('complete',False),'source_verified':result.get('source_verified',False),'counters':result.get('counters'),
                    'work':{k:v for k,v in result.get('work',{}).items() if k!='paths_this_call'},
                    'candidates':len(result.get('candidates',[])), 'gaps':len(result.get('gaps',[])),
                    'identity_verification':({k:v for k,v in result['identity_verification'].items() if k not in ('missing_files','ambiguous_ids')} |
@@ -293,17 +291,11 @@ def main():
     key = hashlib.sha256(root_key.encode('utf-8')).hexdigest()[:20]
     base = Path(os.environ.get('LOCALAPPDATA') or tempfile.gettempdir())
     output = args.output or str(base / 'Knowledge' / 'scan-helper' / key)
+    from .util import KnowledgeError
     try:
-        from .execution_lock import ProjectExecutionLock
-        from .project import Project
-        from .util import KnowledgeError
-        lease = ProjectExecutionLock(Project(args.root).root).acquire()
-        try:
-            return run(args.root, output, args.scan_id, args.max_files, args.max_calls,
-                       args.command_timeout, args.fresh, args.base, args.head, args.incremental,
-                       args.retry_blocked, persistent=True)
-        finally:
-            lease.close()
+        return run(args.root, output, args.scan_id, args.max_files, args.max_calls,
+                   args.command_timeout, args.fresh, args.base, args.head, args.incremental,
+                   args.retry_blocked, persistent=True)
     except KeyboardInterrupt:
         print('\nInterrupted. Inspect diagnostics/scan-status before resuming; '
               'a completed chunk remains durable.', file=sys.stderr)

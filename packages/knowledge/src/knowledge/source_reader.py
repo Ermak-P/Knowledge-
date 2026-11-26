@@ -95,7 +95,7 @@ def fingerprint(path, config, object_format='sha1', relative=None, classify=Fals
        (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns):
         failure('FILE_CHANGED_DURING_SCAN', 'inventory', retry_eligible=True)
     raw_blob = blob.hexdigest() if blob else None; lf_blob = raw_blob
-    if small is not None:
+    if small is not None and b'\r\n' in small:
         data = small.replace(b'\r\n', b'\n')
         normalized.update(b'blob ' + str(len(data)).encode() + b'\0'); normalized.update(data); lf_blob = normalized.hexdigest()
     value={'hash': 'sha256:' + sha.hexdigest(), 'bytes': before.st_size, 'status': 'not-analyzed',

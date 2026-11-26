@@ -31,19 +31,29 @@ def compatible_ids(observation,paths=None):
         'scan.'+digest(['identity-v3',project,'persistence',Path(path).stem+':'+method+':'+str(argument)])[:32] for path in paths}
 
 
+class CanonicalIndex:
+    def __init__(self, records):
+        self.claims = {}
+        self.paths = {}
+        provenance = {'actor': 'deterministic-discovery', 'method': METHOD}
+        for claim in records['claims']:
+            if claim['provenance'] == provenance:
+                self.claims.setdefault(claim['statement'], []).append(claim)
+        for evidence in records['evidence']:
+            if isinstance(evidence['source'], str) and evidence['provenance'] == provenance:
+                for identifier in evidence['substantiates']:
+                    self.paths.setdefault(identifier, []).append(evidence['source'])
+
+    def match(self, observation):
+        matches = [claim for claim in self.claims.get(observation['statement'], ())
+                   if claim['id'] in compatible_ids(observation, self.paths.get(claim['id']))]
+        require(len(matches) <= 1, 'ambiguous-canonical-persistence-identity')
+        return matches[0] if matches else None
+
+
 def canonical_match(observation,records,states):
-    if describe(observation) is None:return None
-    evidence={e['id']:e for e in records['evidence']}
-    matches=[]
-    for claim in records['claims']:
-        if claim['statement']!=observation['statement'] or claim['provenance']!={'actor':'deterministic-discovery','method':METHOD}:continue
-        # Approved historical proofs retain the old file-stem identity even when
-        # that file has disappeared and current supporting evidence moved.
-        paths=[e['source'] for e in evidence.values() if claim['id'] in e['substantiates']
-               and isinstance(e['source'],str) and e['provenance']==claim['provenance']]
-        if claim['id'] in compatible_ids(observation,paths):matches.append(claim)
-    require(len(matches)<=1,'ambiguous-canonical-persistence-identity')
-    return matches[0] if matches else None
+    if describe(observation) is not None:
+        return CanonicalIndex(records).match(observation)
 
 
 def preferences(db,pending,observations=None):

@@ -13,7 +13,8 @@ def deliver(journal,run,configuration):
         current=source_snapshot(journal.project,{**DEFAULT_LIMITS,**configuration['limits']}['file_bytes'])
         if digest(current)!=run['final_source']:raise KnowledgeError('source-changed-before-capture')
         if not run.get('capture_prepared'):
-            changed=[p for p,h in current.items() if run['task']['initial_source'].get(p)!=h]
+            initial=run['task']['initial_source']
+            changed=sorted(p for p in current.keys() | initial.keys() if initial.get(p)!=current.get(p))
             if not changed:
                 run['capture_prepared']=True;run['capture']={'state':'no-candidate','reason':'no changed source; no invented reusable facts'};journal.save(run);return
             preview=candidate_observe(Store(journal.project.root),changed,run['capture_time'])
@@ -44,5 +45,5 @@ def deliver(journal,run,configuration):
         pending=any(i['state']=='pending' for i in items.values());manual=any(i['state']=='manual-review' for i in items.values())
         run['capture']={'state':'pending' if pending else 'manual-review' if manual else 'delivered' if items else 'no-candidate','outbox':list(items)}
     except KnowledgeError as e:
-        run['capture']={'state':'pending','error':e.code}
+        run['capture']={'state':'pending','error':e.code,**({'details':e.details} if e.details is not None else {})}
     journal.save(run)

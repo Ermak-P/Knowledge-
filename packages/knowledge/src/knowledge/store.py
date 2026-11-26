@@ -186,6 +186,7 @@ class Store:
     def discovery_checkpoint_connection(self):
         """Provisional checkpoint writes have no authority over canonical tables."""
         from .coordination import gate
+        from . import discovery_checkpoint
         with gate(self.project.root):
             safe_tree(self.base)
             db = None
@@ -201,9 +202,14 @@ class Store:
                 legacy = self.project.root/'.ai'
                 require(not legacy.exists() or not any(legacy.iterdir()) or 'migration' in metadata, 'ambiguous-dual-stores')
 
+                if not discovery_checkpoint.exists(db):
+                    discovery_checkpoint.create(db)
+
                 def authorize(action, table, column, database, trigger):
+                    if action == sqlite3.SQLITE_READ and table in ('sqlite_master', 'scans') and not trigger:
+                        return sqlite3.SQLITE_OK
                     if action in (sqlite3.SQLITE_READ, sqlite3.SQLITE_INSERT, sqlite3.SQLITE_UPDATE, sqlite3.SQLITE_DELETE):
-                        return sqlite3.SQLITE_OK if table in ('discovery_runs', 'discovery_chunks', 'sqlite_master') and not trigger else sqlite3.SQLITE_DENY
+                        return sqlite3.SQLITE_OK if table in ('discovery_runs', 'discovery_chunks') and not trigger else sqlite3.SQLITE_DENY
                     return sqlite3.SQLITE_OK if action in (sqlite3.SQLITE_SELECT, sqlite3.SQLITE_TRANSACTION) else sqlite3.SQLITE_DENY
 
                 db.set_authorizer(authorize)
@@ -219,7 +225,19 @@ class Store:
                     db.close()
 
     @contextmanager
-    def _connection(self, write=False):
+    def discovery_completion_connection(self):
+        """Validate and compute against one SQLite snapshot, then promote to write.
+
+        A concurrent write prevents promotion and the caller can retry from the
+        durable checkpoint. The read phase holds no reserved writer lock.
+        """
+        from .coordination import gate
+        with gate(self.project.root):
+            with self._connection(write=True, deferred=True) as db:
+                yield db
+
+    @contextmanager
+    def _connection(self, write=False, deferred=False):
         safe_tree(self.base)
         require(self.path.is_file(), 'knowledge-absent')
         db = None
@@ -227,7 +245,7 @@ class Store:
             db = sqlite3.connect(self.path.as_uri() + '?mode=rw', uri=True, timeout=0.15, factory=Connection)
             db.execute('PRAGMA foreign_keys=ON')
             db.execute('PRAGMA synchronous=FULL')
-            db.execute('BEGIN IMMEDIATE' if write else 'BEGIN')
+            db.execute('BEGIN IMMEDIATE' if write and not deferred else 'BEGIN')
             require(db.execute('PRAGMA quick_check').fetchone() == ('ok',), 'corrupt-database')
             metadata = dict(db.execute('SELECT key,value FROM metadata'))
             require(metadata.get('format') == 'knowledge-sqlite-v1', 'unsupported-store-format')
@@ -377,6 +395,9 @@ class Store:
             return {'ok': True, 'counts': {g:len(v) for g,v in records.items()},
                     'warning': 'Structural validation does not prove truth, authority or freshness.'}
 
+    def _queue_rows(self, db):
+        return view(db,'validated-queue',lambda:self._check_control(db))
+
     def submit(self, value, semantic_binding=None):
         item = candidate(value)
         if semantic_binding is not None:
@@ -391,7 +412,7 @@ class Store:
             # _check_control has checked every row in this same snapshot. Keep
             # the old table traversal order and exact raw TEXT equality, including
             # predecessor IDs/noncanonical JSON; a digest never replaces equality.
-            queued=view(db,'validated-queue',lambda:self._check_control(db))
+            queued=self._queue_rows(db)
             serialized=canonical_json(item)
             row=next((r for r in queued if r[0]==cid or r[2]==serialized),None)
             if row:
@@ -409,8 +430,13 @@ class Store:
                     db.execute('INSERT INTO metadata VALUES (?,?)',(SEMANTIC_PREFIX+cid,canonical_json(semantic_binding)))
                     checkpoint('semantic-candidate-written')
                 if item['source'] is not None and not is_binding(item['source']):
-                    from .discovery import inventory,refresh_pending
-                    if inventory(self.project.root)['identity']==item['source']['identity']:refresh_pending(db,cid,item)
+                    from .discovery import inventory,proposal_identity,refresh_pending
+                    signature=proposal_identity(item)
+                    if any(status=='pending' and prior['version']==2 and prior['source'] is not None
+                           and prior['source']['identity']!=item['source']['identity'] and proposal_identity(prior)==signature
+                           for _,status,_,prior in queued):
+                        if inventory(self.project.root)['identity']==item['source']['identity']:
+                            refresh_pending(db,cid,item)
                 return {'ok':True,'candidate':cid,'result':'submitted','status':'pending'}
             known_ids = {r['id'] for v in current.values() for r in v}
             statements = {statement_key(c['statement']) for c in current['claims']}
