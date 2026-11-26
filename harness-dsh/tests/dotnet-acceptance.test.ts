@@ -84,6 +84,17 @@ test('real DSH shell, SDK build/test, discovery and TRX with a Unicode workspace
   expect(await pending,'unverified')
   const pid=Number(readFileSync(marker,'utf8'))
   assert.ok(Number.isInteger(pid)&&pid>0)
-  assert.throws(()=>process.kill(pid,0),error=>error.code==='ESRCH')
+  let state='exited'
+  try{
+    process.kill(pid,0)
+    state=process.platform==='linux'
+      ?readFileSync('/proc/'+pid+'/stat','utf8').split(') ').at(-1).split(' ')[0]
+      :'running'
+  }catch(error){
+    if(!['ESRCH','ENOENT'].includes(error.code))throw error
+  }
+  // This container's PID 1 can retain a zombie after the DSH process group exits.
+  if(state==='Z')t.diagnostic('test host exited; PID 1 retained its zombie record')
+  else assert.equal(state,'exited','test host remained live after cancellation')
 
 })

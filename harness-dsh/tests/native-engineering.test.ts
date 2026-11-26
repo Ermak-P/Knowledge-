@@ -13,6 +13,7 @@ import Subagents from '@deepseek-ai/dsh-subagent'
 import * as spawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
 import * as fsTools from '@deepseek-ai/dsh-tool-fs'
 import LocalBash from '@deepseek-ai/dsh-bash-local'
+import LocalPowerShell from '@deepseek-ai/dsh-pwsh-local'
 import LocalSubprocess from '@deepseek-ai/dsh-subprocess-local'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import * as mcp from '@deepseek-ai/dsh-mcp-client'
@@ -55,7 +56,7 @@ async function mountRuntime(ctx,tmp){
   await mountAgentLoopTestDependencies(ctx,{workingDirectory:true})
   const harness=await mountAgentLoopTestHarness(ctx)
   await ctx.plugin(LocalSubprocess)
-  await ctx.plugin(LocalBash)
+  await ctx.plugin(process.platform==='win32'?LocalPowerShell:LocalBash)
   await ctx.plugin(persistence,{root:join(tmp,'sessions')})
   await ctx.plugin(Subagents)
   await ctx.plugin(spawn,{providerName:'spawn'})

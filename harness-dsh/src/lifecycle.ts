@@ -404,7 +404,7 @@ async function runEngineering(host,book,request,basis,runId,sessionId,signal,max
         }
         if(result?.outcome==='unverified')return evaluate()
       }
-      gate=await evaluate()
+      if(checks.length)gate=await evaluate()
       if(gate.status==='pass'||gate.status==='fail')return gate
       if(!s.task.criteria.some(c=>c.kind==='review'))return gate
     }
