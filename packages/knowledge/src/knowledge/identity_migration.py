@@ -75,6 +75,8 @@ def _validate_staged(project, base):
 
 
 def inventory_connection(db, project, old, knowledge_base=None):
+    from .plan_storage import APPROVAL_PREFIX, MAINTENANCE_PREFIX, PREPARED_PREFIX, SERIES_PREFIX
+
     require(isinstance(old,str) and re.fullmatch('[a-f0-9]{64}',old),'invalid-old-project-identity')
     require(db.execute('PRAGMA integrity_check').fetchall()==[('ok',)],'identity-source-integrity-failed')
     require(set(CORE)<={r[0] for r in db.execute("SELECT name FROM sqlite_schema WHERE type='table'")},'identity-source-missing-core-tables')
@@ -86,7 +88,7 @@ def inventory_connection(db, project, old, knowledge_base=None):
     require(metadata.get('confluence-schema') in (None,*cf.SUPPORTED_SCHEMAS),'identity-unsupported-confluence-version')
     require(metadata.get('confluence-sync-schema') in (None,cs.SCHEMA),'identity-unsupported-confluence-sync-version')
     require(metadata.get(cc.META) in (None,cc.SCHEMA),'identity-unsupported-confluence-command-version')
-    require(all(k in ('format','project','p1','operations','migration','confluence-schema','confluence-sync-schema','confluence-gc-registrations',cc.META) or k.startswith((*PREFIXES,cs.REFRESH))
+    require(all(k in ('format','project','p1','operations','migration','confluence-schema','confluence-sync-schema','confluence-gc-registrations',cc.META) or k.startswith((*PREFIXES,cs.REFRESH,APPROVAL_PREFIX,MAINTENANCE_PREFIX,PREPARED_PREFIX,SERIES_PREFIX))
                 for k in metadata),'identity-unknown-metadata-extension')
     schema=list(db.execute("SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name"))
     require(not any(t in ('trigger','view') for t,_,_,_ in schema),'identity-unknown-schema-object')

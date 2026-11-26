@@ -506,6 +506,8 @@ def push(store, root, state_dir, binding, value, observe_progress=None):
             require(expected == saved['binding'], 'machine-plan-drift-prepare-again')
             # Durable intent allows acknowledgement recovery after an unknown
             # post-commit outcome; it never approves a replacement plan.
+            from .plan_storage import pin_approval
+            pin_approval(store, pid)
             saved['approved'] = True
             _write(path, saved)
             store.apply(pid, pid, source_snapshot=snapshot, reconcile_git=incremental_validation)

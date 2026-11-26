@@ -17,6 +17,7 @@ import tempfile
 import unicodedata
 from . import legacy_validator as legacy
 from . import lifecycle as life
+from . import plan_receipts
 from .project import Project, safe_path, safe_tree
 from .retrieval import ContextEngine
 from .util import canonical_json, digest, fingerprint, loads, require, KnowledgeError
@@ -377,7 +378,7 @@ class Store:
             for identifier,kind,payload in rows:
                 require(states[identifier]['record']==loads(payload) and states[identifier]['kind']==kind,'canonical-revision-mismatch')
             for pid,payload in db.execute('SELECT plan,payload FROM receipts'):
-                require(pid in plans and plans[pid][1]!='PREPARED' and loads(payload)==plans[pid][0],'receipt-plan-mismatch')
+                require(pid in plans and plans[pid][1]!='PREPARED' and plan_receipts.matches(pid,payload,plans[pid][0]),'receipt-plan-mismatch')
                 self._verify_committed(db,pid,plans[pid][0])
         view(db,'validated-queue',lambda:queue)
         from .confluence_sync import validate_relations
@@ -664,6 +665,17 @@ class Store:
             pid = 'sha256:' + hashlib.sha256(payload.encode('utf-8')).hexdigest()
             tick('persisting-plan', total_candidates=len(preview['candidates']) + len(preview['skipped']))
             db.execute('INSERT OR IGNORE INTO plans VALUES (?,?,?)',(pid,payload,'PREPARED'))
+            if db.execute('SELECT status FROM plans WHERE id=?', (pid,)).fetchone() == ('PREPARED',):
+                from .plan_storage import PREPARED_PREFIX, SERIES_PREFIX
+                db.execute('INSERT OR IGNORE INTO metadata VALUES (?,?)',
+                           (PREPARED_PREFIX + pid, str(life.now())))
+                scope = 'git-reconciliation' if reconcile_git else 'canonical'
+                if preview['blocked']:
+                    scope += '-blocked'
+                if _source_identity:
+                    scope += '-' + digest(_source_identity)
+                db.execute('INSERT INTO metadata VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value '
+                           'WHERE value<>excluded.value', (SERIES_PREFIX + scope, pid))
         tick('blocked' if preview['blocked'] else 'prepared')
         return {'ok':not preview['blocked'],'fingerprint':pid,**preview}
 
@@ -766,8 +778,12 @@ class Store:
                                 'source-drift-before-commit-rescan-required',
                                 {'next_action': 'Prepare against the current source and review a new fingerprint.'})
                 life.verify_source_bindings(self,sources,db)
-                db.execute('INSERT INTO receipts VALUES (?,?)',(pid,canonical_json(plan)))
+                db.execute('INSERT INTO receipts VALUES (?,?)',(pid,plan_receipts.reference(pid)))
             db.execute("UPDATE plans SET status='COMMITTED' WHERE id=?",(pid,))
+            from .plan_storage import APPROVAL_PREFIX, PREPARED_PREFIX
+            db.executemany('DELETE FROM metadata WHERE key=?', ((prefix + pid,) for prefix in (PREPARED_PREFIX, APPROVAL_PREFIX)))
+            # Keep the series head pointing to the last plan after commit. An
+            # earlier preparation must not become active again by implication.
             from .confluence_sync import record_applied
             record_applied(db,plan,pid)
             db.execute('INSERT INTO history(payload) VALUES (?)',(canonical_json({'event':'import','fingerprint':pid,'candidates':plan['included']}),))
@@ -777,7 +793,7 @@ class Store:
     def _verify_committed(self, db, pid, plan):
         if life.enabled(db):
             receipt=db.execute('SELECT payload FROM receipts WHERE plan=?',(pid,)).fetchone()
-            require(receipt is not None and loads(receipt[0])==plan,'committed-receipt-mismatch')
+            require(receipt is not None and plan_receipts.matches(pid,receipt[0],plan),'committed-receipt-mismatch')
         for cid in plan['included']:
             expected = plan['candidates'][cid]
             row = db.execute('SELECT payload,status,binding FROM queue WHERE id=?',(cid,)).fetchone()
@@ -845,7 +861,7 @@ class Store:
         return {'view':'all-latest-with-lifecycle; use context for trusted current',
                 'revisions':[loads(p) for p, in db.execute('SELECT payload FROM revisions ORDER BY id,revision')],
                 'reviews':[loads(p) for p, in db.execute('SELECT payload FROM reviews ORDER BY sequence')],
-                'receipts':[{'fingerprint':i,'plan':loads(p)} for i,p in db.execute('SELECT plan,payload FROM receipts ORDER BY plan')]}
+                'receipts':[{'fingerprint':i,'plan':plan} for i,plan in plan_receipts.plans(db)]}
 
     def export(self):
         from .cr_workflow import export_workflows

@@ -1536,8 +1536,9 @@ def capture_owned(db,claim,records):
         match=canonical_match(observation,records,{})
         if receipt['extractor']!=VERSION or (observation['id']!=claim['id'] and (match is None or match['id']!=claim['id'])) or observation['statement']!=claim['statement']:continue
         if not any(evidence[i]['provenance']=={'actor':'deterministic-discovery','method':VERSION} and evidence[i]['content_hash']==observation['content_hash'] and evidence[i]['source']==observation['path'] and evidence[i]['description']==observation['anchor'] and claim['id'] in evidence[i]['substantiates'] for i in claim['evidence']):continue
-        for pid,plan_json in db.execute('SELECT plan,payload FROM receipts'):
-            plan=loads(plan_json);candidate=plan['candidates'].get(receipt['candidate'])
+        from .plan_receipts import plans
+        for pid,plan in plans(db):
+            candidate=plan['candidates'].get(receipt['candidate'])
             if candidate is None or digest(candidate)!=receipt['candidate']:continue
             candidate=plan.get('resolved',plan['candidates']).get(receipt['candidate'])
             if candidate is None:continue

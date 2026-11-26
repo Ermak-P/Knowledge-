@@ -6,17 +6,30 @@ from .util import KnowledgeError,loads,read_text,canonical_json,emit_json
 
 def main():
     p=argparse.ArgumentParser(description='Approved Knowledge/Harness maintenance')
-    p.add_argument('command',choices=['identity-inventory','identity-preview','identity-apply','identity-recover','identity-rollback-preview','identity-rollback','identity-history','backup-preview','upgrade-preview','restore-preview','index-upgrade-preview','index-rollback-preview','apply','status','recover','doctor','runtime-migrate'])
+    p.add_argument('command',choices=['identity-inventory','identity-preview','identity-apply','identity-recover','identity-rollback-preview','identity-rollback','identity-history','backup-preview','upgrade-preview','restore-preview','index-upgrade-preview','index-rollback-preview','apply','status','recover','doctor','runtime-migrate','storage','plans-preview','plans-clean'])
     p.add_argument('--root',required=True);p.add_argument('--destination');p.add_argument('--archive');p.add_argument('--recovery');p.add_argument('--input',type=Path);p.add_argument('--approve')
     p.add_argument('--old-identity');p.add_argument('--workspace');p.add_argument('--transaction')
     p.add_argument('--offline', action='store_true')
+    p.add_argument('--keep-recent', type=int, default=2)
+    p.add_argument('--older-than-days', type=int, default=30)
+    p.add_argument('--include-undated', action='store_true')
+    p.add_argument('--compact-receipts', action='store_true')
+    p.add_argument('--vacuum', action='store_true')
     p.add_argument('--table');p.add_argument('--cursor',type=int,default=0);p.add_argument('--limit',type=int,default=20);p.add_argument('--contents',action='store_true')
     a=p.parse_args()
     try:
-        if a.command not in ('identity-inventory', 'identity-history', 'status', 'doctor'):
+        if a.command not in ('identity-inventory', 'identity-history', 'status', 'doctor', 'storage'):
             from .access import require_maintainer
             require_maintainer()
-        if a.command == 'runtime-migrate':
+        if a.command in ('storage', 'plans-preview', 'plans-clean'):
+            from . import plan_storage
+            if a.command == 'storage':
+                value = plan_storage.statistics(a.root)
+            elif a.command == 'plans-preview':
+                value = plan_storage.preview(a.root, a.keep_recent, a.older_than_days, a.include_undated, a.compact_receipts, a.vacuum)
+            else:
+                value = plan_storage.clean(a.root, loads(read_text(a.input)), a.approve)
+        elif a.command == 'runtime-migrate':
             from .runtime_migration import migrate
             value = migrate(a.root, a.offline)
         elif a.command.startswith('identity-'):
