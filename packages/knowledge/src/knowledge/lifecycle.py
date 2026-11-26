@@ -135,6 +135,8 @@ def upgrade_preview(store):
 
 
 def upgrade(store,approval):
+    from .access import require_maintainer
+    require_maintainer()
     preview=upgrade_preview(store);require(approval==preview['fingerprint'],'exact-upgrade-approval-required')
     if preview['already_upgraded']:return {'ok':True,'result':'already-upgraded'}
     # A SQLite-consistent backup is retained before mutation; never overwrite one.

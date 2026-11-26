@@ -69,5 +69,5 @@ def finish(project,journal,base):
     unchanged(project,value)
     journal['status']='COMPLETED';m.write(base/'journal.json',journal)
     m.fault('maintenance-committed')
-    (project.root/'.maintenance/active.json').unlink()
+    (project.runtime.fence).unlink()
     return dict(ok=True,operation=journal['operation'],transaction=journal['id'],status='COMPLETED',backup=journal['backup'],canonical_approval='unchanged; physical indexes only')

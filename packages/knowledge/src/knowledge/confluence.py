@@ -318,6 +318,8 @@ def export(db):
 
 def dispatch(store,action,request):
     if action in ('observe','failure','analyze','resume_analysis','confirm_deleted','gc','register_snapshot','scope','start','next','complete_work','terms','retry','finish'):
+        from .access import require_maintainer
+        require_maintainer()
         from .coordination import gate
         from .execution_lock import ExecutionLock
         # A source writer lease serializes multi-transaction collection. Shared

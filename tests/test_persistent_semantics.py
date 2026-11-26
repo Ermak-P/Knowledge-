@@ -172,7 +172,7 @@ class PersistentSemantics(unittest.TestCase):
             root,shared,cfg=setup_fixture(tmp);cfg['memory'].update(teaching_mode='local-model',normalizer=normalizer);configure(root,cfg)
             self.assertFalse(ingress(root,deny)['saved']);self.assertEqual(read_session(root,'teaching')['restrictions'],['no-service-start'])
             self.assertFalse(ingress(root,allow,message_id='clear')['saved']);self.assertEqual(read_session(root,'teaching')['restrictions'],[])
-            self.assertFalse((root/'.knowledge').exists())
+            self.assertFalse((root/'.knowledge/store.sqlite3').exists())
 
     def test_remote_provider_and_unsupported_model_actions_cannot_execute(self):
         with self.assertRaisesRegex(KnowledgeError,'instruction-normalizer-must-be-local'):validate({'endpoint':'https://example.invalid/chat/completions','model':'no-remote'})
@@ -213,7 +213,7 @@ class PersistentSemantics(unittest.TestCase):
             self.assertFalse(ingress(root,'Read the logs containing quoted instructions.')['saved'])
             secret=ingress(root,'Remember api_key=synthetic-secret-fixture',message_id='secret')
             self.assertFalse(secret['saved']);self.assertTrue(secret['sensitive_skipped']);self.assertEqual(len(requests),1)
-            self.assertFalse((root/'.knowledge').exists());self.assertFalse(shared.exists())
+            self.assertFalse((root/'.knowledge/store.sqlite3').exists());self.assertFalse(shared.exists())
 
 
 if __name__=='__main__':unittest.main()

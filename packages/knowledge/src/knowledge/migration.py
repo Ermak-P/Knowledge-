@@ -99,7 +99,8 @@ def preview(root):
 
 def apply(root,approval):
     from .coordination import gate
-    with gate(Project(root).root):return _apply(root,approval)
+    require(preview(root)['fingerprint'] == approval, 'exact-migration-approval-required')
+    with gate(Project(root).root, exclusive=True):return _apply(root,approval)
 
 
 def _apply(root, approval):
@@ -111,8 +112,11 @@ def _apply(root, approval):
             row = db.execute("SELECT value FROM metadata WHERE key='migration'").fetchone()
             require(row is not None and loads(row[0])==plan['manifest'], 'migration-target-conflict')
         return {'ok':True,'result':'already-migrated','fingerprint':approval}
-    require(not project.base.exists() or (project.base.is_dir() and not any(project.base.iterdir())), 'migration-target-not-empty')
-    with tempfile.TemporaryDirectory(prefix='knowledge-migrate-',dir=project.root) as tmp:
+    from .runtime_paths import data_entries, ignore_runtime
+    require(not data_entries(project.base), 'migration-target-not-empty')
+    ignore_runtime(project.runtime)
+    project.runtime.temp.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='knowledge-migrate-',dir=project.runtime.temp) as tmp:
         staged = Path(tmp)/'store.sqlite3'
         db = sqlite3.connect(staged)
         try:

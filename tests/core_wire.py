@@ -32,7 +32,7 @@ class Wire:
     def initialize(self):
         value=self.request(101,'initialize',{'protocolVersion':'2025-11-25','clientInfo':{'name':'knowledge-reliability-peer','version':'1'},'capabilities':{'roots':{}} if self.roots else {}})
         self.send({'method':'notifications/initialized'});return value
-    def tool(self,name,**args):
+    def tool(self,name,/,**args):
         value=self.request(200+len(self.received),'tools/call',{'name':name,'arguments':args})
         return json.loads(value['content'][0]['text'])
     def close(self):

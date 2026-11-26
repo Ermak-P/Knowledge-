@@ -43,7 +43,7 @@ def save(root,value):
 @contextmanager
 def ownership(root,shared):
     with gate(Project(root).root,exclusive=True):
-        with gate(op.shared_root(shared),exclusive=True):yield
+        with gate(op.shared_root(shared),exclusive=True,global_store=True):yield
 
 
 def record(root,side,shared):

@@ -21,6 +21,17 @@ class CaptureIntegration(unittest.TestCase):
   configure(root,c,True);taskfile=Path(tmp)/'task.json';taskfile.write_text(json.dumps(p4task()));return root,taskfile
  def effects(self,root,d,rid):
   j=Journal(root);return dict(http=len(d.bodies),source=digest(__import__('harness.runtime',fromlist=['source_snapshot']).source_snapshot(j.project,2000000)),actions=j.actions(rid),requests=j.load(rid)['requests'])
+ def test_readonly_provider_installation_suppresses_enabled_capture(self):
+  from harness.runtime import config
+  with tempfile.TemporaryDirectory() as tmp,http_provider(Decisions()) as endpoint:
+   root,t=self.setup_project(tmp,endpoint);current=config(root)
+   install=Path(tmp)/'install';provider=install/'config/provider.json';provider.parent.mkdir(parents=True)
+   provider.write_text(json.dumps({'provider':current.pop('provider')}))
+   (install/'current.json').write_text(json.dumps({'mode':'readonly'}))
+   configure(root,{**current,'provider_ref':str(provider)})
+   result=self.answer(self.invoke(root,'run',input=t,options=['--fail-submit']))
+   self.assertEqual(result['capture'],{'state':'disabled','reason':'Knowledge installation is read-only'})
+   self.assertFalse(Store(root).status()['queue'])
  def test_missing_capture_defaults_off_and_preserves_pending_outbox(self):
   from harness.runtime import config, validate_config
   with tempfile.TemporaryDirectory() as tmp,http_provider(Decisions()) as endpoint:

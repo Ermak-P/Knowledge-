@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 from .project import safe_path
+from .runtime_paths import RuntimePaths
 from .util import KnowledgeError,require
 
 class ExecutionLock:
@@ -30,14 +31,23 @@ class ExecutionLock:
 
 class ProjectExecutionLock:
     """Stable root ownership plus the prior executor's metadata-file lease."""
-    def __init__(self,root):
-        root=Path(root);self.stable=ExecutionLock(root/'.harness-writer.lock')
+    def __init__(self,root,migration=False):
+        root=Path(root)
+        self.runtime = RuntimePaths(root)
+        self.migration = migration
+        self.stable=ExecutionLock(self.runtime.writer)
         self.legacy=ExecutionLock(root/'.harness/writer.lock') if (root/'.harness').is_dir() else None
     @property
     def fd(self):return self.legacy.fd if self.legacy else self.stable.fd
     @property
     def fds(self):return tuple(lock.fd for lock in (self.stable,self.legacy) if lock and lock.fd is not None)
     def acquire(self):
+        if not self.migration:
+            self.runtime.check_legacy()
+        if not self.runtime.base.exists():
+            from .runtime_paths import ignore_runtime
+            ignore_runtime(self.runtime)
+        safe_path(self.runtime.locks).mkdir(parents=True, exist_ok=True)
         self.stable.acquire()
         try:
             if self.legacy:self.legacy.acquire()

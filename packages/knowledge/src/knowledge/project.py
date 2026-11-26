@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import stat
 from .util import require, digest
+from .runtime_paths import RuntimePaths
 
 
 def _linked_info(info):
@@ -67,9 +68,14 @@ class Project:
         require(raw.is_dir(), 'project-root-must-exist')
         self.root = raw.resolve(strict=True)
         self.identity = digest(os.path.normcase(str(self.root)))
-        self.base = self.root / '.knowledge'
-        safe_tree(self.base)
-        self.db = self.base / 'store.sqlite3'
+        self.runtime = RuntimePaths(self.root)
+        self.base = self.runtime.base
+        from .access import readonly
+        if readonly():
+            safe_path(self.base)
+        else:
+            safe_tree(self.base)
+        self.db = self.runtime.db
 
     def describe(self):
         return {'root': str(self.root), 'identity': self.identity}

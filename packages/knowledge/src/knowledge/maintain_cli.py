@@ -6,13 +6,20 @@ from .util import KnowledgeError,loads,read_text,canonical_json,emit_json
 
 def main():
     p=argparse.ArgumentParser(description='Approved Knowledge/Harness maintenance')
-    p.add_argument('command',choices=['identity-inventory','identity-preview','identity-apply','identity-recover','identity-rollback-preview','identity-rollback','identity-history','backup-preview','upgrade-preview','restore-preview','index-upgrade-preview','index-rollback-preview','apply','status','recover','doctor'])
+    p.add_argument('command',choices=['identity-inventory','identity-preview','identity-apply','identity-recover','identity-rollback-preview','identity-rollback','identity-history','backup-preview','upgrade-preview','restore-preview','index-upgrade-preview','index-rollback-preview','apply','status','recover','doctor','runtime-migrate'])
     p.add_argument('--root',required=True);p.add_argument('--destination');p.add_argument('--archive');p.add_argument('--recovery');p.add_argument('--input',type=Path);p.add_argument('--approve')
     p.add_argument('--old-identity');p.add_argument('--workspace');p.add_argument('--transaction')
+    p.add_argument('--offline', action='store_true')
     p.add_argument('--table');p.add_argument('--cursor',type=int,default=0);p.add_argument('--limit',type=int,default=20);p.add_argument('--contents',action='store_true')
     a=p.parse_args()
     try:
-        if a.command.startswith('identity-'):
+        if a.command not in ('identity-inventory', 'identity-history', 'status', 'doctor'):
+            from .access import require_maintainer
+            require_maintainer()
+        if a.command == 'runtime-migrate':
+            from .runtime_migration import migrate
+            value = migrate(a.root, a.offline)
+        elif a.command.startswith('identity-'):
             from . import identity_migration as im
             if a.command=='identity-inventory':value=im.inventory(a.root,a.old_identity)
             elif a.command=='identity-preview':value=im.preview(a.root,a.old_identity,a.workspace)

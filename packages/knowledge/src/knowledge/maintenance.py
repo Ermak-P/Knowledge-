@@ -12,6 +12,7 @@ from . import __version__
 from .project import Project,safe_path,safe_tree
 from .coordination import gate
 from .execution_lock import ProjectExecutionLock
+from .runtime_paths import INFRASTRUCTURE, data_entries, move_entries, storage_files
 from .store import Store
 from .util import loads,read_text,canonical_json,digest,fingerprint,require,KnowledgeError
 MAX_BYTES=128*1024*1024
@@ -37,6 +38,8 @@ def profile():return 'windows' if os.name=='nt' else platform.system().lower()
 
 @contextmanager
 def frozen(root,recovery=False):
+    from .access import require_maintainer
+    require_maintainer()
     project=Project(root);lock=None;project._maintenance_reservations=[]
     safe_tree(project.root/'.harness');lock=ProjectExecutionLock(project.root).acquire()
     project._maintenance_execution=lock
@@ -121,8 +124,7 @@ def snapshot(project,allow_absent=False):
     for folder in ('.knowledge','.harness'):
         base=project.root/folder;safe_tree(base)
         if not base.exists():continue
-        for path in sorted(base.rglob('*')):
-            if not path.is_file():continue
+        for path in sorted(storage_files(base)):
             if path.name in ('writer.lock','init.lock') or path.name.endswith(('.sqlite3-journal','.sqlite3-wal','.sqlite3-shm')):continue
             require(not any(word in path.name.casefold() for word in ('credential','secret','privatekey')) and path.suffix.lower() not in ('.pem','.key','.pfx'),'backup-sensitive-file')
             rel=path.relative_to(project.root).as_posix()
@@ -135,7 +137,7 @@ def snapshot(project,allow_absent=False):
     require(files or allow_absent,'maintenance-state-absent')
     require(sum(map(len,files.values()))<=MAX_BYTES,'backup-too-large')
     require(first==source_identity(project.root),'source-changed-during-maintenance')
-    marker=project.root/'.maintenance/product-state.json';safe_path(marker)
+    marker=project.runtime.maintenance/'product-state.json';safe_path(marker)
     product_state=loads(read_text(marker)) if marker.exists() else None
     require(valid_marker(product_state),'unsupported-maintenance-version')
     extension=None
@@ -152,6 +154,10 @@ def absent_destination(path,root):
 
 def preview(root,operation,destination=None,archive=None,recovery=None):
     require(operation in ('backup','upgrade','restore','index-upgrade','index-rollback'),'unsupported-maintenance-operation')
+    if operation != 'restore':
+        project = Project(root)
+        project.runtime.check_legacy()
+        require(data_entries(project.base) or (project.root/'.harness').exists(), 'maintenance-state-absent')
     with frozen(root) as project:
         state,_=snapshot(project,operation=='restore')
         value=dict(version=1,operation=operation,project=project.identity,root=str(project.root),state=state,product=__version__)
@@ -190,6 +196,8 @@ def read_backup(archive,project):
                 require(not p.is_absolute() and '..' not in p.parts and '\\' not in info.filename and ':' not in info.filename and not info.is_dir(),'unsafe-backup-path')
                 require(stat.S_IFMT(info.external_attr>>16) in (0,stat.S_IFREG),'backup-links-denied')
                 require(info.filename=='MANIFEST.json' or p.parts[0] in ('.knowledge','.harness'),'unsafe-backup-path')
+                require(p.parts[0] != '.knowledge' or (len(p.parts) > 1 and p.parts[1].casefold() not in INFRASTRUCTURE),
+                        'backup-runtime-infrastructure-conflict')
                 safe_path(project.root/p)
             manifest=loads(z.read('MANIFEST.json').decode('utf-8'))
             require(isinstance(manifest,dict) and isinstance(manifest.get('files'),dict) and isinstance(manifest.get('counts'),dict),'invalid-backup-manifest')
@@ -234,7 +242,7 @@ def apply(root,value,approval):
         require(value['project']==project.identity and value['root']==str(project.root) and value['product']==__version__,'maintenance-project-or-version-mismatch')
         op=value['operation'];require(op in ('backup','upgrade','restore','index-upgrade','index-rollback'),'unsupported-maintenance-operation')
         state,files=snapshot(project,op=='restore')
-        for path in (project.root/'.maintenance/transactions').glob('*/journal.json'):
+        for path in (project.runtime.maintenance/'transactions').glob('*/journal.json'):
             prior=loads(read_text(path))
             if prior.get('status')=='COMPLETED' and prior.get('preview')==value and prior.get('approval')==approval:
                 if op.startswith('index-'):
@@ -246,7 +254,7 @@ def apply(root,value,approval):
                 return dict(ok=True,status='COMPLETED',result='already-completed',transaction=prior['id'])
         require(state==value['state'],'stale-maintenance-preview')
         if op=='backup':return dict(ok=True,operation=op,backup=create_backup(project,value['destination'],state,files))
-        txn=uuid.uuid4().hex;base=project.root/'.maintenance/transactions'/txn;base.mkdir(parents=True);safe_path(base)
+        txn=uuid.uuid4().hex;base=project.runtime.maintenance/'transactions'/txn;base.mkdir(parents=True);safe_path(base)
         journal=dict(version=1,id=txn,operation=op,project=project.identity,status='PREPARED',preview=value,approval=approval)
         if op in ('upgrade','index-upgrade','index-rollback'):
             journal['backup']=create_backup(project,value['destination'],state,files)
@@ -257,7 +265,7 @@ def apply(root,value,approval):
             for rel,data in restored.items():
                 path=base/'staged'/rel;safe_path(path);path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(data)
             journal['desired_files']=manifest['files']
-        write(base/'journal.json',journal);write(project.root/'.maintenance/active.json',{'version':1,'transaction':txn,'project':project.identity})
+        write(base/'journal.json',journal);write(project.runtime.fence,{'version':1,'transaction':txn,'project':project.identity})
         fault('maintenance-prepared')
         return _finish(project,journal,base)
 
@@ -274,12 +282,13 @@ def _finish(project,journal,base):
         from .sqlite_indexes import finish
         return finish(project,journal,base)
     if journal['operation']=='restore':
-        for folder in ('.knowledge','.harness'):
-            staged=base/'staged'/folder;saved=Path(journal['saved'])/folder
-            expected={p:h for p,h in journal['desired_files'].items() if p.startswith(folder+'/')}
-            old={p:h for p,h in value['state']['files'].items() if p.startswith(folder+'/')}
-            if staged.exists():require(_folder_files(staged,project)==expected,'restore-staged-state-conflict')
-            if saved.exists():require(_folder_files(saved,project)==old,'restore-preserved-state-conflict')
+        harness_staged = base/'staged/.harness'
+        harness_saved = Path(journal['saved'])/'.harness'
+        for folder, source in ((harness_staged, journal['desired_files']), (harness_saved, value['state']['files'])):
+            if folder.exists():
+                expected = {p: h for p, h in source.items() if p.startswith('.harness/')}
+                require(_folder_files(folder, project) == expected,
+                        'restore-staged-state-conflict' if folder == harness_staged else 'restore-preserved-state-conflict')
         # Participating clients remain fenced. Legacy programs must be quiescent;
         # initial SQLite reservations reject active legacy transactions. Close our
         # own DB handles before native directory replacement (Windows sharing).
@@ -290,6 +299,27 @@ def _finish(project,journal,base):
             target=project.root/folder;staged=base/'staged'/folder;saved=Path(journal['saved'])/folder
             expected={p:h for p,h in journal['desired_files'].items() if p.startswith(folder+'/')}
             old={p:h for p,h in value['state']['files'].items() if p.startswith(folder+'/')}
+            if folder == '.knowledge':
+                if not journal.get('knowledge_archived'):
+                    preserved = _folder_files(saved, project)
+                    if preserved != old or not saved.exists():
+                        live = _folder_files(target, project)
+                        require(not (preserved.keys() & live.keys()) and {**preserved, **live} == old,
+                                'restore-intervening-state-conflict')
+                        require(_folder_files(staged, project) == expected, 'restore-staged-state-conflict')
+                        move_entries(target, saved)
+                        fault('restore-old-moved')
+                    journal['knowledge_archived'] = True
+                    write(base/'journal.json', journal)
+                require(_folder_files(saved, project) == old, 'restore-preserved-state-conflict')
+                live, pending = _folder_files(target, project), _folder_files(staged, project)
+                require(not (live.keys() & pending.keys()) and {**live, **pending} == expected,
+                        'restore-staged-state-conflict')
+                if data_entries(staged):
+                    move_entries(staged, target)
+                    fault('restore-new-moved')
+                require(_folder_files(target, project) == expected, 'restore-target-integrity-failed')
+                continue
             if saved.exists():require(_folder_files(saved,project)==old,'restore-preserved-state-conflict')
             if staged.exists():require(_folder_files(staged,project)==expected,'restore-staged-state-conflict')
             if not saved.exists() and target.exists() and folder not in journal.get('installed',[]):
@@ -307,7 +337,7 @@ def _finish(project,journal,base):
         current['product']=value['state']['product'] # Finish an already-approved supported predecessor operation without changing its meaning.
         if marker and marker.get('transaction')==journal['id']:current['product_state']=value['state']['product_state']
         require(current==value['state'],'upgrade-intervening-state-conflict')
-    marker_path=project.root/'.maintenance/product-state.json'
+    marker_path=project.runtime.maintenance/'product-state.json'
     if journal['operation']=='restore':
         saved_marker=Path(journal['saved'])/'product-state-before-restore.json'
         if not saved_marker.exists():write(saved_marker,value['state']['product_state'])
@@ -320,14 +350,14 @@ def _finish(project,journal,base):
         write(marker_path,marker)
     fault('maintenance-committed')
     journal['status']='COMPLETED';write(base/'journal.json',journal)
-    (project.root/'.maintenance/active.json').unlink()
+    (project.runtime.fence).unlink()
     return dict(ok=True,operation=journal['operation'],transaction=journal['id'],status='COMPLETED',backup=journal.get('backup'),replaced_state=journal.get('saved'),canonical_approval='unchanged; no auto-acknowledgment',source_files='preserved')
 
 def _folder_files(base,project):
     if not base.exists():return {}
     result={};safe_tree(base)
-    for p in sorted(base.rglob('*')):
-        if not p.is_file() or p.name in ('writer.lock','init.lock') or p.name.endswith(('.sqlite3-journal','.sqlite3-wal','.sqlite3-shm')):continue
+    for p in sorted(storage_files(base)):
+        if p.name in ('writer.lock','init.lock') or p.name.endswith(('.sqlite3-journal','.sqlite3-wal','.sqlite3-shm')):continue
         rel=base.name+'/'+p.relative_to(base).as_posix()
         # Backup-API copies are deterministic snapshots, including live DB control pages.
         data=database(p,project)[0] if p.name in ('store.sqlite3','runs.sqlite3') else p.read_bytes()
@@ -335,7 +365,7 @@ def _folder_files(base,project):
     return result
 
 def status(root):
-    project=Project(root);base=project.root/'.maintenance';safe_tree(base)
+    project=Project(root);base=project.runtime.maintenance;safe_tree(base)
     active=base/'active.json'
     identity=[]
     for path in sorted(base.glob('identity-*.json')):
@@ -344,16 +374,16 @@ def status(root):
 
 def recover(root):
     # Identity migration uses its own source contract and rollback journal.
-    marker=safe_path(Project(root).root/'.maintenance/active.json')
+    marker=safe_path(Project(root).runtime.fence)
     if marker.exists():
         value=loads(read_text(marker))
         if value.get('kind')=='sqlite-identity-migration-v1':
             from .identity_migration import recover as identity_recover
             return identity_recover(root,value['transaction'])
     with frozen(root,recovery=True) as project:
-        fence=project.root/'.maintenance/active.json';require(fence.exists(),'no-maintenance-to-recover')
+        fence=project.runtime.fence;require(fence.exists(),'no-maintenance-to-recover')
         value=loads(read_text(fence));require(isinstance(value,dict) and type(value.get('version')) is int and value.get('version')==1 and value.get('project')==project.identity,'unsupported-maintenance-fence')
         txn=value['transaction'];require(isinstance(txn,str) and len(txn)==32 and all(c in '0123456789abcdef' for c in txn),'invalid-maintenance-transaction')
-        base=project.root/'.maintenance/transactions'/txn;safe_tree(base);journal=loads(read_text(base/'journal.json'))
+        base=project.runtime.maintenance/'transactions'/txn;safe_tree(base);journal=loads(read_text(base/'journal.json'))
         if journal['status']=='COMPLETED':fence.unlink();return dict(ok=True,status='COMPLETED',transaction=txn)
         return _finish(project,journal,base)

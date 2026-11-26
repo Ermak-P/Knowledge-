@@ -6,17 +6,17 @@ Physical extraction coverage is distinct from lexical/semantic completeness.
 import codecs
 import fnmatch
 import hashlib
-import json
 from pathlib import Path
 import re
 import xml.etree.ElementTree as ET
 from .project import safe_path
+from .runtime_paths import RuntimePaths
+from . import json_source
 from .util import KnowledgeError, loads, require
 
-VERSION = 'source-reader-v1'
-CONFIG = '.knowledge/discovery.json'
+VERSION = 'source-reader-v2'
 ENCODINGS = {'utf-8', 'utf-8-sig', 'utf-16', 'utf-16-le', 'utf-16-be', 'cp1251', 'cp1252', 'iso8859-1'}
-STRUCTURED = {'.json', '.xml', '.config', '.yaml', '.yml', '.md'}
+STRUCTURED = {'.json', '.jsonc', '.xml', '.config', '.yaml', '.yml', '.md'}
 
 
 def matches(path, pattern):
@@ -24,13 +24,13 @@ def matches(path, pattern):
 
 
 def policy(root, limit):
-    path = safe_path(Path(root) / CONFIG)
+    path = safe_path(RuntimePaths(root).base / 'discovery.json')
     if path.exists():
         with path.open('rb') as stream: data=stream.read(65537)
         require(len(data)<=65536,'discovery-policy-too-large');raw=loads(data.decode('utf-8'))
     else: raw={'version':1}
     require(isinstance(raw, dict) and raw.get('version') == 1 and set(raw) <=
-            {'version', 'exclude', 'include', 'legacy_encodings', 'max_file_bytes', 'format_limits', 'max_hash_bytes'}, 'invalid-discovery-policy')
+            {'version', 'exclude', 'include', 'legacy_encodings', 'max_file_bytes', 'format_limits', 'max_hash_bytes', 'json_dialects'}, 'invalid-discovery-policy')
     value = {'version': 1, 'reader': VERSION, 'exclude': raw.get('exclude', []), 'include': raw.get('include', []),
              'legacy_encodings': raw.get('legacy_encodings', {}), 'max_file_bytes': raw.get('max_file_bytes', limit),
              'format_limits': raw.get('format_limits', {}), 'max_hash_bytes': raw.get('max_hash_bytes', 128 * 1024 * 1024)}
@@ -55,6 +55,14 @@ def policy(root, limit):
     for suffix, size in value['format_limits'].items():
         require(isinstance(suffix, str) and re.fullmatch(r'\.[a-z0-9]+', suffix) and type(size) is int
                 and 1024 <= size <= 8 * 1024 * 1024, 'invalid-format-limit')
+    overrides = raw.get('json_dialects', {})
+    require(isinstance(overrides, dict) and len(overrides) <= 100, 'invalid-json-dialect-policy')
+    for pattern, selected in overrides.items():
+        glob(pattern)
+        require(isinstance(selected, str) and selected in json_source.DIALECTS, 'invalid-json-dialect',
+                {'pattern': pattern, 'supported_values': sorted(json_source.DIALECTS)})
+    if overrides:
+        value['json_dialects'] = overrides
     return value
 
 
@@ -159,21 +167,19 @@ def read(root, relative, entry, config):
                 structure_validation='not-run-partial' if partial else 'content-only')
     if not partial:
         try:
-            if path.suffix.lower() == '.json':
-                loads(text); meta['structure_validation'] = 'json'
+            if path.suffix.lower() in ('.json', '.jsonc'):
+                meta['syntax_policy'] = json_source.dialect(relative, config)
+                json_source.validate(text, meta['syntax_policy'])
+                meta['structure_validation'] = 'json'
             elif path.suffix.lower() in ('.xml', '.config', '.csproj', '.props', '.targets') and text.lstrip().startswith('<'):
                 if re.search(r'<!\s*(DOCTYPE|ENTITY)\b', text, re.I): failure('EXTRACTION_FAILED', **{**meta, 'stage': 'xml-external-resources-disabled'})
                 ET.fromstring(text); meta['structure_validation'] = 'xml-no-dtd'
         except KnowledgeError as error:
             if error.code == 'EXTRACTION_FAILED': raise
             details={}
-            if path.suffix.lower()=='.json':
-                masked=re.sub(r'"(?:\\.|[^"\\])*"','""',text)
-                reason='unsupported-json-comments' if re.search(r'//|/\*',masked) else 'unsupported-json-trailing-comma' if re.search(r',\s*[}\]]',masked) else error.code
-                details=dict(syntax_policy='strict-json',syntax_reason=reason,
-                             next_action='JSONC comments/trailing commas need explicit dialect support; malformed input must be corrected. Syntax failures are not transient retries.')
-                cause=error.__cause__
-                if isinstance(cause,json.JSONDecodeError):details.update(line=cause.lineno,column=cause.colno)
+            if 'syntax_policy' in meta:
+                details = {**(error.details or {}), 'syntax_reason': error.code,
+                           'next_action': 'Correct the source syntax or configure its JSON dialect, then recover the scan.'}
             failure('EXTRACTION_FAILED', **{**meta, 'stage': 'structured-syntax',**details})
         except (ValueError, ET.ParseError,RecursionError) as error:
             failure('EXTRACTION_FAILED', **{**meta, 'stage': 'structured-syntax','exception':type(error).__name__})

@@ -1,12 +1,14 @@
 # Knowledge + Harness — P4 implementation candidate (0.5.0rc1)
 
-Standalone Knowledge MCP: from this source checkout run
-`./install.ps1 -McpDir 'C:\LLM\mcp\knowledge'` (PowerShell 5.1), then restart
-OpenCode 2.4.0 and use `/knowledge-init` in your project. The installer builds
+For standalone Knowledge MCP, run
+`./install.ps1 -McpDir 'C:\LLM\mcp\knowledge'` in PowerShell 5.1, then restart
+OpenCode. Fresh installations default to read-only. Pass `-Mode maintainer` to
+enable commands such as `/knowledge-init`. The installer builds
 source automatically and installs pinned MCP dependencies; Python 3.12 is the
 only runtime prerequisite. Installation does not require or initialize a project.
-The shared provider is `<McpDir>/config/provider.json`; the shipped demo remains
-`test-double`. Updates preserve user configuration and shared memory.
+Maintainers can configure the shared provider in `<McpDir>/config/provider.json`.
+The shipped demo remains `test-double`. Updates preserve user configuration and shared memory.
+See [consumer access, project upgrade, and SQLite maintenance](docs/P4/KNOWLEDGE-OPERATIONS.md).
 See [installation and commands (Russian)](docs/P4/AutomaticInstallation-RU.md)
 for global host registration, provider references, durable scan recovery and
 separate exact approval with `/knowledge-update` (the existing

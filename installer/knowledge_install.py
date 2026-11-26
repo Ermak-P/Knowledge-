@@ -422,7 +422,7 @@ def installed_ok(root, current):
     return inventory(generation) == expected
 
 
-def install(source, root, fail_after=None):
+def install(source, root, fail_after=None, requested_mode=None):
     require(sys.version_info[:2] == (3, 12), 'Python 3.12 is required. Install Python 3.12 from python.org, then rerun this command.')
     source = safe(source).resolve(strict=True)
     root = safe(root).resolve()
@@ -454,7 +454,8 @@ def install(source, root, fail_after=None):
     if host:
         check = subprocess.run([host, '--version'], capture_output=True, text=True, timeout=30)
         host_version = check.stdout.strip().removeprefix('opencode v')
-        require(check.returncode == 0 and host_version == '2.4.0', 'Supported OpenCode version is 2.4.0; found ' + host_version)
+        if check.returncode != 0:
+            host_version = 'unknown (opencode --version failed)'
     root.mkdir(parents=True, exist_ok=True)
     # Reservation supports retry after a failed first install, without adopting
     # arbitrary directories. It does not claim a working runtime.
@@ -485,14 +486,16 @@ def install(source, root, fail_after=None):
             release_hash = sha(kit / 'RELEASE.json')
             current_bytes = safe(root / 'current.json').read_bytes() if (root / 'current.json').exists() else None
             current = json.loads(current_bytes) if current_bytes is not None else None
+            access_mode = requested_mode or (current.get('mode', 'maintainer') if current else 'maintainer' if old.get('legacy') else 'readonly')
+            require(access_mode in ('readonly', 'maintainer'), 'Use --mode readonly or --mode maintainer.')
             current_hash = hashlib.sha256(current_bytes).hexdigest() if current_bytes is not None else None
             require(current == old.get('current'), 'Installation pointer/marker mismatch; preserved for recovery')
             provider_path = safe(root / 'config/provider.json')
             files_intact = all(Path(p).is_file() and sha(p) == h for p, h in old['files'].items())
-            require(not current or provider_path.is_file(), 'Shared provider is missing; restore config/provider.json from your backup, then rerun.')
-            if current and current.get('release_sha256') == release_hash and files_intact and py_at(root / 'bootstrap').is_file() and installed_ok(root, current):
+            if current and current.get('mode', 'maintainer') == access_mode and current.get('release_sha256') == release_hash and files_intact and py_at(root / 'bootstrap').is_file() and installed_ok(root, current):
                 require(all(Path(p).is_file() and sha(p) == h for p, h in old['files'].items()), 'Owned machine files changed; cannot claim unchanged')
-                validate_provider(py_at(root / current['runtime']), provider_path, log)
+                if access_mode == 'maintainer' and provider_path.exists():
+                    validate_provider(py_at(root / current['runtime']), provider_path, log)
                 call([py_at(root/'bootstrap'),'-I','-B',root/'launch.py','mcp','--self-test'],log)
                 return summary('UNCHANGED', root, current, provider_path, log, host_version)
             generation = root / 'runtimes' / uuid.uuid4().hex
@@ -513,7 +516,7 @@ def install(source, root, fail_after=None):
             shutil.copyfile(kit / 'RELEASE.json', generation / 'RELEASE.json')
             shutil.copytree(kit / 'docs', generation / 'docs')
             validate_provider(python, kit / 'default-provider.json', log)
-            if provider_path.exists():
+            if access_mode == 'maintainer' and provider_path.exists():
                 validate_provider(python, provider_path, log)
             # A real stdio transport check, with no project and no model.
             call([python, '-I', '-m', 'knowledge.machine_mcp', '--self-test', '--installation', root], log)
@@ -521,17 +524,17 @@ def install(source, root, fail_after=None):
             bootstrap = root / 'bootstrap'
             if not py_at(bootstrap).exists():
                 call([sys.executable, '-I', '-m', 'venv', '--without-pip', bootstrap], log)
-            selected = {'version': 1, 'runtime': generation.relative_to(root).as_posix(), 'product': VERSION,
+            selected = {'version': 1, 'runtime': generation.relative_to(root).as_posix(), 'product': VERSION, 'mode': access_mode,
                         'generation_manifest_sha256': sha(generation / 'generation-files.json'), 'release_sha256': release_hash, 'source_identity': release['source_identity'], 'dependency_mode': mode}
             updates = {}
             default_hash = sha(kit / 'default-provider.json')
             provider_before = provider_path.read_bytes() if provider_path.exists() else None
             provider_hash = hashlib.sha256(provider_before).hexdigest() if provider_before is not None else None
-            if provider_before is None or provider_hash == old.get('factory_provider_sha256'):
+            if access_mode == 'maintainer' and (provider_before is None or provider_hash == old.get('factory_provider_sha256')):
                 updates[provider_path] = (kit / 'default-provider.json').read_bytes()
             updates[root / 'launch.py'] = BOOTSTRAP.encode()
             updates[root / 'windows-process.py'] = (kit / 'windows-process.py').read_bytes()
-            settings = {'version': 1, 'installation': str(root), 'python': str(py_at(bootstrap)), 'launcher': str(root / 'launch.py'), 'host_contract': 'opencode-2.4.0'}
+            settings = {'version': 1, 'installation': str(root), 'python': str(py_at(bootstrap)), 'launcher': str(root / 'launch.py'), 'host_contract': 'opencode-promise-plugin', 'mode': access_mode}
             updates[home / '.knowledge-machine.json'] = data(settings)
             updates[home / 'plugins/knowledge-machine.js'] = (kit / 'host/machine_opencode.mjs').read_bytes()
             for name in ('knowledge-init', 'knowledge-candidates-update', 'knowledge-candidates-push', 'knowledge-confluence', 'knowledge-update'):
@@ -542,7 +545,9 @@ def install(source, root, fail_after=None):
             updates[root / 'README.md'] = (kit / 'docs/AutomaticInstallation-RU.md').read_bytes()
             files[str(root / 'README.md')] = hashlib.sha256(updates[root / 'README.md']).hexdigest()
             updates[root / 'current.json'] = data(selected)
-            value = {**old, 'state': 'installed', 'current': selected, 'files': files, 'factory_provider_sha256': default_hash}
+            value = {**old, 'state': 'installed', 'current': selected, 'files': files}
+            if provider_path in updates:
+                value['factory_provider_sha256'] = default_hash
             updates[marker] = data(value)
             expected_before = {path: expected_owned.get(str(path)) for path in updates}
             expected_before[root / 'current.json'] = current_hash
@@ -550,22 +555,24 @@ def install(source, root, fail_after=None):
             if provider_path in updates: expected_before[provider_path] = provider_hash
             transaction(root, updates, fail_after, expected_before=expected_before,
                         verify=lambda:call([py_at(bootstrap),'-I','-B',root/'launch.py','mcp','--self-test'],log))
-            return summary('UPDATED' if current or legacy else 'INSTALLED', root, selected, provider_path, log, host_version)
+            return summary('UPDATED' if current or old.get('legacy') else 'INSTALLED', root, selected, provider_path, log, host_version)
 
 
 def summary(status, root, current, provider, log, host_version):
     return {'status': status, 'path': str(root), 'version': VERSION, 'source_identity': current['source_identity'],
-            'provider': str(provider), 'mcp': 'stdio handshake/list-tools verified', 'commands': '5 global OpenCode commands installed',
-            'host': host_version or 'OpenCode 2.4.0 contract; executable not on PATH', 'reload': 'Restart the host to launch the current MCP generation. Existing processes are retained.',
+            'provider': str(provider) if provider.exists() else 'unconfigured', 'mcp': 'stdio handshake/list-tools verified',
+            'mode': current.get('mode', 'maintainer'), 'commands': '5 global OpenCode maintainer commands installed' if current.get('mode', 'maintainer') == 'maintainer' else 'OpenCode consumer MCP registered',
+            'host': host_version or 'OpenCode executable not on PATH; standalone MCP is available', 'reload': 'Restart the host to launch the current MCP generation. Existing processes are retained.',
             'dependency_mode': current['dependency_mode'], 'log': str(log)}
 
 
 def main(source):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mcp-dir', '-McpDir', type=Path, required=True)
+    parser.add_argument('--mode', choices=('readonly', 'maintainer'))
     args = parser.parse_args()
     try:
-        value = install(Path(source), args.mcp_dir.absolute())
+        value = install(Path(source), args.mcp_dir.absolute(), requested_mode=args.mode)
         atomic(Path(value['log']).with_suffix('.json'), data(value))
         print(value['status'] + ' ' + value['path'])
         print('Version: ' + value['version'] + '; source: ' + value['source_identity'])

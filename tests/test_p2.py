@@ -47,7 +47,7 @@ class RunnerTests(unittest.TestCase):
             self.assertTrue(result['ok']);report=status(root,result['run_id'])
             self.assertTrue(any(a.get('knowledge_reason')=='knowledge-absent' for a in report['run']['agents']))
             self.assertEqual(context(root,'Feature')['mode'],'degraded')
-            self.assertFalse((root/'.knowledge').exists())
+            self.assertFalse((root/'.knowledge/store.sqlite3').exists())
 
     def test_context_isolation_actual_bytes_and_shared_history_comparison(self):
         from harness.comparison import compare

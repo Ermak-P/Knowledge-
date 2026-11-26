@@ -36,6 +36,10 @@ def parser():
 
 
 def execute(a):
+    if a.command not in ('version', 'validate', 'context', 'lookup', 'status', 'export', 'reconcile', 'history',
+                         'scan-status', 'memory-lookup', 'memory-inspect', 'memory-history'):
+        from .access import require_maintainer
+        require_maintainer()
     if a.command.startswith('memory-'):
         from . import operations as op
         if a.command=='memory-transfer-recover':

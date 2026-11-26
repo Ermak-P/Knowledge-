@@ -156,6 +156,10 @@ def job_summary(folder, binding, provider):
     if state.get('resume_failure'):
         result.update(ok=False, error='resume-scan-configuration-drift', details=state['resume_failure'],
                       next_action=compatibility['next_action'])
+    if state.get('recovery_of'):
+        result['recovery_of'] = state['recovery_of']
+    if state.get('recovery_failure'):
+        result['details'] = state['recovery_failure']
     return result
 
 
@@ -178,7 +182,12 @@ def project_configuration(installation, project):
 def lexical_scan(installation, project, store, state_dir, kind, action, value):
     root = project.root
     owner = project.describe()
-    require(action in ('start', 'status', 'cancel'), 'invalid-scan-action')
+    require(action in ('start', 'status', 'cancel', 'recover'), 'invalid-scan-action')
+    recovery_of = value.get('recovery_of')
+    import re
+    require((action == 'recover') == (recovery_of is not None) and
+            (recovery_of is None or isinstance(recovery_of, str) and re.fullmatch('[0-9a-f]{64}', recovery_of)),
+            'invalid-recovery-scan-id', {'example': {'action': 'recover', 'scan_id': '<id from section=scans>'}})
     resume, fresh = value.get('resume', False), value.get('fresh', False)
     require(not (resume and fresh) and (action == 'start' or not (resume or fresh)), 'invalid-recovery-controls')
     base, head = value.get('base'), value.get('head')
@@ -220,12 +229,14 @@ def lexical_scan(installation, project, store, state_dir, kind, action, value):
     if metadata.exists():
         active = scan_jobs.status(folder, owner)
         if active['state'] in scan_jobs.ACTIVE:
-            if resume:
+            if resume or recovery_of:
                 raise KnowledgeError('scan-worker-active', scan_jobs.resume_details(active, binding, 'scan-worker-active'))
             require(not fresh, 'scan-active-cancel-before-fresh')
             require(active['scope'] == scope, 'active-scan-scope-mismatch')
             return job_summary(folder, binding, provider)
-    if not resume and kind == 'full':
+    if recovery_of:
+        ready(store)
+    elif not resume and kind == 'full':
         if not store.path.exists() and (root / '.ai').exists():
             from . import migration
             preview = migration.preview(root)
@@ -247,7 +258,8 @@ def lexical_scan(installation, project, store, state_dir, kind, action, value):
         project_configuration(installation, project)
 
     launched = scan_jobs.start(folder, root, scope, binding, max_files=value.get('max_files', 100),
-                               resume=resume, fresh=fresh, observed_scan_id=value.get('observed_scan_id'))
+                               resume=resume, fresh=fresh, observed_scan_id=value.get('observed_scan_id'),
+                               recovery_of=recovery_of)
     if failure := launched.get('resume_failure'):
         raise KnowledgeError('resume-scan-configuration-drift', failure)
     return {**job_summary(folder, binding, provider), **configured}
@@ -255,13 +267,19 @@ def lexical_scan(installation, project, store, state_dir, kind, action, value):
 
 def execute(command, installation, directory, value):
     if command=='knowledge-update':command='knowledge-candidates-push'
-    extra={'scope','operations','extra_operations','capabilities','request'} if command=='knowledge-confluence' else set()
+    extra={'scope','operations','extra_operations','capabilities','request'} if command=='knowledge-confluence' else {'recovery_of'} if command in ('knowledge-init','knowledge-candidates-update') else set()
     if command == 'knowledge-candidates-push':
         extra = {'job_id', 'wait_seconds', 'execution_seconds'}
     require(isinstance(value, dict) and set(value) <= {'roots', 'directory', 'action', 'approve', 'plan', 'upgrade_approval', 'migration_approval', 'base', 'head', 'max_files', 'candidates', 'resume', 'fresh', 'allow_test_double','observed_scan_id','rebuild_scan_id'}|extra, 'invalid-command-input')
     require(all(key not in value or type(value[key]) is bool for key in ('resume', 'fresh','allow_test_double')), 'invalid-recovery-controls')
     require(value.get('observed_scan_id') is None or (value.get('resume') is True and not value.get('fresh') and value.get('action','start')=='start'),'observed-scan-requires-resume')
     installation = installation_at(installation)
+    from .access import readonly, require_maintainer
+    if readonly(installation):
+        if value.get('action') == 'capabilities':
+            from .machine_mcp import READ_TOOLS
+            return {'ok': True, 'contract': 'knowledge-machine-v2', 'mode': 'readonly', 'tools': sorted(READ_TOOLS)}
+        require_maintainer(installation)
     root = resolve_root(directory, value.get('roots'))
     require(not root.is_relative_to(installation) and not installation.is_relative_to(root), 'installation-and-project-must-be-separate')
     project = Project(root)
@@ -286,7 +304,7 @@ def execute(command, installation, directory, value):
     if action=='capabilities':
         from .machine_mcp import TOOL_NAMES
         return {'ok':True,'contract':'knowledge-machine-v2','tools':sorted(TOOL_NAMES),'root':str(root),
-                'scan_actions':['start','status','resume','fresh','cancel'],
+                'scan_actions':['start','status','resume','fresh','cancel','recover'],
                 'plan_actions':['prepare','rebuild','status','cancel','resume','apply','recover'],
                 'provider':{'endpoint':provider['endpoint'],'model':provider['model'],'evidence':provider['evidence']},
                 'provider_reference':binding['provider_reference'],'host_permission':'Not granted by backend discovery; actual MCP calls remain host-authorized.'}
@@ -332,16 +350,26 @@ def execute(command, installation, directory, value):
 
 
 def diagnostics(installation,directory,scope='full',section='failures',cursor=0,limit=20,max_bytes=16000,group=None,candidate=None,operation=None,plan=None,collection=None,scan_id=None):
-    require(scope in ('full','incremental') and section in ('failures','coverage','reconciliation','impact','policy','identity','scans','checkpoint','duplicates','candidate','plan-progress','plan-dispositions'), 'invalid-diagnostic-section')
-    require(type(cursor) is int and cursor>=0 and type(limit) is int and 1<=limit<=100,'invalid-diagnostic-page')
-    if scan_id is not None:
-        import re
-        require(isinstance(scan_id, str) and re.fullmatch('[0-9a-f]{64}', scan_id)
-                and section in ('scans','failures','coverage','reconciliation','impact','policy','identity'),
-                'invalid-diagnostic-scan-id')
+    from .diagnostic_contract import validate
+    validate(scope, section, cursor, limit, max_bytes, group=group, candidate=candidate,
+             operation=operation, plan=plan, collection=collection, scan_id=scan_id)
     installation=installation_at(installation);root=resolve_root(directory);project=Project(root)
     require(not root.is_relative_to(installation) and not installation.is_relative_to(root),'installation-and-project-must-be-separate')
     from .diagnostic_pages import page
+    if section == 'candidates':
+        store = Store(root)
+        if scan_id is not None:
+            scans = discovery.status(store, scan_id)['scans']
+            require(len(scans) == 1, 'unknown-scan', {'next_invocation': {'section': 'scans'}})
+            require(bool(scans[0].get('incremental')) == (scope == 'incremental'), 'scan-job-scope-binding-mismatch')
+            rows = [{'candidate': cid} for cid in scans[0]['candidates']]
+        elif plan is not None:
+            rows = store.plan_dispositions(plan)
+        else:
+            with store._telemetry_connection({'queue'}) as db:
+                rows = [{'candidate': cid, 'status': status} for cid, status in
+                        db.execute('SELECT id,status FROM queue ORDER BY id')]
+        return page(rows, {'ok': True, 'section': section, 'scan_id': scan_id, 'plan': plan}, cursor, limit, max_bytes)
     if section in ('plan-progress', 'plan-dispositions'):
         from . import plan_jobs
         base = safe_path(installation / 'state/projects' / project.identity)
@@ -375,7 +403,8 @@ def diagnostics(installation,directory,scope='full',section='failures',cursor=0,
     if section=='scans':
         scans=discovery.status(Store(root),scan_id,summaries=True)['scans']
         rows=[{'scan_id':s['id'],'source_identity':s['snapshot']['identity'],'revision':s['snapshot']['revision'],
-               'complete':s['complete'],'state':s.get('state'),'coverage':s.get('counters'),'incremental':s.get('incremental',False)} for s in scans]
+               'complete':s['complete'],'state':s.get('state'),'coverage':s.get('counters'),'incremental':s.get('incremental',False),
+               **({'recovery_of': s['recovery_of']} if s.get('recovery_of') else {})} for s in scans]
         return page(rows,{'ok':True,'section':section,'canonical_unchanged':True},cursor,limit,max_bytes)
     base=safe_path(installation / 'state/projects' / project.identity)
     job = None

@@ -8,7 +8,7 @@ Fresh, повторная регистрация MCP и обычный `.ai` imp
 Отдельная [локальная проверка Windows/IPM](Knowledge-IPM-Integration-Validation.md)
 содержит точные шаги обновления, резервного копирования и отката.
 
-Поддерживается OpenCode **2.4.0**. Нужен Python **3.12**: установщик находит его
+Поддерживаются версии OpenCode с совместимым Promise Plugin API. Нужен Python **3.12**. Установщик находит его
 через PATH или Windows `py -3.12`. Если его нет, установите Python 3.12 с
 python.org и повторите команду. Автоматическая загрузка Python не реализована.
 SDK, Visual Studio, Kafka, модели и серверы inference не устанавливаются.
@@ -33,6 +33,12 @@ Linux с Python 3.12:
 sh /path/to/Knowledge-Source/install.sh --mcp-dir '/path/to/Knowledge runtime'
 ```
 
+Новая установка по умолчанию работает в режиме `readonly`. Для сканирования,
+подготовки планов и других операций сопровождения укажите `-Mode maintainer`
+в PowerShell или `--mode maintainer` в Linux. Обновление сохраняет выбранный режим.
+Порядок переноса проектных блокировок и инструкции по обслуживанию SQLite
+приведены в [руководстве](KNOWLEDGE-OPERATIONS.md).
+
 Для Linux проверяется переносимый профиль; native Windows PowerShell 5.1 —
 отдельный профиль проверки. Поддержку других native-хостов это не доказывает.
 
@@ -46,9 +52,9 @@ sh /path/to/Knowledge-Source/install.sh --mcp-dir '/path/to/Knowledge runtime'
 
 В `McpDir` находятся `bootstrap`, поколения `runtimes`, стабильный `launch.py`,
 `knowledge-init-auto.py`, `README.md`, инструкции в `runtimes/<id>/docs`,
-`config/provider.json`, `state`, журналы и marker
-владения. Настройки и общая память `shared` сохраняются при обновлении. Старое
-поколение не удаляется: уже запущенный MCP продолжает работать. Перезапустите
+`state`, журналы и marker владения. В режиме `maintainer` используется
+`config/provider.json`. Настройки и общая память `shared` сохраняются при обновлении.
+Уже запущенный MCP продолжает работать в старом поколении. Перезапустите
 OpenCode, чтобы запустить новое поколение. Установщик не завершает чужие процессы
 и не утверждает, что уже работающий хост переключился автоматически.
 
