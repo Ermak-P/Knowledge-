@@ -15,7 +15,8 @@ def exists(db):
 
 def configuration(snapshot):
     shared = [[p, e['hash']] for p, e in sorted(snapshot['files'].items())
-              if PurePosixPath(p).suffix.lower() in ('.props', '.targets', '.sln', '.config')]
+              if PurePosixPath(p).suffix.lower() in ('.props', '.targets', '.sln', '.config')
+              or PurePosixPath(p).name.casefold() == 'global.json']
     return digest([snapshot['policy'], snapshot['extractor'], POLICY, shared])
 
 
@@ -27,6 +28,8 @@ def binding(project, snapshot, path, context):
 
 
 def compatible(db, project, snapshot, paths, context, legacy):
+    paths = {path for path in paths if snapshot['files'][path]['status'] == 'not-analyzed'
+             and snapshot['files'][path]['hash'] is not None}
     if not paths:
         return {}
     result = {}
@@ -36,7 +39,7 @@ def compatible(db, project, snapshot, paths, context, legacy):
                 continue
             require(digest([key, payload]) == checksum, 'corrupt-discovery-observation-cache', {'path': path})
             observations = loads(payload)
-            require(isinstance(observations, list) and all(o.get('path') == path
+            require(isinstance(observations, list) and all(isinstance(o, dict) and o.get('path') == path
                     and o.get('content_hash') == snapshot['files'][path]['hash']
                     and o.get('project') == snapshot['files'][path]['partition']
                     and o.get('method') == snapshot['extractor'] for o in observations),

@@ -3,6 +3,7 @@ import contextlib
 import io
 from pathlib import Path
 import os
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -116,6 +117,20 @@ class DiscoveryOptimization(unittest.TestCase):
         self.assertEqual([c.args[1] for c in extracts.call_args_list], ['A.cs'])
         self.assertEqual(error.exception.details['path_sample'], ['B.cs'])
         self.assertEqual(discovery.capture_observation_receipts(self.store)['receipts'], [])
+
+    def test_cached_unchanged_bytes_do_not_override_an_unmerged_index(self):
+        self.write('A.cs', 'class A {}')
+        self.write('B.cs', 'class B {}')
+        self.commit_fixture()
+        discovery.scan(self.store)
+        blob = git(self.root, 'rev-parse', 'HEAD:B.cs')
+        changes = f"0 {'0' * len(blob)}\tB.cs\n100644 {blob} 1\tB.cs\n"
+        subprocess.run(['git', '-C', str(self.root), 'update-index', '--index-info'], input=changes,
+                       text=True, check=True)
+        self.write('A.cs', 'class Changed {}')
+        with self.assertRaisesRegex(KnowledgeError, 'capture-observation-cache-incomplete') as error:
+            discovery.candidate_observe(self.store, ['A.cs'])
+        self.assertEqual(error.exception.details['path_sample'], ['B.cs'])
 
     def test_checkpoint_checksum_blocks_recovery_before_any_extraction(self):
         self.write('A.cs', 'class A {}')
