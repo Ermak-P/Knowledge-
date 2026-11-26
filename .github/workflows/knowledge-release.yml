@@ -1,0 +1,106 @@
+name: Knowledge release package
+on:
+  push:
+    tags: ['knowledge-*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'New release tag (knowledge- prefix); build the selected revision'
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  confluence-windows:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.longpaths
+          GIT_CONFIG_VALUE_0: 'true'
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Installed native Confluence regression tests
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:PYTHONUTF8 = '1'
+          $env:PYTHONIOENCODING = 'utf-8'
+          $FixtureTemp = Join-Path $env:RUNNER_TEMP 'knowledge-release-native-fixtures'
+          New-Item -ItemType Directory -Force -Path $FixtureTemp | Out-Null
+          $env:TEMP = $FixtureTemp
+          $env:TMP = $FixtureTemp
+          $env:TMPDIR = $FixtureTemp
+          python scripts/setup_p3.py
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          & .venv/Scripts/python.exe -X utf8 -B scripts/confluence_release_tests.py --output reports/confluence-release-tests.json
+          exit $LASTEXITCODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: confluence-windows-regressions
+          path: reports/confluence-release-tests.json
+      - name: Retain compact native result (including failures)
+        if: always()
+        shell: powershell
+        run: |
+          if (Test-Path reports/confluence-release-tests.json) {
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git tag -a "validation-confluence-$env:GITHUB_SHA-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT" -F reports/confluence-release-tests.json $env:GITHUB_SHA
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+            git push origin "refs/tags/validation-confluence-$env:GITHUB_SHA-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+            exit $LASTEXITCODE
+          }
+  package:
+    needs: confluence-windows
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: confluence-windows-regressions
+          path: native-validation
+      - name: Build reproducible kit
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          [[ "$RELEASE_TAG" =~ ^knowledge-[A-Za-z0-9._-]+$ ]] || exit 1
+          python -m pip install -r requirements-dev.lock
+          python scripts/build_p4.py --output dist/release --source-id "$GITHUB_SHA"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-package
+          path: |
+            dist/release/*.zip
+            dist/release/*.sha256
+      - name: Create new draft Release (never replace an existing release)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" dist/release/*.zip dist/release/*.sha256 --draft --target "$GITHUB_SHA" --title "$RELEASE_TAG" --notes 'Source kit for review; consult exact-source validation receipts and Actions artifacts.'
+      - name: Verify uploaded bytes and retain compact draft asset receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          python scripts/release_receipt.py --tag "$RELEASE_TAG" --commit "$GITHUB_SHA" --directory dist/release --native-summary native-validation/confluence-release-tests.json --output "$RUNNER_TEMP/release-receipt.json"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag -a "validation-release-$GITHUB_SHA" -F "$RUNNER_TEMP/release-receipt.json" "$GITHUB_SHA"
+          git push origin "refs/tags/validation-release-$GITHUB_SHA"

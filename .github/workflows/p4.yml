@@ -98,7 +98,7 @@ jobs:
     if: >-
       always() && needs.revision.result == 'success' &&
       github.event_name != 'pull_request' && github.repository == 'Ermak-P/Knowledge-' &&
-      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/integrated-fixes' || github.ref == 'refs/heads/codex/automatic-test-discovery' || github.ref == 'refs/heads/codex/persistent-instructions' || github.ref == 'refs/heads/codex/audit-stages-1-2' || github.ref == 'refs/heads/codex/sqlite-optimization' || github.ref == 'refs/heads/codex/update-by-cr' || github.ref == 'refs/heads/codex/automatic-installer' || github.ref == 'refs/heads/codex/core-reliability-fix' || github.ref == 'refs/heads/codex/knowledge-plan-deduplication-recovery')
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/integrated-fixes' || github.ref == 'refs/heads/codex/automatic-test-discovery' || github.ref == 'refs/heads/codex/persistent-instructions' || github.ref == 'refs/heads/codex/audit-stages-1-2' || github.ref == 'refs/heads/codex/sqlite-optimization' || github.ref == 'refs/heads/codex/update-by-cr' || github.ref == 'refs/heads/codex/automatic-installer' || github.ref == 'refs/heads/codex/core-reliability-fix' || (github.ref == 'refs/heads/codex/knowledge-plan-deduplication-recovery' || github.ref == 'refs/heads/codex/knowledge-confluence-integration'))
     permissions:
       contents: write
       actions: read
@@ -116,7 +116,7 @@ jobs:
         with:
           name: p4-${{ matrix.platform == 'Linux' && 'ubuntu-24.04' || 'windows-2022' }}
           path: reports/P4/
-      - name: Retain exact-source results without executing artifact contents
+      - name: Publish compact exact-source receipt without executing artifact contents
         env:
           P4_CI_PLATFORM: ${{ matrix.platform }}
           P4_CI_EXPECTED_COMMIT: ${{ needs.revision.outputs.commit }}

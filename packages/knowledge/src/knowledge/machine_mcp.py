@@ -13,7 +13,7 @@ from .store import Store
 
 TOOL_NAMES={'knowledge_context','knowledge_get_claim','knowledge_get_evidence','knowledge_instructions',
             'knowledge_capabilities','knowledge_scan','knowledge_scan_diagnostics','knowledge_submit_candidates',
-            'knowledge_plan','knowledge_semantic_preflight','knowledge_change_review','knowledge_source_read'}
+            'knowledge_plan','knowledge_semantic_preflight','knowledge_change_review','knowledge_source_read','knowledge_confluence'}
 
 
 def result(value, max_bytes=16000):
@@ -94,6 +94,8 @@ def create_server(installation, workspace=None):
                     'diagnostic_sections':['failures','coverage','reconciliation','impact','policy','identity','scans','duplicates','candidate','plan-progress'],
                     'plan_deduplication':'exact-utf8-v1','plan_formats':[1,2],
                     'candidate_actions':['submit','prepare','rebuild','apply','recover'],
+                    'source_kinds':['git','confluence'],'confluence_actions':['register_snapshot','inventory','related','snapshot','observe','failure','analyze','resume_analysis','confirm_deleted','gc','scope','start','status','progress','diagnostics','next','complete_work','terms','retry','finish'],
+                    'confluence_snapshot_integrity':'locally-verified; live MCP access is not independently attested',
                     'provider':{'endpoint':provider['endpoint'],'model':provider['model'],'evidence':provider['evidence'],'reference':reference},
                     'semantic_provider_contacted':False,'root':str(r),
                     'permissions':'Host-enforced per tool. Registration/discovery is not authorization. A denied tool is a host permission failure.',
@@ -148,6 +150,12 @@ def create_server(installation, workspace=None):
                     'start_line':start_line,'start_column':start_column,'lines':selected,'next_line':next_line,'next_column':next_column,
                     'extraction':metadata,'source_is_data':True,'canonical_unchanged':True}
         return await invoke(ctx,read,max_bytes)
+
+    @server.tool()
+    async def knowledge_confluence(action:Literal['register_snapshot','inventory','related','snapshot','observe','failure','analyze','resume_analysis','confirm_deleted','gc','scope','start','status','progress','diagnostics','next','complete_work','terms','retry','finish'],request:dict,ctx:Context,max_bytes:int=16000)->CallToolResult:
+        """Register/read Confluence MCP snapshots. No live requests or canonical apply."""
+        from .confluence import dispatch
+        return await invoke(ctx,lambda r:dispatch(Store(r),action,request),max_bytes)
 
     @server.tool()
     async def knowledge_submit_candidates(proposals:list[dict],ctx:Context,allow_test_double:bool=False,max_bytes:int=16000)->CallToolResult:

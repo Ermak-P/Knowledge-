@@ -50,7 +50,7 @@ def preferences(db,pending,observations=None):
     """Index validated persisted producer identities, not statement guesses."""
     wanted={}
     for cid,item in pending.items():
-        if item.get('source') is None:continue
+        if item.get('source') is None or item['source'].get('kind')=='confluence':continue
         for op in item.get('operations',[]):
             if op['kind']=='claims' and op['action']=='add' and op['payload']['provenance']=={'actor':'deterministic-discovery','method':METHOD}:
                 wanted[op['id']]=(op['payload']['statement'],item['source']['identity'])
@@ -113,7 +113,7 @@ def recovery_projection(db,pending):
     from . import lifecycle as life
     observations={};preferred=preferences(db,pending,observations);derived=dict(pending)
     for cid,item in pending.items():
-        if item.get('version')!=2:continue
+        if item.get('version')!=2 or (item.get('source') or {}).get('kind')=='confluence':continue
         changes=[];additions=[]
         proofs={o['id']:o['payload'] for o in item['operations'] if o['kind']=='evidence' and o['payload']}
         for index,op in enumerate(item['operations']):

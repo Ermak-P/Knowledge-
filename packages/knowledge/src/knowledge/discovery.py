@@ -268,7 +268,11 @@ def extract(root,path,entry):
     return [],'partial','bounded content preview; source regions remain unanalyzed' if metadata['partial'] else 'inventory/content hash only; semantic extractor unavailable for this file type'
 
 
-def fresh_evidence(root,e,scope=None):
+def fresh_evidence(root,e,scope=None,db=None):
+    from .confluence import is_binding,evidence_freshness
+    if is_binding(e.get('source')):
+        from .store import Store
+        return evidence_freshness(Store(root),e,db)
     path=e.get('source'); path=path.get('reference') if isinstance(path,dict) else path
     location=e.get('location','');location=location.get('reference','') if isinstance(location,dict) else location
     if not e.get('content_hash') or not isinstance(path,str):return 'not-verifiable'
@@ -316,14 +320,22 @@ def positive_scope_complete(scope,identifiers):
                for p,e in scope['snapshot']['files'].items() if p.endswith(('.cs','.csproj')) and e['partition'] in projects)
 
 
-def freshness(root,claim,records,scope=None):
+def freshness(root,claim,records,scope=None,db=None):
     evidence={e['id']:e for e in records['evidence']}
     if any(evidence[i]['provenance']['method'] in DISCOVERY_METHODS for i in claim['evidence'] if i in evidence):
         scope=scope if scope is not None else analysis_scope(root)
         scope=identity_scope(scope,records)
-    results={i:fresh_evidence(root,evidence[i],scope) for i in claim['evidence'] if i in evidence}
-    trusted=bool(results) and all(v in ('unchanged','anchor-valid-file-changed') and evidence[i]['status']=='active' for i,v in results.items())
-    return {'trusted':trusted,'evidence':results,'policy':'all supporting evidence current; confidence unchanged'}
+    results={i:fresh_evidence(root,evidence[i],scope,db=db) for i in claim['evidence'] if i in evidence}
+    good=('unchanged','anchor-valid-file-changed','current-registered-confluence-snapshot','unchanged-content-newer-confluence-version')
+    native=any(isinstance(evidence[i]['source'],dict) and evidence[i]['source'].get('kind')=='confluence' for i in results)
+    valid=[i for i,v in results.items() if v in good and evidence[i]['status']=='active']
+    trusted=bool(valid) if native else bool(results) and len(valid)==len(results)
+    if native and claim['status']=='CONFIRMED':
+        qualifying=[i for i in valid if evidence[i]['type'] in (('direct-authoritative',) if claim['type']=='business_rule' else ('direct-authoritative','direct-technical'))
+                    and not (isinstance(evidence[i]['source'],dict) and evidence[i]['source'].get('role')=='implementation')]
+        trusted=bool(qualifying)
+    return {'trusted':trusted,'evidence':results,'policy':'independent current registered evidence; confidence unchanged; no live Confluence verification' if native else 'all supporting evidence current; confidence unchanged',
+            **({'evidence_scopes':{i:evidence[i]['source'].get('role','documentation') if isinstance(evidence[i]['source'],dict) and evidence[i]['source'].get('kind')=='confluence' else 'local-source' for i in results}} if native else {})}
 
 
 def identity_scope(scope,records):
@@ -347,8 +359,16 @@ def proposal(store,db,obs,snapshot,captured,records,states,scope=None):
         if locations:obs={**obs,'occurrences':[v for _,v in sorted(locations.items())]}
     current={r['id']:r for r in records['claims']};known=current.get(obs['id'])
     if known is None:known=canonical_match(obs,records,states)
+    def documented(c):
+        if c['statement']!=obs['statement'] or c['type']!='technical_fact':return False
+        return any(isinstance(e['source'],dict) and e['source'].get('kind')=='confluence' and e['source'].get('role')=='implementation' for e in records['evidence'] if e['id'] in c['evidence'])
+    if known is None:
+        matches=[c for c in records['claims'] if states[c['id']]['lifecycle']=='active' and documented(c)]
+        require(len(matches)<=1,'ambiguous-shared-confluence-claim')
+        if matches:known=matches[0]
+    shared=bool(known and documented(known))
     identifier=known['id'] if known else obs['id']
-    if known and (not discovery_owned(db,known,records)):
+    if known and (not shared and not discovery_owned(db,known,records)):
         # A reviewed meaning is not automatically overwritten by a lexical re-observation.
         return None
     if known and states[identifier]['lifecycle']=='superseded':return None
@@ -373,7 +393,7 @@ def proposal(store,db,obs,snapshot,captured,records,states,scope=None):
         if known['status']!='CONFIRMED':claim['last_verified']=known['last_verified']
         evidence_by_id={e['id']:e for e in records['evidence']}
         claim['evidence'].extend(i for i in known['evidence'] if evidence_by_id[i]['provenance']['method'] not in DISCOVERY_METHODS)
-    if known and states[identifier]['lifecycle']=='active' and set(known['evidence'])==set(claim['evidence']) and freshness(store.project.root,known,records,scope)['trusted']:return None
+    if known and states[identifier]['lifecycle']=='active' and set(known['evidence'])==set(claim['evidence']) and freshness(store.project.root,known,records,scope,db=db)['trusted']:return None
     ops=[life.op('add','evidence',e['id'],0,e) for e in proofs if e['id'] not in existing]
     ops.append(life.op('reactivate' if known and states[identifier]['lifecycle']=='retired' else 'update' if known else 'add','claims',identifier,life.revision(db,identifier),claim))
     return life.batch(ops,'Source-backed lexical observation; not runtime or business semantics',{'identity':snapshot['identity'],'revision':snapshot['revision'],'kind':snapshot['snapshot_kind']})
@@ -686,6 +706,8 @@ def candidate_refreshes(db):
         first,second=(loads(row[0]) for row in pair)
         require(all(v['version']==2 and v['source'] is not None for v in (first,second)) and proposal_identity(first)==proposal_identity(second) and first['source']['identity']!=second['source']['identity'],'corrupt-candidate-refresh')
         links[old]=value
+    from .confluence_sync import refresh_links
+    links.update(refresh_links(db))
     for old in links:
         seen=set();current=old
         while current in links:

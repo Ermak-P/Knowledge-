@@ -80,13 +80,14 @@ def main():
                        if isinstance(row.get('path'),str) and re.fullmatch(r'tools\.knowledge_machine\.[a-zA-Z0-9_]+',row['path'])}
                 code_mode['paths']=paths
                 code_mode['denied_tools_hidden']=all(name not in paths for name in ('knowledge_instructions','knowledge_submit_candidates'))
-                needed=['knowledge_capabilities','knowledge_scan','knowledge_scan_diagnostics','knowledge_source_read','knowledge_plan']
+                needed=['knowledge_capabilities','knowledge_scan','knowledge_scan_diagnostics','knowledge_source_read','knowledge_plan','knowledge_confluence']
                 if all(name in paths for name in needed):
                     script=('const result={capabilities:await '+paths['knowledge_capabilities']+'({}),'
                             'scan:await '+paths['knowledge_scan']+'({action:"status"}),'
                             'diagnostics:await '+paths['knowledge_scan_diagnostics']+'({section:"coverage",limit:2}),'
                             'source:await '+paths['knowledge_source_read']+'({path:"Example.cs",max_lines:3}),'
-                            'plan:await '+paths['knowledge_plan']+'({action:"prepare"})};'
+                            'plan:await '+paths['knowledge_plan']+'({action:"prepare"}),'+
+                            'confluence:await '+paths['knowledge_confluence']+'({action:"status",request:{}})};'
                             'return result;')
                     code_mode['step']=2
                 else:code_mode['error']='Required MCP tools absent from actual Code Mode search'
@@ -99,6 +100,7 @@ def main():
                 code_mode['scan_observed']=any(row.get('coverage_complete') is True for row in results)
                 code_mode['source_read']=any(row.get('path')=='Example.cs' and row.get('content_hash') for row in results)
                 code_mode['plan_prepared']=any(row.get('state')=='AWAITING_EXACT_APPROVAL' for row in results)
+                code_mode['confluence_observed']=any(row.get('state')=='SCOPE_REQUIRED' for row in results)
                 code_mode['step']=3
             if script is not None:
                 properties=execute.get('function',{}).get('parameters',{}).get('properties',{}) if execute else {}
@@ -120,7 +122,7 @@ def main():
         (root / 'opencode.json').write_text(json.dumps({'$schema': 'https://opencode.ai/config.json', 'update': 'disable', 'model': 'fixture/fixture', 'providers': {'fixture': {'package': '@opencode/ai/providers/openai-compatible', 'name': 'Controlled fixture', 'settings': {'baseURL': f'http://127.0.0.1:{provider.server_port}/v1', 'apiKey': 'fixture-not-a-secret'}, 'models': {'fixture': {'name': 'fixture', 'limit': {'context': 64000, 'output': 2048}}}}}}))
         config=json.loads((root/'opencode.json').read_text())
         config['permissions']=[{'action':'knowledge_machine_'+name,'resource':'*','effect':'allow'} for name in
-                               ('knowledge_capabilities','knowledge_scan','knowledge_scan_diagnostics','knowledge_source_read','knowledge_plan')]
+                               ('knowledge_capabilities','knowledge_scan','knowledge_scan_diagnostics','knowledge_source_read','knowledge_plan','knowledge_confluence')]
         config['permissions'].extend({'action':'knowledge_machine_'+name,'resource':'*','effect':'deny'} for name in ('knowledge_instructions','knowledge_submit_candidates'))
         (root/'opencode.json').write_text(json.dumps(config),encoding='utf-8')
         subprocess.run(['git', '-C', str(root), 'add', 'opencode.json'], check=True, capture_output=True)
@@ -167,7 +169,7 @@ def main():
             registered = api('/api/command' + location_query)['data']
             (args.output / 'discovered-commands.json').write_text(json.dumps(registered, indent=2) + '\n', encoding='utf-8')
             names = {value['name'] for value in registered}
-            required = {'knowledge-init', 'knowledge-candidates-update', 'knowledge-candidates-push'}
+            required = {'knowledge-init', 'knowledge-candidates-update', 'knowledge-candidates-push', 'knowledge-confluence', 'knowledge-update'}
             for _ in range(100):
                 if required <= names: break
                 time.sleep(.1)
@@ -194,7 +196,7 @@ def main():
             deadline=time.monotonic()+40
             while code_mode['step']<3 and time.monotonic()<deadline:time.sleep(.05)
             result['code_mode']=code_mode
-            assert code_mode.get('verified') and code_mode.get('permission_denied') and code_mode.get('scan_observed') and code_mode.get('source_read') and code_mode.get('plan_prepared'),code_mode
+            assert code_mode.get('verified') and code_mode.get('permission_denied') and code_mode.get('scan_observed') and code_mode.get('source_read') and code_mode.get('plan_prepared') and code_mode.get('confluence_observed'),code_mode
             result['checks']['real_code_mode_search_and_mcp_operations']='PASS'
             result['checks']['real_code_mode_permission_denial_enforced']='PASS'
             result['init'] = wait('knowledge-init')
@@ -219,6 +221,15 @@ def main():
             assert recovered['state'] == 'ACKNOWLEDGED'
             result['applied'] = recovered
             result['checks']['separate_exact_native_approval_apply_ack'] = 'PASS'
+            command('knowledge-confluence',json.dumps({'scope':{'roots':['https://docs.example.invalid/wiki/pages/101'],'spaces':[],'autonomous':False}}))
+            confluence=backend('knowledge-confluence',{'action':'status'})
+            assert confluence['scope']['roots']==['https://docs.example.invalid/wiki/pages/101'] and confluence['work']['PENDING']>=1,confluence
+            result['confluence']=confluence
+            result['checks']['confluence_native_hook_persisted_scope_and_work']='PASS'
+            command('knowledge-update')
+            alias=backend('knowledge-update',{})
+            assert alias['ok'],alias
+            result['checks']['knowledge_update_native_alias']='PASS'
             messages = api('/api/session/' + session['id'] + '/message')
             (args.output / 'messages.json').write_text(json.dumps(messages, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
             result['checks']['no_project_command_copy'] = 'PASS'

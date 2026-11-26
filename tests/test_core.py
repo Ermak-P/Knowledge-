@@ -225,7 +225,13 @@ class CoreTests(unittest.TestCase):
         from knowledge import legacy_validator as v
         for kind in ('claim','evidence','relationship'):
             schema=loads((SCHEMAS/f'{kind}.schema.json').read_text())
-            self.assertEqual(hashlib.sha256(json.dumps(schema,sort_keys=True).encode()).hexdigest(),v.SCHEMA_HASHES[kind])
+            hashed=hashlib.sha256(json.dumps(schema,sort_keys=True).encode()).hexdigest()
+            self.assertEqual(hashed,v.CONFLUENCE_EVIDENCE_SCHEMA if kind=='evidence' else v.SCHEMA_HASHES[kind])
+            if kind=='evidence':
+                # Removing only the native source alternative recovers the exact
+                # pinned legacy schema, including original confidence semantics.
+                schema['properties']['source']['anyOf'].pop()
+                self.assertEqual(hashlib.sha256(json.dumps(schema,sort_keys=True).encode()).hexdigest(),v.SCHEMA_HASHES[kind])
         item=addition();item['records']['claims'][0]['type']='business_rule'
         with self.assertRaisesRegex(KnowledgeError,'invalid-dataset'):validate_records(item['records'])
 

@@ -95,6 +95,8 @@ def candidate(value):
     require(type(value['version']) is int and value['version'] == 1, 'unsupported-candidate-version')
     require(value['operation'] == 'add', 'unsupported-operation')
     shape(value['records'])
+    from .confluence import is_binding
+    require(not any(is_binding(e.get('source')) for e in value['records']['evidence']),'confluence-requires-v2-source-binding')
     require(bool(value['records']['claims']), 'candidate-requires-claims')
     for claim in value['records']['claims']:
         require(bool(claim['evidence']), 'candidate-requires-evidence')
@@ -148,6 +150,39 @@ class Store:
             with self._connection(write) as db:yield db
 
     @contextmanager
+    def progress_connection(self):
+        """Read-only source telemetry, never candidate or canonical validation.
+
+        Keep path, project identity and maintenance boundaries. The authorizer
+        prevents accidental expansion into the canonical graph/queue hot path.
+        All authoritative operations continue through connection().
+        """
+        from .coordination import gate
+        with gate(self.project.root):
+            safe_tree(self.base);require(self.path.is_file(),'knowledge-absent');db=None
+            try:
+                db=sqlite3.connect(self.path.as_uri()+'?mode=ro',uri=True,timeout=0.15)
+                allowed={'metadata','sqlite_master','confluence_command_state','confluence_work','confluence_seen','confluence_pages'}
+                def authorize(action,table,column,database,trigger):
+                    if action==sqlite3.SQLITE_READ:return sqlite3.SQLITE_OK if table in allowed else sqlite3.SQLITE_DENY
+                    return sqlite3.SQLITE_OK if action in (sqlite3.SQLITE_SELECT,sqlite3.SQLITE_FUNCTION,sqlite3.SQLITE_TRANSACTION) else sqlite3.SQLITE_DENY
+                db.set_authorizer(authorize);db.execute('BEGIN')
+                metadata=dict(db.execute("SELECT key,value FROM metadata WHERE key IN ('format','project','p1','migration')"))
+                require(metadata.get('format')=='knowledge-sqlite-v1','unsupported-store-format')
+                require(metadata.get('project')==self.project.identity,'project-identity-mismatch')
+                require(metadata.get('p1') in (None,'1'),'unsupported-extension-version')
+                legacy=self.project.root/'.ai'
+                require(not legacy.exists() or not any(legacy.iterdir()) or 'migration' in metadata,'ambiguous-dual-stores')
+                yield db
+                db.commit()
+            except sqlite3.OperationalError as error:
+                raise KnowledgeError('store-busy-retry' if 'locked' in str(error) else 'database-unavailable-or-corrupt') from error
+            except sqlite3.DatabaseError as error:
+                raise KnowledgeError('corrupt-database') from error
+            finally:
+                if db is not None:db.close()
+
+    @contextmanager
     def _connection(self, write=False):
         safe_tree(self.base)
         require(self.path.is_file(), 'knowledge-absent')
@@ -186,6 +221,8 @@ class Store:
                 db.close()
 
     def _check_control(self, db):
+        from .confluence import validate_control,validate_candidate
+        validate_control(db)
         from .identity_migration import validate_archive
         validate_archive(db)
         from .cr_workflow import validate_workflows
@@ -219,6 +256,7 @@ class Store:
                     all(isinstance(plan[k],list) for k in ('included','skipped','blocked')), 'corrupt-plan')
             for cid,item in plan['candidates'].items():
                 require(valid_identity(cid,item),'corrupt-plan-candidate')
+                validate_candidate(db,item,fresh=False)
             if plan['version']==2:
                 require(set(plan['resolved'])==set(plan['candidates']),'corrupt-resolved-candidates')
                 for value in plan['resolved'].values():
@@ -228,6 +266,7 @@ class Store:
         queue=[]
         for cid, payload, status, binding in db.execute('SELECT id,payload,status,binding FROM queue'):
             item = candidate(loads(payload))
+            validate_candidate(db,item,fresh=False)
             require(valid_identity(cid,item,validated=True) and status in ('pending','imported','rejected','deferred'), 'corrupt-queue')
             require((status in ('pending','rejected','deferred') and binding is None) or
                     (status == 'imported' and binding is not None), 'corrupt-queue-binding')
@@ -253,6 +292,8 @@ class Store:
                 require(pid in plans and plans[pid][1]!='PREPARED' and loads(payload)==plans[pid][0],'receipt-plan-mismatch')
                 self._verify_committed(db,pid,plans[pid][0])
         view(db,'validated-queue',lambda:queue)
+        from .confluence_sync import validate_relations
+        validate_relations(db,queue)
         return queue
 
     def init(self):
@@ -287,11 +328,16 @@ class Store:
             records[kind].append(item)
         if life.enabled(db):life.validate_model(records,life.latest(db))
         else:validate_records(records)
+        from .confluence import is_binding,verify_evidence
+        for evidence in records['evidence']:
+            if is_binding(evidence['source']):verify_evidence(db,evidence,fresh=False)
         return records
 
     def validate(self):
         with self.connection() as db:
             records = self._records(db)
+            from .confluence import integrity
+            integrity(db)
             return {'ok': True, 'counts': {g:len(v) for g,v in records.items()},
                     'warning': 'Structural validation does not prove truth, authority or freshness.'}
 
@@ -304,6 +350,8 @@ class Store:
         with self.connection(True) as db:
             current = self._records(db)
             if item['version']==2:require(life.enabled(db),'upgrade-required')
+            from .confluence import is_binding,validate_candidate
+            if is_binding(item.get('source')):validate_candidate(db,item)
             # _check_control has checked every row in this same snapshot. Keep
             # the old table traversal order and exact raw TEXT equality, including
             # predecessor IDs/noncanonical JSON; a digest never replaces equality.
@@ -318,11 +366,13 @@ class Store:
                 return {'ok':True,'candidate':row[0],'result':'duplicate','status':row[1]}
             if item['version']==2:
                 db.execute('INSERT INTO queue VALUES (?,?,?,NULL)', (cid,canonical_json(item),'pending'))
+                from .confluence_sync import note_candidate
+                note_candidate(db,cid,item)
                 if semantic_binding is not None:
                     from .providers import SEMANTIC_PREFIX
                     db.execute('INSERT INTO metadata VALUES (?,?)',(SEMANTIC_PREFIX+cid,canonical_json(semantic_binding)))
                     checkpoint('semantic-candidate-written')
-                if item['source'] is not None:
+                if item['source'] is not None and not is_binding(item['source']):
                     from .discovery import inventory,refresh_pending
                     if inventory(self.project.root)['identity']==item['source']['identity']:refresh_pending(db,cid,item)
                 return {'ok':True,'candidate':cid,'result':'submitted','status':'pending'}
@@ -370,17 +420,16 @@ class Store:
             refreshed=candidate_refreshes(db)
             skipped=[dict(candidate=cid,reason='source-refreshed',replacement=refreshed[cid]['replacement']) for cid in pending if cid in refreshed]
             pending={cid:item for cid,item in pending.items() if cid not in refreshed}
-            blocked=[]
+            from .confluence import pending_partition
+            pending,source_skipped,blocked=pending_partition(db,pending)
+            skipped.extend(source_skipped)
             if db.execute("SELECT 1 FROM plans WHERE status='COMMITTED' LIMIT 1").fetchone():
                 blocked=[{'code':'pending-acknowledgment-recover-first','details':None}]
             try:
                 if not blocked:
                     from .providers import verify_semantic_bindings
                     bindings=verify_semantic_bindings(db,pending)
-                    if source_identity is None:life.verify_source_bindings(self,pending.values())
-                    else:
-                        identities={v['source']['identity'] for v in pending.values() if v.get('source') is not None}
-                        require(not identities or identities=={source_identity},'source-drift-rescan-required')
+                    life.verify_source_bindings(self,pending.values(),db,git_identity=source_identity)
                     from .plan_deduplication import reconcile
                     from .persistence_identity import recovery_projection
                     tick('loading-scan-artifacts')
@@ -424,6 +473,15 @@ class Store:
             db.execute('INSERT OR IGNORE INTO plans VALUES (?,?,?)',(pid,canonical_json(preview),'PREPARED'))
         tick('blocked' if preview['blocked'] else 'prepared')
         return {'ok':not preview['blocked'],'fingerprint':pid,**preview}
+
+    def pending_git_sources(self):
+        """Machine approval inventory applies only to actual local-source work."""
+        from .confluence import is_binding
+        from .discovery import candidate_refreshes
+        with self.connection() as db:
+            refreshed=candidate_refreshes(db) if life.enabled(db) else {}
+            return any(not is_binding(item.get('source'))
+                       for cid,status,raw,item in view(db,'validated-queue',lambda:self._check_control(db)) if status=='pending' and cid not in refreshed)
 
     def duplicate_diagnostics(self,group=None):
         from .plan_deduplication import reconcile,operations
@@ -499,9 +557,11 @@ class Store:
             if life.enabled(db):
                 from .providers import verify_semantic_bindings
                 verify_semantic_bindings(db,plan['candidates'])
-                life.verify_source_bindings(self,plan['candidates'].values())
+                life.verify_source_bindings(self,plan['candidates'].values(),db)
                 db.execute('INSERT INTO receipts VALUES (?,?)',(pid,canonical_json(plan)))
             db.execute("UPDATE plans SET status='COMMITTED' WHERE id=?",(pid,))
+            from .confluence_sync import record_applied
+            record_applied(db,plan,pid)
             db.execute('INSERT INTO history(payload) VALUES (?)',(canonical_json({'event':'import','fingerprint':pid,'candidates':plan['included']}),))
         checkpoint('after-canonical-commit')
         return {'ok':True,'state':'COMMITTED','fingerprint':pid,'acknowledgment_required':True}
@@ -582,10 +642,11 @@ class Store:
     def export(self):
         from .cr_workflow import export_workflows
         from .identity_migration import summary
+        from .confluence import export as export_confluence
         with self.connection() as db:
             return {'ok':True,'records':self._records(db),'identity_history':summary(db),
                     'queue':[{'id':i,'payload':loads(p),'status':s,'binding':b} for i,p,s,b in db.execute('SELECT * FROM queue ORDER BY id')],
-                    'history':[loads(p) for p, in db.execute('SELECT payload FROM history ORDER BY sequence')],**self._export_extension(db),**export_workflows(self,db)}
+                    'history':[loads(p) for p, in db.execute('SELECT payload FROM history ORDER BY sequence')],**self._export_extension(db),**export_workflows(self,db),**export_confluence(db)}
 
     def lookup(self, kind, identifier):
         require(kind in GROUPS, 'unsupported-record-kind')
@@ -596,7 +657,7 @@ class Store:
                 from .discovery import freshness
                 state=life.latest(db).get(identifier)
                 return {'ok':True,'result':'found' if item else 'no-match','record':item,'revision':state,
-                        'freshness':freshness(self.project.root,item,records) if item and kind=='claims' else None}
+                        'freshness':freshness(self.project.root,item,records,db=db) if item and kind=='claims' else None}
         return {'ok':True,'result':'found' if item else 'no-match','record':item}
 
     def context(self, task, max_bytes=16000, max_items=10, include_unconfirmed=False):

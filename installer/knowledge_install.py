@@ -293,7 +293,7 @@ def jsonc(text):
 
 def preflight_host(home):
     for folder in ('commands', 'command'):
-        for name in ('knowledge-init', 'knowledge-candidates-update', 'knowledge-candidates-push'):
+        for name in ('knowledge-init', 'knowledge-candidates-update', 'knowledge-candidates-push', 'knowledge-confluence', 'knowledge-update'):
             path = safe(home / folder / (name + '.md'))
             require(not path.exists(), 'Existing global command conflicts; preserved: ' + str(path))
     for name in ('config.json', 'opencode.json', 'opencode.jsonc'):
@@ -305,7 +305,7 @@ def preflight_host(home):
         servers = mcp.get('servers', {}) if isinstance(mcp, dict) else None
         require(isinstance(servers, dict) and 'knowledge_machine' not in servers and 'knowledge_machine' not in mcp, 'Existing MCP knowledge_machine conflicts; global configuration preserved: ' + str(path))
         commands = value.get('commands', {})
-        require(isinstance(commands, dict) and not set(commands).intersection({'knowledge-init', 'knowledge-candidates-update', 'knowledge-candidates-push'}), 'Existing named Knowledge command conflicts; global configuration preserved: ' + str(path))
+        require(isinstance(commands, dict) and not set(commands).intersection({'knowledge-init', 'knowledge-candidates-update', 'knowledge-candidates-push', 'knowledge-confluence', 'knowledge-update'}), 'Existing named Knowledge command conflicts; global configuration preserved: ' + str(path))
 
 
 def legacy_owned(root):
@@ -442,7 +442,7 @@ def install(source, root, fail_after=None):
     require(old is None or old.get('host_home') == str(home), 'Host registration directory changed; preserve the original XDG_CONFIG_HOME or resolve the registration explicitly.')
     # Global command/plugin names are owned only after a recorded installation.
     targets = [home / 'plugins/knowledge-machine.js', home / '.knowledge-machine.json']
-    targets += [home / 'knowledge-machine-templates' / (name + '.md') for name in ('knowledge-init', 'knowledge-candidates-update', 'knowledge-candidates-push')]
+    targets += [home / 'knowledge-machine-templates' / (name + '.md') for name in ('knowledge-init', 'knowledge-candidates-update', 'knowledge-candidates-push', 'knowledge-confluence', 'knowledge-update')]
     if old:
         require(old.get('host_home') == str(home), 'Host configuration location changed; preserve the old registration and resolve explicitly')
     for path in targets:
@@ -534,7 +534,7 @@ def install(source, root, fail_after=None):
             settings = {'version': 1, 'installation': str(root), 'python': str(py_at(bootstrap)), 'launcher': str(root / 'launch.py'), 'host_contract': 'opencode-2.4.0'}
             updates[home / '.knowledge-machine.json'] = data(settings)
             updates[home / 'plugins/knowledge-machine.js'] = (kit / 'host/machine_opencode.mjs').read_bytes()
-            for name in ('knowledge-init', 'knowledge-candidates-update', 'knowledge-candidates-push'):
+            for name in ('knowledge-init', 'knowledge-candidates-update', 'knowledge-candidates-push', 'knowledge-confluence', 'knowledge-update'):
                 updates[home / 'knowledge-machine-templates' / (name + '.md')] = (kit / 'commands' / (name + '.md')).read_bytes()
             # Root-local helpers use the same immutable generation backend.
             updates[root / 'knowledge-init-auto.py'] = (kit / 'knowledge-init-auto.py').read_bytes()
@@ -555,7 +555,7 @@ def install(source, root, fail_after=None):
 
 def summary(status, root, current, provider, log, host_version):
     return {'status': status, 'path': str(root), 'version': VERSION, 'source_identity': current['source_identity'],
-            'provider': str(provider), 'mcp': 'stdio handshake/list-tools verified', 'commands': '3 global OpenCode commands installed',
+            'provider': str(provider), 'mcp': 'stdio handshake/list-tools verified', 'commands': '5 global OpenCode commands installed',
             'host': host_version or 'OpenCode 2.4.0 contract; executable not on PATH', 'reload': 'Restart the host to launch the current MCP generation. Existing processes are retained.',
             'dependency_mode': current['dependency_mode'], 'log': str(log)}
 

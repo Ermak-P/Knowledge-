@@ -35,6 +35,7 @@ def reconcile(current,pending,revisions,bindings=None,p1=True,preferred=None,pro
     def scope(cid):return {'source':pending[cid].get('source'),'provider':bindings.get(cid)}
     proofs={r['id']:r for r in current['evidence']}
     candidate_proofs={cid:{o['id']:o['payload'] for o in items if o['kind']=='evidence' and o['payload']} for cid,items in ops.items()}
+    all_proofs={**proofs,**{i:p for items in candidate_proofs.values() for i,p in items.items()}}
     def trust(cid,claim):
         rows=proofs if cid is None else {**proofs,**candidate_proofs[cid]}
         return {canonical_json({k:rows[i][k] for k in ('type','status','provenance')}) for i in claim['evidence'] if i in rows}
@@ -50,35 +51,66 @@ def reconcile(current,pending,revisions,bindings=None,p1=True,preferred=None,pro
         actions={ops[cid][index]['action'] for cid,index,_ in rows}
         ordered=sorted(rows,key=lambda row:(row[2]['id'],row[0],row[1]));leader=ordered[0]
         reference=old[0] if old else leader[2]
+        from .confluence import is_binding
+        from .confluence_sync import role_of
+        members=old+[c for _,_,c in rows]
+        roles={role_of(c,[all_proofs[i] for i in c['evidence'] if i in all_proofs]) for c in members}
+        has_native=any(is_binding(all_proofs[i].get('source')) for c in members for i in c['evidence'] if i in all_proofs)
+        source_kinds={pending[cid].get('source',{}).get('kind') if pending[cid].get('source') else None for cid,_,_ in rows}
+        native=has_native and len(roles)==1 and None not in source_kinds and source_kinds<={'confluence','committed','working-tree-with-hashes','filesystem-no-history'}
+        if native and not old:
+            rank={'CONFIRMED':0,'INFERRED':1,'UNKNOWN':2,'NEEDS_HUMAN_CONFIRMATION':3}
+            reference=max((c for _,_,c in rows),key=lambda c:(rank[c['status']],c['id']))
+        def compatible_meta(c):
+            ignored=('provenance','status') if native else ()
+            return {k:v for k,v in meta(c).items() if k not in ignored}=={k:v for k,v in meta(reference).items() if k not in ignored}
         targets={preferred[c['id']] for _,_,c in rows if c['id'] in preferred}
         producer=any(c['provenance']=={'actor':'deterministic-discovery','method':'dotnet-lexical-v3'} for _,_,c in rows)
         target=reference['id'] if old else next(iter(targets)) if len(targets)==1 else reference['id'] if len({c['id'] for _,_,c in rows})==1 else 'dedup.'+digest(['exact-statement-v1',project,meta(reference),scope(leader[0])])[:40]
+        if native and not old and len(targets)!=1:
+            expected='cf.claim.'+digest([project,statement,reference['type'],next(iter(roles))])[:40]
+            target=expected if any(c['id']==expected for _,_,c in rows) else reference['id'] if len({c['id'] for _,_,c in rows})==1 else 'dedup.'+digest(['native-fact-v1',project,statement,reference['type'],next(iter(roles))])[:40]
         dates=[reference['last_verified']]+[c['last_verified'] for _,_,c in rows]
+        removed_native=set()
+        def controlled_update(cid,index,c):
+            if ops[cid][index]['action']=='add':return True
+            if c['id']!=reference['id'] or ops[cid][index]['expected']!=revisions[reference['id']]['revision']:return False
+            if {k:v for k,v in meta(c).items() if k!='status'}!={k:v for k,v in meta(reference).items() if k!='status'}:return False
+            if c['status'] not in (reference['status'],'NEEDS_HUMAN_CONFIRMATION') or c['last_verified'] not in (None,reference['last_verified']):return False
+            removed=set(reference['evidence'])-set(c['evidence']);source=pending[cid].get('source')
+            for eid in removed:
+                prior=proofs.get(eid);updated=candidate_proofs[cid].get(eid)
+                if not (prior and updated and is_binding(source) and is_binding(prior['source']) and prior['source']['identity']==source['identity']
+                        and updated['status'] in ('superseded','retracted') and {**prior,'status':updated['status']}==updated):return False
+            removed_native.update(removed);return True
+        additive_native=bool(native and len(old)==1 and actions<={'add','update'} and all(controlled_update(cid,index,c) for cid,index,c in rows))
         incompatible_dates=False
-        if len(set(dates))>1:
+        if len(set(dates))>1 and not native:
             try:
                 for value in dates:date.fromisoformat(value)
             except (ValueError,TypeError):incompatible_dates=True
-        conflict=(actions!={'add'} or len(old)>1 or any(meta(c)!=meta(reference) for _,_,c in rows)
+        conflict=((actions!={'add'} and not additive_native) or len(old)>1 or any(not compatible_meta(c) for _,_,c in rows)
                   or incompatible_dates
-                  or any(scope(cid)!=scope(leader[0]) for cid,_,_ in rows)
-                  or len(targets)>1 or bool(not old and producer and (len(targets)!=1 or any(c['id'] not in preferred for _,_,c in rows)))
+                  or (not native and any(scope(cid)!=scope(leader[0]) for cid,_,_ in rows))
+                  or len(targets)>1 or bool(not native and not old and producer and (len(targets)!=1 or any(c['id'] not in preferred for _,_,c in rows)))
                   or bool(old and revisions.get(reference['id'],{}).get('lifecycle','active')!='active'))
         trusts=[trust(None,c) for c in old]+[trust(cid,c) for cid,_,c in rows]
-        if any(value!=trusts[0] for value in trusts[1:]):conflict=True
+        mixed_native=native and any(not is_binding(all_proofs[i].get('source')) for c in members for i in c['evidence'] if i in all_proofs)
+        if not mixed_native and any(value!=trusts[0] for value in trusts[1:]):conflict=True
         reasons=[]
-        if actions!={'add'}:reasons.append('explicit-update-or-reactivation-target')
+        if actions!={'add'} and not additive_native:reasons.append('explicit-update-or-reactivation-target')
         if len(old)>1:reasons.append('multiple-canonical-identities')
-        if any(meta(c)!=meta(reference) for _,_,c in rows):reasons.append('incompatible-claim-metadata-or-confidence')
+        if any(not compatible_meta(c) for _,_,c in rows):reasons.append('incompatible-claim-metadata-or-confidence')
         if incompatible_dates:reasons.append('incompatible-verification-dates')
-        if any(scope(cid)!=scope(leader[0]) for cid,_,_ in rows):reasons.append('source-or-provider-scope-differs')
+        if not native and any(scope(cid)!=scope(leader[0]) for cid,_,_ in rows):reasons.append('source-or-provider-scope-differs')
         if len(targets)>1:reasons.append('producer-identities-disagree')
-        if not old and producer and (len(targets)!=1 or any(c['id'] not in preferred for _,_,c in rows)):reasons.append('missing-verified-producer-identity')
-        if any(value!=trusts[0] for value in trusts[1:]):reasons.append('incompatible-evidence-trust')
+        if not native and not old and producer and (len(targets)!=1 or any(c['id'] not in preferred for _,_,c in rows)):reasons.append('missing-verified-producer-identity')
+        if not mixed_native and any(value!=trusts[0] for value in trusts[1:]):reasons.append('incompatible-evidence-trust')
         entry={'group':digest([VERSION,statement]),'statement_hash':digest(statement),'preview':statement[:240],
                'candidates':sorted({cid for cid,_,_ in rows}),'claims':sorted({c['id'] for _,_,c in rows}),
                'canonical':[c['id'] for c in old],'classification':'canonical-match' if old else 'within-plan' if len(rows)>1 else 'identity-compatibility',
                'target_identity':target,'evidence_references':sum(len(c['evidence']) for _,_,c in rows),
+               'independent_native_sources':bool(native),
                'actions':sorted(actions),'resolution':'blocked' if conflict else 'reconciled','reason':', '.join(reasons) if conflict else None}
         report.append(entry)
         if conflict:continue
@@ -88,7 +120,12 @@ def reconcile(current,pending,revisions,bindings=None,p1=True,preferred=None,pro
             if old or (cid,index)!=(leader[0],leader[1]):remove.add((cid,index))
         duplicate_refs+=len(evidence)-len(set(evidence));evidence=list(dict.fromkeys(evidence))
         merged=deepcopy(reference);merged['id']=target;merged['evidence']=evidence
-        if not old and not incompatible_dates:merged['last_verified']=min(dates) if all(d is not None for d in dates) else None
+        if additive_native:
+            merged['evidence']=[i for i in evidence if i not in removed_native]
+            if not merged['evidence'] or any(c['status']=='NEEDS_HUMAN_CONFIRMATION' for _,_,c in rows):
+                merged.update(status='NEEDS_HUMAN_CONFIRMATION',last_verified=None)
+            if not merged['evidence']:merged['evidence']=list(reference['evidence'])
+        if not old and not incompatible_dates and not native:merged['last_verified']=min(dates) if all(d is not None for d in dates) else None
         if old:
             if merged!=reference:
                 if not p1:

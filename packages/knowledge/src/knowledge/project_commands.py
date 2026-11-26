@@ -19,7 +19,7 @@ from .providers import shared
 from .store import Store
 from .util import KnowledgeError, require, digest, fingerprint, loads, emit_json
 
-COMMANDS = ('knowledge-init', 'knowledge-candidates-update', 'knowledge-candidates-push')
+COMMANDS = ('knowledge-init', 'knowledge-candidates-update', 'knowledge-candidates-push','knowledge-confluence','knowledge-update')
 
 
 def resolve_root(directory, roots=None):
@@ -53,10 +53,10 @@ def machine_binding(installation, project):
     return {'root': project.describe(), 'provider_reference': reference, 'runtime_release': current['release_sha256']}, provider
 
 
-def configure_project(installation, project):
+def configure_project(installation, project, connect_runner=True):
     reference = str(installation / 'config/provider.json')
     runner = safe_path(project.root / '.harness/runner.json')
-    lease = ProjectExecutionLock(project.root).acquire()
+    lease = ProjectExecutionLock(project.root).acquire() if connect_runner else None
     try:
         with gate(project.root, exclusive=True):
             changed = False
@@ -65,7 +65,7 @@ def configure_project(installation, project):
             if config_path.exists():
                 require(loads(config_path.read_text(encoding='utf-8')) == wanted, 'project-machine-configuration-conflict')
             raw = None
-            if runner.exists():
+            if connect_runner and runner.exists():
                 raw = loads(runner.read_text(encoding='utf-8'))
                 require(isinstance(raw, dict) and raw.get('version') in (1, 2), 'invalid-runner-config')
                 require(not ('provider' in raw and 'provider_ref' in raw), 'ambiguous-provider-configuration')
@@ -89,7 +89,8 @@ def configure_project(installation, project):
                 _write(runner, raw)
             if not config_path.exists(): _write(config_path, wanted)
             return {'runner_transitioned': changed, 'provider_ref': reference, 'authority': 'Existing runs/enrollments must pass configuration drift checks; no authority was renewed.'}
-    finally: lease.close()
+    finally:
+        if lease:lease.close()
 
 
 def _write(path, value):
@@ -139,7 +140,9 @@ def job_summary(folder, binding, provider):
 
 
 def execute(command, installation, directory, value):
-    require(isinstance(value, dict) and set(value) <= {'roots', 'directory', 'action', 'approve', 'plan', 'upgrade_approval', 'migration_approval', 'base', 'head', 'max_files', 'candidates', 'resume', 'fresh', 'allow_test_double','observed_scan_id','rebuild_scan_id'}, 'invalid-command-input')
+    if command=='knowledge-update':command='knowledge-candidates-push'
+    extra={'scope','operations','extra_operations','capabilities','request'} if command=='knowledge-confluence' else set()
+    require(isinstance(value, dict) and set(value) <= {'roots', 'directory', 'action', 'approve', 'plan', 'upgrade_approval', 'migration_approval', 'base', 'head', 'max_files', 'candidates', 'resume', 'fresh', 'allow_test_double','observed_scan_id','rebuild_scan_id'}|extra, 'invalid-command-input')
     require(all(key not in value or type(value[key]) is bool for key in ('resume', 'fresh','allow_test_double')), 'invalid-recovery-controls')
     require(value.get('observed_scan_id') is None or (value.get('resume') is True and not value.get('fresh') and value.get('action','start')=='start'),'observed-scan-requires-resume')
     installation = installation_at(installation)
@@ -156,6 +159,25 @@ def execute(command, installation, directory, value):
                 'scan_actions':['start','status','resume','fresh','cancel'],
                 'provider':{'endpoint':provider['endpoint'],'model':provider['model'],'evidence':provider['evidence']},
                 'provider_reference':binding['provider_reference'],'host_permission':'Not granted by backend discovery; actual MCP calls remain host-authorized.'}
+    if command=='knowledge-confluence':
+        from .confluence import dispatch
+        if not store.path.exists() and (root/'.ai').exists():
+            from . import migration
+            preview=migration.preview(root);require(value.get('migration_approval')==preview['fingerprint'],'legacy-migration-approval-required',preview)
+            migration.apply(root,value['migration_approval'])
+        if not store.path.exists():
+            store.init();lifecycle.upgrade(store,lifecycle.upgrade_preview(store)['fingerprint'])
+        else:
+            preview=lifecycle.upgrade_preview(store)
+            if not preview['already_upgraded']:
+                require(value.get('upgrade_approval')==preview['fingerprint'],'upgrade-approval-required',preview);lifecycle.upgrade(store,value['upgrade_approval'])
+        configure_project(installation,project,connect_runner=False)
+        if 'scope' in value:dispatch(store,'scope',{'scope':value['scope']})
+        state=dispatch(store,'status',{})
+        if state['state']=='SCOPE_REQUIRED':return state
+        requested=value.get('action','start')
+        request=value.get('request',{k:v for k,v in value.items() if k in ('operations','extra_operations','capabilities','resume','fresh')})
+        return dispatch(store,requested,request)
     if action == 'cancel' and command == 'knowledge-init':
         if not (state_dir/'full/job.json').exists():return no_scan(root)
         state=scan_jobs.status(state_dir / 'full');require(state['binding']==binding,'scan-provider-configuration-drift')
@@ -209,6 +231,9 @@ def execute(command, installation, directory, value):
     require(config.get('installation') == str(installation) and config.get('project') == project.identity, 'project-machine-configuration-conflict')
     if command == 'knowledge-candidates-update':
         if 'candidates' in value:
+            from .confluence import is_binding
+            require(isinstance(value['candidates'],list) and all(isinstance(p,dict) for p in value['candidates']),'invalid-candidate-batch')
+            if all(is_binding(p.get('source')) for p in value['candidates']):return submit_reviewed(store,root,value['candidates'])
             from .providers import semantic_preflight
             semantic_preflight(provider,value.get('allow_test_double',False),value['candidates'])
             semantic_binding={'version':1,'provider_ref':binding['provider_reference'],'model':provider['model'],
@@ -330,7 +355,7 @@ def submit_reviewed(store, root, proposals, semantic_binding=None):
                     resolved,report,conflicts=reconcile(store._records(db),pending,lifecycle.latest(db),
                         {cid:semantic_binding for cid in pending} if semantic_binding else {})
                     require(not conflicts,'duplicate-conflict',{'groups':[g['group'] for g in report['groups'] if g['resolution']=='blocked']})
-                    lifecycle.verify_source_bindings(store,pending.values())
+                    lifecycle.verify_source_bindings(store,pending.values(),db)
                     lifecycle.simulate(store,db,{cid:v for cid,v in resolved.items() if v is not None},check_source=False)
             for proposal in pending.values(): rows.append(store.submit(proposal,semantic_binding=semantic_binding))
             return {'ok': True, 'root': str(root), 'results': rows,
@@ -355,7 +380,7 @@ def push(store, root, state_dir, binding, value):
         if action == 'recover':
             require(saved.get('approved') is True and states.get(pid) in ('COMMITTED', 'ACKNOWLEDGED'), 'no-approved-commit-to-recover')
         else:
-            expected = {**binding, 'source_identity': discovery.inventory(root)['identity'], 'canonical_plan': pid}
+            expected = {**binding, 'source_identity': discovery.inventory(root)['identity'] if saved['binding']['source_identity'] is not None else None, 'canonical_plan': pid}
             require(expected == saved['binding'], 'machine-plan-drift-prepare-again')
             # Durable intent allows acknowledgement recovery after an unknown
             # post-commit outcome; it never approves a replacement plan.
@@ -377,11 +402,12 @@ def push(store, root, state_dir, binding, value):
         progress('loading-completed-scan-artifacts')
         recovered=discovery.completed_artifact(store,value['rebuild_scan_id']) if value.get('rebuild_scan_id') else None
         progress('verifying-current-source-inventory')
-        before = discovery.inventory(root)['identity']
+        before = discovery.inventory(root)['identity'] if recovered or store.pending_git_sources() else None
         if recovered:require(recovered['source_identity']==before,'scan-artifact-source-or-policy-drift',{'next_action':'Preserve the scan. Inspect source/policy changes before selecting explicit recovery; no automatic fresh scan.'})
         prepared = store.prepare(_source_identity=before,progress=progress)
         progress('verifying-post-prepare-source')
-        require(discovery.inventory(root)['identity'] == before, 'source-drift-during-prepare')
+        require(before is not None or not any(v.get('source') is not None and v['source']['kind']!='confluence' for v in prepared['candidates'].values()),'source-set-changed-during-prepare')
+        if before is not None:require(discovery.inventory(root)['identity'] == before, 'source-drift-during-prepare')
         progress('blocked' if prepared['blocked'] else 'awaiting-exact-approval')
     except Exception as error:
         progress('failed',error=getattr(error,'code',type(error).__name__));raise
@@ -395,7 +421,7 @@ def push(store, root, state_dir, binding, value):
     return {'ok': prepared['ok'], 'state': 'AWAITING_EXACT_APPROVAL' if prepared['ok'] else 'BLOCKED', 'root': str(root),
             'fingerprint': approval, 'canonical_plan': prepared['fingerprint'], 'included': len(prepared['included']),
             'operations': dict(operations), 'deduplication':prepared.get('deduplication',{}).get('counts'),'recovered_scan':recovered, 'skipped': len(prepared['skipped']), 'blocked': prepared['blocked'][:20],
-            'canonical_unchanged': True, 'diagnostics': str(state_dir / 'last-plan.json'),
+            'canonical_unchanged': True, 'skipped_details':prepared['skipped'][:20], 'diagnostics': str(state_dir / 'last-plan.json'),
             'next_action': 'Separate explicit approval: /knowledge-candidates-push {"approve":"' + approval + '"}. On drift prepare and review a new fingerprint.'}
 
 

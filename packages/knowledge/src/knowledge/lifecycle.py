@@ -23,7 +23,9 @@ def envelope(value):
     if value['source'] is not None:
         import re
         source=value['source']
-        require(set(source) in ({'identity','revision','kind'},{'identity','revision','kind','delta'}) and isinstance(source['identity'],str) and re.fullmatch('[a-f0-9]{64}',source['identity']) and (source['revision'] is None or isinstance(source['revision'],str)) and source['kind'] in ('committed','working-tree-with-hashes','filesystem-no-history'),'invalid-source-binding')
+        from .confluence import is_binding,binding_shape
+        if is_binding(source):binding_shape(source)
+        else:require(set(source) in ({'identity','revision','kind'},{'identity','revision','kind','delta'}) and isinstance(source['identity'],str) and re.fullmatch('[a-f0-9]{64}',source['identity']) and (source['revision'] is None or isinstance(source['revision'],str)) and source['kind'] in ('committed','working-tree-with-hashes','filesystem-no-history'),'invalid-source-binding',{'expected_kinds':['committed','working-tree-with-hashes','filesystem-no-history','confluence']})
     require(isinstance(value['operations'],list) and 0<len(value['operations'])<=10000,'invalid-operations')
     value=deepcopy(value)
     seen=set()
@@ -40,6 +42,9 @@ def envelope(value):
                 op['payload'][field]=list(dict.fromkeys(op['payload'][field]))
             records=empty();records[op['kind']]=[op['payload']];shape(records)
             if op['kind']=='claims':require(bool(op['payload']['evidence']),'candidate-requires-evidence')
+            if op['kind']=='evidence':
+                from .confluence import is_binding
+                if is_binding(op['payload'].get('source')):require(is_binding(value['source']),'confluence-requires-native-source-binding')
         else:
             require(op['payload'] is None,'unexpected-operation-payload')
             require(op['kind'] in ('claims','relationships'),'unsupported-retirement-kind')
@@ -78,6 +83,7 @@ def state_fingerprint(store,db):
 def simulate(store,db,items,check_source=True):
     records=store._records(db); current={r['id']:(g,r) for g,rs in records.items() for r in rs}
     states=latest(db); versions={i:s['revision'] for i,s in states.items()};touched=set(); checked_sources=set()
+    if check_source:verify_source_bindings(store,items.values(),db)
     for value in items.values():
         if value['version']==1:
             for kind,rs in value['records'].items():
@@ -86,10 +92,6 @@ def simulate(store,db,items,check_source=True):
                     require(r['id'] not in current,'record-id-conflict');current[r['id']]=(kind,r)
                     states[r['id']]={'lifecycle':'active'}
             continue
-        if value['source'] is not None and check_source and value['source'].get('identity') not in checked_sources:
-            from .discovery import inventory
-            require(inventory(store.project.root)['identity']==value['source'].get('identity'),'source-drift-rescan-required')
-            checked_sources.add(value['source']['identity'])
         for change in value['operations']:
             i=change['id']; require(i not in touched,'conflicting-batch-target');touched.add(i)
             require(versions.get(i,0)==change['expected'],'stale-expected-revision',i)
@@ -183,7 +185,7 @@ def active(store,db,records,diagnostics=False):
     needs_scope=any(evidence[i].get('provenance',{}).get('method') in DISCOVERY_METHODS
         for c in records['claims'] if states[c['id']]['lifecycle']=='active' for i in c['evidence'] if i in evidence)
     scope=analysis_scope(store.project.root) if needs_scope else None
-    checks={c['id']:freshness(store.project.root,c,records,scope) for c in records['claims'] if states[c['id']]['lifecycle']=='active'}
+    checks={c['id']:freshness(store.project.root,c,records,scope,db=db) for c in records['claims'] if states[c['id']]['lifecycle']=='active'}
     allowed={i for i,check in checks.items() if check['trusted']}
     while True:
         filtered={c['id'] for c in records['claims'] if c['id'] in allowed and all(d in allowed for d in c['depends_on'])}
@@ -243,11 +245,17 @@ def validate_model(records,states):
     return []
 
 
-def verify_source_bindings(store,values):
-    identities={v['source']['identity'] for v in values if v.get('source') is not None}
+def verify_source_bindings(store,values,db=None,git_identity=None):
+    from .confluence import is_binding,validate_candidate
+    values=list(values)
+    if db is None and any(is_binding(v.get('source')) for v in values):
+        with store.connection() as connection:return verify_source_bindings(store,values,connection,git_identity)
+    for value in values:
+        if db is not None:validate_candidate(db,value)
+    identities={v['source']['identity'] for v in values if v.get('source') is not None and not is_binding(v['source'])}
     if identities:
         from .discovery import inventory
-        current=inventory(store.project.root)['identity']
+        current=git_identity if git_identity is not None else inventory(store.project.root)['identity']
         require(identities=={current},'source-drift-before-commit-rescan-required')
 
 

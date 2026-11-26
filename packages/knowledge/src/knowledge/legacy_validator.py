@@ -22,6 +22,8 @@ SCHEMA_HASHES = {
     'evidence': '984f980ab218359871f4fc8424b748cc093688c42b762d07e0e225170c768bcf',
     'relationship': '31ee6cb31d25adca58ece3bf8c6db08660f910c8eb040b84f24c39740be5d95a',
 }
+CONFLUENCE_EVIDENCE_SCHEMA='0fc053f3e500a90ac28c44c2922c8acd8900db8b7a042b124c83a7bc40bce8ed'
+CONFLUENCE_STAGE2_SCHEMA='c3dbbcd09efd0f82e979b1a047c9941590f0b5d7d1a7838c65ce13eefca9c2c8'
 
 
 def read_json(path):
@@ -58,11 +60,13 @@ def schema_errors(value, schema, location='$'):
         if not any(not schema_errors(value, option, location) for option in schema['anyOf']):
             errors.append(location + ': no allowed alternative matches')
         return errors
-    types = {'object': dict, 'array': list, 'string': str, 'null': type(None)}
+    types = {'object': dict, 'array': list, 'string': str, 'null': type(None),'integer':int}
+    if schema.get('type')=='integer' and type(value) is not int:return [location+': expected integer']
     if 'type' in schema and not isinstance(value, types[schema['type']]):
         return [location + ': expected ' + schema['type']]
     if 'enum' in schema and value not in schema['enum']:
         errors.append(location + ': value outside enumeration')
+    if type(value) is int and 'minimum' in schema and value<schema['minimum']:errors.append(location+': below minimum')
     if isinstance(value, dict):
         for key in schema.get('required', []):
             if key not in value:
@@ -101,10 +105,10 @@ def check_schema(schema):
     if not isinstance(schema, dict):
         raise ValueError('schema must be an object')
     supported = {'$schema', 'type', 'required', 'properties', 'additionalProperties', 'enum',
-                 'anyOf', 'items', 'uniqueItems', 'minLength', 'pattern', 'format'}
+                 'anyOf', 'items', 'uniqueItems', 'minLength', 'pattern', 'format','minimum'}
     if set(schema) - supported:
         raise ValueError('unsupported schema keywords: ' + ', '.join(sorted(set(schema) - supported)))
-    if 'type' in schema and schema['type'] not in ['object', 'array', 'string', 'null']:
+    if 'type' in schema and schema['type'] not in ['object', 'array', 'string', 'null','integer']:
         raise ValueError('unsupported schema type')
     if 'pattern' in schema:
         re.compile(schema['pattern'])
@@ -135,7 +139,9 @@ def validate(base):
         schema = read_json(schema_path)
         check_schema(schema)
         digest = hashlib.sha256(json.dumps(schema, sort_keys=True).encode()).hexdigest()
-        if digest != SCHEMA_HASHES[kind]:
+        supported_hashes={SCHEMA_HASHES[kind]}
+        if kind=='evidence':supported_hashes.update((CONFLUENCE_EVIDENCE_SCHEMA,CONFLUENCE_STAGE2_SCHEMA))
+        if digest not in supported_hashes:
             errors.append(str(schema_path.relative_to(base)) + ': schema differs from supported v1 schema')
             continue
         if not (base / directory).is_dir():

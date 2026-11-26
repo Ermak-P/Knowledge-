@@ -51,6 +51,55 @@
             }
           },
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind",
+            "identity",
+            "revision",
+            "snapshot",
+            "reference"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "confluence"
+              ]
+            },
+            "identity": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "revision": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "snapshot": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "reference": {
+              "type": "string",
+              "minLength": 1
+            },
+            "role": {
+              "enum": [
+                "requirement",
+                "architecture",
+                "rationale",
+                "integration-contract",
+                "configuration",
+                "deployment",
+                "testing",
+                "limitation",
+                "historical",
+                "proposed",
+                "implementation"
+              ]
+            }
+          },
+          "additionalProperties": false
         }
       ]
     },

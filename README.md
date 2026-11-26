@@ -9,7 +9,10 @@ The shared provider is `<McpDir>/config/provider.json`; the shipped demo remains
 `test-double`. Updates preserve user configuration and shared memory.
 See [installation and commands (Russian)](docs/P4/AutomaticInstallation-RU.md)
 for global host registration, provider references, durable scan recovery and
-separate exact approval with `/knowledge-candidates-push`.
+separate exact approval with `/knowledge-update` (the existing
+`/knowledge-candidates-push` remains supported). Native Confluence collection uses
+`/knowledge-confluence` and the configured Confluence MCP; existing stores need
+no new `/knowledge-init`. See [Confluence integration](docs/P4/CONFLUENCE.md).
 
 
 New tasks use the task-v2 bounded pipeline in [P4 usage](docs/P4/USAGE.md) and [the P4 example](examples/p4/task.json). Main coordinates sequential Coding items, build/test run as trusted runtime recipes, and independent Reviewing remains mandatory. Task-v1 inputs retain the accepted legacy policy.
