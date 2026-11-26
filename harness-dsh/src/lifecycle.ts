@@ -283,6 +283,10 @@ class EvidenceBook {
     const state={task,contract,identity:freeze(e.contractIdentityOf(contract)),refs:[],failures:[],semantic:new Map(),attempts:0,red:null}
     this.tasks.set(task.id,state);return state
   }
+  beginAttempt(state){
+    state.attemptStart=this.seq
+    state.semantic.clear()
+  }
   capture(assignment,record){
     const state=this.tasks.get(assignment.taskId)
     if(!state||!['coding','testing','verification','host'].includes(assignment.role)||record.name!=='harness_run_check')return
@@ -296,17 +300,19 @@ class EvidenceBook {
     const base={contractIdentity:state.identity,callId:String(record.callId),toolIdentity:record.name,normalizedArgsHash:e.normalizedArgsHash(record.arguments),resultSeq:seq,producerAgentId:assignment.agentId,producerSessionId:assignment.sessionId,taskId:state.task.id}
     const criterion=state.task.criteria.find(c=>c.id===record.arguments.criterion_id&&c.kind!=='review')
     if(!criterion)return
-    const fail=(reason)=>state.failures.push({...base,evidenceType:'command_output',error:reason})
+    // The distributed 1.0.0 binder also matches capture failures by evidence type.
+    const evidenceType=state.contract.acceptanceCriteria.find(ac=>ac.id===criterion.id).selector.evidenceType
+    const fail=(reason)=>state.failures.push({...base,evidenceType,error:reason})
+    if(state.refs.length+state.failures.length>=200){state.captureOverflow=true;return}
     try{
       const value=record.value
       if(record.isError||!value||value.kind!==criterion.kind||!['pass','fail'].includes(value.outcome)||!value.fingerprint?.available||!value.fingerprint.tree){fail('failed, interrupted or unavailable check');return}
-      if(state.refs.length+state.failures.length>=200){state.captureOverflow=true;fail('evidence limit reached');return}
       let captured=e.deriveCaptured({...record,content:[],meta:undefined},{contractIdentity:state.identity,parseTestRuns:false})
       if(!captured){fail('cannot derive evidence');return}
       const payload=criterion.kind==='test'?{exitCode:value.exitCode,passCount:value.passed,failCount:value.failed,output:value.summary}:criterion.kind==='file'?{path:criterion.target,exists:value.exists}:{exitCode:value.exitCode,stdout:value.summary}
       if(criterion.kind==='test'&&(!Number.isInteger(value.passed)||!Number.isInteger(value.failed)||value.passed+value.failed===0||value.skipped!==0||(value.outcome==='pass'&&(value.failed!==0||value.passed===0)))){fail('no executed tests');return}
       if(criterion.kind!=='file'&&(!Number.isInteger(value.exitCode)||(value.outcome==='pass'&&value.exitCode!==0))){fail('missing or inconsistent exit status');return}
-      captured=e.CapturedEvidenceSchema.parse({...captured,evidenceType:criterion.kind==='test'?'test_run':criterion.kind==='file'?'file_exists':'command_output',payload,failed:value.outcome!=='pass'})
+      captured=e.CapturedEvidenceSchema.parse({...captured,evidenceType,payload,failed:value.outcome!=='pass'})
       const stored=await v.storePayload(this.store,captured)
       if(stored.truncated){fail('truncated evidence');return}
       state.refs.push({...base,evidenceType:captured.evidenceType,blobHash:stored.blobKey,rawHash:stored.rawHash,originalLength:stored.originalLength,truncated:false,completeness:'complete',schemaVersion:1,summary:value.summary??'',fingerprint:freeze(structuredClone(value.fingerprint)),outcome:value.outcome})
@@ -330,9 +336,11 @@ class EvidenceBook {
     await this.drain()
     const {v,e,s}=this.lib
     if(state.captureOverflow)return {status:'blocked',details:[{reason:'evidence limit reached'}],reasons:['evidence limit reached']}
-    const now=this.fingerprint(),verdicts=new Map(),details=[]
+    const seq=this.seq,now=this.fingerprint(),verdicts=new Map(),details=[]
     let uncertain=false
     const failure=(ac,reason,blocked=true)=>{if(blocked)uncertain=true;details.push({id:ac.id,reason});verdicts.set(ac.id,{claimId:ac.id,acId:ac.id,result:blocked?'need_human':'fail',oracleTier:'T4',contractIdentity:state.identity,detail:reason})}
+    const refs=state.refs.filter(r=>r.resultSeq>(state.attemptStart??0))
+    const captureFailures=state.failures.filter(r=>r.resultSeq>(state.attemptStart??0))
     for(const ac of state.contract.acceptanceCriteria){
       if(ac.oracleHint==='review'){
         const r=state.semantic.get(ac.id)
@@ -340,7 +348,7 @@ class EvidenceBook {
         if(r.verdict!=='pass'){failure(ac,r.detail,r.verdict==='blocked');continue}
         verdicts.set(ac.id,{claimId:ac.id,acId:ac.id,result:'pass',oracleTier:'T2',contractIdentity:state.identity,detail:r.detail});continue
       }
-      const outcome=await v.bindSelectorForAc(ac,{contractIdentity:state.identity,refs:state.refs,captureFailures:state.failures,loadBlob:key=>this.store.read(key)},()=>ac.selector.evidenceType,{familyFallback:false})
+      const outcome=await v.bindSelectorForAc(ac,{contractIdentity:state.identity,refs,captureFailures,loadBlob:key=>this.store.read(key)},()=>ac.selector.evidenceType,{familyFallback:false})
       if(outcome.kind!=='bound'){failure(ac,outcome.reason??'missing evidence');if(outcome.kind==='no-evidence')details.at(-1).recheck=true;continue}
       const ref=state.refs.find(r=>r.resultSeq===outcome.resultSeq)
       if(!ref||ref.taskId!==state.task.id||s.compareFingerprints(ref.fingerprint,now)!=='same'){failure(ac,'missing or stale evidence');details.at(-1).recheck=true;continue}
@@ -354,8 +362,8 @@ class EvidenceBook {
       }catch(error){failure(ac,String(error))}
     }
     const gate=new v.CompletionGate().evaluate(state.contract,verdicts,[])
-    const stable=s.compareFingerprints(now,this.fingerprint())==='same'
-    return {status:!stable?'blocked':gate.status==='done'?'pass':gate.status==='failed'?'fail':'blocked',details:stable?details:[...details,{reason:'workspace changed or freshness unavailable during gate'}],reasons:gate.reasons,fingerprint:now,uncertain}
+    const stable=seq===this.seq&&s.compareFingerprints(now,this.fingerprint())==='same'
+    return {status:!stable?'blocked':gate.status==='done'?'pass':gate.status==='failed'?'fail':'blocked',details:stable?details:[...details,{reason:'workspace or evidence changed, or freshness unavailable during gate'}],reasons:gate.reasons,fingerprint:now,uncertain}
   }
 }
 
@@ -372,16 +380,31 @@ async function runEngineering(host,book,request,basis,runId,sessionId,signal,max
   const taskPrompt=(s)=>({task:s.task,contract:s.contract})
   const verify=async(s)=>{
     progress('verification',s.task)
-    let gate=await book.evaluate(s)
+    const evaluate=async()=>{
+      const gate=await book.evaluate(s)
+      check()
+      progress('gate',s.task,gate.status+(gate.details.length?': '+JSON.stringify(gate.details):''))
+      return gate
+    }
+    let gate=await evaluate()
     if(gate.status==='pass')return gate
     // Deterministic work is executed by the trusted host only when missing or stale.
     // Fresh failed evidence is not retried until Coding repairs it.
     if(host.check){
-      for(const detail of gate.details){
-        const c=s.task.criteria.find(c=>c.id===detail.id&&c.kind!=='review')
-        if(c&&detail.recheck){check();await host.check(s,c,signal)}
+      const checks=s.task.criteria.filter(c=>gate.details.some(d=>d.id===c.id&&d.recheck))
+      // A failed build can prevent tests from running at all. Repair it first.
+      if(gate.details.some(d=>d.reason==='actual check failed'&&s.task.criteria.some(c=>c.id===d.id&&c.kind==='build')))return {...gate,status:'fail'}
+      for(const c of checks.sort((a,b)=>Number(b.kind==='build')-Number(a.kind==='build'))){
+        check()
+        const result=await host.check(s,c,signal)
+        check()
+        if(c.kind==='build'&&result?.outcome==='fail'){
+          gate=await evaluate()
+          return {...gate,status:'fail'}
+        }
+        if(result?.outcome==='unverified')return evaluate()
       }
-      gate=await book.evaluate(s)
+      gate=await evaluate()
       if(gate.status==='pass'||gate.status==='fail')return gate
       if(!s.task.criteria.some(c=>c.kind==='review'))return gate
     }
@@ -390,11 +413,13 @@ async function runEngineering(host,book,request,basis,runId,sessionId,signal,max
     if(result.structured.verdict==='rework')return {status:'fail',details:[{reason:result.structured.detail}]}
     if(result.structured.verdict!=='pass')return {status:'blocked',details:[{reason:'invalid verification verdict'}]}
     book.recordSemantic(s,result.structured,result.observedPaths,result.fingerprint,result.producer)
-    return book.evaluate(s)
+    return evaluate()
   }
   const execute=async(s,reason)=>{
     while(s.attempts<maxAttempts){
-      check();s.attempts++;s.semantic.clear()
+      check();s.attempts++
+      book.beginAttempt(s)
+      if(s.attempts>1)progress('repair-attempt',s.task,String(s.attempts))
       if(s.task.tdd&&!s.red){
         const baseline=await host.baseline(s,signal)
         if(!baseline.comparable)throw Error('TDD baseline unavailable')
@@ -450,9 +475,11 @@ async function runEngineering(host,book,request,basis,runId,sessionId,signal,max
       if(repaired)continue
       const reviewed=await child('reviewing',null,{request,plan,attempts:states.map(s=>({taskId:s.task.id,attempts:s.attempts})),changes:await host.changes()},reviewSchema)
       const r=reviewed.structured
+      progress('review-outcome',null,r.verdict)
       if(r.verdict==='pass'&&Array.isArray(r.issues)&&!r.issues.length){
         for(const s of states)if((await book.evaluate(s)).status!=='pass')throw Error('evidence changed after review')
         if(!reviewed.fingerprint?.available||book.lib.s.compareFingerprints(reviewed.fingerprint,book.fingerprint())!=='same')throw Error('review snapshot stale')
+        check()
         progress('completed',null);return {status:'completed',tasks:states.map(s=>({id:s.task.id,attempts:s.attempts}))}
       }
       if(r.verdict!=='rework'||!Array.isArray(r.issues)||!r.issues.length)throw Error('review blocked: '+r.detail)

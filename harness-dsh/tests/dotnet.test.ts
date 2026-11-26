@@ -51,6 +51,7 @@ test('discovery includes untracked and out-of-solution test projects, and denies
 
 test('native shell interface double: timeout cannot pass; valid TRX succeeds',async t=>{
   const root=mkdtempSync(join(tmpdir(),'harness-dsh-run-'));t.after(()=>rmSync(root,{recursive:true,force:true}))
+  execFileSync('git',['init','-q'],{cwd:root})
   writeFileSync(join(root,'AppTests.csproj'),'<Project/>')
   const fp=()=>({available:true,tree:'unchanged'}),compare=(a,b)=>a.tree===b.tree?'same':'different'
   let timedOut=true

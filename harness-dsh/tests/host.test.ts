@@ -11,8 +11,9 @@ import { mockLibraries } from './mock-libraries.ts'
 async function exerciseHost(mount,root,libs,files,signal){
   let version=1,seq=0,disposed=0,checks=0
   const guards=[],listeners=new Map(),tools=new Map(),roles=[]
-  const parent={id:'root',session:{id:'root',header:{cwd:root},events:[{type:'turn/start',seq:1},{type:'user/message',seq:2,data:{source:{kind:'user'},content:[{type:'text',text:'Implement value'}]}}]}}
+  const parent={id:'root',session:{id:'root',header:{cwd:root},snapshotEvents:()=>[{type:'turn/start',seq:1},{type:'user/message',seq:2,data:{source:{kind:'user'},content:[{type:'text',text:'Implement value'}]}}]}}
   const agents=new Map([[parent.id,parent]])
+  libs.s.pathIgnorer=()=>()=>false
   libs.s.computeFingerprint=()=>({available:true,tree:'tree-'+version})
   const exec=(agent,name,args={})=>({agent,name,arguments:args,callId:'call-'+(++seq),signal})
   const deny=(a,n,args={})=>guards.some(g=>!!g(exec(a,n,args)))

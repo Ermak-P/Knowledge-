@@ -47,7 +47,7 @@ test('real DSH tool dispatcher produces evidence in two separate native sessions
   const adapter=new EvidenceAdapter();ctx.llm.registerAdapter(['mock'],adapter)
   ctx.tools.register(defineTool({
     name:'harness_run_check',description:'Test-only controlled actual tool',
-    parameters:{type:'object',properties:{criterion_id:{type:'string'}},required:['criterion_id'],additionalProperties:false},
+    parameters:{criterion_id:{type:'string',required:true}},
     output:{schema:{type:'string'},render:(_args,value)=>[{type:'text',text:value}]},
     async execute(){return JSON.stringify({kind:'build',outcome:'pass',exitCode:0,summary:'real tool dispatch; process mocked',fingerprint:fp()})}
   }))

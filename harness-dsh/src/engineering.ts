@@ -1,9 +1,10 @@
 // Production composition. No mock fallback is imported by this module.
 import { randomUUID } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
+import { realpathSync } from 'node:fs'
 import { resolve, relative, isAbsolute, sep } from 'node:path'
 import { EvidenceBook, runEngineering } from './lifecycle.ts'
-import { projectRoot, safePath, discoverTests, validateTaskPaths, hashFiles, runCheck, isTestPath } from './dotnet.ts'
+import { projectRoot, safePath, discoverTests, validateTaskPaths, hashFiles, runCheck, isTestPath, createWorkspaceFingerprint, createTrxParser } from './dotnet.ts'
 import { tddController } from './tdd.ts'
 
 export const name='harness-dsh-engineering'
@@ -14,7 +15,7 @@ const commandTool='harness_run_check'
 
 function sessionId(agent){return String(agent?.session?.id??'')}
 function userBasis(parent){
-  const events=parent.session.events
+  const events=parent.session.snapshotEvents()
   const start=[...events].reverse().find(e=>e.type==='turn/start')
   const event=[...events].reverse().find(e=>e.type==='user/message'&&e.data?.source?.kind==='user'&&(!start||e.seq>=start.seq))
   const request=event?.data?.content?.filter(b=>b.type==='text').map(b=>b.text).join('\n')
@@ -28,6 +29,13 @@ const object=(properties={},required=[])=>({type:'object',properties,required,ad
 function resultForCapture(value){
   const {results,failures,...rest}=value
   return {...rest,...(failures?{failures:failures.slice(0,20)}:{})}
+}
+function diagnostic(value){
+  const {kind,outcome,exitCode,classifier,passed,failed,skipped}=value
+  const buildCodes=kind==='build'&&outcome==='fail'
+    ?[...new Set(value.summary.match(/\b(?:CS|MSB|NETSDK|NU)\d{3,5}\b/g)??[])].slice(0,8)
+    :undefined
+  return {kind,outcome,exitCode,classifier,passed,failed,skipped,buildCodes}
 }
 const roleInstructions={
   planning:'Plan only; no mutations. Return the structured plan. Each task has exact repo-relative codingFiles and testFiles, an objective, tdd boolean, optional refactor boolean for a necessary TDD refactor, and criteria. Each criterion has id, desc, kind (build/test/file/review), target (repo-relative file or existing .NET project/solution). C# changes need build and test criteria. Use discovered test project paths. Use review criteria for semantic behavior that commands cannot prove. TDD requires exactly one test criterion and explicit test files. Keep scopes minimal.',
@@ -50,17 +58,25 @@ export function mountEngineering(ctx,config,libs,xml){
   if([...trustedReads].some(n=>typeof n!=='string'||!n.startsWith('mcp__')))throw Error('readOnlyTools must contain exact, manually audited MCP tool names')
   const presets=config.presets??{}
   const runs=new Map(),assignments=new Map(),seenTurns=new Map()
-  const fresh=(ignore=[])=>s.computeFingerprint(root,{budgetMs,ignore,maxRehashFiles:10000,maxRehashBytes:128*1024*1024})
+  const fresh=createWorkspaceFingerprint(root,s,budgetMs)
   const own=(agent)=>!!agent&&ctx.agents.get(agent.id)===agent
-  const inProject=(agent)=>{const cwd=agent?.session?.header?.cwd;if(typeof cwd!=='string')return false;const rel=relative(root,resolve(cwd));return rel!== '..'&&!rel.startsWith('..'+sep)&&!isAbsolute(rel)}
+  const cwdOf=agent=>agent?.session&&(ctx.get?.('workingDirectory')?.get(agent.session)??agent.session.header?.cwd)
+  const inProject=(agent)=>{
+    const cwd=cwdOf(agent)
+    if(typeof cwd!=='string')return false
+    let path=resolve(cwd)
+    try{path=realpathSync(path)}catch{}
+    const rel=relative(root,path)
+    return rel!=='..'&&!rel.startsWith('..'+sep)&&!isAbsolute(rel)
+  }
   const isRoot=(agent)=>own(agent)&&inProject(agent)&&ctx.subagents.rootOf(agent)===agent
   const assignment=(agent)=>own(agent)?assignments.get(sessionId(agent)):undefined
   const scoped=(agent)=>inProject(agent)||!!assignment(agent)
   const log=(run,p)=>console.log('[harness-dsh] '+JSON.stringify({runId:run.id,taskId:p.taskId,phase:p.phase,detail:p.detail?.slice(0,1000)}))
   const deny=reason=>'harness-dsh: '+reason
-  const allowedWrite=(a,args)=>{
+  const allowedWrite=(a,agent,args)=>{
     if(!a.state||!['coding','testing'].includes(a.role)||!args||typeof args.file_path!=='string'||args.sandbox_permissions!==undefined)return false
-    const path=safePath(root,args.file_path)
+    const path=safePath(root,resolve(cwdOf(agent),args.file_path))
     const paths=a.role==='coding'?a.state.task.codingFiles:a.state.task.testFiles
     return paths.includes(path)&&(a.role==='testing'?isTestPath(path,a.run.testProjects):!isTestPath(path,a.run.testProjects))
   }
@@ -68,11 +84,11 @@ export function mountEngineering(ctx,config,libs,xml){
     const a=assignment(exec.agent)
     if(!scoped(exec.agent))return undefined
     if(!own(exec.agent))return deny('unknown agent')
-    if(readTools.has(exec.name)||trustedReads.has(exec.name))return undefined
+    if((a&&exec.name==='structured_output')||readTools.has(exec.name)||trustedReads.has(exec.name))return undefined
     if(exec.name==='harness_run'&&isRoot(exec.agent)&&!runs.size)return undefined
     if(a&&a.state&&exec.name===commandTool&&['coding','testing','verification'].includes(a.role))return undefined
     if(a&&['write','edit'].includes(exec.name)){
-      try{if(allowedWrite(a,exec.arguments))return undefined}catch{}
+      try{if(allowedWrite(a,exec.agent,exec.arguments))return undefined}catch{}
     }
     return deny('operation is outside the assigned role or frozen task scope: '+exec.name)
   }))
@@ -81,11 +97,13 @@ export function mountEngineering(ctx,config,libs,xml){
     const a=assignment(exec.agent)
     if(!a)return
     if(exec.name==='read'&&!result.isError){
-      try{a.observed.add(safePath(root,exec.arguments.file_path))}catch{}
+      try{a.observed.add(safePath(root,resolve(cwdOf(exec.agent),exec.arguments.file_path)))}catch{}
     }
     if(exec.name!==commandTool||!a.state)return
-    let value
-    try{if(!result.isError&&typeof result.value==='string')value=JSON.parse(result.value)}catch{}
+    const key=exec.token??exec.callId
+    const receipt=a.receipts.get(key)
+    a.receipts.delete(key)
+    const value=!result.isError&&receipt?.rendered===result.value?receipt?.value:undefined
     void a.run.book.capture({taskId:a.state.task.id,role:a.role,agentId:String(exec.agent.id),sessionId:sessionId(exec.agent)},{callId:String(exec.callId),name:exec.name,arguments:exec.arguments,isError:result.isError,value}).catch(error=>{a.state.captureOverflow=true;console.warn('[harness-dsh] capture error',String(error))})
   })
   ctx.effect(()=>ctx.tools.register(tool(commandTool,'Execute one frozen acceptance check for your assigned task. No arbitrary commands.',object({criterion_id:{type:'string'}},['criterion_id']),async(args,exec)=>{
@@ -93,9 +111,12 @@ export function mountEngineering(ctx,config,libs,xml){
     if(!a?.state||!['coding','testing','verification'].includes(a.role))throw Error('no trusted task assignment')
     const c=a.state.task.criteria.find(x=>x.id===args.criterion_id&&x.kind!=='review')
     if(!c)throw Error('unknown deterministic criterion')
-    const value=await runCheck(ctx,exec.agent,root,c,()=>fresh(),s.compareFingerprints,xml,exec.signal,timeoutMs)
-    return JSON.stringify(resultForCapture(value))
-  },v=>v.kind+' '+v.outcome+': '+v.summary),{when:({agent})=>{const a=assignment(agent);return !!a?.state&&['coding','testing','verification'].includes(a.role)}}))
+    const signal=AbortSignal.any([exec.signal,a.run.signal])
+    const value=resultForCapture(await runCheck(ctx,exec.agent,root,c,()=>fresh(),s.compareFingerprints,xml,signal,timeoutMs))
+    const rendered=JSON.stringify(diagnostic(value))
+    a.receipts.set(exec.token??exec.callId,{rendered,value})
+    return rendered
+  }),{when:({agent})=>{const a=assignment(agent);return !!a?.state&&['coding','testing','verification'].includes(a.role)}}))
   ctx.effect(()=>ctx.tools.register(tool('harness_run','Execute a software change through Planning, Coding, independent Verification, Testing where applicable, and final Reviewing. Required for modifying the managed workspace. Uses the actual current user request. Read-only questions do not need this tool.',object(),async(_args,exec)=>{
     const parent=exec.agent
     if(!isRoot(parent)||runs.size)throw Error('a managed root agent and exclusive workspace are required')
@@ -104,13 +125,13 @@ export function mountEngineering(ctx,config,libs,xml){
     seenTurns.set(sessionId(parent),seq)
     const abort=new AbortController()
     const signal=AbortSignal.any([exec.signal,abort.signal])
-    const run={id:randomUUID(),parent,abort,book:new EvidenceBook(libs,()=>fresh()),testProjects:discoverTests(root)}
+    const run={id:randomUUID(),parent,abort,signal,book:new EvidenceBook(libs,()=>fresh()),testProjects:discoverTests(root)}
     runs.set(run.id,run)
-    let baseline=new Map()
+    const baseline=new Map()
     const checkRaw=(_state,c,checkSignal)=>runCheck(ctx,parent,root,c,()=>fresh(),s.compareFingerprints,xml,checkSignal,timeoutMs)
     const captureTrusted=async(state,c,value)=>{
       await run.book.capture({taskId:state.task.id,role:'host',agentId:'harness:'+run.id,sessionId:sessionId(parent)},{callId:randomUUID(),name:commandTool,arguments:{criterion_id:c.id},isError:false,value:resultForCapture(value)})
-      log(run,{taskId:state.task.id,phase:'check:'+c.kind,detail:value.outcome+': '+value.summary})
+      log(run,{taskId:state.task.id,phase:'check:'+c.kind,detail:JSON.stringify(diagnostic(value))})
       return value
     }
     const tdd=tddController(root,run.testProjects,checkRaw,fresh,s.compareFingerprints)
@@ -126,27 +147,27 @@ export function mountEngineering(ctx,config,libs,xml){
       async changes(){
         const paths=[...baseline.keys()].filter(p=>hashFiles(root,[p])!==baseline.get(p))
         let diff=''
-        try{if(paths.length)diff=execFileSync('git',['diff','--no-ext-diff','HEAD','--',...paths],{cwd:root,timeout:30000,maxBuffer:2*1024*1024}).toString('utf8').slice(0,16000)}catch{diff='Git diff unavailable; inspect all changed files directly.'}
+        try{if(paths.length)diff=execFileSync('git',['diff','--no-ext-diff','HEAD','--',...paths],{cwd:root,timeout:30000,maxBuffer:2*1024*1024,stdio:['ignore','pipe','pipe']}).toString('utf8').slice(0,16000)}catch{diff='Git diff unavailable; inspect all changed files directly.'}
         return {paths,diff,scope:'HEAD diff may include pre-existing edits; changed paths are measured against the run baseline. New files must be read directly.'}
       },
       async spawn(role,state,extra,schema,childSignal){
         if(!roles.includes(role)||childSignal.aborted)throw Error('invalid or cancelled role')
         const before=fresh(),id=randomUUID()
-        const a={role,state,run,observed:new Set()}
+        const a={role,state,run,observed:new Set(),receipts:new Map()}
         assignments.set(id,a) // reserve before the native child can issue a tool call
         let activation
         let disposal
         const cancel=()=>{if(activation&&!disposal){disposal=activation.dispose();void disposal.catch(()=>{})}}
         try{
           const prompt=roleInstructions[role]+'\n'+JSON.stringify({...extra,workspace:root,...(role==='planning'?{testProjects:run.testProjects}:{} )})
-          activation=await ctx.subagents.startActivation({provider:'spawn',childId:id,parent,cwd:root,label:(state?state.task.id+' ':'')+role,delivery:'caller',signal:childSignal,maxDepth:1,prompt:[{type:'text',text:prompt}],outputSchema:schema,agentPreset:presets[role]??'standard'})
+          activation=await ctx.subagents.startActivation({provider:'spawn',childId:id,parent,cwd:root,label:(state?state.task.id+' ':'')+role,delivery:'caller',signal:childSignal,maxDepth:1,prompt:[{type:'text',text:prompt}],outputSchema:schema,agentPreset:presets[role]===null?undefined:presets[role]??'standard'})
           if(String(activation.childId)!==id)throw Error('native child did not preserve reserved identity')
           childSignal.addEventListener('abort',cancel,{once:true})
           if(childSignal.aborted)cancel()
           const result=await activation.result
           if(result.stopReason!=='completed'||childSignal.aborted||!result.structured)throw Error(role+' failed: '+result.stopReason)
           const after=fresh()
-          if(['planning','verification','reviewing'].includes(role)&&s.compareFingerprints(before,after)!=='same')throw Error(role+' workspace changed or freshness unavailable')
+          if(['planning','verification','reviewing'].includes(role)&&s.compareFingerprints(before,after)!=='same')throw Error(role+' workspace changed or freshness unavailable: '+(before.reason??after.reason??'workspace changed'))
           if(role==='reviewing'&&result.structured.verdict==='pass'&&!extra.changes.paths.every(p=>a.observed.has(p)))throw Error('review did not inspect every changed planned file')
           return {structured:result.structured,observedPaths:[...a.observed],fingerprint:after,producer:{agentId:id,sessionId:id}}
         }finally{
@@ -158,15 +179,11 @@ export function mountEngineering(ctx,config,libs,xml){
     try{return JSON.stringify(await runEngineering(host,run.book,request,basis,run.id,sessionId(parent),signal,maxAttempts))}
     finally{await run.book.drain();runs.delete(run.id)}
   }),{when:({agent})=>isRoot(agent)}))
-  ctx.effect(()=>()=>{for(const r of runs.values())r.abort.abort()})
+  ctx.on('session/disposed',session=>{seenTurns.delete(String(session.id))})
+  ctx.effect(()=>()=>{for(const r of runs.values())r.abort.abort();seenTurns.clear()})
 }
 
 export async function apply(ctx,config){
   const [v,e,s,xml]=await Promise.all([import('@bpc-oss/dsh-verification'),import('@bpc-oss/dsh-evidence'),import('stalegreen'),import('fast-xml-parser')])
-  const parser=new xml.XMLParser({ignoreAttributes:false,attributeNamePrefix:'@_',parseAttributeValue:false,processEntities:false,removeNSPrefix:true})
-  const parse=text=>{
-    if(/<!DOCTYPE|<!ENTITY/i.test(text)||xml.XMLValidator.validate(text)!==true)throw Error('invalid or unsafe TRX XML')
-    return parser.parse(text)
-  }
-  mountEngineering(ctx,config,{v,e,s},parse)
+  mountEngineering(ctx,config,{v,e,s},createTrxParser(xml))
 }

@@ -1,5 +1,7 @@
 # Validation — 2026-11-26
 
+The results below describe the feature-branch baseline. See [DSH_ACCEPTANCE_REPORT.md](DSH_ACCEPTANCE_REPORT.md) for independent validation of the hardened branch.
+
 This is an implementation candidate, not a native-qualified release. The owner explicitly allowed mocks for inaccessible environments. Production code has no fallback to test doubles.
 
 ## Executed in this session

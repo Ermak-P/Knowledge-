@@ -1,8 +1,9 @@
 // Trusted .NET verification. No agent-supplied shell fragments.
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync, lstatSync, readFileSync, realpathSync, readdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
+import { performance } from 'node:perf_hooks'
 import { resolve, relative, dirname, basename, isAbsolute, sep, join } from 'node:path'
 
 export function safePath(root: string, value: string) {
@@ -32,18 +33,27 @@ export function isTestPath(path: string, projects: string[]) {
   return /(?:^|\/)[^/]*tests?(?:\/|\.csproj$)/i.test(p)||projects.some(x=>{const d=dirname(x).replaceAll('\\','/').toLowerCase();return d==='.'?p.endsWith('.cs')||p===x.toLowerCase():p.startsWith(d+'/')})
 }
 export function validateTaskPaths(root: string, plan, testProjects: string[]) {
+  const paths=[...new Set(plan.flatMap(task=>[
+    ...task.codingFiles,...task.testFiles,...task.criteria.map(c=>c.target)
+  ]))]
+  for(const path of paths){
+    if(safePath(root,path)!==path)throw Error('plan paths must be canonical repo-relative: '+path)
+  }
+  const ignored=spawnSync('git',['check-ignore','--stdin','-z'],{
+    cwd:root,input:paths.join('\0')+'\0',timeout:30000,encoding:'utf8',windowsHide:true
+  })
+  if(ignored.error||![0,1].includes(ignored.status))throw Error('cannot determine Git input scope')
+  if(ignored.status===0)throw Error('plan path is Git-ignored: '+ignored.stdout.split('\0')[0])
   for(const task of plan){
     const paths=[...task.codingFiles,...task.testFiles]
     const key=p=>process.platform==='win32'?p.toLowerCase():p
     if(new Set(paths.map(key)).size!==paths.length)throw Error('overlapping file scopes')
     for(const p of paths){
-      if(safePath(root,p)!==p)throw Error('plan paths must be canonical repo-relative: '+p)
-      if(/(?:^|\/)(?:Directory\.Build\..*|Directory\.Packages\.props|global\.json|NuGet\.Config|[^/]*\.(?:props|targets|runsettings|sln|slnx))$/i.test(p))throw Error('build/test control file requires separate approval: '+p)
+      if(/(?:^|\/)(?:Directory\.Build\..*|Directory\.Packages\.props|global\.json|NuGet\.Config|\.gitignore|\.gitattributes|\.gitmodules|[^/]*\.(?:props|targets|runsettings|sln|slnx))$/i.test(p))throw Error('build/test control file requires separate approval: '+p)
       if(task.codingFiles.includes(p)&&isTestPath(p,testProjects))throw Error('Coding scope contains tests: '+p)
       if(task.testFiles.includes(p)&&!isTestPath(p,testProjects))throw Error('Testing scope contains production file: '+p)
     }
     for(const c of task.criteria){
-      if(safePath(root,c.target)!==c.target)throw Error('invalid criterion target')
       if(c.kind==='build'&&(!/\.(csproj|sln|slnx)$/i.test(c.target)||!existsSync(resolve(root,c.target))))throw Error('build target must exist')
       if(c.kind==='test'&&!testProjects.includes(c.target))throw Error('test target is not a discovered *Tests.csproj')
     }
@@ -82,13 +92,18 @@ export function classifyTest(shell, trx){
   if(shell.aborted)return 'cancelled'
   if(shell.timedOut)return 'timed_out'
   if(shell.signal)return 'crashed'
-  if(shell.sandbox?.denied||shell.sandbox?.runnerFailed||!Number.isInteger(shell.exitCode))return 'infra_failure'
+  if(infrastructureFailure(shell))return 'infra_failure'
   if(!trx)return 'infra_failure'
   if(trx.passed+trx.failed===0)return 'not_discovered'
   if(trx.skipped>0)return 'infra_failure'
   if(shell.exitCode===0&&trx.failed===0&&trx.passed>0)return 'test_pass'
   if(shell.exitCode!==0&&trx.failed>0)return 'test_failure'
   return 'infra_failure'
+}
+function infrastructureFailure(shell){
+  return shell.aborted||shell.timedOut||shell.signal||shell.sandbox?.denied||shell.sandbox?.runnerFailed||
+    !Number.isInteger(shell.exitCode)||[126,127].includes(shell.exitCode)||
+    /\bCommandNotFoundException\b/.test(String(shell.stderr?.text??''))
 }
 function quote(p: string){if(/[\r\n"$&;!%^\x60]/.test(p))throw Error('unsafe shell argument');return '"'+p.replaceAll('\\','/')+'"'}
 function trxFiles(dir: string): string[]{return readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isSymbolicLink()?[]:e.isDirectory()?trxFiles(join(dir,e.name)):/\.trx$/i.test(e.name)?[join(dir,e.name)]:[])}
@@ -107,32 +122,35 @@ export async function runCheck(ctx,agent,root,criterion,fresh,compare,xml,signal
   const unknown=reason=>({kind:criterion.kind,outcome:'unverified',summary:String(reason).slice(0,4000),fingerprint:fresh(),exitCode:null})
   if(signal.aborted||!before?.available)return unknown('cancelled or freshness unavailable')
   let temp,release
+  const sandboxPolicy=ctx.shell.sandboxMode===undefined?undefined:ctx.get?ctx.get('sandboxPolicy'):ctx.sandboxPolicy
   try{
-    const path=resolve(root,safePath(root,criterion.target))
+    const target=safePath(root,criterion.target)
+    const path=resolve(root,target)
+    if(existsSync(path)&&!gitFiles(root).includes(target))return unknown('check target is outside the fingerprint scope')
     if(criterion.kind==='file'){
       const exists=existsSync(path)&&lstatSync(path).isFile()
       const after=fresh()
       return {kind:'file',outcome:compare(before,after)==='same'?(exists?'pass':'fail'):'unverified',exists,summary:exists?'file exists':'file missing',fingerprint:after}
     }
     if(!['build','test'].includes(criterion.kind)||!existsSync(path))return unknown('unknown or missing check target')
-    let command='dotnet '+criterion.kind+' '+quote(path)
+    let command='dotnet '+criterion.kind+' '+quote(path)+' --disable-build-servers'
     if(criterion.kind==='test'){
       temp=mkdtempSync(join(tmpdir(),'harness-dsh-trx-'))
       // Respect the live native sandbox; never ask for wider privileges.
       if(ctx.shell.sandboxMode!==undefined){
-        if(!ctx.sandboxPolicy?.registerWritableRoot)return unknown('native sandbox grant unavailable')
-        release=ctx.sandboxPolicy.registerWritableRoot(agent.session,temp)
+        if(!sandboxPolicy?.registerWritableRoot)return unknown('native sandbox grant unavailable')
+        release=sandboxPolicy.registerWritableRoot(agent.session,temp)
       }
       command+=' --logger trx --results-directory '+quote(temp)
     }
-    const policy=ctx.sandboxPolicy?.resolve({session:agent.session})
+    const policy=sandboxPolicy?.resolve({session:agent.session})
     if(ctx.shell.sandboxMode!==undefined&&!policy)return unknown('native sandbox policy missing')
     const shell=await (await ctx.shell.execute(ctx.shell.resolve({command,workdir:root,timeoutMs,signal,...(policy?{sandboxPolicy:policy}:{})}))).result()
     const after=fresh()
     if(signal.aborted||compare(before,after)!=='same')return unknown('workspace changed, cancelled or fingerprint unavailable during check')
     const text=String(shell.stdout?.text??'')+'\n'+String(shell.stderr?.text??'')
     if(criterion.kind==='build'){
-      const outcome=shell.aborted||shell.timedOut||shell.signal||shell.sandbox?.denied||shell.sandbox?.runnerFailed||!Number.isInteger(shell.exitCode)?'unverified':shell.exitCode===0?'pass':'fail'
+      const outcome=infrastructureFailure(shell)?'unverified':shell.exitCode===0?'pass':'fail'
       return {kind:'build',outcome,exitCode:shell.exitCode,summary:text.slice(-4000),fingerprint:after}
     }
     let trx,parseError=''
@@ -146,4 +164,61 @@ export async function runCheck(ctx,agent,root,criterion,fresh,compare,xml,signal
     return {kind:'test',outcome,exitCode:shell.exitCode,classifier,...(trx??{}),summary:(parseError||('passed='+ (trx?.passed??0)+' failed='+ (trx?.failed??0)+' skipped='+ (trx?.skipped??0)+'; '+classifier)).slice(0,4000),fingerprint:after}
   }catch(e){return unknown(e)}
   finally{try{release?.()}finally{if(temp)rmSync(temp,{recursive:true,force:true})}}
+}
+
+export function createTrxParser(xml) {
+  const parser=new xml.XMLParser({ignoreAttributes:false,attributeNamePrefix:'@_',parseAttributeValue:false,processEntities:false,removeNSPrefix:true})
+  return (text: string)=>{
+    if(/<!DOCTYPE|<!ENTITY/i.test(text)||xml.XMLValidator.validate(text)!==true)throw Error('invalid or unsafe TRX XML')
+    return parser.parse(text)
+  }
+}
+
+// Supplement stalegreen's Git-content snapshot with file identity and change times.
+// Git can hide changes to assume-unchanged and skip-worktree entries.
+function workspaceSeal(root,ignore,budgetMs,pathIgnorer,started){
+  const checkBudget=()=>{
+    const remaining=budgetMs-(performance.now()-started)
+    if(remaining<1)throw Error('workspace fingerprint budget exhausted')
+    return Math.ceil(remaining)
+  }
+  const git=args=>execFileSync('git',args,{cwd:root,timeout:checkBudget(),maxBuffer:64*1024*1024,windowsHide:true}).toString('utf8').split('\0').filter(Boolean)
+  const paths=new Set()
+  const excluded=pathIgnorer(ignore)
+  for(const entry of git(['ls-files','-v','-z'])){
+    const path=entry.slice(2)
+    if(excluded(path))continue
+    if(entry[0]!=='H')throw Error('unsupported Git index state: '+path)
+    paths.add(path)
+  }
+  for(const path of git(['ls-files','--others','--exclude-standard','-z'])){
+    if(!excluded(path))paths.add(path)
+  }
+  const hash=createHash('sha256')
+  for(const path of [...paths].sort()){
+    checkBudget()
+    const file=resolve(root,path)
+    let stat
+    try{stat=lstatSync(file,{bigint:true})}catch(error){
+      if(error.code!=='ENOENT')throw error
+    }
+    if(stat&&(!stat.isFile()||relative(root,realpathSync(file)).split(sep).join('/')!==path))throw Error('workspace input is not a regular in-tree file: '+path)
+    hash.update(JSON.stringify([path,...(stat?[stat.dev,stat.ino,stat.mode,stat.size,stat.mtimeNs,stat.ctimeNs].map(String):[])]))
+  }
+  checkBudget()
+  return hash.digest('hex')
+}
+
+export function createWorkspaceFingerprint(root,stalegreen,budgetMs=5000){
+  return (ignore=[])=>{
+    const started=performance.now()
+    try{
+      const seal=workspaceSeal(root,ignore,budgetMs,stalegreen.pathIgnorer,started)
+      const remaining=Math.max(1,Math.floor(budgetMs-(performance.now()-started)))
+      const fp=stalegreen.computeFingerprint(root,{budgetMs:remaining,ignore,maxRehashFiles:10000,maxRehashBytes:128*1024*1024})
+      if(!fp.available||!fp.tree)return fp
+      if(seal!==workspaceSeal(root,ignore,budgetMs,stalegreen.pathIgnorer,started))throw Error('workspace changed during fingerprint')
+      return {...fp,tree:fp.tree+':'+seal}
+    }catch(error){return {available:false,tree:null,reason:String(error)}}
+  }
 }

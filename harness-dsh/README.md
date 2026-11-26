@@ -1,6 +1,6 @@
 # Harness for DeepSeek Harness (DSH)
 
-**Approved scope:** the owner approved the consolidated DSH-01–06 roadmap on 2026-11-26 and authorized mocked validation where the native environment is unavailable. Implementation candidate, **not native-qualified**. See [VALIDATION.md](VALIDATION.md).
+**Approved scope:** the owner approved the consolidated DSH-01–06 roadmap on 2026-11-26 and authorized mocked validation where the native environment is unavailable. See [the independent acceptance report](DSH_ACCEPTANCE_REPORT.md) for current native evidence and deployment verdicts.
 
 ## Boundaries
 
@@ -12,7 +12,7 @@ Alternative D: import the public verification library primitives, without activa
 
 - `src/index.ts`: DSH-01 passive observer retained independently.
 - `src/engineering.ts`: native tool entry points, direct native subagent activations, tool-result capture and monotonic execution guard. Native role presets are configurable; defaults use the installed standard preset, with role prompts and host guards. Native Workflow is not required for this sequential design.
-- `src/lifecycle.ts`: task-scoped immutable contracts, globally ordered in-memory evidence and capture failures, exact selectors, upstream oracles and CompletionGate, bounded repair and final review.
+- `src/lifecycle.ts`: task-scoped immutable contracts, run-local ordered in-memory evidence and capture failures, exact selectors, upstream oracles and CompletionGate, bounded repair and final review.
 - `src/dotnet.ts`: Git-based project discovery, scoped paths, trusted native shell build/test, fresh TRX interpretation, real exit status, cancellation and timeout.
 - `src/tdd.ts` and `src/reprolab/`: TDD controller and reused MIT pure RED/GREEN/regression functions. No worktrees.
 
@@ -20,40 +20,23 @@ Planning -> for each task (optional Testing/RED -> Coding -> Testing if applicab
 
 The library contract identity uses the parent session as source basis; task/run identity and actual producer agent/session are recorded separately. Native tool results and direct trusted host checks are distinguished. The host assigns fresh reserved child ids before activation; model arguments cannot assign themselves a role or task. Capture uses the final immutable native tools/result event, not model summaries. No independent Goal lifecycle or permit replay is introduced. Evidence is intentionally in-memory for a live run; native sessions retain their own tool history, but interrupted Harness runs are not resumed automatically.
 
-stalegreen supplies fingerprint computation/comparison, not its advisory claim-blocking plugin. Its unknown-fingerprint fallback is not accepted. The upstream verification library handles evidence binding and gates; compact host receipts preserve freshness and ordering without another receipt database. All nonignored Git paths are included (no extra fingerprint ignore list for ordinary acceptance). Checks are conservative: later changes invalidate earlier evidence until rechecked. This may cost time on large projects; the real IPM benchmark remains pending.
+stalegreen supplies fingerprint computation/comparison, not its advisory claim-blocking plugin. Its unknown-fingerprint fallback is not accepted. The upstream verification library handles evidence binding and gates; compact host receipts preserve freshness and ordering without another receipt database. Ordinary acceptance covers tracked and nonignored paths. A bounded file-identity and timestamp check supplements the upstream Git-content snapshot and rejects hidden index entries. Checks are conservative: later changes invalidate earlier evidence until rechecked. This may cost time on large projects; the real IPM benchmark remains pending.
 
-## Approved roadmap and implementation status
+## Run the validation suites
 
-| ID | Implementation | Acceptance |
-|---|---|---|
-| DSH-01 | Passive native plugin | Prior isolated observer test passed; native loading/disposal pending |
-| DSH-02.1 | Library PoC, two task contracts, exact evidence, supersede and freshness | Mock scenarios passed; real imports and native dispatcher tests provided, NOT RUN |
-| DSH-02.2 | Contracts, evidence, freshness, minimal guard | Implemented; host/core doubles exercised; native qualification pending |
-| DSH-02.3 | Direct native subagents, sequential roles and bounded repair | Implemented; mocked native host scenario passed |
-| DSH-02.4 | Merged into 02.2 | Freshness fail-closed in mock tests; real large Git fingerprint pending |
-| DSH-02.5 | Final gate + independent Reviewing; targeted repair | Implemented, mocked scenarios passed |
-| DSH-03.1 | Discover tracked/untracked nonignored *Tests.csproj, build, fresh TRX, classification | Implemented; pure TRX scenarios passed; real filesystem/shell/Windows tests pending |
-| DSH-03.2 | Testing role, test-only write scope, coverage/test quality assessment | Implemented with structured agent results; actual quality/quantitative coverage pending |
-| DSH-03.3 | RED/GREEN, optional refactor/retest, frozen test inputs, regression | Implemented using ReproLab pure functions; native .NET validation pending |
-| DSH-04 | Monotonic native guard + per-task repair cap | Implemented for allowed native calls; actual sandbox/PTC boundary pending; no speculative extended detector |
-| DSH-05 | Native child labels/trajectory and deterministic terminal phase logs | Implemented; inspect live UI, especially direct host checks |
-| DSH-06 | Isolated native acceptance procedure | NOT RUN: Windows/local Qwen/Knowledge MCP inaccessible |
+Run these from `harness-dsh` with Git and a supported Node.js release. The .NET acceptance suite also needs .NET 10 and a native shell. Set `DSH_DOTNET_ACCEPTANCE=1` to include full native .NET repair workflows in `test:native`. Set `DSH_KNOWLEDGE_PYTHON` to the Python executable of an isolated Knowledge MCP installation to add the real MCP test.
 
-## Morning verification
-
-From this directory only, on a machine with compatible Node (the reviewed DSH source requires Node ^24.22.3 or >=26.13.1), Git, and .NET SDK:
-
-```powershell
-git switch feature/deepseek-harness
-git pull --ff-only
-Set-Location harness-dsh
-npm test
+```text
 npm install
+npm test
 npm run test:library
 npm run test:native
+npm run test:acceptance
+npm run test:provider
+npm run test:coverage
 ```
 
-The first command suite is dependency-free: Node test runner, Git and filesystem only, with explicit test-only doubles. It never imports external packages through production apply(). The second suite imports actual upstream packages; native suite uses actual DSH agent loop/dispatcher with scripted model and a controlled tool result. If npm reports incompatible peers or missing packages, STOP and investigate; do not silently downgrade DSH, activate the upstream Goal plugin, or substitute mocks in production. Package versions are taken from the inspected manifests; registry resolution has not been verified. No runtime version-equality gate is implemented. No lockfile could be generated in the offline environment.
+Use `npm ci` to reinstall from the lockfile. Install from a standalone checkout so Node can load the TypeScript plugin sources by absolute path. The verification and evidence archives are fetched by upstream commit and integrity-checked by npm. The verification archive declares peers for its legacy Goal plugin. The local npm configuration disables automatic peer installation, and the manifest explicitly lists the peers needed by the library entry and test suites. The Harness never activates the Goal plugin. See [the compatibility matrix](DSH_ACCEPTANCE_REPORT.md#compatibility-matrix) for the tested releases.
 
 ### Native smoke (separate disposable profile/project first)
 
@@ -63,7 +46,7 @@ Use the standard native-tool executor preset, not PTC/code mode, unrestricted sh
 pnpm dsh web --patch C:/Temp/harness-dsh-overlay.yml
 ```
 
-In the disposable Git workspace create a small .NET solution and an existing test project ending in Tests.csproj, add appropriate project references, ignore bin/obj, and commit a baseline. No installer is provided. Open a native DSH session whose cwd is inside that repo, with the local llama.cpp model configured in DSH. Ask for a specific small behavior change and explicitly mention using harness_run. Verify:
+Copy `fixtures/dotnet` to the disposable Git workspace and commit a baseline. No installer is provided. Open a native DSH session whose cwd is inside that repo, with the local llama.cpp model configured in DSH. Ask for a specific small behavior change and explicitly mention using harness_run. Verify:
 
 1. Planning produces exact paths and acceptance criteria; no root writes outside harness_run.
 2. Coding and Testing receive separate sessions with their role labels; forbidden shell/PTC/goal/nested delegation, out-of-scope paths, test/production cross-writes and unknown MCP tools are denied.
@@ -75,13 +58,13 @@ In the disposable Git workspace create a small .NET solution and an existing tes
 
 ### Conservative restrictions and open items
 
-- The plugin is deliberately restricted to the configured Git workspace and native standard tool execution. It does not claim an OS security boundary against arbitrary plugin code, external processes, or test/build code itself. PTC direct effects and Windows sandbox completeness need live qualification. Use native read/edit/write; apply_patch, arbitrary shell, dynamic subagents and mutating MCP tools are denied in scope. All role-specific writes must be listed by Planning and pass path/symlink and test-directory guards. Build-control files require separate approval.
+- The plugin is deliberately restricted to the configured Git workspace and native standard tool execution. It does not claim an OS security boundary against arbitrary plugin code, external processes, or test/build code itself. PTC direct effects and Windows sandbox completeness need live qualification. Use native read/edit/write; apply_patch, arbitrary shell, dynamic subagents and mutating MCP tools are denied in scope. All role-specific writes must be listed by Planning and pass path/symlink and test-directory guards. Build-control and Git scope-control files require separate approval.
 - Set readOnlyTools only to exact, reviewed native MCP public names (mcp__server__tool). No automatic Knowledge capture.
 - .NET checks use installed dotnet, explicit existing solution/project and selected test projects; final gate revalidates all mandatory plan checks. No forced scan of ignored files or automatic full-repo suite beyond the agreed plan. Zero tests, skipped required tests, missing/invalid TRX, infrastructure/timeout/cancel are unverified. Older .NET Framework/MSBuild-only projects and unusual TRX formats need validation.
 - Testing performs qualitative coverage and assertion review; measured coverage collection is not enabled automatically. TDD freezes planned test files and relevant test/build configuration, checks the expected failing name/message, and rejects changed frozen inputs. Existing baseline failures are not silently accepted as GREEN. No worktrees.
 - Automatic acceptance only in this candidate; manual approval UI was optional and is not added. No automatic replay/recovery, aggregate token meter, external status service or dashboard. Main must report the actual harness_run status, not its own claim.
-- Native shell checks write TRX to a temporary directory, using the existing native sandbox root grant if required, never a wider permission mode. Windows may not honor extra roots; failure blocks the task.
-- Fingerprint is bounded (default 5 seconds, configurable), unavailable is fail-closed. Git-ignored inputs and concurrent external changes require environmental discipline; there is no cross-process workspace lock. Semantic review is independent model judgement anchored to actual read calls, not a formal proof.
+- Native shell checks write TRX to a temporary directory and use the native sandbox root grant when required. A missing grant or failed sandbox check blocks the task.
+- Fingerprinting fails closed when a snapshot exceeds its budget (five seconds by default). Keep all build and test inputs in fingerprint scope and avoid external writers. There is no cross-process workspace lock. Semantic review is independent model judgement anchored to actual read calls, not a formal proof.
 - Final review receives bounded HEAD diff and baseline-changed planned paths; a dirty pre-existing diff may include user edits. Full persistent audit/replay, measured coverage and a native Windows qualification are not claimed.
 
 ## Upstream references
