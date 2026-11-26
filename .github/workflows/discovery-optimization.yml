@@ -1,0 +1,60 @@
+name: Git discovery qualification
+on:
+  push:
+    branches: [codex/knowledge-discovery-optimization]
+    paths:
+      - 'packages/**'
+      - 'tests/**'
+      - 'scripts/discovery_benchmark.py'
+      - '.github/workflows/discovery-optimization.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  qualify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+      PYTHONPATH: tests
+    steps:
+      - uses: actions/checkout@v4
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: core.longpaths
+          GIT_CONFIG_VALUE_0: 'true'
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test runtime
+        run: python scripts/setup_p3.py
+      - name: Qualify installed discovery, platform and source integrations
+        shell: pwsh
+        run: |
+          $Runtime = if ($IsWindows) { '.venv/Scripts/python.exe' } else { '.venv/bin/python' }
+          $Output = Join-Path $env:RUNNER_TEMP 'discovery-qualification'
+          New-Item -ItemType Directory -Force $Output | Out-Null
+          & $Runtime -B -m unittest test_discovery_optimization test_core_reliability test_machine_commands test_p1 test_p1_r2 test_p3_platform test_plan_recovery_diagnostics test_persistence_recovery test_integrated_capture test_confluence_source test_confluence_sync test_confluence_progress test_update_by_cr test_update_by_cr_r1 2>&1 |
+            Tee-Object -FilePath (Join-Path $Output 'regressions.log')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Benchmark populated synthetic repositories
+        shell: pwsh
+        run: |
+          $Runtime = if ($IsWindows) { '.venv/Scripts/python.exe' } else { '.venv/bin/python' }
+          $Output = Join-Path $env:RUNNER_TEMP 'discovery-qualification'
+          & $Runtime -B scripts/discovery_benchmark.py --sizes 1000 10000 38350 --samples 2 --populated --output (Join-Path $Output 'benchmark.json')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $Runtime -B scripts/discovery_benchmark.py --sizes 1000 --mode worker --samples 3 --output (Join-Path $Output 'worker.json')
+          exit $LASTEXITCODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: discovery-qualification-${{ runner.os }}
+          path: ${{ runner.temp }}/discovery-qualification/
