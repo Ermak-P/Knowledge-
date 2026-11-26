@@ -47,6 +47,7 @@ def fixture(root, count):
                 declaration = 'partial class SyntheticDuplicate { }'
             path.write_text(f'namespace Example;\n{declaration}\n{wiring}' + '// synthetic source\n' * (index % 97), encoding='utf-8')
             files.append(path)
+    (root / '.gitignore').write_text('.knowledge/\n.knowledge-control.lock\n.harness/\n', encoding='utf-8')
     git(root, 'init', '-q', '-b', 'fixture')
     git(root, 'config', 'core.autocrlf', 'false')
     git(root, 'add', '.')
@@ -221,6 +222,20 @@ def seed_populated(root, stress=False):
         url='https://docs.example.invalid/wiki/pages/123', content=text, retrieved_at='2026-11-01T12:00:00Z',
         representation='text'))['source']
     with store.connection(True) as db:
+        for n in range(1, 10000 if stress else 1000, 10):
+            identifier = f'canonical.{n}'
+            dependency = f'canonical.{n - 1}'
+            row = db.execute('SELECT payload FROM records WHERE id=?', (identifier,)).fetchone()
+            item = util.loads(row[0])
+            item['depends_on'] = [dependency]
+            db.execute('UPDATE records SET payload=? WHERE id=?', (util.canonical_json(item), identifier))
+            revised = util.loads(db.execute('SELECT payload FROM revisions WHERE id=? AND revision=1', (identifier,)).fetchone()[0])
+            revised['record'] = item
+            db.execute('UPDATE revisions SET payload=? WHERE id=? AND revision=1', (util.canonical_json(revised), identifier))
+            relation = {'id': f'fixture.relationship.{n}', 'type': 'depends_on', 'from': identifier,
+                        'to': dependency, 'provenance': item['provenance']}
+            db.execute('INSERT INTO records VALUES (?,?,?)', (relation['id'], 'relationships', util.canonical_json(relation)))
+            lifecycle.append(db, relation['id'], 'relationships', relation, 'active', 'fixture', 'Synthetic dependency', None)
         registered = confluence.verify_binding(db, source)
         provenance = {'actor': 'fixture', 'method': 'confluence-documentation-v1'}
         evidence = dict(id='independent.evidence', type='direct-authoritative', status='active',
@@ -325,13 +340,13 @@ def main():
             with tempfile.TemporaryDirectory(prefix='discovery-benchmark-') as tmp:
                 root = Path(tmp) / 'source'
                 root.mkdir()
-                files = fixture(root, size)
                 if args.populated or args.stress:
                     store = seed_populated(root, args.stress)
                 else:
                     store = Store(root)
                     store.init()
                     lifecycle.upgrade(store, lifecycle.upgrade_preview(store)['fingerprint'])
+                files = fixture(root, size)
                 if args.mode == 'worker':
                     save('worker-full', size, store, measure(lambda: worker(store, Path(tmp) / 'worker', args.chunk, args.worker_python)))
                     continue
