@@ -235,7 +235,7 @@ class HelperFailureTests(unittest.TestCase):
             for number, case in enumerate(cases):
                 options = {'side_effect': case} if isinstance(case, Exception) else {'return_value': case}
                 with self.subTest(case=number), patch.object(auto_init.subprocess, 'run', **options) as invoked:
-                    with self.assertRaises(ScanError): run(root, install / ('failure' + str(number)))
+                    with self.assertRaises(ScanError): run(root, install / ('failure' + str(number)), persistent=False)
                     self.assertEqual(invoked.call_count, 1)
             self.assertEqual(json.loads((install / 'failure2/last-error.json').read_text())['error'], 'command-timeout-outcome-unknown')
 

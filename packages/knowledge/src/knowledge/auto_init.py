@@ -102,7 +102,7 @@ def read_checkpoint(path):
 
 def run(root, output, scan_id=None, max_files=100, max_calls=10000,
         command_timeout=600, fresh=False, base=None, head=None, incremental=False, retry_blocked=False,
-        cancel_path=None, cancel_job=None, refresh=False, lease_fds=(), persistent=False):
+        cancel_path=None, cancel_job=None, refresh=False, lease_fds=(), persistent=True):
     root = Path(root).resolve(strict=True)
     if not root.is_dir():
         raise ScanError('--root must be an existing project directory.')
@@ -157,6 +157,12 @@ def run(root, output, scan_id=None, max_files=100, max_calls=10000,
                 write_json(output / 'last-error.json', {'error': 'command-timeout-outcome-unknown',
                            'scan_id': scan_id, 'timeout_seconds': command_timeout})
                 raise ScanError('Chunk exceeded the command timeout. Inspect Knowledge scan-status before resuming.')
+            # Preserve local diagnostic filenames while keeping the routine log bounded.
+            summary = {key: result[key] for key in ('ok','id','state','complete','source_verified','counters','error')
+                       if key in result}
+            (output / 'last-stdout.txt').write_text(json.dumps(summary, ensure_ascii=False) + '\n', encoding='utf-8')
+            (output / 'last-stderr.txt').write_text('' if result.get('ok') else short_message(result.get('details', '')),
+                                                   encoding='utf-8')
             if result.get('ok') and not result['processing_complete']:
                 # Complete per-file diagnostics are available through scan-status.
                 result = {**{k: result[k] for k in ('ok','id','complete','work','counters','candidates')},

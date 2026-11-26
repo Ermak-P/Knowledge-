@@ -47,7 +47,7 @@ class DiscoveryOptimization(unittest.TestCase):
         with (patch.object(discovery, 'inventory', wraps=discovery.inventory) as inventories,
               patch.object(auto_init.subprocess, 'run', side_effect=AssertionError('per-chunk Python')),
               contextlib.redirect_stdout(io.StringIO())):
-            self.assertEqual(auto_init.run(self.root, output, max_files=1, persistent=True), 0)
+            self.assertEqual(auto_init.run(self.root, output, max_files=1), 0)
         result = auto_init.read_json(output / 'last-result.json')
         self.assertTrue(result['source_verified'])
         self.assertEqual(inventories.call_count, 2)
