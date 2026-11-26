@@ -1,0 +1,1 @@
+Reused MIT-licensed pure verification functions from https://github.com/yuttfu/dsh-reprolab/tree/bdf332e37b19fbe50e2377ad8911e6d600d44d30. Only import paths and the unused subprocess-dependent classifier input type were adapted. Original license retained. No ReproLab tool engine or Git worktrees are used.
