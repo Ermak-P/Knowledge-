@@ -1052,6 +1052,8 @@ def completed_artifact(store,scan_id):
     """Validate persisted positive extraction without starting/extracting a scan."""
     require(isinstance(scan_id,str) and re.fullmatch('[a-f0-9]{64}',scan_id),'invalid-scan-id')
     with store.connection() as db:
+        require(scan_checkpoint.generation(db,scan_id) is None, 'scan-artifact-not-completed',
+                {'next_action':'Observe compatible resume options before rebuilding a candidate plan.'})
         row=db.execute('SELECT payload FROM scans WHERE id=?',(scan_id,)).fetchone();require(row is not None,'unknown-scan-artifact')
         state=loads(row[0]);require(state.get('id')==scan_id and state.get('extractor')==VERSION,'incompatible-scan-artifact-extractor',
             {'supported':VERSION,'next_action':'Preserve artifacts; review existing queue or explicitly migrate unsupported extraction. No automatic fresh scan.'})
@@ -1422,6 +1424,8 @@ def _candidate_preview(store,paths,captured_at,record_ownership):
     selected = {path: dict(snapshot['files'][path]) for path in paths & snapshot['files'].keys()
                 if file_cache.code_file(path)}
     if not selected:
+        with store.connection() as db:
+            require(life.enabled(db), 'upgrade-required')
         return {'ok': True, 'source': snapshot['identity'], 'decisions': [], 'gaps': [],
                 'reason': 'no changed source with a supported extractor'}
     from .persistence_identity import POLICY

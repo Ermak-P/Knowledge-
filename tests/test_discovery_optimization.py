@@ -162,6 +162,21 @@ class DiscoveryOptimization(unittest.TestCase):
         self.assertEqual(extracts.call_count, 1)
         self.assertEqual(second['work']['remaining_files'], 1)
 
+    def test_legacy_history_populates_an_exact_cache_without_a_rescan(self):
+        self.write('A.cs', 'class A {}')
+        self.write('B.cs', 'class B {}')
+        base = self.commit_fixture()
+        original = discovery.scan(self.store)
+        plan = self.store.prepare()['fingerprint']
+        with self.store.connection(True) as db:
+            db.execute('DROP TABLE discovery_file_cache')
+        with patch.object(discovery, 'extract', side_effect=AssertionError('cache migration extracted source')):
+            current = discovery.scan(self.store, base=base, head='HEAD', incremental=True)
+        self.assertEqual(current['identity_verification']['cached_files'], 2)
+        self.assertTrue(current['identity_verification']['complete'])
+        self.assertEqual(self.store.prepare()['fingerprint'], plan)
+        self.assertEqual(discovery.completed_artifact(self.store, original['id'])['scan_id'], original['id'])
+
     def test_checkpoint_checksum_blocks_recovery_before_any_extraction(self):
         self.write('A.cs', 'class A {}')
         self.write('B.cs', 'class B {}')
