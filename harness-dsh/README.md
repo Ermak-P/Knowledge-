@@ -29,6 +29,8 @@ Run these from `harness-dsh` with Git and a supported Node.js release. The .NET 
 ```text
 npm install
 npm test
+npm run test:unit
+npm run test:mocked
 npm run test:library
 npm run test:native
 npm run test:acceptance

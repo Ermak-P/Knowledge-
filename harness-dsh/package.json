@@ -9,7 +9,9 @@
     "test:library": "node --experimental-strip-types --test tests/library.test.ts",
     "test:acceptance": "node --experimental-strip-types --test tests/dotnet-acceptance.test.ts",
     "test:provider": "node --test tests/provider.test.ts",
-    "test:coverage": "c8 --all --include \"src/**/*.ts\" --reporter=text --reporter=json-summary node --test tests/*.test.ts"
+    "test:coverage": "c8 --all --include \"src/**/*.ts\" --reporter=text --reporter=json-summary node --test tests/*.test.ts",
+    "test:unit": "node --test tests/plugin.test.ts tests/dotnet.test.ts",
+    "test:mocked": "node --test tests/lifecycle.test.ts tests/host.test.ts"
   },
   "devDependencies": {
     "@deepseek-ai/cordis-plugin-loader": "^1.2.0-alpha.1",
