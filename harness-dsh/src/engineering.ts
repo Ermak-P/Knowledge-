@@ -1,7 +1,7 @@
 // Production composition. No mock fallback is imported by this module.
 import { randomUUID } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
-import { resolve } from 'node:path'
+import { resolve, relative, isAbsolute, sep } from 'node:path'
 import { EvidenceBook, runEngineering } from './lifecycle.ts'
 import { projectRoot, safePath, discoverTests, validateTaskPaths, hashFiles, runCheck, isTestPath } from './dotnet.ts'
 import { tddController } from './tdd.ts'
@@ -52,30 +52,30 @@ export function mountEngineering(ctx,config,libs,xml){
   const runs=new Map(),assignments=new Map(),seenTurns=new Map()
   const fresh=(ignore=[])=>s.computeFingerprint(root,{budgetMs,ignore,maxRehashFiles:10000,maxRehashBytes:128*1024*1024})
   const own=(agent)=>!!agent&&ctx.agents.get(agent.id)===agent
-  const inProject=(agent)=>{const cwd=agent?.session?.header?.cwd;return typeof cwd==='string'&&resolve(cwd)===resolve(root)}
+  const inProject=(agent)=>{const cwd=agent?.session?.header?.cwd;if(typeof cwd!=='string')return false;const rel=relative(root,resolve(cwd));return rel!== '..'&&!rel.startsWith('..'+sep)&&!isAbsolute(rel)}
   const isRoot=(agent)=>own(agent)&&inProject(agent)&&ctx.subagents.rootOf(agent)===agent
   const assignment=(agent)=>own(agent)?assignments.get(sessionId(agent)):undefined
   const scoped=(agent)=>inProject(agent)||!!assignment(agent)
   const log=(run,p)=>console.log('[harness-dsh] '+JSON.stringify({runId:run.id,taskId:p.taskId,phase:p.phase,detail:p.detail?.slice(0,1000)}))
-  const deny=reason=>({kind:'deny',reason:'harness-dsh: '+reason})
+  const deny=reason=>'harness-dsh: '+reason
   const allowedWrite=(a,args)=>{
     if(!a.state||!['coding','testing'].includes(a.role)||!args||typeof args.file_path!=='string'||args.sandbox_permissions!==undefined)return false
     const path=safePath(root,args.file_path)
     const paths=a.role==='coding'?a.state.task.codingFiles:a.state.task.testFiles
     return paths.includes(path)&&(a.role==='testing'?isTestPath(path,a.run.testProjects):!isTestPath(path,a.run.testProjects))
   }
-  ctx.on('tools/pre-execute',async(exec,next)=>{
+  ctx.effect(()=>ctx.tools.guard(exec=>{
     const a=assignment(exec.agent)
-    if(!scoped(exec.agent))return next()
+    if(!scoped(exec.agent))return undefined
     if(!own(exec.agent))return deny('unknown agent')
-    if(readTools.has(exec.name)||trustedReads.has(exec.name))return next()
-    if(exec.name==='harness_run'&&isRoot(exec.agent)&&!runs.size)return next()
-    if(a&&a.state&&exec.name===commandTool&&['coding','testing','verification'].includes(a.role))return next()
+    if(readTools.has(exec.name)||trustedReads.has(exec.name))return undefined
+    if(exec.name==='harness_run'&&isRoot(exec.agent)&&!runs.size)return undefined
+    if(a&&a.state&&exec.name===commandTool&&['coding','testing','verification'].includes(a.role))return undefined
     if(a&&['write','edit'].includes(exec.name)){
-      try{if(allowedWrite(a,exec.arguments))return next()}catch{}
+      try{if(allowedWrite(a,exec.arguments))return undefined}catch{}
     }
     return deny('operation is outside the assigned role or frozen task scope: '+exec.name)
-  })
+  }))
   // DSH's final immutable outcome, not the model's summary or an intermediate result.
   ctx.on('tools/result',(exec,result)=>{
     const a=assignment(exec.agent)
@@ -136,7 +136,7 @@ export function mountEngineering(ctx,config,libs,xml){
         assignments.set(id,a) // reserve before the native child can issue a tool call
         let activation
         let disposal
-        const cancel=()=>{if(activation&&!disposal)disposal=activation.dispose()}
+        const cancel=()=>{if(activation&&!disposal){disposal=activation.dispose();void disposal.catch(()=>{})}}
         try{
           const prompt=roleInstructions[role]+'\n'+JSON.stringify({...extra,workspace:root,...(role==='planning'?{testProjects:run.testProjects}:{} )})
           activation=await ctx.subagents.startActivation({provider:'spawn',childId:id,parent,cwd:root,label:(state?state.task.id+' ':'')+role,delivery:'caller',signal:childSignal,maxDepth:1,prompt:[{type:'text',text:prompt}],outputSchema:schema,...(presets[role]?{agentPreset:presets[role]}:{})})

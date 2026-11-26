@@ -127,7 +127,7 @@ export async function runCheck(ctx,agent,root,criterion,fresh,compare,xml,signal
     }
     const policy=ctx.sandboxPolicy?.resolve({session:agent.session})
     if(ctx.shell.sandboxMode!==undefined&&!policy)return unknown('native sandbox policy missing')
-    const shell=await ctx.shell.run(ctx.shell.resolve({command,workdir:root,timeoutMs,signal,...(policy?{sandboxPolicy:policy}:{})}))
+    const shell=await (await ctx.shell.execute(ctx.shell.resolve({command,workdir:root,timeoutMs,signal,...(policy?{sandboxPolicy:policy}:{})}))).result()
     const after=fresh()
     if(signal.aborted||compare(before,after)!=='same')return unknown('workspace changed, cancelled or fingerprint unavailable during check')
     const text=String(shell.stdout?.text??'')+'\n'+String(shell.stderr?.text??'')
