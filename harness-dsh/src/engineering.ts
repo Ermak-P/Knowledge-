@@ -6,6 +6,7 @@ import { resolve, relative, isAbsolute, sep } from 'node:path'
 import { EvidenceBook, runEngineering } from './lifecycle.ts'
 import { projectRoot, safePath, discoverTests, validateTaskPaths, hashFiles, runCheck, isTestPath, createWorkspaceFingerprint, createTrxParser } from './dotnet.ts'
 import { tddController } from './tdd.ts'
+import { acquireWorkspaceLock } from './workspace-lock.ts'
 
 export const name='harness-dsh-engineering'
 export const inject=['agents','subagents','tools','shell']
@@ -58,7 +59,17 @@ export function mountEngineering(ctx,config,libs,xml){
   if([...trustedReads].some(n=>typeof n!=='string'||!n.startsWith('mcp__')))throw Error('readOnlyTools must contain exact, manually audited MCP tool names')
   const presets=config.presets??{}
   const runs=new Map(),assignments=new Map(),seenTurns=new Map()
-  const fresh=createWorkspaceFingerprint(root,s,budgetMs)
+  const computeFresh=createWorkspaceFingerprint(root,s,budgetMs,metrics=>{
+    const run=runs.values().next().value
+    if(!run)return
+    run.fingerprintCount++;run.fingerprintMs+=metrics.totalMs
+    if(config.fingerprintMetrics===true)console.log('[harness-dsh-fingerprint] '+JSON.stringify({runId:run.id,phase:run.phase,...metrics}))
+  })
+  const fresh=(ignore=[])=>{
+    try{runs.values().next().value?.lock.assertOwned()}
+    catch(error){return {available:false,tree:null,reason:String(error)}}
+    return computeFresh(ignore)
+  }
   const own=(agent)=>!!agent&&ctx.agents.get(agent.id)===agent
   const cwdOf=agent=>agent?.session&&(ctx.get?.('workingDirectory')?.get(agent.session)??agent.session.header?.cwd)
   const inProject=(agent)=>{
@@ -76,6 +87,7 @@ export function mountEngineering(ctx,config,libs,xml){
   const deny=reason=>'harness-dsh: '+reason
   const allowedWrite=(a,agent,args)=>{
     if(!a.state||!['coding','testing'].includes(a.role)||!args||typeof args.file_path!=='string'||args.sandbox_permissions!==undefined)return false
+    a.run.lock.assertOwned()
     const path=safePath(root,resolve(cwdOf(agent),args.file_path))
     const paths=a.role==='coding'?a.state.task.codingFiles:a.state.task.testFiles
     return paths.includes(path)&&(a.role==='testing'?isTestPath(path,a.run.testProjects):!isTestPath(path,a.run.testProjects))
@@ -112,7 +124,10 @@ export function mountEngineering(ctx,config,libs,xml){
     const c=a.state.task.criteria.find(x=>x.id===args.criterion_id&&x.kind!=='review')
     if(!c)throw Error('unknown deterministic criterion')
     const signal=AbortSignal.any([exec.signal,a.run.signal])
-    const value=resultForCapture(await runCheck(ctx,exec.agent,root,c,()=>fresh(),s.compareFingerprints,xml,signal,timeoutMs))
+    const pending=runCheck(ctx,exec.agent,root,c,()=>fresh(),s.compareFingerprints,xml,signal,timeoutMs)
+    a.run.checks.add(pending)
+    let value
+    try{value=resultForCapture(await pending)}finally{a.run.checks.delete(pending)}
     const rendered=JSON.stringify(diagnostic(value))
     a.receipts.set(exec.token??exec.callId,{rendered,value})
     return rendered
@@ -122,10 +137,13 @@ export function mountEngineering(ctx,config,libs,xml){
     if(!isRoot(parent)||runs.size)throw Error('a managed root agent and exclusive workspace are required')
     const {request,seq,basis}=userBasis(parent)
     if(seenTurns.get(sessionId(parent))===seq)throw Error('this user request already started a Harness run; a new user request is required')
+    const lock=acquireWorkspaceLock(root)
+    let run
+    try{
     seenTurns.set(sessionId(parent),seq)
     const abort=new AbortController()
     const signal=AbortSignal.any([exec.signal,abort.signal])
-    const run={id:randomUUID(),parent,abort,signal,book:new EvidenceBook(libs,()=>fresh()),testProjects:discoverTests(root)}
+    run={id:randomUUID(),parent,abort,signal,lock,checks:new Set(),teardownFailed:false,fingerprintCount:0,fingerprintMs:0,phase:'setup',book:new EvidenceBook(libs,()=>fresh()),testProjects:discoverTests(root)}
     runs.set(run.id,run)
     const baseline=new Map()
     const checkRaw=(_state,c,checkSignal)=>runCheck(ctx,parent,root,c,()=>fresh(),s.compareFingerprints,xml,checkSignal,timeoutMs)
@@ -136,7 +154,7 @@ export function mountEngineering(ctx,config,libs,xml){
     }
     const tdd=tddController(root,run.testProjects,checkRaw,fresh,s.compareFingerprints)
     const host={
-      progress:p=>log(run,p),
+      progress:p=>{run.phase=p.phase;log(run,p)},
       async validate(plan){
         validateTaskPaths(root,plan,run.testProjects)
         for(const p of new Set(plan.flatMap(t=>t.codingFiles.concat(t.testFiles))))baseline.set(p,hashFiles(root,[p]))
@@ -152,7 +170,8 @@ export function mountEngineering(ctx,config,libs,xml){
       },
       async spawn(role,state,extra,schema,childSignal){
         if(!roles.includes(role)||childSignal.aborted)throw Error('invalid or cancelled role')
-        const before=fresh(),id=randomUUID()
+        const readOnly=['planning','verification','reviewing'].includes(role)
+        const before=readOnly?fresh():null,id=randomUUID()
         const a={role,state,run,observed:new Set(),receipts:new Map()}
         assignments.set(id,a) // reserve before the native child can issue a tool call
         let activation
@@ -166,18 +185,33 @@ export function mountEngineering(ctx,config,libs,xml){
           if(childSignal.aborted)cancel()
           const result=await activation.result
           if(result.stopReason!=='completed'||childSignal.aborted||!result.structured)throw Error(role+' failed: '+result.stopReason)
-          const after=fresh()
-          if(['planning','verification','reviewing'].includes(role)&&s.compareFingerprints(before,after)!=='same')throw Error(role+' workspace changed or freshness unavailable: '+(before.reason??after.reason??'workspace changed'))
+          const after=readOnly?fresh():null
+          if(readOnly&&s.compareFingerprints(before,after)!=='same')throw Error(role+' workspace changed or freshness unavailable: '+(before.reason??after.reason??'workspace changed'))
           if(role==='reviewing'&&result.structured.verdict==='pass'&&!extra.changes.paths.every(p=>a.observed.has(p)))throw Error('review did not inspect every changed planned file')
           return {structured:result.structured,observedPaths:[...a.observed],fingerprint:after,producer:{agentId:id,sessionId:id}}
         }finally{
           childSignal.removeEventListener('abort',cancel)
-          try{if(activation)await(disposal??activation.dispose())}finally{assignments.delete(id)}
+          try{if(activation)await(disposal??activation.dispose())}catch(error){run.teardownFailed=true;throw error}finally{assignments.delete(id)}
         }
       }
     }
-    try{return JSON.stringify(await runEngineering(host,run.book,request,basis,run.id,sessionId(parent),signal,maxAttempts))}
-    finally{await run.book.drain();runs.delete(run.id)}
+    const result=await runEngineering(host,run.book,request,basis,run.id,sessionId(parent),signal,maxAttempts)
+    lock.assertOwned()
+    return JSON.stringify(result)
+    }finally{
+      if(!run){lock.release()}
+      else{
+        try{
+          await Promise.allSettled([...run.checks])
+          await run.book.drain()
+          if(run.teardownFailed)throw Error('Harness teardown failed; workspace lock retained: '+lock.path)
+          lock.release()
+        }finally{
+          runs.delete(run.id)
+          console.log('[harness-dsh] '+JSON.stringify({runId:run.id,phase:'fingerprint-summary',count:run.fingerprintCount,totalMs:run.fingerprintMs}))
+        }
+      }
+    }
   }),{when:({agent})=>isRoot(agent)}))
   ctx.on('session/disposed',session=>{seenTurns.delete(String(session.id))})
   ctx.effect(()=>()=>{for(const r of runs.values())r.abort.abort();seenTurns.clear()})

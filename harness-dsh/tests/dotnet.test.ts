@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from 'node
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
-import { summarizeTrx, classifyTest, safePath, discoverTests, validateTaskPaths, runCheck } from '../src/dotnet.ts'
+import { summarizeTrx, classifyTest, safePath, discoverTests, validateTaskPaths, runCheck, gitContainsPath, createWorkspaceFingerprint } from '../src/dotnet.ts'
 import { verifyRed } from '../src/reprolab/red-verifier.ts'
 import { verifyGreen } from '../src/reprolab/green-verifier.ts'
 import { verifyRegression } from '../src/reprolab/regression-verifier.ts'
@@ -73,4 +73,32 @@ test('reused ReproLab verifiers distinguish RED, GREEN, changed tests and regres
   assert.equal(verifyGreen({red:{...red,fingerprint:'failure'},green:{...green,testPatchHash:'changed'}}).verdict,'insufficient')
   assert.equal(verifyRegression({baseline:{ran:true,failures:['old']},candidate:{comparable:true,failures:['new']}}).verdict,'regression')
   assert.equal(verifyRegression({baseline:{ran:true,failures:[]},candidate:{comparable:false,failures:[]}}).verdict,'inconclusive')
+})
+
+test('targeted Git path selection and combined seal keep ignored and hidden inputs fail-closed',async t=>{
+  const root=mkdtempSync(join(tmpdir(),'dsh seal '));t.after(()=>rmSync(root,{recursive:true,force:true}))
+  execFileSync('git',['init','-q'],{cwd:root})
+  writeFileSync(join(root,'.gitignore'),'hidden.cs\n')
+  writeFileSync(join(root,'tracked.cs'),'initial');execFileSync('git',['add','.'],{cwd:root})
+  writeFileSync(join(root,'untracked.cs'),'new')
+  assert.equal(gitContainsPath(root,'tracked.cs'),true)
+  assert.equal(gitContainsPath(root,'untracked.cs'),true)
+  assert.equal(gitContainsPath(root,'missing.cs'),false)
+  let metrics
+  const stub={pathIgnorer:()=>()=>false,computeFingerprint:()=>({available:true,tree:'stub'})}
+  const fresh=createWorkspaceFingerprint(root,stub,5000,m=>{metrics=m})
+  assert.equal(fresh().available,true)
+  assert.equal(metrics.sealGitCommands,4)
+  assert.equal(metrics.sealPathsInspected,6)
+  writeFileSync(join(root,'hidden.cs'),'ignored')
+  assert.equal(gitContainsPath(root,'hidden.cs'),false)
+  assert.equal(fresh().available,false)
+  rmSync(join(root,'hidden.cs'))
+  execFileSync('git',['update-index','--assume-unchanged','tracked.cs'],{cwd:root})
+  assert.equal(fresh().available,false)
+  let calls=0
+  const result=await runCheck({shell:{}},{session:{}},root,{kind:'file',target:'tracked.cs'},()=>{calls++;return {available:true,tree:'stub'}},()=> 'same',undefined,AbortSignal.abort())
+  assert.equal(result.outcome,'unverified')
+  assert.equal(result.fingerprint.available,false)
+  assert.equal(calls,1)
 })

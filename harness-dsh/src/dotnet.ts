@@ -19,6 +19,10 @@ export function safePath(root: string, value: string) {
 export function gitFiles(root: string): string[] {
   return [...new Set(execFileSync('git',['ls-files','-z','--cached','--others','--exclude-standard'],{cwd:root,maxBuffer:64*1024*1024,timeout:30000}).toString('utf8').split('\0').filter(Boolean))]
 }
+// A single criterion never needs a complete worktree listing.
+export function gitContainsPath(root: string, path: string) {
+  return execFileSync('git',['--literal-pathspecs','ls-files','-z','--cached','--others','--exclude-standard','--',path],{cwd:root,maxBuffer:64*1024*1024,timeout:30000,windowsHide:true}).toString('utf8').split('\0').includes(path)
+}
 export function projectRoot(path: string) {
   const root=realpathSync(path)
   const git=realpathSync(execFileSync('git',['rev-parse','--show-toplevel'],{cwd:root,timeout:30000}).toString('utf8').trim())
@@ -119,14 +123,14 @@ export function hashFiles(root: string, paths: string[]) {
 }
 export async function runCheck(ctx,agent,root,criterion,fresh,compare,xml,signal,timeoutMs=300000){
   const before=fresh()
-  const unknown=reason=>({kind:criterion.kind,outcome:'unverified',summary:String(reason).slice(0,4000),fingerprint:fresh(),exitCode:null})
+  const unknown=reason=>({kind:criterion.kind,outcome:'unverified',summary:String(reason).slice(0,4000),fingerprint:{available:false,tree:null,reason:String(reason)},exitCode:null})
   if(signal.aborted||!before?.available)return unknown('cancelled or freshness unavailable')
   let temp,release
   const sandboxPolicy=ctx.shell.sandboxMode===undefined?undefined:ctx.get?ctx.get('sandboxPolicy'):ctx.sandboxPolicy
   try{
     const target=safePath(root,criterion.target)
     const path=resolve(root,target)
-    if(existsSync(path)&&!gitFiles(root).includes(target))return unknown('check target is outside the fingerprint scope')
+    if(existsSync(path)&&!gitContainsPath(root,target))return unknown('check target is outside the fingerprint scope')
     if(criterion.kind==='file'){
       const exists=existsSync(path)&&lstatSync(path).isFile()
       const after=fresh()
@@ -176,23 +180,25 @@ export function createTrxParser(xml) {
 
 // Supplement stalegreen's Git-content snapshot with file identity and change times.
 // Git can hide changes to assume-unchanged and skip-worktree entries.
-function workspaceSeal(root,ignore,budgetMs,pathIgnorer,started){
+function workspaceSeal(root,ignore,budgetMs,pathIgnorer,started,metrics){
   const checkBudget=()=>{
     const remaining=budgetMs-(performance.now()-started)
     if(remaining<1)throw Error('workspace fingerprint budget exhausted')
     return Math.ceil(remaining)
   }
-  const git=args=>execFileSync('git',args,{cwd:root,timeout:checkBudget(),maxBuffer:64*1024*1024,windowsHide:true}).toString('utf8').split('\0').filter(Boolean)
+  const git=args=>{
+    metrics.sealGitCommands++
+    const start=performance.now()
+    try{return execFileSync('git',args,{cwd:root,timeout:checkBudget(),maxBuffer:64*1024*1024,windowsHide:true}).toString('utf8').split('\0').filter(Boolean)}
+    finally{metrics.sealGitMs+=performance.now()-start}
+  }
   const paths=new Set()
   const excluded=pathIgnorer(ignore)
-  for(const entry of git(['ls-files','-v','-z'])){
+  for(const entry of git(['ls-files','-v','-z','--cached','--others','--exclude-standard'])){
     const path=entry.slice(2)
     if(excluded(path))continue
-    if(entry[0]!=='H')throw Error('unsupported Git index state: '+path)
+    if(!['H','?'].includes(entry[0])||entry[1]!==' ')throw Error('unsupported Git index state: '+path)
     paths.add(path)
-  }
-  for(const path of git(['ls-files','--others','--exclude-standard','-z'])){
-    if(!excluded(path))paths.add(path)
   }
   const dotnetInputs=['*.cs','*.fs','*.vb','*.*proj','*.props','*.targets','*.sln','*.slnx','*.runsettings','global.json','NuGet.Config']
   const generatedDirs=['bin','obj','node_modules','TestResults']
@@ -204,6 +210,7 @@ function workspaceSeal(root,ignore,budgetMs,pathIgnorer,started){
   const hash=createHash('sha256')
   for(const path of [...paths].sort()){
     checkBudget()
+    metrics.sealPathsInspected++
     const file=resolve(root,path)
     let stat
     try{stat=lstatSync(file,{bigint:true})}catch(error){
@@ -216,16 +223,19 @@ function workspaceSeal(root,ignore,budgetMs,pathIgnorer,started){
   return hash.digest('hex')
 }
 
-export function createWorkspaceFingerprint(root,stalegreen,budgetMs=5000){
+export function createWorkspaceFingerprint(root,stalegreen,budgetMs=5000,onMetrics=undefined){
   return (ignore=[])=>{
-    const started=performance.now()
+    const started=performance.now(),metrics={sealGitCommands:0,sealGitMs:0,sealPathsInspected:0,sealBeforeMs:0,stalegreenMs:0,sealAfterMs:0,available:false}
+    const timed=(key,fn)=>{const start=performance.now();try{return fn()}finally{metrics[key]+=performance.now()-start}}
     try{
-      const seal=workspaceSeal(root,ignore,budgetMs,stalegreen.pathIgnorer,started)
+      const seal=timed('sealBeforeMs',()=>workspaceSeal(root,ignore,budgetMs,stalegreen.pathIgnorer,started,metrics))
       const remaining=Math.max(1,Math.floor(budgetMs-(performance.now()-started)))
-      const fp=stalegreen.computeFingerprint(root,{budgetMs:remaining,ignore,maxRehashFiles:10000,maxRehashBytes:128*1024*1024})
+      const fp=timed('stalegreenMs',()=>stalegreen.computeFingerprint(root,{budgetMs:remaining,ignore,maxRehashFiles:10000,maxRehashBytes:128*1024*1024}))
       if(!fp.available||!fp.tree)return fp
-      if(seal!==workspaceSeal(root,ignore,budgetMs,stalegreen.pathIgnorer,started))throw Error('workspace changed during fingerprint')
+      if(seal!==timed('sealAfterMs',()=>workspaceSeal(root,ignore,budgetMs,stalegreen.pathIgnorer,started,metrics)))throw Error('workspace changed during fingerprint')
+      metrics.available=true
       return {...fp,tree:fp.tree+':'+seal}
     }catch(error){return {available:false,tree:null,reason:String(error)}}
+    finally{try{onMetrics?.({...metrics,totalMs:performance.now()-started})}catch{}}
   }
 }
