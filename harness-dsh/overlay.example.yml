@@ -1,0 +1,20 @@
+# Copy outside the repository; use a disposable native DSH profile first.
+# Replace both paths. Do not use PTC/code mode for this initial qualification.
+- insert:
+    # Optional verbose trajectory observer: add an entry pointing to src/index.ts.
+    - id: harness-dsh-engineering
+      name: 'C:/LLM/Plugins/Harness-DSH/src/engineering.ts'
+      config:
+        workspace: 'C:/Temp/DSH-Smoke'
+        maxAttempts: 3
+        fingerprintBudgetMs: 5000
+        fingerprintMetrics: false
+        checkTimeoutMs: 300000
+        presets:
+          planning: standard
+          coding: standard
+          testing: standard
+          verification: standard
+          reviewing: standard
+        # Exact reviewed MCP public tool names only; leave empty initially.
+        readOnlyTools: []
