@@ -9,7 +9,7 @@ Extract to a staging location first. The ZIP has a single top-level `harness-dsh
 ```powershell
 $Target = 'C:\LLM\Plugins\Harness-DSH'
 $Stage = Join-Path (Split-Path $Target) ('Harness-DSH-stage-' + [guid]::NewGuid())
-Expand-Archive .\Harness-DSH-source.zip -DestinationPath $Stage
+Expand-Archive .\Harness-DSH-source-0.2.2.zip -DestinationPath $Stage
 $Extracted = Join-Path $Stage 'harness-dsh'
 Push-Location $Extracted
 npm ci --omit=dev
@@ -19,11 +19,13 @@ if (Test-Path -LiteralPath $Target) { throw "Use the upgrade procedure for $Targ
 Move-Item -LiteralPath $Extracted -Destination $Target
 ```
 
-Use `npm ci` in place of `npm ci --omit=dev` for the full development and acceptance installation. The ZIP includes the lockfile, both vendor archives, fixtures and tests. For deployment, copy `overlay.example.yml` to a user-managed location and set the plugin path to `C:/LLM/Plugins/Harness-DSH/src/engineering.ts` and the workspace to a disposable project. Load that overlay through the existing DSH profile procedure. Preserve your current DSH settings and overlay separately from the install directory.
+The source installation resolves stalegreen from the verified archive under `vendor/`, including when the configured corporate registry returns HTTP 404 for that tarball.
+
+Use `npm ci` in place of `npm ci --omit=dev` for the full development and acceptance installation. The ZIP includes the lockfile, all three vendor archives, fixtures and tests. For deployment, copy `overlay.example.yml` to a user-managed location and set the plugin path to `C:/LLM/Plugins/Harness-DSH/src/engineering.ts` and the workspace to a disposable project. Load that overlay through the existing DSH profile procedure. Preserve your current DSH settings and overlay separately from the install directory.
 
 ## Install the generated npm package
 
-Use a new or existing npm project at the target path. Install the main tarball and the two untouched companion tarballs from the source ZIP in the same npm command. This resolves the original package names and versions with npm's normal dependency handling.
+Use a new or existing npm project at the target path. Install the main tarball and the three untouched companion tarballs from the source ZIP in the same npm command. This resolves the original package names and versions with npm's normal dependency handling.
 
 ```powershell
 $Target = 'C:\LLM\Plugins\Harness-DSH'
@@ -32,7 +34,7 @@ $Vendor = Join-Path $Downloads 'extracted\harness-dsh\vendor'
 New-Item -ItemType Directory -Force -Path $Target | Out-Null
 Set-Location $Target
 npm init -y # Run once in an empty npm project.
-npm install --legacy-peer-deps (Join-Path $Downloads 'harness-dsh-0.2.0.tgz') (Join-Path $Vendor 'dsh-evidence-1.0.0.tgz') (Join-Path $Vendor 'dsh-verification-1.0.0.tgz')
+npm install --legacy-peer-deps (Join-Path $Downloads 'harness-dsh-0.2.2.tgz') (Join-Path $Vendor 'dsh-evidence-1.0.0.tgz') (Join-Path $Vendor 'dsh-verification-1.0.0.tgz') (Join-Path $Vendor 'stalegreen-0.1.1.tgz')
 if ($LASTEXITCODE -ne 0) { throw 'Harness package installation failed' }
 ```
 
@@ -40,17 +42,18 @@ Point the overlay to `C:/LLM/Plugins/Harness-DSH/node_modules/harness-dsh/src/en
 
 ## Corporate registry
 
-Keep your existing npm registry, scoped registry, proxy and credentials in your managed npm settings. For a standard internal registry distribution, a registry administrator should approve the unscoped `harness-dsh` name and Apache-licensed companion names and versions. Configure routing for the `@bpc-oss` scope if required. Verify any versions already present against the release digests before using them.
+Keep your existing npm registry, scoped registry, proxy and credentials in your managed npm settings. For a standard internal registry distribution, a registry administrator should approve the unscoped `harness-dsh` name and companion names and versions, including the MIT-licensed stalegreen archive. Configure routing for the `@bpc-oss` scope if required. Verify any versions already present against the release digests before using them.
 
 With the approved registry URL in `$CorporateRegistry` and an authenticated publisher profile, publish the original tarballs and the generated package in this order.
 
 ```powershell
 npm publish (Join-Path $Vendor 'dsh-evidence-1.0.0.tgz') --registry $CorporateRegistry
 npm publish (Join-Path $Vendor 'dsh-verification-1.0.0.tgz') --registry $CorporateRegistry
-npm publish (Join-Path $Downloads 'harness-dsh-0.2.0.tgz') --registry $CorporateRegistry
+npm publish (Join-Path $Vendor 'stalegreen-0.1.1.tgz') --registry $CorporateRegistry
+npm publish (Join-Path $Downloads 'harness-dsh-0.2.2.tgz') --registry $CorporateRegistry
 ```
 
-Check each command's exit code before moving on. This procedure requires the organization to authorize publishing under the listed names. Consumers can then install with `npm install --legacy-peer-deps harness-dsh@0.2.0` in their own npm project. Preserve the resulting consumer lockfile for subsequent `npm ci --legacy-peer-deps` runs. The npm package itself uses versioned dependencies because source-relative `file:` specs do not resolve against the installed package's source layout.
+Check each command's exit code before moving on. This procedure requires the organization to authorize publishing under the listed names. Consumers can then install with `npm install --legacy-peer-deps harness-dsh@0.2.2` in their own npm project. Preserve the resulting consumer lockfile for subsequent `npm ci --legacy-peer-deps` runs. The npm package itself uses versioned dependencies because source-relative `file:` specs do not resolve against the installed package's source layout.
 
 For the Windows system trust store, set `$env:NODE_USE_SYSTEM_CA = '1'`. If your organization supplies a PEM bundle, use `$env:NODE_EXTRA_CA_CERTS = 'C:\certs\corporate-ca.pem'` or configure npm's `cafile` in your user-level npm settings. Use your organization's configured HTTP/HTTPS proxy. Keep TLS verification enabled. For TLS or 401 errors, check the selected registry, trust chain and credentials in the current shell. For 404s, use [the inventory](DEPENDENCIES.csv) to report the exact missing package and version to the registry administrator. If the install unexpectedly attempts a native build, confirm the Windows x64 prebuild and optional packages are available and source builds are disabled in your npm configuration.
 

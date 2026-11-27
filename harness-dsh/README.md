@@ -38,7 +38,7 @@ npm run test:provider
 npm run test:coverage
 ```
 
-Use `npm ci` to reinstall from the lockfile, or `npm ci --omit=dev` for production. The pinned Verification and Evidence packages are included under `vendor/` with their integrity and redistribution records. See [Windows installation and upgrades](INSTALL-WINDOWS.md) for source ZIP installation, npm package installation, and release packaging. See [the hardened compatibility matrix](DSH_ACCEPTANCE_REPORT.md#compatibility-matrix) for the previously qualified DSH releases.
+Use `npm ci` to reinstall from the lockfile, or `npm ci --omit=dev` for production. The pinned Verification, Evidence and stalegreen packages are included under `vendor/` with their integrity and redistribution records. See [Windows installation and upgrades](INSTALL-WINDOWS.md) for source ZIP installation, npm package installation, and release packaging. See [the hardened compatibility matrix](DSH_ACCEPTANCE_REPORT.md#compatibility-matrix) for the previously qualified DSH releases.
 
 ### Native smoke (separate disposable profile/project first)
 

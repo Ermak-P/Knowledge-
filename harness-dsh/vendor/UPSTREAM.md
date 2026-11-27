@@ -8,3 +8,7 @@ Both archives come from [bpc-oss/dsh-verification](https://github.com/bpc-oss/ds
 | `@bpc-oss/dsh-verification` | 1.0.0 | `bpc-oss-dsh-verification-1.0.0-fixed.tgz` |
 
 See [SHA256SUMS](SHA256SUMS) for the SHA-256 digests and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the redistribution review.
+
+## stalegreen
+
+`stalegreen-0.1.1.tgz` is the unchanged [public npm archive](https://registry.npmjs.org/stalegreen/-/stalegreen-0.1.1.tgz). Its SHA-512 matches the existing lockfile entry for `stalegreen@0.1.1`. The corporate registry serves the package metadata but returns HTTP 404 for the tarball. The upstream repository is [pavangupta352/stalegreen](https://github.com/pavangupta352/stalegreen). The package copyright and MIT license are preserved inside the archive and separately in [LICENSE-stalegreen-MIT.txt](LICENSE-stalegreen-MIT.txt). Its SHA-256 is recorded in [SHA256SUMS](SHA256SUMS).

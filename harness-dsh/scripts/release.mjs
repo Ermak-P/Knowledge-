@@ -50,7 +50,7 @@ assert.equal(lock.packages[''].name, manifest.name)
 assert.deepEqual(lock.packages[''].dependencies, manifest.dependencies)
 assert.deepEqual(lock.packages[''].devDependencies, manifest.devDependencies)
 
-const companionNames = ['@bpc-oss/dsh-evidence', '@bpc-oss/dsh-verification']
+const companionNames = ['@bpc-oss/dsh-evidence', '@bpc-oss/dsh-verification', 'stalegreen']
 const sums = new Map(readFileSync(join(root, 'vendor/SHA256SUMS'), 'utf8').trim()
   .split(/\r?\n/).map(line => {
     const match = /^([a-f0-9]{64}) {2}([\w.-]+\.tgz)$/.exec(line)
@@ -68,7 +68,7 @@ for (const name of companionNames) {
   assert.equal(digest(archive), sums.get(file))
   assert.equal('sha512-' + digest(archive, 'sha512', 'base64'), entry.integrity)
 }
-for (const path of ['vendor/LICENSE-APACHE-2.0.txt', 'vendor/THIRD_PARTY_NOTICES.md',
+for (const path of ['vendor/LICENSE-APACHE-2.0.txt', 'vendor/LICENSE-stalegreen-MIT.txt', 'vendor/THIRD_PARTY_NOTICES.md',
   'vendor/UPSTREAM.md', 'src/reprolab/LICENSE']) {
   assert(readFileSync(join(root, path)).length > 0, 'Missing attribution: ' + path)
 }
@@ -110,7 +110,7 @@ try {
     .replace('src/index.ts', 'src/index.js')
   writeFileSync(join(stage, 'overlay.example.yml'), overlay)
   mkdirSync(join(stage, 'vendor'))
-  for (const path of ['LICENSE-APACHE-2.0.txt', 'THIRD_PARTY_NOTICES.md', 'UPSTREAM.md', 'SHA256SUMS']) {
+  for (const path of ['LICENSE-APACHE-2.0.txt', 'LICENSE-stalegreen-MIT.txt', 'THIRD_PARTY_NOTICES.md', 'UPSTREAM.md', 'SHA256SUMS']) {
     cpSync(join(root, 'vendor', path), join(stage, 'vendor', path))
   }
 
