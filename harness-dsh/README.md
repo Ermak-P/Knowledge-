@@ -38,7 +38,7 @@ npm run test:provider
 npm run test:coverage
 ```
 
-Use `npm ci` to reinstall from the lockfile. Install from a standalone checkout so Node can load the TypeScript plugin sources by absolute path. The verification and evidence archives are fetched by upstream commit and integrity-checked by npm. The verification archive declares peers for its legacy Goal plugin. The local npm configuration disables automatic peer installation, and the manifest explicitly lists the peers needed by the library entry and test suites. The Harness never activates the Goal plugin. See [the compatibility matrix](DSH_ACCEPTANCE_REPORT.md#compatibility-matrix) for the tested releases.
+Use `npm ci` to reinstall from the lockfile, or `npm ci --omit=dev` for production. The pinned Verification and Evidence packages are included under `vendor/` with their integrity and redistribution records. See [Windows installation and upgrades](INSTALL-WINDOWS.md) for source ZIP installation, npm package installation, and release packaging. See [the hardened compatibility matrix](DSH_ACCEPTANCE_REPORT.md#compatibility-matrix) for the previously qualified DSH releases.
 
 ### Native smoke (separate disposable profile/project first)
 

@@ -2,10 +2,11 @@
 
 ## Required for Windows deployment
 
-Run with a supported Windows DSH distribution, Node.js 24.22.3 or another supported release, Git, and the .NET 10 SDK. Start in a clean checkout of `codex/dsh-integration-hardening`.
+Run with a supported Windows DSH distribution, Node.js 24.22.3 or another supported release, Git, and the .NET 10 SDK. Start in a clean Harness source checkout or the extracted source ZIP.
 
 ```powershell
-Set-Location .\harness-dsh
+# Set the path to the extracted or installed Harness source.
+Set-Location C:\LLM\Plugins\Harness-DSH
 node --version
 dotnet --version
 npm ci
@@ -24,10 +25,10 @@ The acceptance test selects the real PowerShell executor on Windows. Confirm the
 
 ### Deployed profile, sandbox and native UI
 
-Run these commands from the repository root to prepare a disposable workspace and substitute the overlay paths. Use the actual distribution and its standard native-tool profile.
+Run these commands from the Harness source directory to prepare a disposable workspace and substitute the overlay paths. Use the actual distribution and its standard native-tool profile.
 
 ```powershell
-$Harness = (Resolve-Path .\harness-dsh).Path
+$Harness = (Resolve-Path .).Path
 $Temp = Join-Path ([System.IO.Path]::GetTempPath()) ("DSH acceptance " + [guid]::NewGuid().ToString())
 $Workspace = Join-Path $Temp 'Projet vérification'
 New-Item -ItemType Directory -Path $Workspace -Force | Out-Null
@@ -38,7 +39,7 @@ git -C $Workspace -c user.name='DSH acceptance' -c user.email='acceptance@exampl
 $Overlay = Join-Path $Temp 'harness-overlay.yml'
 $PluginPath = (Join-Path $Harness 'src\engineering.ts').Replace('\', '/')
 $WorkspacePath = $Workspace.Replace('\', '/')
-(Get-Content "$Harness\overlay.example.yml" -Raw).Replace('C:/Git/Knowledge-/harness-dsh/src/engineering.ts', $PluginPath).Replace('C:/Temp/DSH-Smoke', $WorkspacePath) | Set-Content $Overlay -Encoding utf8
+(Get-Content "$Harness\overlay.example.yml" -Raw).Replace('C:/LLM/Plugins/Harness-DSH/src/engineering.ts', $PluginPath).Replace('C:/Temp/DSH-Smoke', $WorkspacePath) | Set-Content $Overlay -Encoding utf8
 ```
 
 From the upstream DSH source checkout, launch the native web profile with the overlay.
