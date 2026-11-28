@@ -11,6 +11,8 @@ import { acquireWorkspaceLock } from './workspace-lock.ts'
 export const name='harness-dsh-engineering'
 export const inject=['agents','subagents','tools','shell']
 const readTools=new Set(['read','read_image','glob','grep'])
+// Read-only discovery must work before a task, even with an empty MCP allowlist.
+const discoveryTools=new Set(['mcp__knowledge__knowledge_capabilities'])
 const roles=['planning','coding','testing','verification','reviewing']
 const commandTool='harness_run_check'
 
@@ -96,7 +98,7 @@ export function mountEngineering(ctx,config,libs,xml){
     const a=assignment(exec.agent)
     if(!scoped(exec.agent))return undefined
     if(!own(exec.agent))return deny('unknown agent')
-    if((a&&exec.name==='structured_output')||readTools.has(exec.name)||trustedReads.has(exec.name))return undefined
+    if((a&&exec.name==='structured_output')||readTools.has(exec.name)||discoveryTools.has(exec.name)||trustedReads.has(exec.name))return undefined
     if(exec.name==='harness_run'&&isRoot(exec.agent)&&!runs.size)return undefined
     if(a&&a.state&&exec.name===commandTool&&['coding','testing','verification'].includes(a.role))return undefined
     if(a&&['write','edit'].includes(exec.name)){

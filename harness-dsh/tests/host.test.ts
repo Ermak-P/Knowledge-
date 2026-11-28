@@ -30,6 +30,7 @@ async function exerciseHost(mount,root,libs,files,signal){
       const child={id:spec.childId,session:{id:spec.childId,header:{cwd:root}}};agents.set(child.id,child)
       for(const name of ['bash','pwsh','run_code','apply_patch','update_goal','subagent','workflow','mcp__knowledge__knowledge_submit_candidates'])assert.equal(deny(child,name),true,role+' '+name)
       assert.equal(deny(child,'mcp__knowledge__knowledge_context'),false)
+      assert.equal(deny(child,'mcp__knowledge__knowledge_capabilities'),false,role+' capability discovery')
       let structured
       if(role==='planning'){
         assert.equal(deny(child,'write',{file_path:'Src/value.txt'}),true)
@@ -72,6 +73,31 @@ async function exerciseHost(mount,root,libs,files,signal){
   return result
 }
 export { exerciseHost }
+test('Knowledge capability discovery works before a task without allowing other MCP operations',t=>{
+  const root=realpathSync(mkdtempSync(join(tmpdir(),'harness-dsh-discovery-')))
+  t.after(()=>rmSync(root,{recursive:true,force:true}))
+  execFileSync('git',['init','-q'],{cwd:root})
+  for(const config of [{},{readOnlyTools:[]},{readOnlyTools:['mcp__knowledge__knowledge_context']}]){
+    let guard
+    const parent={id:'root',session:{id:'root',header:{cwd:root}}}
+    const ctx={
+      agents:{get:id=>id===parent.id?parent:undefined},
+      subagents:{rootOf:()=>parent},
+      on(){},effect:register=>register(),
+      tools:{guard(fn){guard=fn;return ()=>{}},register(){return ()=>{}}}
+    }
+    mountEngineering(ctx,{workspace:root,...config},mockLibraries(),()=>{throw Error('XML not needed')})
+    const check=(name,agent=parent)=>guard({agent,name,arguments:{}})
+    assert.equal(check('mcp__knowledge__knowledge_capabilities'),undefined)
+    assert.equal(check('harness_run'),undefined)
+    for(const name of ['mcp__knowledge__knowledge_submit_candidates','mcp__knowledge__knowledge_scan','mcp__knowledge__knowledge_confluence','mcp__other__knowledge_capabilities','mcp__knowledge__knowledge_capabilities_extra','write','pwsh']){
+      assert.match(check(name),/outside the assigned role or frozen task scope/,name)
+    }
+    assert.equal(check('mcp__knowledge__knowledge_context')===undefined,!!config.readOnlyTools?.length)
+    assert.match(check('mcp__knowledge__knowledge_capabilities',{...parent}),/unknown agent/)
+  }
+})
+
 test('native service doubles: guard, reserved identity, evidence capture, disposal and final acceptance',async t=>{
   const root=realpathSync(mkdtempSync(join(tmpdir(),'harness-dsh-host-')))
   t.after(()=>rmSync(root,{recursive:true,force:true}))
