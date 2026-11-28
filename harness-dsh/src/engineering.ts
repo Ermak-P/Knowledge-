@@ -76,7 +76,7 @@ export function mountEngineering(ctx,config,libs,xml){
     const cwd=cwdOf(agent)
     if(typeof cwd!=='string')return false
     let path=resolve(cwd)
-    try{path=realpathSync(path)}catch{}
+    try{path=realpathSync.native(path)}catch{}
     const rel=relative(root,path)
     return rel!=='..'&&!rel.startsWith('..'+sep)&&!isAbsolute(rel)
   }
@@ -88,7 +88,7 @@ export function mountEngineering(ctx,config,libs,xml){
   const allowedWrite=(a,agent,args)=>{
     if(!a.state||!['coding','testing'].includes(a.role)||!args||typeof args.file_path!=='string'||args.sandbox_permissions!==undefined)return false
     a.run.lock.assertOwned()
-    const path=safePath(root,resolve(cwdOf(agent),args.file_path))
+    const path=safePath(root,resolve(realpathSync.native(cwdOf(agent)),args.file_path))
     const paths=a.role==='coding'?a.state.task.codingFiles:a.state.task.testFiles
     return paths.includes(path)&&(a.role==='testing'?isTestPath(path,a.run.testProjects):!isTestPath(path,a.run.testProjects))
   }
@@ -109,7 +109,7 @@ export function mountEngineering(ctx,config,libs,xml){
     const a=assignment(exec.agent)
     if(!a)return
     if(exec.name==='read'&&!result.isError){
-      try{a.observed.add(safePath(root,resolve(cwdOf(exec.agent),exec.arguments.file_path)))}catch{}
+      try{a.observed.add(safePath(root,resolve(realpathSync.native(cwdOf(exec.agent)),exec.arguments.file_path)))}catch{}
     }
     if(exec.name!==commandTool||!a.state)return
     const key=exec.token??exec.callId
