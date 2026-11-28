@@ -57,25 +57,31 @@ const sums = new Map(readFileSync(join(root, 'vendor/SHA256SUMS'), 'utf8').trim(
     assert(match, 'Invalid vendor checksum line')
     return [match[2], match[1]]
   }))
-assert.equal(sums.size, companionNames.length)
 for (const name of companionNames) {
   const spec = manifest.dependencies[name]
-  const entry = lock.packages['node_modules/' + name]
+  assert.equal(lock.packages['node_modules/' + name].resolved, spec)
+}
+const productionArchives = new Set()
+for (const [path, entry] of Object.entries(lock.packages)) {
+  if (!path) continue
+  assert(entry.integrity, 'Missing integrity: ' + path)
+  if (entry.dev) {
+    assert.equal(entry.resolved, undefined, 'Registry location must be configurable: ' + path)
+    continue
+  }
+  const spec = entry.resolved
   assert.match(spec, /^file:vendor\/[\w.-]+\.tgz$/)
-  assert.equal(entry.resolved, spec)
   const file = spec.slice('file:vendor/'.length)
+  productionArchives.add(file)
   const archive = join(root, 'vendor', file)
   assert.equal(digest(archive), sums.get(file))
   assert.equal('sha512-' + digest(archive, 'sha512', 'base64'), entry.integrity)
 }
-for (const path of ['vendor/LICENSE-APACHE-2.0.txt', 'vendor/LICENSE-stalegreen-MIT.txt', 'vendor/THIRD_PARTY_NOTICES.md',
+assert.deepEqual(productionArchives, new Set(sums.keys()))
+for (const path of ['vendor/LICENSE-APACHE-2.0.txt', 'vendor/LICENSE-stalegreen-MIT.txt',
+  'vendor/LICENSE-nodable-entities-MIT.txt', 'vendor/THIRD_PARTY_NOTICES.md',
   'vendor/UPSTREAM.md', 'src/reprolab/LICENSE']) {
   assert(readFileSync(join(root, path)).length > 0, 'Missing attribution: ' + path)
-}
-for (const [path, entry] of Object.entries(lock.packages)) {
-  if (!path || companionNames.some(name => path === 'node_modules/' + name)) continue
-  assert.equal(entry.resolved, undefined, 'Registry location must be configurable: ' + path)
-  assert(entry.integrity, 'Missing registry integrity: ' + path)
 }
 
 const temp = mkdtempSync(join(tmpdir(), 'harness-dsh-release-'))
@@ -110,7 +116,8 @@ try {
     .replace('src/index.ts', 'src/index.js')
   writeFileSync(join(stage, 'overlay.example.yml'), overlay)
   mkdirSync(join(stage, 'vendor'))
-  for (const path of ['LICENSE-APACHE-2.0.txt', 'LICENSE-stalegreen-MIT.txt', 'THIRD_PARTY_NOTICES.md', 'UPSTREAM.md', 'SHA256SUMS']) {
+  for (const path of ['LICENSE-APACHE-2.0.txt', 'LICENSE-stalegreen-MIT.txt',
+    'LICENSE-nodable-entities-MIT.txt', 'THIRD_PARTY_NOTICES.md', 'UPSTREAM.md', 'SHA256SUMS']) {
     cpSync(join(root, 'vendor', path), join(stage, 'vendor', path))
   }
 

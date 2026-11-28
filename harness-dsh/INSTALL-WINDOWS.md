@@ -4,24 +4,24 @@ Use Node.js 24.22.3 with npm 11.13.0 or a newer compatible release satisfying `p
 
 ## Install from the source ZIP
 
-Extract to a staging location first. The ZIP has a single top-level `harness-dsh` folder.
+Extract to a staging location first. Set `$Extracted` to the path of the `harness-dsh` directory inside the extracted branch ZIP.
 
 ```powershell
 $Target = 'C:\LLM\Plugins\Harness-DSH'
 $Stage = Join-Path (Split-Path $Target) ('Harness-DSH-stage-' + [guid]::NewGuid())
-Expand-Archive .\Harness-DSH-source-0.2.2.zip -DestinationPath $Stage
-$Extracted = Join-Path $Stage 'harness-dsh'
+Expand-Archive .\Knowledge--main.zip -DestinationPath $Stage
+$Extracted = Join-Path $Stage 'Knowledge--main\harness-dsh'
 Push-Location $Extracted
-npm ci --omit=dev
+npm ci --omit=dev --offline
 if ($LASTEXITCODE -ne 0) { Pop-Location; throw 'Harness installation failed' }
 Pop-Location
 if (Test-Path -LiteralPath $Target) { throw "Use the upgrade procedure for $Target" }
 Move-Item -LiteralPath $Extracted -Destination $Target
 ```
 
-The source installation resolves stalegreen from the verified archive under `vendor/`, including when the configured corporate registry returns HTTP 404 for that tarball.
+The source installation uses the 28 verified production archives under `vendor/` and works with an empty npm cache and no registry access.
 
-Use `npm ci` in place of `npm ci --omit=dev` for the full development and acceptance installation. The ZIP includes the lockfile, all three vendor archives, fixtures and tests. For deployment, copy `overlay.example.yml` to a user-managed location and set the plugin path to `C:/LLM/Plugins/Harness-DSH/src/engineering.ts` and the workspace to a disposable project. Load that overlay through the existing DSH profile procedure. Preserve your current DSH settings and overlay separately from the install directory.
+Use `npm ci` for the full development and acceptance installation with registry access. The branch ZIP includes the lockfile, vendor archives, fixtures and tests. For deployment, copy `overlay.example.yml` to a user-managed location and set the plugin path to `C:/LLM/Plugins/Harness-DSH/src/engineering.ts` and the workspace to a disposable project. Load that overlay through the existing DSH profile procedure. Preserve your current DSH settings and overlay separately from the install directory.
 
 ## Install the generated npm package
 

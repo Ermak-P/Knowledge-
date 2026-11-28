@@ -27,7 +27,7 @@ stalegreen supplies fingerprint computation/comparison, not its advisory claim-b
 Run these from `harness-dsh` with Git and a supported Node.js release. The .NET acceptance suite also needs .NET 10 and a native shell. Set `DSH_DOTNET_ACCEPTANCE=1` to include full native .NET repair workflows in `test:native`. Set `DSH_KNOWLEDGE_PYTHON` to the Python executable of an isolated Knowledge MCP installation to add the real MCP test.
 
 ```text
-npm install
+npm ci
 npm test
 npm run test:unit
 npm run test:mocked
@@ -38,7 +38,7 @@ npm run test:provider
 npm run test:coverage
 ```
 
-Use `npm ci` to reinstall from the lockfile, or `npm ci --omit=dev` for production. The pinned Verification, Evidence and stalegreen packages are included under `vendor/` with their integrity and redistribution records. See [Windows installation and upgrades](INSTALL-WINDOWS.md) for source ZIP installation, npm package installation, and release packaging. See [the hardened compatibility matrix](https://github.com/Ermak-P/Knowledge-/blob/9e3c58d4682aad81b01d16099e78a717281d0436/harness-dsh/DSH_ACCEPTANCE_REPORT.md#compatibility-matrix) for the previously qualified DSH releases.
+From a checkout or ZIP download of the branch, run `npm ci --omit=dev --offline` in `harness-dsh` for production. All 28 production archives are included under `vendor/` with their integrity and redistribution records. Full development installation with `npm ci` uses the configured registry for development-only dependencies. See [Windows installation and upgrades](INSTALL-WINDOWS.md) for source ZIP installation, npm package installation, and release packaging. See [the hardened compatibility matrix](https://github.com/Ermak-P/Knowledge-/blob/9e3c58d4682aad81b01d16099e78a717281d0436/harness-dsh/DSH_ACCEPTANCE_REPORT.md#compatibility-matrix) for the previously qualified DSH releases.
 
 ### Native smoke (separate disposable profile/project first)
 
