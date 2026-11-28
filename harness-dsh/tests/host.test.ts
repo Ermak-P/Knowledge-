@@ -5,6 +5,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, realpathSy
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
+import { projectRoot } from '../src/dotnet.ts'
 import { mountEngineering } from '../src/engineering.ts'
 import { mockLibraries } from './mock-libraries.ts'
 
@@ -76,4 +77,18 @@ test('native service doubles: guard, reserved identity, evidence capture, dispos
   t.after(()=>rmSync(root,{recursive:true,force:true}))
   execFileSync('git',['init','-q'],{cwd:root});mkdirSync(join(root,'Src'));mkdirSync(join(root,'Tests'))
   await exerciseHost(mountEngineering,root,mockLibraries(),{write:(p,v)=>writeFileSync(join(root,p),v),read:p=>readFileSync(join(root,p),'utf8')},new AbortController().signal)
+})
+
+test('repository root accepts equivalent Windows spelling and rejects nested directories', t=>{
+  const root=realpathSync(mkdtempSync(join(tmpdir(),'harness-dsh-root-')))
+  t.after(()=>rmSync(root,{recursive:true,force:true}))
+  execFileSync('git',['init','-q'],{cwd:root})
+  mkdirSync(join(root,'nested'))
+  assert.equal(projectRoot(root),root)
+  assert.throws(()=>projectRoot(join(root,'nested')), /workspace must be repository root/)
+  if(process.platform==='win32'){
+    assert.equal(realpathSync(projectRoot(root.replaceAll('\\','/'))),root)
+    const alternate=root.replace(/^[A-Za-z]:/,d=>d[0]===d[0].toUpperCase()?d.toLowerCase():d.toUpperCase())
+    assert.equal(projectRoot(alternate).toLowerCase(),root.toLowerCase())
+  }
 })
