@@ -24,8 +24,8 @@ export function gitContainsPath(root: string, path: string) {
   return execFileSync('git',['--literal-pathspecs','ls-files','-z','--cached','--others','--exclude-standard','--',path],{cwd:root,maxBuffer:64*1024*1024,timeout:30000,windowsHide:true}).toString('utf8').split('\0').includes(path)
 }
 export function projectRoot(path: string) {
-  const root=realpathSync(path)
-  const git=realpathSync(execFileSync('git',['rev-parse','--show-toplevel'],{cwd:root,timeout:30000}).toString('utf8').trim())
+  const root=realpathSync.native(path)
+  const git=realpathSync.native(execFileSync('git',['rev-parse','--show-toplevel'],{cwd:root,timeout:30000}).toString('utf8').trim())
   if(root!==git){
     // Windows may return different spellings of the same directory. Check
     // filesystem identity as well as path equivalence; never accept a child.
