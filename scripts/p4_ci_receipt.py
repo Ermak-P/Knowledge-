@@ -1,4 +1,4 @@
-"""Publish compact source-bound receipts only; raw outputs stay in Actions artifacts."""
+"""Publish compact source-bound annotated tags; raw outputs stay in Actions artifacts."""
 import hashlib,json,os,subprocess,tempfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
@@ -24,6 +24,28 @@ def compact(run,ledger,receipt):
     return result
 
 
+def publish(summary,sha,layout,platform,repo=ROOT):
+    """Retain exact-source receipts without recreating a service branch."""
+    assert len(sha)==40 and all(c in '0123456789abcdef' for c in sha)
+    assert layout in ('full','machine-fast') and platform in ('Linux','Windows')
+    run_id=os.environ['GITHUB_RUN_ID'];attempt=os.environ.get('GITHUB_RUN_ATTEMPT','1')
+    assert run_id.isdigit() and attempt.isdigit()
+    tag='validation-'+layout+'-'+platform.lower()+'-'+sha+'-'+run_id+'-'+attempt
+    ref='refs/tags/'+tag
+    exists=subprocess.run(['git','rev-parse','--verify','--quiet',ref],cwd=repo,capture_output=True).returncode==0
+    if exists:
+        assert git('rev-parse',ref+'^{commit}',cwd=repo)==sha,'receipt tag source mismatch'
+        assert json.loads(git('for-each-ref','--format=%(contents)',ref,cwd=repo))==summary,'receipt tag content mismatch'
+    else:
+        with tempfile.TemporaryDirectory(prefix='p4-ci-receipt-') as tmp:
+            message=Path(tmp)/'receipt.json'
+            message.write_text(json.dumps(summary,sort_keys=True,indent=2)+'\n',encoding='utf-8')
+            subprocess.run(['git','-c','user.name=github-actions[bot]','-c','user.email=41898282+github-actions[bot]@users.noreply.github.com','tag','-a',tag,'-F',str(message),sha],cwd=repo,check=True)
+    # Push only this immutable tag; source branches and working files are untouched.
+    subprocess.run(['git','push','origin',ref],cwd=repo,check=True)
+    return tag
+
+
 def main():
     assert os.environ.get('GITHUB_ACTIONS')=='true'
     assert os.environ.get('GITHUB_EVENT_NAME') in ('push','workflow_dispatch'),'PR validation cannot publish evidence'
@@ -39,23 +61,6 @@ def main():
     assert ledger['commit']==sha and ledger['platform']['os']==job
     assert ledger['source_identity']==hashlib.sha256(json.dumps(ledger['source'],sort_keys=True).encode()).hexdigest()
     receipt=dict(qualification=layout,commit=sha,platform=job,run=rid,source_identity=ledger['source_identity'],status=ledger['status'],url='https://github.com/'+os.environ['GITHUB_REPOSITORY']+'/actions/runs/'+os.environ['GITHUB_RUN_ID'],job=os.environ['GITHUB_JOB'],event=os.environ['GITHUB_EVENT_NAME'],pull_request=os.environ.get('P4_CI_PR') or None,workflow_revision=os.environ['GITHUB_SHA'])
-    with tempfile.TemporaryDirectory(prefix='p4-ci-receipt-') as tmp:
-        repo=Path(tmp)/'receipt';repo.mkdir();subprocess.run(['git','init',str(repo)],check=True)
-        subprocess.run(['git','remote','add','origin',git('remote','get-url','origin')],cwd=repo,check=True)
-        subprocess.run(['git','config','include.path',str(ROOT/'.git/config')],cwd=repo,check=True)
-        for key,value in [('core.longpaths','true'),('core.autocrlf','false'),('user.name','github-actions[bot]'),('user.email','41898282+github-actions[bot]@users.noreply.github.com')]:subprocess.run(['git','config',key,value],cwd=repo,check=True)
-        branch='knowledge-validation-receipts';fetch=subprocess.run(['git','fetch','origin',branch],cwd=repo,capture_output=True)
-        subprocess.run(['git','checkout','-b',branch,'FETCH_HEAD'] if fetch.returncode==0 else ['git','checkout','--orphan',branch],cwd=repo,check=True)
-        target=repo/sha/layout/job/rid
-        target.mkdir(parents=True,exist_ok=True)
-        summary=compact(run,ledger,receipt)
-        (target/'receipt.json').write_text(json.dumps(summary,indent=2)+'\n',encoding='utf-8')
-        subprocess.run(['git','add','.'],cwd=repo,check=True)
-        if subprocess.run(['git','diff','--cached','--quiet'],cwd=repo).returncode==0:
-            print('This exact compact receipt is already retained');return
-        subprocess.run(['git','commit','-m','Record compact '+layout+' '+job+' validation for '+sha],cwd=repo,check=True)
-        for _ in range(4):
-            if subprocess.run(['git','push','origin','HEAD:refs/heads/'+branch],cwd=repo,capture_output=True).returncode==0:print(receipt['url']);return
-            subprocess.run(['git','fetch','origin',branch],cwd=repo,check=True);subprocess.run(['git','merge','--allow-unrelated-histories','--no-edit','FETCH_HEAD'],cwd=repo,check=True)
-        raise RuntimeError('Cannot publish compact receipt; Actions artifacts remain available')
+    tag=publish(compact(run,ledger,receipt),sha,layout,job)
+    print(receipt['url']);print('Compact receipt:',tag)
 if __name__=='__main__':main()

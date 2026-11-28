@@ -23,6 +23,12 @@ Build with Python 3.12: `python scripts/setup_p3.py`, then `.venv/bin/python scr
 
 Automatic .NET testing (runner v2): [contract](docs/P4/AUTOMATIC-TESTS.md), [machine installation (RU)](docs/P4/INSTALL-RU.md), [project setup (RU)](docs/P4/PROJECT-SETUP-RU.md). The runtime finds every case-insensitive `*Tests.csproj` and verifies the complete suite.
 
+## Integrated DSH and CI receipts
+
+The current DeepSeek Harness plugin, Knowledge read-tool configuration and live agent-handoff observer are in [harness-dsh](harness-dsh/README.md).
+
+Compact P4 and machine validation receipts are retained as annotated `validation-<layout>-<platform>-<source-sha>-<Actions-run>-<attempt>` tags. Their JSON messages identify the exact source and result; raw outputs remain in Actions artifacts. CI no longer recreates a `knowledge-validation-receipts` branch. Historical receipt and distribution commits remain in the integrated Git history; obsolete ZIPs and generated receipt trees are not copied back into the source checkout.
+
 ## Retained P3 and historical documentation
 
 # Knowledge + Harness — P3 release candidate

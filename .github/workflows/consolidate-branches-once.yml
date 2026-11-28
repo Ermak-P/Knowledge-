@@ -1,0 +1,40 @@
+name: Consolidate merged branches once
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/consolidate-branches-once.yml']
+permissions:
+  contents: write
+jobs:
+  remove-integrated-refs:
+    if: github.repository == 'Ermak-P/Knowledge-' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Delete only unchanged branch tips already integrated into main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          while read -r expected branch; do
+            test "$branch" != main
+            git merge-base --is-ancestor "$expected" refs/remotes/origin/main
+            current=$(git ls-remote --heads origin "refs/heads/$branch" | cut -f1)
+            if test -z "$current"; then
+              echo "Already removed: $branch"
+              continue
+            fi
+            if test "$current" != "$expected"; then
+              echo "Refusing to remove changed branch: $branch" >&2
+              exit 1
+            fi
+            git push --force-with-lease="refs/heads/$branch:$expected" origin ":refs/heads/$branch"
+          done <<'INTEGRATED_BRANCHES'
+          7a9461550c3acbc0393a4ac5c23ac7ec7347500f codex/dsh-agent-handoff-view
+          8c0100fd0f0b558279b603556ad550fa047a9744 codex/dsh-knowledge-capabilities-access
+          6d562ece6176dc44f98697487606455e18774ca2 dist/harness-dsh-0.2.2
+          70e82042a92dc3d75f4d444ef6f256db78f37cdb knowledge-validation-receipts
+          INTEGRATED_BRANCHES

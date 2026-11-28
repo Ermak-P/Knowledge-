@@ -5,6 +5,31 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class ArtifactReceipts(unittest.TestCase):
+    def test_receipt_publication_retains_tag_without_recreating_branches(self):
+        import subprocess
+        from unittest.mock import patch
+        spec=importlib.util.spec_from_file_location('ci_receipt_tags',ROOT/'scripts/p4_ci_receipt.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as tmp:
+            remote=Path(tmp)/'remote.git';repo=Path(tmp)/'source'
+            subprocess.run(['git','init','--bare',str(remote)],check=True,capture_output=True)
+            subprocess.run(['git','init','-b','main',str(repo)],check=True,capture_output=True)
+            for key,value in [('user.name','Fixture'),('user.email','fixture@example.invalid')]:subprocess.run(['git','config',key,value],cwd=repo,check=True)
+            (repo/'source.txt').write_text('source')
+            subprocess.run(['git','add','.'],cwd=repo,check=True)
+            subprocess.run(['git','commit','-m','source'],cwd=repo,check=True,capture_output=True)
+            subprocess.run(['git','remote','add','origin',str(remote)],cwd=repo,check=True)
+            subprocess.run(['git','push','origin','main'],cwd=repo,check=True,capture_output=True)
+            sha=module.git('rev-parse','HEAD',cwd=repo);summary={'commit':sha,'status':'PASS'}
+            with patch.dict(module.os.environ,{'GITHUB_RUN_ID':'123','GITHUB_RUN_ATTEMPT':'2'}):
+                tag=module.publish(summary,sha,'full','Windows',repo)
+                self.assertEqual(module.publish(summary,sha,'full','Windows',repo),tag)
+                with self.assertRaisesRegex(AssertionError,'content mismatch'):module.publish({**summary,'status':'FAIL'},sha,'full','Windows',repo)
+            heads=module.git('ls-remote','--heads','origin',cwd=repo).splitlines()
+            self.assertEqual([line.split()[1] for line in heads],['refs/heads/main'])
+            self.assertEqual(module.git('rev-parse',tag+'^{commit}',cwd=repo),sha)
+            self.assertEqual(json.loads(module.git('for-each-ref','--format=%(contents)','refs/tags/'+tag,cwd=repo)),summary)
+            self.assertEqual(module.git('status','--porcelain',cwd=repo),'')
+
     def test_receipt_contains_summaries_but_not_raw_logs_packages_or_configuration(self):
         spec=importlib.util.spec_from_file_location('ci_receipt',ROOT/'scripts/p4_ci_receipt.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         with tempfile.TemporaryDirectory() as tmp:
