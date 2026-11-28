@@ -1,1 +1,0 @@
-The approved pricing threshold is 37.

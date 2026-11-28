@@ -1,1 +1,0 @@
-This owned local qualification was interrupted with SIGINT after the valid-template replay regression exposed a missing catalog alias match. It is retained as FAILED/superseded, never as qualification of the corrected source. The final source reruns the entire route.

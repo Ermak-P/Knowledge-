@@ -1,1 +1,0 @@
-Historical diagnostics only. Every directory records its own old source revision, status and limitations. The checkout failure did not execute native checks; the same-version probe retained old code and was repaired. Superseded PASS receipts qualify only their original source. Current local/native source/package/artifact validation determines the revised profile.

@@ -1,6 +1,6 @@
 # Harness for DeepSeek Harness (DSH)
 
-**Approved scope:** the owner approved the consolidated DSH-01–06 roadmap on 2026-11-26 and authorized mocked validation where the native environment is unavailable. See [the independent acceptance report](DSH_ACCEPTANCE_REPORT.md) for current native evidence and deployment verdicts.
+**Approved scope:** the owner approved the consolidated DSH-01–06 roadmap on 2026-11-26 and authorized mocked validation where the native environment is unavailable. See [the independent acceptance report](https://github.com/Ermak-P/Knowledge-/blob/9e3c58d4682aad81b01d16099e78a717281d0436/harness-dsh/DSH_ACCEPTANCE_REPORT.md) for current native evidence and deployment verdicts.
 
 ## Boundaries
 
@@ -38,7 +38,7 @@ npm run test:provider
 npm run test:coverage
 ```
 
-Use `npm ci` to reinstall from the lockfile, or `npm ci --omit=dev` for production. The pinned Verification, Evidence and stalegreen packages are included under `vendor/` with their integrity and redistribution records. See [Windows installation and upgrades](INSTALL-WINDOWS.md) for source ZIP installation, npm package installation, and release packaging. See [the hardened compatibility matrix](DSH_ACCEPTANCE_REPORT.md#compatibility-matrix) for the previously qualified DSH releases.
+Use `npm ci` to reinstall from the lockfile, or `npm ci --omit=dev` for production. The pinned Verification, Evidence and stalegreen packages are included under `vendor/` with their integrity and redistribution records. See [Windows installation and upgrades](INSTALL-WINDOWS.md) for source ZIP installation, npm package installation, and release packaging. See [the hardened compatibility matrix](https://github.com/Ermak-P/Knowledge-/blob/9e3c58d4682aad81b01d16099e78a717281d0436/harness-dsh/DSH_ACCEPTANCE_REPORT.md#compatibility-matrix) for the previously qualified DSH releases.
 
 ### Native smoke (separate disposable profile/project first)
 

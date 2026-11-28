@@ -1,5 +1,0 @@
-# Source and dependency notices
-
-The product retains the user-supplied narrow framework validator/schemas and public repository implementation provenance; no new public license grant is invented here. The owner controls distribution/publication and any license choice. The release is supplied for internal evaluation/independent review, not automatic public publication.
-
-Core wheels have no bundled third-party runtime distributions. Python, pip, setuptools/build tooling and the optional pinned MCP/dependency packages retain their upstream licenses; their SDK/runtime caches/wheels are not included as a complete third-party wheelhouse. Optional dependencies are installed through their declared pinned package distributions, which supply their own license metadata. The separately evaluated eShopOnWeb retains its actual upstream license, included with current review evidence, and is not bundled into the product distribution. Windows API/OpenCode documentation references are attributed in review provenance; host implementations/models/private source are not bundled.

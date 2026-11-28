@@ -1,1 +1,0 @@
-Historical diagnostics only. These failed or superseded source/run revisions do not qualify the current release. Current local and native ledgers and artifact hashes are validated separately. Superseded local build artifacts are retained in .local/p3-superseded-evidence and excluded from the distribution/review archive.

@@ -1,5 +1,0 @@
-# Product-only uninstall and reinstall
-
-Run the kit's `python install.py uninstall --env ENV`. The ownership marker is required. It asks that environment's pip to remove only installation-owned Knowledge/Harness distribution names and their CLI launchers; it never deletes the venv, other packages, application source, `.knowledge`, `.harness`, operational journals or backups. Optional third-party SDK dependencies remain to avoid removing shared packages. Purge of project data is not implemented as default uninstall.
-
-Reinstall with `python install.py install --env ENV --profile full`. Retained data is inspected using the same explicit root and versioned formats. No competing old import package is installed; distribution names remain unchanged. Doctor reports actual versions/locations and marker. An unmarked venv requires explicit adoption for install; an arbitrary/global Python cannot be uninstalled by this kit. Back up before changing versions and retain the old wheel set for the tested rollback sequence.
