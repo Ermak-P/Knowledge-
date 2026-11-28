@@ -15,6 +15,7 @@ Alternative D: import the public verification library primitives, without activa
 - `src/lifecycle.ts`: task-scoped immutable contracts, run-local ordered in-memory evidence and capture failures, exact selectors, upstream oracles and CompletionGate, bounded repair and final review.
 - `src/dotnet.ts`: Git-based project discovery, scoped paths, trusted native shell build/test, fresh TRX interpretation, real exit status, cancellation and timeout.
 - `src/tdd.ts` and `src/reprolab/`: TDD controller and reused MIT pure RED/GREEN/regression functions. No worktrees.
+- `src/handoff-state.ts`, `src/handoffs.ts` and `src/handoff-client.js`: bounded passive handoff journal and optional Desktop/Web graph on the existing DSH listener. No extra runtime dependencies, build step or model calls.
 
 Planning -> for each task (optional Testing/RED -> Coding -> Testing if applicable -> GREEN if TDD -> Verification/Task Gate) -> final revalidation -> independent Reviewing -> complete or targeted repair. Deterministic missing/stale checks run through the native shell service without extra model requests. Already-current canonical tool evidence is reused. Semantic ACs require a fresh independent verifier that actually read the cited target. Reviewing reads changed planned files and receives the original request, plan, and a bounded real Git diff. Only the host sets COMPLETED. Missing evidence, unavailable freshness, cancellation, infrastructure problems or exhausted repair attempts never become success. The default repair budget is three Coding attempts per task; at most one explicitly requested TDD refactor (followed by GREEN) per task.
 
@@ -57,6 +58,26 @@ Copy `fixtures/dotnet` to the disposable Git workspace and commit a baseline. No
 5. Exercise a TDD task with an expected failing test, same test inputs GREEN, optional refactor and re-test.
 6. Review actual native trajectory/child sessions and terminal logs; verify current task/phase and failure reason. Then explicitly test an existing Knowledge read-only MCP tool in the allowed list. Do not modify Knowledge.
 7. Only after these pass, benchmark fingerprint budget and selected build/test commands in a disposable copy of the real .NET project (not the production checkout).
+
+### Watch work pass between agents
+
+The optional `harness-dsh-handoffs` entry in [overlay.example.yml](overlay.example.yml) adds a **⇄ Передача работы** button to DSH Desktop/Web. Keep both engineering and handoff plugin entries pointing to the same installed source directory so they share the same in-process journal. Add the observer entry under an existing `insert` list, or use this separate insertion once:
+
+```yaml
+- insert:
+    - id: harness-dsh-handoffs
+      name: 'C:/LLM/Plugins/Harness-DSH/src/handoffs.ts'
+```
+
+Fully restart DSH Desktop after enabling the observer, or reload the Web application. Open the panel, then run an actual engineering task through `harness_run`. A capabilities-only MCP call creates no agent handoffs. The graph starts at Main and appends each actual role activation: Planning, Coding, Testing, Verification and Reviewing. Repeated roles appear as separate nodes, so repair can visibly go Verification -> Coding -> Testing -> Verification. Optional or unnecessary roles are not invented. A host-only check updates the phase without pretending a new agent ran.
+
+The active role is highlighted. Arrows show work passing between roles under the Harness controller; they do not claim direct agent-to-agent messages. Each handoff retains the child session id, task, attempt, available repair reason, role result and elapsed time. Choose a run from the dropdown to inspect its history; the newest run is followed until you select an older one. Agent verdicts are separate from the overall Harness result, which becomes COMPLETED only after the real lifecycle result and cleanup succeed. Failure and user cancellation retain their actual terminal states.
+
+The observer reads host facts only: it registers no model tools, injects no model prompts, creates no agents and performs no extra model requests. It uses DSH 0.2.3-alpha.2's public `webServer.register` and `webserver/index-inject` APIs, an isolated plugin-owned Shadow DOM panel, and a read-only route guarded by an opaque page capability. Polling runs once per second only while the panel is open and the page is visible; unchanged revisions return 304 without cloning or sending the journal. Requests time out after five seconds. No task files, build permissions or MCP permissions are changed.
+
+History is in memory: the last eight runs and last 256 role activations per run are retained, with truncation identified. Reloading the page can recover retained host history; restarting or reloading the engineering module may lose it. This is a live view, not durable audit storage.
+
+Validation: Node tests cover actual engineering-to-journal integration using native-service doubles, repeated roles/repair, cancellation, bounds, final-state separation, the real HTTP response path, capability checks, conditional reads and route disposal. Browser rendering and native Windows Desktop integration remain unverified in this environment (no usable Chromium executable). On Windows, verify button appearance, live highlighting, repair history and a cancelled run before using it as your normal work view. The UI supplements the existing Subagents and Trajectory views.
 
 ### Knowledge read-only access and IPM smoke check
 

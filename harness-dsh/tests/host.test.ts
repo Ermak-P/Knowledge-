@@ -8,6 +8,7 @@ import { execFileSync } from 'node:child_process'
 import { projectRoot } from '../src/dotnet.ts'
 import { mountEngineering } from '../src/engineering.ts'
 import { mockLibraries } from './mock-libraries.ts'
+import { handoffJournal } from '../src/handoff-state.ts'
 
 async function exerciseHost(mount,root,libs,files,signal){
   let version=1,seq=0,disposed=0,checks=0
@@ -26,6 +27,10 @@ async function exerciseHost(mount,root,libs,files,signal){
     tools:{guard(fn){guards.push(fn);return ()=>{}},register(def){tools.set(def.name,def);return ()=>{}}},
     subagents:{rootOf:()=>parent,async startActivation(spec){
       const role=spec.label.split(' ').at(-1);roles.push(role)
+      const shown=handoffJournal.snapshot().runs[0]
+      assert.equal(shown.steps.at(-1).role,role)
+      assert.equal(shown.steps.at(-1).id,spec.childId)
+      assert.equal(shown.steps.at(-1).status,'running')
       assert.equal(spec.provider,'spawn');assert.equal(spec.delivery,'caller');assert.equal(spec.parent,parent)
       const child={id:spec.childId,session:{id:spec.childId,header:{cwd:root}}};agents.set(child.id,child)
       for(const name of ['bash','pwsh','run_code','apply_patch','update_goal','subagent','workflow','mcp__knowledge__knowledge_submit_candidates'])assert.equal(deny(child,name),true,role+' '+name)
@@ -68,6 +73,10 @@ async function exerciseHost(mount,root,libs,files,signal){
   assert.equal(result.status,'completed',result.reason)
   assert.equal(roles.join(','),'planning,coding,testing,verification,reviewing')
   assert.equal(disposed,5);assert.equal(checks,1)
+  const shown=handoffJournal.snapshot().runs[0]
+  assert.equal(shown.status,'completed')
+  assert.deepEqual(shown.steps.map(s=>s.role),roles)
+  assert.equal(shown.steps.every(s=>s.endedAt!==null),true)
   assert.equal(files.read('Src/value.txt'),'implemented');assert.equal(files.read('Tests/probe.txt'),'test fixture')
   await assert.rejects(()=>tool.execute({},exec(parent,'harness_run')))
   return result
@@ -117,4 +126,32 @@ test('repository root accepts equivalent Windows spelling and rejects nested dir
     const alternate=root.replace(/^[A-Za-z]:/,d=>d[0]===d[0].toUpperCase()?d.toLowerCase():d.toUpperCase())
     assert.equal(projectRoot(alternate).toLowerCase(),realpathSync.native(root).toLowerCase())
   }
+})
+
+test('handoff terminal states follow actual cancellation and failed native cleanup',async t=>{
+  for(const outcome of ['cancelled','cleanup-failure'])await t.test(outcome,async t=>{
+    const root=realpathSync(mkdtempSync(join(tmpdir(),'harness-dsh-ending-')))
+    t.after(()=>rmSync(root,{recursive:true,force:true}))
+    execFileSync('git',['init','-q'],{cwd:root})
+    const abort=new AbortController(),tools=new Map()
+    const parent={id:'root',session:{id:'root',header:{cwd:root},snapshotEvents:()=>[{type:'turn/start',seq:1},{type:'user/message',seq:2,data:{source:{kind:'user'},content:[{type:'text',text:'Implement value'}]}}]}}
+    const ctx={
+      agents:{get:id=>id===parent.id?parent:undefined},shell:{},on(){},effect:register=>register(),
+      tools:{guard(){return ()=>{}},register(def){tools.set(def.name,def);return ()=>{}}},
+      subagents:{rootOf:()=>parent,async startActivation(spec){
+        if(outcome==='cancelled')abort.abort()
+        return {childId:spec.childId,result:Promise.resolve({stopReason:'completed',structured:{tasks:[]}}),async dispose(){if(outcome==='cleanup-failure')throw Error('native cleanup failed')}}
+      }}
+    }
+    const libs=mockLibraries();libs.s.pathIgnorer=()=>()=>false;libs.s.computeFingerprint=()=>({available:true,tree:'constant'})
+    mountEngineering(ctx,{workspace:root},libs,()=>{throw Error('XML not needed')})
+    const execute=()=>tools.get('harness_run').execute({},{agent:parent,signal:abort.signal})
+    if(outcome==='cleanup-failure')await assert.rejects(execute,/teardown failed/)
+    else assert.equal(JSON.parse(await execute()).status,'cancelled')
+    const shown=handoffJournal.snapshot().runs[0]
+    assert.equal(shown.status,outcome==='cancelled'?'cancelled':'blocked')
+    assert.equal(shown.steps.length,1)
+    assert.equal(shown.steps[0].status,outcome==='cancelled'?'cancelled':'blocked')
+    assert.notEqual(shown.steps[0].endedAt,null)
+  })
 })

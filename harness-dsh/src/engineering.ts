@@ -7,6 +7,7 @@ import { EvidenceBook, runEngineering } from './lifecycle.ts'
 import { projectRoot, safePath, discoverTests, validateTaskPaths, hashFiles, runCheck, isTestPath, createWorkspaceFingerprint, createTrxParser } from './dotnet.ts'
 import { tddController } from './tdd.ts'
 import { acquireWorkspaceLock } from './workspace-lock.ts'
+import { handoffJournal } from './handoff-state.ts'
 
 export const name='harness-dsh-engineering'
 export const inject=['agents','subagents','tools','shell']
@@ -140,13 +141,14 @@ export function mountEngineering(ctx,config,libs,xml){
     const {request,seq,basis}=userBasis(parent)
     if(seenTurns.get(sessionId(parent))===seq)throw Error('this user request already started a Harness run; a new user request is required')
     const lock=acquireWorkspaceLock(root)
-    let run
+    let run,displayResult
     try{
     seenTurns.set(sessionId(parent),seq)
     const abort=new AbortController()
     const signal=AbortSignal.any([exec.signal,abort.signal])
     run={id:randomUUID(),parent,abort,signal,lock,checks:new Set(),teardownFailed:false,fingerprintCount:0,fingerprintMs:0,phase:'setup',book:new EvidenceBook(libs,()=>fresh()),testProjects:discoverTests(root)}
     runs.set(run.id,run)
+    handoffJournal.start({runId:run.id,sessionId:sessionId(parent),workspace:root})
     const baseline=new Map()
     const checkRaw=(_state,c,checkSignal)=>runCheck(ctx,parent,root,c,()=>fresh(),s.compareFingerprints,xml,checkSignal,timeoutMs)
     const captureTrusted=async(state,c,value)=>{
@@ -156,7 +158,7 @@ export function mountEngineering(ctx,config,libs,xml){
     }
     const tdd=tddController(root,run.testProjects,checkRaw,fresh,s.compareFingerprints)
     const host={
-      progress:p=>{run.phase=p.phase;log(run,p)},
+      progress:p=>{run.phase=p.phase;handoffJournal.phase(run.id,p);log(run,p)},
       async validate(plan){
         validateTaskPaths(root,plan,run.testProjects)
         for(const p of new Set(plan.flatMap(t=>t.codingFiles.concat(t.testFiles))))baseline.set(p,hashFiles(root,[p]))
@@ -178,6 +180,8 @@ export function mountEngineering(ctx,config,libs,xml){
         assignments.set(id,a) // reserve before the native child can issue a tool call
         let activation
         let disposal
+        let handoffOutcome={status:'blocked',detail:'Agent did not return a validated result'}
+        handoffJournal.enter(run.id,{agentId:id,role,taskId:state?.task.id??null,objective:state?.task.objective??'',attempt:state?.attempts??null,reason:extra.repair??extra.mode??''})
         const cancel=()=>{if(activation&&!disposal){disposal=activation.dispose();void disposal.catch(()=>{})}}
         try{
           const prompt=roleInstructions[role]+'\n'+JSON.stringify({...extra,workspace:root,...(role==='planning'?{testProjects:run.testProjects}:{} )})
@@ -190,25 +194,33 @@ export function mountEngineering(ctx,config,libs,xml){
           const after=readOnly?fresh():null
           if(readOnly&&s.compareFingerprints(before,after)!=='same')throw Error(role+' workspace changed or freshness unavailable: '+(before.reason??after.reason??'workspace changed'))
           if(role==='reviewing'&&result.structured.verdict==='pass'&&!extra.changes.paths.every(p=>a.observed.has(p)))throw Error('review did not inspect every changed planned file')
+          handoffOutcome={status:result.structured.verdict??'completed',detail:result.structured.detail??'Structured plan received'}
           return {structured:result.structured,observedPaths:[...a.observed],fingerprint:after,producer:{agentId:id,sessionId:id}}
+        }catch(error){
+          handoffOutcome={status:childSignal.aborted?'cancelled':'blocked',detail:String(error)}
+          throw error
         }finally{
           childSignal.removeEventListener('abort',cancel)
-          try{if(activation)await(disposal??activation.dispose())}catch(error){run.teardownFailed=true;throw error}finally{assignments.delete(id)}
+          try{if(activation)await(disposal??activation.dispose())}catch(error){run.teardownFailed=true;handoffOutcome={status:'blocked',detail:'Agent cleanup failed: '+String(error)};throw error}finally{assignments.delete(id);handoffJournal.leave(run.id,id,handoffOutcome)}
         }
       }
     }
     const result=await runEngineering(host,run.book,request,basis,run.id,sessionId(parent),signal,maxAttempts)
     lock.assertOwned()
+    displayResult=result
     return JSON.stringify(result)
     }finally{
       if(!run){lock.release()}
       else{
+        let cleaned=false
         try{
           await Promise.allSettled([...run.checks])
           await run.book.drain()
           if(run.teardownFailed)throw Error('Harness teardown failed; workspace lock retained: '+lock.path)
           lock.release()
+          cleaned=true
         }finally{
+          handoffJournal.finish(run.id,cleaned&&displayResult?displayResult.status:run.signal.aborted?'cancelled':'blocked',cleaned&&displayResult?displayResult.reason??'':'Run ended before a final result or cleanup did not complete')
           runs.delete(run.id)
           console.log('[harness-dsh] '+JSON.stringify({runId:run.id,phase:'fingerprint-summary',count:run.fingerprintCount,totalMs:run.fingerprintMs}))
         }
