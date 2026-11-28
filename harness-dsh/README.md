@@ -58,6 +58,33 @@ Copy `fixtures/dotnet` to the disposable Git workspace and commit a baseline. No
 6. Review actual native trajectory/child sessions and terminal logs; verify current task/phase and failure reason. Then explicitly test an existing Knowledge read-only MCP tool in the allowed list. Do not modify Knowledge.
 7. Only after these pass, benchmark fingerprint budget and selected build/test commands in a disposable copy of the real .NET project (not the production checkout).
 
+### Knowledge read-only access and IPM smoke check
+
+The `readOnlyTools` list in [overlay.example.yml](overlay.example.yml) permits the five reviewed Knowledge read tools: capabilities, context, claim lookup, evidence lookup and instructions. Copy that list into the engineering plugin's `config` in your active profile's `cordis.patch.yml`, keeping `readOnlyTools` at the same indentation as `presets`. This list permits existing MCP tools; register the Knowledge MCP client separately with `serverName: knowledge`. Scan, plan, candidate submission and Confluence collection are not added to the allowlist.
+
+For the existing IPM database, set the engineering plugin's `workspace` and the Knowledge MCP client's `cwd` to `C:/Git/IPM`. Preserve the example's disposable workspace when qualifying a separate test project. Fully restart DSH Desktop, open a new session in `C:/Git/IPM`, then send this bounded read-only check:
+
+```text
+Проверь чтение существующей базы Knowledge проекта IPM.
+
+Один раз вызови mcp__knowledge__knowledge_context с аргументами:
+{
+  "task": "Архитектура IPM: основные компоненты, их ответственность и связи",
+  "max_bytes": 12000,
+  "max_items": 5
+}
+
+Покажи полученные сведения и ссылки или идентификаторы
+подтверждающих записей, если они есть в ответе.
+
+Если инструмент отсутствует, вызов запрещён, вернёт ошибку
+или пустой результат — сообщи об этом и остановись.
+Не запускай инициализацию, сканирование, PowerShell
+и самостоятельную диагностику.
+```
+
+A successful `knowledge_capabilities` call confirms connection and discovery only. This context check verifies access to existing project knowledge; an empty response does not establish that architectural knowledge is present.
+
 ### Conservative restrictions and open items
 
 - The plugin is deliberately restricted to the configured Git workspace and native standard tool execution. It does not claim an OS security boundary against arbitrary plugin code, external processes, or test/build code itself. PTC direct effects and Windows sandbox completeness need live qualification. Use native read/edit/write; apply_patch, arbitrary shell, dynamic subagents and mutating MCP tools are denied in scope. All role-specific writes must be listed by Planning and pass path/symlink and test-directory guards. Build-control and Git scope-control files require separate approval.
