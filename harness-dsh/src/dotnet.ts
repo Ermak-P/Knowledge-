@@ -1,7 +1,7 @@
 // Trusted .NET verification. No agent-supplied shell fragments.
 import { execFileSync, spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, lstatSync, readFileSync, realpathSync, readdirSync, mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, lstatSync, statSync, readFileSync, realpathSync, readdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { performance } from 'node:perf_hooks'
 import { resolve, relative, dirname, basename, isAbsolute, sep, join } from 'node:path'
@@ -26,7 +26,12 @@ export function gitContainsPath(root: string, path: string) {
 export function projectRoot(path: string) {
   const root=realpathSync(path)
   const git=realpathSync(execFileSync('git',['rev-parse','--show-toplevel'],{cwd:root,timeout:30000}).toString('utf8').trim())
-  if(root!==git)throw Error('workspace must be repository root')
+  if(root!==git){
+    // Windows may return different spellings of the same directory. Check
+    // filesystem identity as well as path equivalence; never accept a child.
+    const a=statSync(root,{bigint:true}), b=statSync(git,{bigint:true})
+    if(process.platform!=='win32'||relative(root,git)!==''||a.ino===0n||a.dev!==b.dev||a.ino!==b.ino)throw Error('workspace must be repository root')
+  }
   return root
 }
 export function discoverTests(root: string) {
