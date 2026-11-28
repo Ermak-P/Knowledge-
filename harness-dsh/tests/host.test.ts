@@ -84,11 +84,11 @@ test('repository root accepts equivalent Windows spelling and rejects nested dir
   t.after(()=>rmSync(root,{recursive:true,force:true}))
   execFileSync('git',['init','-q'],{cwd:root})
   mkdirSync(join(root,'nested'))
-  assert.equal(projectRoot(root),root)
+  assert.equal(projectRoot(root),realpathSync.native(root))
   assert.throws(()=>projectRoot(join(root,'nested')), /workspace must be repository root/)
   if(process.platform==='win32'){
-    assert.equal(realpathSync(projectRoot(root.replaceAll('\\','/'))),root)
+    assert.equal(projectRoot(root.replaceAll('\\','/')),realpathSync.native(root))
     const alternate=root.replace(/^[A-Za-z]:/,d=>d[0]===d[0].toUpperCase()?d.toLowerCase():d.toUpperCase())
-    assert.equal(projectRoot(alternate).toLowerCase(),root.toLowerCase())
+    assert.equal(projectRoot(alternate).toLowerCase(),realpathSync.native(root).toLowerCase())
   }
 })
